@@ -141,3 +141,6 @@ If no material issue exists, proceed with implementation.
 - Test proposed corrections.
 - Escalate blockers promptly rather than spending excessive time on unsuccessful workarounds.
 - Optimize for correct, integrated, maintainable software—not agreement, verbosity, or the appearance of progress.
+## Execution memory (implementation authorization 2026-11-12)
+
+Read IMPLEMENTATION_STATUS.md on session start/resume along with role specifications and verify assigned branch/head. L alone updates this single live ledger at integration checkpoints and before session end/handoff; feature agents report actual evidence through PRs. Authoritative decisions remain in original specs; reference approved changes from the ledger. Never commit credentials, original personal scans, student records or sensitive logs. User authorized Gate 0 implementation; see DECISIONS.md EXEC-003 and CAT-001–003 for the approved provisional curriculum and explicit uncertainties. This authorization supersedes historical planning-only wording for Gate 0; feature coding still awaits human baseline merge.
