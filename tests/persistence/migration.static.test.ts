@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 const dir = join(process.cwd(), 'supabase', 'migrations');
 const files = readdirSync(dir).filter(f => f.endsWith('.sql')).sort();
 const sql = files.map(f => readFileSync(join(dir, f), 'utf8')).join('\n').replace(/--[^\n]*/g, '');
+const admissionRpcs = ['issue', 'admit', 'dispatch', 'finish', 'revoke', 'purge', 'retry_check'].map(n => `public.admission_${n}`);
 
 describe('supabase migrations static policy', () => {
   it('has timestamp-ordered migrations', () => {
@@ -34,9 +35,23 @@ describe('supabase migrations static policy', () => {
       expect(sql).toMatch(new RegExp(`revoke all on function ${name!.replace('.', '\\.')}\\([^)]*\\) from public`, 'i'));
     }
   });
-  it('SECURITY DEFINER is limited to the protected account-deletion flow', () => {
+  it('SECURITY DEFINER is limited to account deletion and the service_role-only admission RPCs', () => {
     const definers = [...sql.matchAll(/create function ([\w.]+)\([^)]*\)[^$]*?security definer/gi)].map(m => m[1]);
-    expect(definers).toEqual(['public.delete_my_account']);
+    expect(definers).toEqual(['public.delete_my_account', ...admissionRpcs]);
+  });
+  it('admission RPCs execute only as service_role; admission_private is closed to API roles', () => {
+    for (const fn of admissionRpcs) {
+      const name = fn.replace('.', '\\.');
+      expect(sql).toMatch(new RegExp(`revoke all on function ${name}\\([^)]*\\) from public, anon, authenticated;`, 'i'));
+      const grants = [...sql.matchAll(new RegExp(`grant execute on function ${name}\\([^)]*\\) to ([\\w, ]+);`, 'gi'))].map(m => m[1]);
+      expect(grants, fn).toEqual(['service_role']);
+    }
+    expect(sql).toMatch(/revoke all on schema admission_private from anon, authenticated, service_role;/i);
+    expect(sql).toMatch(/revoke all on all tables in schema admission_private from anon, authenticated, service_role;/i);
+    expect(sql).not.toMatch(/grant[^;]*\bon\s+(?:schema\s+admission_private|(?:table\s+)?admission_private\.)/i);
+    const tables = [...sql.matchAll(/create table (admission_private\.\w+)/gi)].map(m => m[1]!);
+    expect(tables).toHaveLength(3);
+    for (const t of tables) expect(sql).toMatch(new RegExp(`alter table ${t.replace('.', '\\.')} enable row level security`, 'i'));
   });
   it('policies are scoped to authenticated and auth.uid()', () => {
     const policies = [...sql.matchAll(/create policy \w+ on [\w.]+\s+for \w+ to (\w+)\s+(?:using|with check) \(\(select auth\.uid\(\)\) = owner_user_id\)/gi)];
