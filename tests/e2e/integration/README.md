@@ -1,0 +1,49 @@
+# Real component integration verification
+
+Run `npm run test:integration` on the lead's local-only, **uncommitted and unpushed** combined worktree once E and U modules exist. This is a cross-component dependency, not a substitute for each PR's independently executable tests. The normal foundation browser smoke remains a separate check.
+
+The browser mounts actual `PathCheckWorkflow`, E's `createAcademicService` / validated catalog registry and L's `createPlannerCommands`. Only the clock and explicitly synthetic academic input graph are fixed. All normalization, audit, prerequisite evaluation, search, recommendations and mutations execute real implementations. No UI service doubles or canned academic responses are imported. Dynamic module loading allows this lead-owned harness to typecheck before dependent branches merge; absent modules cause a real test failure, never a mock fallback or skipped success.
+
+Synthetic graph: SYN-101 → SYN-201 → SYN-301, three credits each, nine required credits; each dependency must be passed in a prior term. Input: SYN-101 completed in Fall 2026, grade B. Future offerings remain unknown; future passing and capacity assumptions must be acknowledged. This graph is invented test data, **not ASU policy**. No transcript or student data is used.
+
+Checks cover automatic manual-row normalization without implicit acceptance; one explicit Accept and continue with exactly one real command call/revision increment; invalid-input refusal and keyboard error focus; selected-course conflict; overlooked prerequisite addition; preview/apply/reject/undo; fresh full fingerprints after capacity changes; one authoritative offering record; real bounded draft generation/adoption; keyboard skip navigation; contradictory withdrawn and unresolved in-progress record propagation. Runtime observation records actual engine calls only, in test memory. Transcript processing and cloud persistence are disabled here and require separate security acceptance.
+
+Temporary integration procedure: create a scratch branch from the lead head, combine E/U/S/G with `git merge --no-commit --no-ff`, then `git apply tests/e2e/integration/application.patch` to connect the root application to actual modules. Run lint/typecheck/units/build, this suite and U's browser configuration. Run `PATHCHECK_TEST_BUILD=1 npm run test:integration` after the build for the assembled production-bundle smoke check (the synthetic test entry is deliberately not bundled). The old foundation-only smoke expects the scaffold and is superseded by this application check in the assembled snapshot. Record exact candidate SHAs/results in `IMPLEMENTATION_STATUS.md`. Do not commit or push the scratch branch. Remove the scratch worktree after evidence is recorded. Only the human merges feature PRs; once dependencies land, L will submit the root wiring as application code and update the normal smoke gate.
+
+## Reconstructing a reviewed candidate
+
+Use the exact full head SHAs from the latest `IMPLEMENTATION_STATUS.md` checkpoint,
+not a stale temporary directory or mutable remote branch tip. Fetch first and verify
+each head still matches its PR. The protected main remains unchanged until the human
+merges each PR. From the repository, create a fresh local worktree at the recorded
+lead commit, then combine E/U/S/G without creating an integration commit:
+
+```sh
+git worktree add /private/tmp/pathcheck-verification -b integration/verification-02 LEAD_SHA
+```
+
+Inside that worktree:
+
+```sh
+git merge --no-commit --no-ff ENGINE_SHA FRONTEND_SHA SUPABASE_SHA GEMINI_SHA
+git apply tests/e2e/integration/application.patch
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run test:integration
+PATHCHECK_TEST_BUILD=1 npm run test:integration
+node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts
+```
+
+Replace the uppercase SHA placeholders with recorded commits. Never commit or push
+this scratch branch. A failed merge or patch application must be investigated,
+not bypassed. `npm test` without local service variables intentionally skips the
+live database suite; execute [local security verification](../../../docs/testing/local-security.md)
+separately and record its result. The standalone scaffold smoke is replaced by
+`application.spec.ts` for this assembled root; don't claim the scaffold test proves
+actual application behavior. Keep the synthetic browser harness out of the build.
+
+Contract adoption is a separate human gate: PR #3 must be merged before E consumes
+`repeatCreditPolicy` or U consumes `pdf-lib`. A scratch compatibility pass does not
+waive that gate or prove positive sourced-repeat/PDF acceptance before implementation.

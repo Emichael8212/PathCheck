@@ -11,9 +11,11 @@
 
 - `<exact executed command>` — <PASS (N tests) | FAIL (details) | BLOCKED (reason) | NOT RUN (reason)>
 <!-- Include only relevant checks. Report actual results; no default PASS text. -->
-<!-- If a required check is BLOCKED/NOT RUN, add compact handoff: missing access/dependency; exact command or manual steps; expected result; failure indicator; evidence to return. Link a detailed test note only if necessary. Do not assign already-passed tests to the human. -->
+<!-- If a required check is BLOCKED/NOT RUN, add compact handoff: missing access/dependency; exact command or manual steps; expected result; failure indicator; evidence to return. Link a detailed test note only if necessary. The mandatory human checkpoint independently repeats a focused verified scenario; agent PASS never implies human PASS. -->
 
 ## Evidence
+
+- Human acceptance: NOT RUN — [PR_ACCEPTANCE_TEST.md](<lead-owned acceptance document>); tested implementation SHA `<sha>`. Human captures screenshots and reports outcome.
 
 - <UI: screenshot link + browser interaction result; OR logic: input → expected → actual; OR security: allowed/denied access test. Omit inapplicable categories.>
 
