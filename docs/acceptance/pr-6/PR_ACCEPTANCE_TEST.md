@@ -2,12 +2,19 @@
 
 ## Current upload checkpoint — 2026-11-13
 
-Current PR #6 head: `52a72dac5844e471c2957305105f4f344402abec`.
-Required CI `foundation` 43517706821 PASS. The refreshed baseline does not change
+Current PR #6 head: `91c4bf27943135e325944f599cb001f78d6968b0`, refreshed from human PR #8 merge `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e`.
+Required CI `foundation` 43527776220 PASS. The refreshed baseline does not change
 U-owned code. Prior human manual-entry/PDF-export acceptance is retained.
 The combined live synthetic upload is now agent-verified with real Google and SQL;
 human upload status is **PASS**, including planner/provider checks and cleanup.
-The accepted U head is unchanged; refresh and revalidate after the next PR #8 merge.
+U-owned files are unchanged from accepted `52a72da`; independent impact review
+preserves human PASS. Post-merge composed regressions pass: 669 units,65 UI,12
+engine/application browser tests including PDF,1 production smoke,5 simulated-provider
+upload cases and1 actual Google/local SQL upload. No human rerun is needed.
+**READY TO MERGE** for the frontend component at this exact head.
+The standalone root application test requires L composition and fails on the
+scaffold; the assembled check passed on the lead candidate. Final application/root,
+account and public-processing gates remain separate unfinished work.
 Use the single [combined PR #6/#8/#9 procedure](../pr-9/PR_ACCEPTANCE_TEST.md).
 It pins all component heads and assigns the consent, file controls, extraction summary,
 explicit acceptance and planner controls to this PR. Do not repeat the already

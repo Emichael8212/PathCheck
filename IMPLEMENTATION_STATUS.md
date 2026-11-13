@@ -1162,3 +1162,54 @@ merge. Remaining public gateway/bot enforcement, PDF resource isolation, account
 composition and real-transcript privacy/release gates remain mandatory unfinished
 work. Synthetic acceptance is not full application or deployment completion.
 This checkpoint updates documentation only; accepted application behavior unchanged.
+
+
+### PR8 merged; PR6 post-merge verification — 2026-11-13
+
+Verified human PR8 merge via GitHub: d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e,
+merged 2026-11-13T23:30:29Z. Accepted G head6e29425404a7a53bf7e7a6da19d477b49e89469a
+is unchanged in main. Human combined upload/planner/evidence/cleanup PASS and all
+prior G benchmark/review/security evidence retained. Fast-forwarded clean local main;
+L own feature refreshed in ef097d56a1be7ca085b79737280b61cc388c3378. No agent main
+merge/push, no reset/deletion of existing worktrees or accepted human-test repetition.
+
+Claude U owner resumed via actual claude-opus-5-5 medium CLI in existing worktree.
+Owner created clean baseline merge bdd932c15b11d068adb1f1436df4e666566cc61d. Concurrent
+remote baseline refresh91c4bf27943135e325944f599cb001f78d6968b0 appeared; owner retained
+remote head instead of force-pushing a duplicate. Root and independent reviewer
+verified identical parents52a72+d47ded6 and full treeb7a3d347179448c1774707bf0fbc4598cb2d164b.
+U paths unchanged from accepted52a72; only26 accepted G files enter baseline. No
+contracts, engine, catalog, U behavior or approved architecture changes. CurrentPR6
+head91c4bf2 CLEAN; required foundation43527776220 SUCCESS. Independent static impact
+review found no blocker and preserves human manual/export/upload acceptance.
+
+Owner npm run check PASS:645units/2documented liveDBskips,lint,typecheck,build,smoke1;
+UI65 PASS; real-engine journey.spec10 PASS. Standalone npm run test:integration also
+ran application.spec, which FAILS on the L scaffold root. This is the specific L
+application composition dependency, not a U regression; do not describe that whole
+standalone command as PASS. Lead ran the now-available assembled check below.
+
+Local-only /private/tmp/pathcheck-after-pr8 based on maind47, noncommitting merges
+Lef097d56 and Ubdd932 (identical full tree to actual91c4bf2), plus existing L
+application.patch. All180 executable/config files match previously accepted combined
+source. npm ci --ignore-scripts PASS. Lead postmerge commands/results:
+- npm run lint && npm run typecheck && npm test: PASS669units,2documented liveDBskips.
+- npm run test:transcript-benchmark: PASS43 deterministic regressions; live corpus NOT rerun.
+- npm run test:upload-guards: PASS9; npm run build PASS (existing559.58kB chunk warning).
+- node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts: PASS65 (60desktop/5responsive), including PDF and accessibility.
+- npm run test:integration: PASS12 (assembledapplication1+real-enginejourneys11), includes actual conditional PDF download.
+- PATHCHECK_TEST_BUILD=1 npm run test:e2e: PASS1 composed production smoke.
+- node tests/e2e/normalization.integration.mjs: PASS2 integration assertions, unresolved transfer/repeat/provenance preserved.
+- node tests/e2e/upload/run.mjs: PASS5 actual HTTP/SQL/UI with simulated503/malformed/revocation provider responses.
+- Existing private env + process-only free confirmation, node tests/e2e/upload/runLive.mjs --test: PASS1 actual Google/local SQL browser workflow after merge. Report run-1794612857331.json;1Google200,1853ms,1quota/admit/dispatch/finish,0retries,1/1correctattempt, explicitacceptance+preview/apply/undo. No original transcript or billing change.
+
+Dedicated localhost bindings reverified; clean disposableDB prerequisite restored
+before each upload suite. SQL policies unchanged; prior371/security and humanPASS
+retained, not claimed rerun here. Prior human workflowPASS remains valid: baseline
+refresh changes ancestry only relative to accepted composed source, with independent
+review and actual postmerge regression evidence. PR6 READY TO MERGE at91c4bf2 for
+owned frontend module. Lproductionroot/account/publicgateway/resourceisolation and
+real-transcript privacy/release gates remain unfinished; no fullMVP/deployment claim.
+Next human action: personally review/mergePR6, then Lrefresh/revalidatePR9.
+
+Postmerge live server exited, shared benchmark lock released, and dedicated local Supabase/Colima services stopped successfully. Human acceptance environment/worktree and prior results preserved.

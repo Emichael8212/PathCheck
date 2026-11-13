@@ -15,7 +15,11 @@
   real Gemini 3.5 Flash-Lite → deterministic normalization → explicit acceptance → planner.
 - Human status: **PASS**, reported for upload/explicit acceptance, planner and provider-evidence checks, and final cleanup. Setup/isolation/reset/server startup also passed.
   Accepted pins are the three implementation revisions above; agent evidence remains separate.
-- Acceptance complete. PR #8 is the next component for personal merge after current-head checks; dependent PRs refresh and revalidate after each merge.
+- Acceptance complete. PR #8 is human-merged as `d47ded6`; PR #6 refreshed head
+  `91c4bf27943135e325944f599cb001f78d6968b0` has unchanged U code and passing
+  post-merge regressions, including actual Google upload. Human PASS remains valid.
+  Preserve the original tested pins/procedure below; no repeat human run is requested.
+  PR #6 is next for personal merge, then PR #9 refresh/revalidation.
   This does not approve public deployment, real transcripts or the entire MVP.
 
 | PR | Requirements verified by this procedure |

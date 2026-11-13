@@ -4,7 +4,7 @@
 - Implementation SHA: `6e29425404a7a53bf7e7a6da19d477b49e89469a`.
 - Test type: live synthetic PDF browser/API integration.
 - Feature: consent, admission, PDF extraction, raw-row proposals and bounded retries.
-- Human status: **PASS** for the pinned combined upload, planner, provider-evidence and cleanup procedure. Eligibility: **READY TO MERGE** for this component at the unchanged head.
+- Human status: **PASS** for the pinned combined upload, planner, provider-evidence and cleanup procedure. Status: **MERGED by the human** at `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e` on 2026-11-13.
 - Required `foundation` CI 43521373169 PASS; independent findings resolved.
 
 ## Before You Begin

@@ -13,12 +13,12 @@ are recorded in the ledger/PR evidence, not represented as GitHub approvals.
 |---|---|---|---|
 | 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
 | 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
-| 6 `52a72dac5844e471c2957305105f4f344402abec` | Three screens, planner, PDF export and consent/upload UI; engine/main1c; upload uses PR8 through PR9 | U independent findings resolved; baseline-only refresh; CI43517706821 PASS; prior human manual/export retained, combined upload and cleanup human PASS | Human accepted; sequence after PR8 with baseline refresh/revalidation |
+| 6 `91c4bf27943135e325944f599cb001f78d6968b0` | Three screens, planner, PDF export and consent/upload UI; engine/PR8 on maind47; full composition uses PR9 | U independent findings resolved; baseline-only refresh; CI43527776220 PASS; prior human manual/export retained, combined upload and cleanup human PASS | READY TO MERGE frontend component; postmerge regressions and independent acceptance-impact review PASS |
 | 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; authoritative merged database baseline | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | MERGED `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`, verified 2026-11-13T22:09:33Z; local main synchronized |
-| 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload and human acceptance/cleanup PASS | READY TO MERGE unchanged component head; public runtime and real-data gates remain separately mandatory |
+| 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload and human acceptance/cleanup PASS | MERGED `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e` at2026-11-13T23:30:29Z; accepted evidence retained |
 | 9 implementation `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba` | Lead RPC adapter, benchmark, real local synthetic upload composition; requires PR6/8, merged PR7 | Independent L/G findings resolved; CI43521594660 PASS; composed 669 units,65 UI,11 journeys,5 simulated upload and1 live Google browser PASS; human combined acceptance/cleanup PASS | Human accepted; depends on PR6/8 merges and subsequent revalidation; later docs-only changes preserve tested implementation |
 
-Current open implementation heads contain merged main1c0b8d3. Noncommitting
+Current open implementation heads contain merged maind47ded6. Noncommitting
 reconstruction of all three heads is conflict-free. That is
 conflict compatibility, not permission to merge. PR9 directly imports PR8's handler,
 admission and provider in its upload harness. PR8 is a code dependency of PR9;
@@ -40,8 +40,8 @@ its omission from the earlier sequence was incorrect.
 4. Once applicable gates pass, proposed merge order is **PR7 → PR8 → PR6 → PR9**.
    PR6 and PR8 have no strict code merge order relative to each other; this ordering
    lands the extraction module before its UI integration. Both must precede PR9's
-   completed application integration. PR8 is now the next recommended personal merge; revalidate dependent
-   branches after that merge before recommending the next one.
+   completed application integration. PR8 is merged; PR6 is refreshed, independently reviewed and postmerge tested,
+   and is the next recommended personal merge. Revalidate PR9 afterward.
 5. After each human merge, refresh dependent feature branches non-destructively,
    rerun affected automated checks/strict CI, and assess acceptance impact. A
    documentation-only or behavior-preserving baseline refresh does not itself
@@ -632,3 +632,29 @@ extraction component. PR6/9 are human accepted for the pinned combined scope but
 must refresh/revalidate in dependency order after each human merge. Public runtime,
 account composition and real-transcript/release gates remain mandatory and open;
 none is represented as complete by this component merge recommendation.
+
+## Post-PR8 merge coverage — 2026-11-13
+
+PR8 merged d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e. Preserved humanPASS at accepted
+G6e294/U52a72/Lf1b03b4. CurrentU91c4bf27943135e325944f599cb001f78d6968b0 has exactly
+the same tree as locally testedUbdd932c15b11d068adb1f1436df4e666566cc61d; both merge
+52a72+d47. L refreshed ef097d56a1be7ca085b79737280b61cc388c3378. All180 executable/config
+files of composed source match the prior accepted candidate. Independent impact
+review preserves humanPASS; no retest requested. PR6 foundation43527776220 PASS/CLEAN.
+
+| Requirement/source | Owner | Current test evidence at these pins | Status / gate |
+|---|---|---|---|
+| F04/T-GEM/T-SEC actual upload | G/S/L/U | `tests/e2e/upload/live.spec.ts`, `LIVE synthetic PDF through real Google, SQL, normalization, acceptance and planning`: 1/1course,1Google200,1admission/settlement; report run-1794612857331.json | PASS postmerge B; scoped humanPASS retained; public real-data gates open |
+| F01/F03/F07/F13 record→planner | U/E/L | Same live case: consent, explicit acceptance, conflict, preview/apply/undo and fingerprints; `npm run test:integration`12PASS | PASS B; no hardcoded provider or engine results |
+| F19/T-EXPORT | U/L/E | `journey.spec.ts`: `real engine outlook exports a readable conditional PDF without transcript details`; UI export tests within65 browser/669unit PASS | PASS postmerge A6/B; prior human exportPASS retained |
+| F20/T-UI | U/L | UI Playwright65PASS (60desktop,5responsive), composed production application.spec1PASS | PASS A6/B scoped controls/accessibility/browser checks |
+| T-GEM failures/consent | G/S/U/L | `upload.spec.ts`5PASS actualSQL/HTTP/UI, explicitly simulated503/malformed/revocation provider responses | PASS postmerge B; no live503 claim |
+| T-DATA normalization | E/G/L/S | `normalization.integration.mjs`2PASS: unresolved transfer/repeat/incomplete/provenance projections; npm test669PASS/2documentedliveDBskips | PASS postmerge B; unknown ASU policy remains unknown |
+| Free-tier fixture/egress guard | L | `test:upload-guards`9PASS; `test:transcript-benchmark`43PASS; original live corpus not rerun | PASS A9/B, not real-transcript privacy approval |
+| Component vs root composition | U/L | Owner standalone test:integration application.spec FAIL on unchanged Lscaffold;10journeysPASS. Existing Lapplication.patch assembled with all modules:12/12PASS plusproduction1PASS | Standalone FAIL preserved; specific B composition dependency verified PASS. Final ordinary root wiring still required, not a Uregression or waived executable check |
+| Current PR6 CI/review/human | U/L/Human | head91c4bf2, foundation43527776220 PASS; independent source-impact review no blocker; U code unchanged from humanaccepted52a72 | READY TO MERGE component A6; only human merges |
+
+No SQL policy change: previous371SQL/concurrency and humanPR7PASS remain evidence,
+not claimed rerun. Services used only isolated synthetic data; no secrets/screenshots
+or original transcripts committed. Final account/root/public-runtime and release
+gates remain mandatory engineering/privacy work; component readiness does not close them.
