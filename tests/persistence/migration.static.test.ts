@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 const dir = join(process.cwd(), 'supabase', 'migrations');
 const files = readdirSync(dir).filter(f => f.endsWith('.sql')).sort();
 const sql = files.map(f => readFileSync(join(dir, f), 'utf8')).join('\n').replace(/--[^\n]*/g, '');
-const admissionRpcs = ['issue', 'admit', 'dispatch', 'finish', 'revoke', 'purge'].map(n => `public.admission_${n}`);
+const admissionRpcs = ['issue', 'admit', 'dispatch', 'finish', 'revoke', 'purge', 'retry_check'].map(n => `public.admission_${n}`);
 
 describe('supabase migrations static policy', () => {
   it('has timestamp-ordered migrations', () => {
