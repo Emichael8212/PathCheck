@@ -1,10 +1,50 @@
 # Transcript endpoint implementation checkpoint
 
-This module implements the HTTP handler, signed guest-session/ticket admission, server Turnstile verification, real PDF structural inspection and Gemini REST transport. **It is not a deployable or production-enabled endpoint yet.** No real provider request has run. The real-data processing gate remains disabled pending the existing human processing/privacy approval and integration tests.
+This module implements the HTTP handler, signed guest-session/ticket admission, server Turnstile verification, real PDF structural inspection and Gemini REST transport. **It is not a deployed or production-enabled endpoint.** `createTranscriptRuntime` composes the actual Request→Response runtime with a server-only environment reader and injected atomic admission/gateway services. The real-data processing gate remains disabled pending the existing human processing/privacy approval and integration tests. Lead-owned live synthetic benchmark evidence is tracked separately; these module tests simulate provider responses explicitly.
 
 Browser exports: `createTranscriptClient`, `documentDigest`, `validateExtraction` from `src/transcript/index.ts`. The browser expects same-origin `/api/transcript/{availability,session,ticket,extract,revoke}`. U supplies the explicit disclosure/consent and Turnstile widget; use action `extract-transcript` and the server-configured audience as cData. Availability is display-only. Browser ticket state is transient, never local/session storage. Manual entry must remain available.
 
-The server factory accepts private dependencies. No process-local quota implementation, synthetic production bypass, default paid approval, automatic file upload/storage, request/response logging or arbitrary provider URL exists. Gemini uses one `generateContent` request with inline PDF, JSON schema and bounded output; no retry and no Files API. The reviewed model/pricing policy must cover maximum billable input/output including thinking tokens. Unknown failed dispatch cost retains the full reservation. Configuration correctness, pricing and provider billing behavior are external processing-review obligations, not established by synthetic tests.
+The server factory accepts private dependencies. No process-local quota implementation, synthetic production bypass, default paid approval, automatic file upload/storage, request/response logging or arbitrary provider URL exists. Gemini uses inline PDF, JSON schema and bounded output, never the Files API. The reviewed model/pricing policy must cover maximum billable input/output including thinking tokens and every permitted transport attempt. Unknown failed dispatch cost retains the full reservation. Configuration correctness, pricing and provider billing behavior are external processing-review obligations, not established by synthetic tests.
+
+## Bounded transport retries and private runtime
+
+Only HTTP503 may retry, opt-in through a reviewed `ProviderPolicy.retry`; default is
+one attempt. Maximum3 total attempts,50seconds total provider lifetime, base delay
+at least6seconds, exponential backoff plus0–1second jitter, and Retry-After seconds
+or date honored. No retry if its delay would exceed the remaining deadline.400,
+401,403,429, malformed response and rejected admission are not retried. Cancellation
+propagates through body reads, backoff, retry authorization and provider I/O. The
+whole handler has a60second signal, below the browser's65second request timeout;
+PDF inspection remains separately bounded30seconds. Synchronous PDF work still
+requires the separately tracked resource-isolation runtime.
+
+`EndpointOptions.authorizeRetry({reservationId,sessionId,now})` must verify the
+same dispatched reservation's live consent and lease. It cannot consume another
+ticket, create another admission, reset the lease or increment the student request
+quota. Missing/denied retry authorization fails closed. Every paid attempt's maximum
+cost is reserved upfront; successful settlement conservatively includes the maximum
+cost of prior503 attempts. Exhaustion returns
+`provider_temporarily_unavailable_manual_entry`; no generated coursework is invented.
+`finish` returning forbidden (including late consent revocation) suppresses output.
+
+`createTranscriptRuntime` reads only `GEMINI_API_KEY` and `PATHCHECK_GEMINI_MODEL`
+through the supplied private secret reader. Missing/mismatched configuration makes
+processing unavailable; it does not manufacture reviewed processing eligibility.
+The public runtime has no free-tier enable flag. Host listener, same-origin gateway,
+durable RPC adapter and reviewed eligibility remain explicit lead dependencies.
+
+Separate `createSyntheticGeminiProvider` is for a local test composition only:
+exact `gemini-3.5-flash-lite`, explicit Free confirmation, a fixed synthetic PDF SHA256
+allowlist, zero monetary cost and an obligatory `authorizeAttempt(maximumTokens)`
+project-budget callback on EVERY provider attempt. This callback must enforce actual
+RPM/TPM/RPD in the local harness; it is distinct from application admission quotas.
+No arbitrary PDF, alternate model or default budget is allowed. This factory is not
+wired into the public paid-eligibility handler. Test-only synthetic paid eligibility
+used with simulated Google responses is not proof of a live free-tier endpoint.
+
+The provider wire schema omits only rows/unrecognizedRows maxItems1000, matching the
+lead's live-discovered grammar correction. Original strict Zod limits still enforce
+both bounds before output enters G/E normalization; all required keys/types remain.
 
 Timing bounds: ticket ≤300s, admission lease 120s, PDF inspection deadline 30s after admission (timer race plus elapsed-clock check, so CPU-bound inspection also fails closed before dispatch), provider transport 50s, browser request 65s. The browser claims a ticket synchronously after digest computation (concurrent calls upload once); revocation deletes unused tickets, aborts in-flight uploads for that receipt and discards any late proposal. Already-transmitted bytes cannot be recalled.
 
@@ -39,6 +79,28 @@ records or provider calls. They are not the 15–20 labeled extraction benchmark
 - **G + authorized environment:** 15–20 labeled synthetic PDF corpus and actual provider benchmark after reviewed model/allowed synthetic credentials and labeled PDFs are available. Existing 15 raw-row cases are not the PDF benchmark. Accepted recall has no measured denominator yet. Do not process personal PDFs or enable the public endpoint to run a synthetic benchmark.
 
 ## Verification
+
+Runtime/retry checkpoint (2026-11-13, pending owned change on fbe9374 baseline):
+
+- `npm run check` — PASS: lint, TypeScript,240unit tests/14files (137G), build,
+  Chromium foundation smoke1. No live Google requests or real transcripts used.
+- `tests/transcript/runtime.test.ts` binds an actual loopback HTTP server, exercises
+  signed session/ticket, the real PDF inspector and actual provider transport with
+  explicitly simulated Google503→200 responses plus a store test double. Asserts
+  one application admission/dispatch/settlement while two provider attempts occur.
+  This does not establish live database security or real-provider accuracy.
+- `providerRetry.test.ts` covers attempt/elapsed limits, Retry-After seconds/date,
+  exponential jitter, cancellation (including hung authorization), no retry on
+  invalid credentials/malformed requests/quota denial, conservative cost reserve,
+  unchanged runtime row caps, synthetic digest rejection and per-attempt project
+  budget enforcement. Lead owns integration with actual SQL/gateway and browser.
+- Independent review identified stale ticket/revoke timestamps after slow body
+  reads and processing approval not rechecked around retry authorization. Both
+  corrected with deterministic regressions (40second body delay and expiry during
+  backoff/authorization). Handler32tests PASS; fullcheck above rerun after fixes.
+
+Older checkpoints below remain historical evidence, not claims about the current
+integrated application or live free-tier endpoint.
 
 Parser checkpoint (2026-11-13, after incorporating human-merged main
 `2bb6b3f8e36039a243ea3af389380019256357b7`; merge commit

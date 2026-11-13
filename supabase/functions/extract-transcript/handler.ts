@@ -6,6 +6,7 @@ import type { AdmissionStore } from './admission';
 import { sha256, sign, verify } from './crypto';
 import type { PdfProvider } from './provider';
 import { createPdfInspector } from './pdf';
+import { abortable } from './lifecycle';
 
 export interface PdfInspector { inspect(bytes: Uint8Array): Promise<Result<{ pageCount: number }>> }
 export interface EndpointOptions {
@@ -23,19 +24,21 @@ export interface EndpointOptions {
   /** L's authenticated gateway must supply the keyed network ID. Null always denies. */
   resolveNetwork: (request: Request) => Promise<string | null>;
   now?: () => string;
+  /** Same dispatched reservation only: recheck consent/lease without another admission. */
+  authorizeRetry?: (input: { reservationId: string; sessionId: string; now: string }) => Promise<Result<null>>;
 }
 const fail = (code: TypedFailure['code'], reasonCode: string): TypedFailure => ({ ok: false, code, reasonCode });
 function respond(value: Result<unknown>, extra: HeadersInit = {}): Response {
   const status = value.ok ? 200 : value.code === 'forbidden' ? 403 : value.code === 'rate_limited' ? 429 : value.code === 'validation_error' ? 400 : 503;
   return new Response(JSON.stringify(value), { status, headers: { ...extra, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 }
-async function boundedBody(request: Request, max: number): Promise<Uint8Array> {
+async function boundedBody(request: Request, max: number, signal: AbortSignal): Promise<Uint8Array> {
   const length = request.headers.get('content-length');
   if (length && (!/^\d+$/.test(length) || Number(length) > max)) throw new Error('body_limit');
   const reader = request.body?.getReader(); if (!reader) throw new Error('missing_body');
   const chunks: Uint8Array[] = []; let count = 0;
   try {
-    while (true) { const part = await reader.read(); if (part.done) break; count += part.value.length; if (count > max) throw new Error('body_limit'); chunks.push(part.value); }
+    while (true) { const part = await abortable(reader.read(), signal); if (part.done) break; count += part.value.length; if (count > max) throw new Error('body_limit'); chunks.push(part.value); }
   } catch { await reader.cancel(); throw new Error('invalid_body'); }
   const result = new Uint8Array(count); let at = 0; for (const chunk of chunks) { result.set(chunk, at); at += chunk.length; }
   return result;
@@ -72,6 +75,7 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
     } catch { return null; }
   }
   return async request => {
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(60_000)]);
     try {
       const path = new URL(request.url).pathname.split('/').at(-1);
       const time = now(); const eligibility = options.eligibility();
@@ -83,15 +87,15 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
       if (path === 'revoke') {
         if (!currentSession) return respond(fail('forbidden', 'guest_session_required'));
         if (request.headers.get('content-type') !== 'application/json') return respond(fail('validation_error', 'invalid_content_type'));
-        const body = RevokeConsentRequestSchema.parse(JSON.parse(new TextDecoder().decode(await boundedBody(request, 2048))));
-        return respond(await options.admission.revokeConsent(body, { serverSessionId: currentSession, now: time }));
+        const body = RevokeConsentRequestSchema.parse(JSON.parse(new TextDecoder().decode(await boundedBody(request, 2048, signal))));
+        return respond(await options.admission.revokeConsent(body, { serverSessionId: currentSession, now: now() }));
       }
       if (!enabled(eligibility, time)) return respond(fail('unavailable', 'processing_approval_required'));
       const network = await options.resolveNetwork(request);
       if (!network) return respond(fail('forbidden', 'trusted_network_identity_required'));
       if (path === 'session') {
         if (request.headers.get('content-type') !== 'application/json') return respond(fail('validation_error', 'invalid_content_type'));
-        z.strictObject({}).parse(JSON.parse(new TextDecoder().decode(await boundedBody(request, 128))));
+        z.strictObject({}).parse(JSON.parse(new TextDecoder().decode(await boundedBody(request, 128, signal))));
         if (currentSession) return respond({ ok: true, value: null });
         const cookie = await sign({ sessionId: crypto.randomUUID(), issuedAt: Date.parse(time), expiresAt: Date.parse(time) + 3_600_000 }, options.sessionSecret, 'session');
         return respond({ ok: true, value: null }, { 'Set-Cookie': `__Host-pathcheck_guest=${cookie}; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Strict` });
@@ -99,15 +103,15 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
       if (!currentSession) return respond(fail('forbidden', 'guest_session_required'));
       if (path === 'ticket') {
         if (request.headers.get('content-type') !== 'application/json') return respond(fail('validation_error', 'invalid_content_type'));
-        const input = TicketIssueRequestSchema.parse(JSON.parse(new TextDecoder().decode(await boundedBody(request, 12_000))));
-        return respond(await options.admission.issueTicket(input, { serverSessionId: currentSession, networkKey: network, origin: options.allowedOrigin, now: time, eligibility }));
+        const input = TicketIssueRequestSchema.parse(JSON.parse(new TextDecoder().decode(await boundedBody(request, 12_000, signal))));
+        return respond(await options.admission.issueTicket(input, { serverSessionId: currentSession, networkKey: network, origin: options.allowedOrigin, now: now(), eligibility: options.eligibility() }));
       }
       if (request.headers.get('content-type') !== 'application/pdf') return respond(fail('validation_error', 'pdf_required'));
       const input = AdmissionRequestSchema.parse({ signedTicket: request.headers.get('x-extraction-ticket'), consentReceiptId: request.headers.get('x-consent-receipt') });
-      const bytes = await boundedBody(request, ADMISSION_LIMITS.maxPdfBytes);
-      if (new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-') return respond(fail('validation_error', 'invalid_pdf_signature'));
-      const admission = await options.admission.admit(input, { sessionId: currentSession, networkKey: network, origin: options.allowedOrigin, documentDigest: await sha256(bytes), now: time, eligibility });
-      if (!admission.ok) return respond(admission);
+      const bytes = await boundedBody(request, ADMISSION_LIMITS.maxPdfBytes, signal);
+      if (new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-') { bytes.fill(0); return respond(fail('validation_error', 'invalid_pdf_signature')); }
+      const admission = await options.admission.admit(input, { sessionId: currentSession, networkKey: network, origin: options.allowedOrigin, documentDigest: await sha256(bytes), now: now(), eligibility });
+      if (!admission.ok) { bytes.fill(0); return respond(admission); }
       const reservationId = admission.value.reservationId;
       const admittedAt = Date.parse(now());
       let dispatched = false;
@@ -116,14 +120,14 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
       let result: Result<unknown> = fail('external_failure', 'extraction_failed_manual_entry');
       try {
         let inspected: Result<{ pageCount: number }> | null = null;
-        try { inspected = await withDeadline(pdf.inspect(bytes), INSPECTION_DEADLINE_MS); }
+        try { inspected = await abortable(withDeadline(pdf.inspect(bytes), INSPECTION_DEADLINE_MS), signal); }
         catch (error) { if (!(error instanceof Error && error.message === 'deadline')) throw error; }
         // Also catches synchronous/CPU-bound inspection that a timer race cannot preempt.
         const elapsed = Date.parse(now()) - admittedAt;
         if (inspected === null || !Number.isFinite(elapsed) || elapsed < 0 || elapsed > INSPECTION_DEADLINE_MS) result = fail('external_failure', 'pdf_inspection_deadline_exceeded');
         else if (!inspected.ok) result = inspected;
         else if (!Number.isInteger(inspected.value.pageCount) || inspected.value.pageCount < 1 || inspected.value.pageCount > ADMISSION_LIMITS.maxPages) result = fail('validation_error', 'pdf_page_limit');
-        else if (!enabled(options.eligibility(), now())) result = fail('unavailable', 'processing_approval_expired');
+        else if (signal.aborted || !enabled(options.eligibility(), now())) result = fail('unavailable', 'processing_approval_expired_or_cancelled');
         else {
           const dispatch = await options.store.dispatch({ reservationId, sessionId: currentSession, now: now() });
           if (!dispatch.ok) result = dispatch;
@@ -131,7 +135,13 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
             dispatched = true;
             // Unknown/failed provider cost consumes the full reservation conservatively.
             cost = eligibility.status === 'approved' ? eligibility.perRequestReservationMicrousd : 0;
-            const extracted = await options.provider.extract(bytes, inspected.value.pageCount);
+            const extracted = await options.provider.extract(bytes, inspected.value.pageCount, { signal,
+              ...(options.authorizeRetry ? { beforeRetry: async () => {
+                if (!enabled(options.eligibility(), now())) return fail('unavailable', 'processing_approval_expired');
+                const permitted = await options.authorizeRetry!({ reservationId, sessionId: currentSession, now: now() });
+                if (!enabled(options.eligibility(), now())) return fail('unavailable', 'processing_approval_expired');
+                return permitted;
+              } } : {}) });
             if (!extracted.ok) result = extracted;
             else if (!Number.isSafeInteger(extracted.value.actualCostMicrousd) || extracted.value.actualCostMicrousd < 0 || extracted.value.actualCostMicrousd > cost) result = fail('external_failure', 'provider_cost_bound_violation');
             else { cost = extracted.value.actualCostMicrousd; outcome = 'success'; result = { ok: true, value: extracted.value.extraction }; }
@@ -140,7 +150,7 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
       } catch { result = fail('external_failure', 'extraction_failed_manual_entry'); }
       finally { bytes.fill(0); }
       const settled = await options.admission.finish(reservationId, dispatched ? cost : 0, outcome);
-      return respond(settled.ok ? result : fail('unavailable', 'reservation_settlement_failed'));
+      return respond(settled.ok ? result : settled.code === 'forbidden' ? settled : fail('unavailable', 'reservation_settlement_failed'));
     } catch { return respond(fail('validation_error', 'invalid_transcript_request')); }
   };
 }
