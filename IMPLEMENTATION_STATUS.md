@@ -665,3 +665,7 @@ No screenshot captured. PR6 guide repinned to bbea54d and documents source-equiv
 prepared candidate. Human acceptance NOT RUN; await currentCI then present startup.
 These are frontend component gates, not full-app completion. Account/transcript
 composition and runtime/security integration remain required engineering work.
+
+PR6 refreshed-head bbea54d foundation43478299682 SUCCESS (includes UI browser and
+real-engine journeys). Human acceptance ready; NOT RUN until user executes browser
+and PDF procedure. No whole-application completion claimed.

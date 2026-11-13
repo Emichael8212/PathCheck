@@ -7,7 +7,7 @@
 - Test type: real integrated browser workflow
 - Feature being verified: three screens, course controls, contextual preview and minimum-data PDF
 - Human acceptance status: **NOT RUN**. Agent verification is separate.
-- Eligibility: human acceptance pending current refreshed-head CI; implementation and independent review pass.
+- Eligibility: **HUMAN ACCEPTANCE REQUIRED**. Refreshed-head foundation CI43478299682 PASS; independent review no blocker.
 
 ## Before You Begin
 Required: Git, Node24–26/npm, Chrome and macOS Preview. No account or credentials.

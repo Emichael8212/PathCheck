@@ -494,3 +494,6 @@ PASS/2live skips/fullcheck. PR6 Uimplementation7c17d49 refreshed to bbea54d with
 Usource changes. Prepared main4f74a67+U7c17d49+L3a734d2 candidate passes480units,
 12desktop journeys including actual engine export and1production smoke. Live checks
 skipped, not claimed rerun. PR6 human NOT RUN; currentCI43478299682 pending.
+
+PR6 current foundation43478299682 PASS atbbea54d; independent source review retained
+(no Uowned diff). Human browser/PDF acceptance NOT RUN; eligibility ready.
