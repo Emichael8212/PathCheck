@@ -5,6 +5,7 @@ import { approved } from './admission';
 import type { AdmissionStore } from './admission';
 import { sha256, sign, verify } from './crypto';
 import type { PdfProvider } from './provider';
+import { createPdfInspector } from './pdf';
 
 export interface PdfInspector { inspect(bytes: Uint8Array): Promise<Result<{ pageCount: number }>> }
 export interface EndpointOptions {
@@ -17,7 +18,8 @@ export interface EndpointOptions {
   admission: GuestAdmissionService;
   store: AdmissionStore;
   provider: PdfProvider;
-  pdf: PdfInspector;
+  /** Real structural parser by default; injectable only for isolated tests. */
+  pdf?: PdfInspector;
   /** L's authenticated gateway must supply the keyed network ID. Null always denies. */
   resolveNetwork: (request: Request) => Promise<string | null>;
   now?: () => string;
@@ -55,6 +57,7 @@ const Session = z.strictObject({ sessionId: z.uuid(), issuedAt: z.number().int()
 /** Transport implementation; no global service key, listener or permissive dev mode. */
 export function createTranscriptHandler(options: EndpointOptions): (request: Request) => Promise<Response> {
   const now = options.now ?? (() => new Date().toISOString());
+  const pdf = options.pdf ?? createPdfInspector();
   const enabled = (eligibility: ProcessingEligibility, time: string) => approved(eligibility, time)
     && options.maximumProviderCostMicrousd !== null && Number.isSafeInteger(options.maximumProviderCostMicrousd)
     && options.maximumProviderCostMicrousd > 0 && eligibility.perRequestReservationMicrousd >= options.maximumProviderCostMicrousd;
@@ -113,7 +116,7 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
       let result: Result<unknown> = fail('external_failure', 'extraction_failed_manual_entry');
       try {
         let inspected: Result<{ pageCount: number }> | null = null;
-        try { inspected = await withDeadline(options.pdf.inspect(bytes), INSPECTION_DEADLINE_MS); }
+        try { inspected = await withDeadline(pdf.inspect(bytes), INSPECTION_DEADLINE_MS); }
         catch (error) { if (!(error instanceof Error && error.message === 'deadline')) throw error; }
         // Also catches synchronous/CPU-bound inspection that a timer race cannot preempt.
         const elapsed = Date.parse(now()) - admittedAt;
