@@ -56,7 +56,6 @@ test('real normalization, prerequisite recommendation, preview, apply and undo',
   expect(applied.scenario?.plan.activePlacements.find(p => p.courseId === 'SYN-301')?.termId.season).toBe('fall');
   expect(applied.analysis?.topFindings.some(f => f.code === 'prerequisite_unsatisfied')).toBe(false);
   expect(applied.analysis?.inputFingerprint).toBe(applied.fingerprint);
-  await page.screenshot({ path: 'test-results/integration-desktop-planner.png', fullPage: true });
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(page.getByTestId('notice-status')).toContainText('Undone');
   const undone = await page.evaluate(() => window.__integration);
