@@ -32,6 +32,18 @@ Optional variants, appended to the URL: `?long=1` (very long course title), `?tr
 | 2 | **Academic record, checked** | Continue as guest. Add attempt `SYN 101`, Fall 2026, Completed, 3/3. Add a second attempt `XYZ 210`, Completed, 3/3. Click Done. | Compact list. Match column shows ✓ Matched and ⚠ Not in this catalog. The glass action bar names exactly one step, "Accept and continue". Typing `SYN 2` in Course code shows the catalog search list. |
 | 3 | **Planner with a preview open** | Accept and continue → "I already selected courses". Add SYN 201, SYN 202 and SYN 301 to Spring 2027, then click Preview under the first issue. | The semester list dominates. Spring 2027 and Fall 2027 are both outlined, with "Moves to…/Arrives from…" and "9 → 6 credits". The glass preview names both semesters, and Apply/Cancel are visible. "3 unknowns affect this result" is visible in the outlook. |
 
+## Refinement round: three extra states
+
+| # | State | How to reach it | Look for |
+|---|---|---|---|
+| 4 | **Empty academic record** | Continue as guest without adding anything | "No courses entered" with one blue "Add course attempt"; "Continue to planner" is secondary; transcript text is one short line. |
+| 5 | **Grade needing a look** | Add `SYN 101`, Fall 2026, Completed, 3/3, grade `ZZ`, then Done | The Grade cell shows ⚠ ZZ, and the summary adds "1 grade needs a look". "In catalog" (not "Matched") appears with the note that it confirms no grade, credit or requirement. |
+| 6 | **Empty planner** | Accept and continue → "I already selected courses" with nothing added | "No courses planned yet" with "Add a course" and "Help me build a plan". The outlook stays above. Needs attention shows "3 required courses not planned" with the courses listed, and "Show each (3)" opens each finding with its sources. |
+
+Glass during scrolling: on the planner with several courses, scroll to the bottom. Confirm the toolbar stays on top and
+stays readable, the capsule floats clear of focused controls, the last course's Edit popover opens upward fully on screen,
+and an open preview keeps Apply/Cancel visible while you scroll.
+
 ## Checklist (mark each PASS or FAIL)
 
 1. Typography and spacing are consistent across the three screens. Nothing is clipped or overlapping, and the page never scrolls sideways.
@@ -53,10 +65,10 @@ Optional variants, appended to the URL: `?long=1` (very long course title), `?tr
 ## Screenshots to capture (synthetic data only)
 
 Use Cmd+Shift+4, then Space, and click the browser window. Name the files:
-`pr6-1440-start.png`, `pr6-1440-record.png`, `pr6-1440-planner-preview.png`, and the same three with `1280`.
+`pr6-1440-start.png`, `pr6-1440-record.png`, `pr6-1440-planner-preview.png`, `pr6-1440-record-empty.png`, `pr6-1440-planner-empty.png`, and the same five with `1280`.
 Do not capture account email fields with real addresses.
 
 ## Report back
 
-For each checklist item: PASS or FAIL, with a one-line note for each FAIL. Include the six screenshots and the
+For each checklist item: PASS or FAIL, with a one-line note for each FAIL. Include the ten screenshots and the
 `git log --oneline -1` head you tested.

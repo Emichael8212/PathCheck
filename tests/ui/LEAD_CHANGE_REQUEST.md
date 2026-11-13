@@ -7,10 +7,10 @@ Owner of every file below: **Codex Agent 1 (L)**. U has not edited any of them.
 **Issue:** The approved record flow replaces Review record → Accept this record → Continue to planner with automatic E
 normalization and a single explicit "Accept and continue". That button still calls L `acceptRecord` with an
 `accept_record` action.
-**Evidence:** On a local, uncommitted scratch merge (L `09ee8cb`, E `645111c`, U `28fee53`, S `8d28602`, G `b37f4c2`;
+**Evidence:** On a local, uncommitted scratch merge (L `09ee8cb`, E `645111c`, U `3fc186b` (re-verified after the refinement round), S `8d28602`, G `b37f4c2`;
 port 5181 was occupied, so the scratch copy used 5182):
 - Unchanged specs: `application.spec` PASS 1; journeys FAIL 9 at the removed `Review record` button.
-- With the replacement below: `npm run test:integration` PASS 10/10. `PATHCHECK_TEST_BUILD=1` build smoke PASS 1. Units PASS 504 (2 skipped). Lint and typecheck PASS.
+- With the replacement below: `npm run test:integration` PASS 10/10. `PATHCHECK_TEST_BUILD=1` build smoke PASS 1. Units PASS 505 (2 skipped). U browser suite PASS 45 in the combined tree. Lint and typecheck PASS.
 
 **Recommendation:** apply exactly this diff.
 
@@ -31,6 +31,7 @@ port 5181 was occupied, so the scratch copy used 5182):
 ```
 
 `application.spec.ts` needs no change: with no rows the record screen still offers "Continue to planner".
+The record summary keeps the `N course(s) checked` prefix that this diff waits for, including when E adds grade notes.
 **Decision needed:** No (the user approved the flow); L applies the diff.
 
 ## 2. PR #6 human acceptance guide (`docs/acceptance/pr-6/PR_ACCEPTANCE_TEST.md`)
