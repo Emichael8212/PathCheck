@@ -7,9 +7,9 @@ the Gemini key or makes a Google request. Passing it is not live API accuracy or
 human acceptance; the separate synthetic benchmark establishes measured extraction.
 
 Dependencies: current L integration branch, U PR6, S PR7 retry RPC and G PR8.
-Use the lead's uncommitted local integration candidate; never commit/push it.
-Exact tested heads are recorded in IMPLEMENTATION_STATUS.md. Apply the existing
-`tests/e2e/integration/application.patch` when reconstructing the combined snapshot.
+PR6/7/8 are now merged; use the current PR9 checkout. Exact tested heads are
+recorded in IMPLEMENTATION_STATUS.md. The ordinary app wiring is committed in PR9;
+do not apply the historical `application.patch` to this version.
 
 After starting the dedicated local stack using
 [local-security.md](../../../docs/testing/local-security.md), from the candidate:
@@ -19,7 +19,7 @@ DOCKER_CONTEXT=colima-pathcheck-test supabase db reset --network-id pathcheck-lo
 DOCKER_CONTEXT=colima-pathcheck-test supabase test db --network-id pathcheck-local-only
 bash supabase/tests/admission/concurrency.sh
 node tests/e2e/upload/run.mjs
-PATHCHECK_TEST_BUILD=1 npm run check
+npm run check
 ```
 
 Expected:371 SQL assertions PASS, all race checks PASS with cleanup0, five browser
@@ -35,8 +35,8 @@ withheld without retry; withdrawal duringbackoff→HTTP200 revocation and no new
 egress or accepted rows. Counters measure RPC calls, not persisted-row counts;
 SQL assertions separately verify reservation/quota invariants.
 
-The composed-app smoke mode runs the existing actual-application test. Without
-PATHCHECK_TEST_BUILD=1, the lead foundation build retains its scaffold smoke gate.
+The default smoke gate now tests the actual application, manual record acceptance
+and uncertainty-preserving PDF export.
 The upload suite requires local infrastructure and therefore is separate from that
 default check; do not mark it passed merely because generic CI is green.
 
@@ -50,5 +50,6 @@ colima stop pathcheck-test
 No production or hosted project is touched. Test metadata remains only in the
 dedicated local backup volume; no PDF bytes or extracted rows are stored in SQL.
 Remaining gates: real gateway/bot attestation, runtime PDF resource isolation,
-approved real-transcript terms/privacy, live browser extraction acceptance and
-human PR review. The synthetic provider factory is not wired into a public bypass.
+approved real-transcript terms/privacy and final application/account composition.
+Live synthetic browser extraction and its human acceptance have passed at the
+recorded pins; preserve their evidence and revalidate affected changes. The synthetic provider factory is not wired into a public bypass.

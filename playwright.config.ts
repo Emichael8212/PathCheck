@@ -1,8 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
-const composed = process.env.PATHCHECK_TEST_BUILD === '1';
 export default defineConfig({
-  testDir: './tests/e2e', testIgnore: composed ? ['**/upload/**'] : ['**/integration/**', '**/upload/**'],
-  ...(composed ? { testMatch: '**/integration/application.spec.ts' } : {}),
+  testDir: './tests/e2e', testMatch: '**/integration/application.spec.ts',
   fullyParallel: true, forbidOnly: Boolean(process.env.CI), retries: 0,
   reporter: 'list', use: { baseURL: 'http://127.0.0.1:4173', trace: 'off', screenshot: 'off', video: 'off' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
