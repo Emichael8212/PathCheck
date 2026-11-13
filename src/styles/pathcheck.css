@@ -154,7 +154,7 @@ details[open] > summary::before { transform: rotate(45deg); }
 .banner-warn { color: var(--text); background: var(--warning-tint); box-shadow: inset 3px 0 0 var(--warning); }
 
 /* ---- Screen 1: Get started ------------------------------------------------ */
-.start { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s7); max-width: 1040px; margin: var(--s6) auto 0; }
+.start { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s7); max-width: 1080px; margin: var(--s6) auto 0; }
 .start-intro { padding-top: var(--s6); }
 .wordmark-large { font-weight: 600; font-size: 15px; color: var(--accent); margin: 0 0 var(--s3); letter-spacing: -0.01em; }
 .start h1 { font-size: var(--fs-display); line-height: 1.19; letter-spacing: -0.02em; }
@@ -450,7 +450,7 @@ dialog.preview-sheet::backdrop { background: rgba(29, 33, 41, 0.4); }
   .entry-actions { grid-template-columns: 1fr 1fr; }
 }
 @media (min-width: 960px) {
-  .start { grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: var(--s8); align-items: start; }
+  .start { grid-template-columns: minmax(0, 1fr) minmax(0, 480px); gap: var(--s8); align-items: start; }
   .record-grid { grid-template-columns: minmax(0, 1fr) 320px; }
   .record-side { position: sticky; top: calc(var(--bar-h) + var(--s4)); }
 }

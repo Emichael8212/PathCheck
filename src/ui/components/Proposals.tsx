@@ -72,7 +72,9 @@ function PreviewFrame({ sheet, busy, onCancel, headingRef, children }: { sheet: 
   useEffect(() => {
     const d = dialogRef.current;
     if (sheet && d && !d.open) d.showModal();
-    headingRef.current?.focus();
+    // Desktop: bring the whole panel (including Apply/Cancel) into view, then focus its heading.
+    if (!sheet) headingRef.current?.closest<HTMLElement>('[data-testid="preview-panel"]')?.scrollIntoView({ block: 'nearest' });
+    headingRef.current?.focus({ preventScroll: !sheet });
   }, [sheet, headingRef]);
   const common = { className: `preview glass-panel${sheet ? ' preview-sheet' : ''}`, 'aria-labelledby': 'preview-title', 'data-testid': 'preview-panel' } as const;
   if (sheet) {

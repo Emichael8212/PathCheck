@@ -417,6 +417,9 @@ test.describe('planner layout, keyboard paths and tradeoff previews (1280x900)',
     await addThreeConflicting(page);
     await page.getByTestId('candidate').first().getByRole('button', { name: /^Preview:/ }).click();
     await expect(page.getByTestId('preview-panel')).toBeVisible();
+    // Opening a preview brings Apply and Cancel into view without extra scrolling.
+    await expect(page.getByTestId('preview-panel').getByRole('button', { name: 'Apply' })).toBeInViewport({ ratio: 1 });
+    await expect(page.getByTestId('preview-panel').getByRole('button', { name: 'Cancel' })).toBeInViewport({ ratio: 1 });
     const viewport = page.viewportSize()!;
     const timelineHead = await boxAtTop(page, '#timeline-title');
     const firstCourse = await boxAtTop(page, '[data-testid="placement"]');
