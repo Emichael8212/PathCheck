@@ -182,6 +182,12 @@ test.describe('selected-courses journey', () => {
     await toPlanner(page, 'selected');
     await addThreeConflicting(page);
     await expect(page.getByTestId('outlook')).toContainText('Conflicts in your current plan');
+    // Unknowns stay visible in the outlook and open the inspector's list.
+    await expect(page.getByTestId('outlook-unknowns')).toHaveText(/^\? 3 unknowns affect this result\./);
+    await page.getByTestId('outlook-unknowns').getByRole('button', { name: 'Review unknowns' }).click();
+    await expect(page.getByTestId('evidence-gaps').locator(':scope > summary')).toBeFocused();
+    await expect(page.getByTestId('evidence-gaps').getByTestId('finding')).toHaveCount(3);
+    await page.getByTestId('evidence-gaps').locator(':scope > summary').click();
     await expect(page.getByTestId('issues').getByTestId('finding').first()).toContainText('Missing prerequisite');
     await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('9 of 15 credits');
     await expect(page.getByText(/Plan revision/)).toHaveCount(0);

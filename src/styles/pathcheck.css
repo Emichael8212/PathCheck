@@ -247,6 +247,7 @@ details[open] > summary::before { transform: rotate(45deg); }
 .outlook-text { flex: 1 1 28rem; min-width: 0; }
 .outlook h2 { font-size: 16px; margin: 0 0 2px; }
 .outlook-detail { margin: 0; font-size: var(--fs-label); color: var(--text-2); max-width: 90ch; }
+.outlook-unknowns { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s1); margin: var(--s1) 0 0; font-size: var(--fs-label); color: var(--warning); font-weight: 500; }
 .outlook-deps { flex: 0 1 auto; font-size: var(--fs-label); }
 .outlook-deps[open] { flex-basis: 100%; }
 .outlook-deps ul { margin-bottom: var(--s1); }

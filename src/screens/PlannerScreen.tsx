@@ -238,7 +238,13 @@ export function PlannerScreen(p: PlannerProps) {
       {p.scenarioError && <p className="notice notice-error" role="alert">{p.scenarioError}</p>}
       {p.horizonTruncated && <p className="notice notice-warn" role="note">Your target is beyond the modeled horizon of {p.terms.length} terms. Terms after {termLabel(p.terms.at(-1)!)} are not modeled, so no path through them is claimed.</p>}
       {p.analysis && !p.analysis.ok && <p className="notice notice-error" role="alert" data-testid="analysis-failure">No analysis is shown: {failureText(p.analysis)}</p>}
-      {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} catalog={p.catalog} capacity={p.capacity.maximum} />}
+      {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} catalog={p.catalog} capacity={p.capacity.maximum} onShowUnknowns={() => {
+        const d = document.querySelector<HTMLDetailsElement>('[data-testid="evidence-gaps"]');
+        if (!d) return;
+        d.open = true;
+        const s = d.querySelector<HTMLElement>('summary');
+        s?.scrollIntoView({ block: 'nearest' }); s?.focus();
+      }} />}
       <div className="planner-grid">
         <div className="planner-main">
           <div className="plan-head">
