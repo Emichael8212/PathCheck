@@ -805,3 +805,18 @@ Edge/gateway/store adapter; current+previous trusted network keys; fresh DB time
 120sDB lease and suppress consent_revoked finish results. Extraction source ownership
 reassignment remains unresolved from prior directive; no lead edits to G-owned paths.
 Production chunk warning559.58kB observed; no new architecture change. No merge/deploy.
+
+### Actual credential/access check — 2026-11-13
+
+Human created canonical supabase/functions/.env and explicitly left the free-tier
+confirmation at0. Lead verified regular non-symlink file, current-user ownership,
+0600permissions, Git ignore and no tracked secret; Node loads GEMINI_API_KEY and
+selected3.5model. No contents/key displayed; confirmation remains0, unchanged.
+Read-only authenticated GET to exact gemini-3.5-flash-lite model metadata reached
+Google outside the sandbox. Google returned HTTP400 INVALID_ARGUMENT / API_KEY_INVALID.
+One diagnostic repeat emitted only allowlisted codes; no raw provider message logged.
+The loaded key also fails a conventional format check, but Google's explicit invalid
+credential response is the authoritative blocker. No generation, token-count request,
+PDF upload or billing change occurred. Actual model access and18PDFbenchmark BLOCKED
+pending a valid server key and free-project confirmation; do not retry invalid key
+or override the local0flag. Human must replace/correct the credential privately.

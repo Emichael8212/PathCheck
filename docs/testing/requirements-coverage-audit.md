@@ -2,6 +2,11 @@
 
 ## Current transcript checkpoint
 
+Latest access check: secure local env loading PASS (0600, owned, Git-ignored), but
+actual Google model-metadata GET returns400 API_KEY_INVALID. Extraction benchmark
+BLOCKED on invalid credential; no model-generation or PDF call attempted. Local
+free-tier flag remains0. Correct credential/free-project confirmation required.
+
 Superseding execution evidence: U29c387c and S0deba01 fixes independently reviewed
 without remaining blocker in reviewed scope; current CI PASS. Reconstructed candidate
 618units/2skips,UI65,desktop11,production1 PASS. Local SQL309 and real12-worker

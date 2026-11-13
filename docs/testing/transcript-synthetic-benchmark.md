@@ -1,7 +1,9 @@
 # Synthetic transcript benchmark and secure local configuration
 
-Status: live API **BLOCKED** pending the human's server-side key configuration.
-No Google call has run. No human upload acceptance is claimed.
+Status: live extraction **BLOCKED**. Human created the private key file; read-only
+model metadata requests reached Google but returned HTTP400 INVALID_ARGUMENT /
+API_KEY_INVALID. No generation/PDF upload has run. Free-project confirmation remains0
+and was not overridden. No human upload acceptance is claimed.
 
 ## Actual runtime and secret location
 
