@@ -1,0 +1,278 @@
+// U browser interaction tests (desktop 1280). REAL UI components + TEST DOUBLES for E/L/S/G.
+// They verify event/state/keyboard/focus behavior and provenance rendering; they make no
+// academic-correctness claim and are not the lead's integrated E2E with the real engine.
+import { readFile } from 'node:fs/promises';
+import { expect, test } from '@playwright/test';
+import { SHOTS, addCourse, enterCompletedAttempt, expectAccessibleNames, open, startGuest, termCard, toPlanner } from './helpers';
+
+test.describe('shell and keyboard basics', () => {
+  test('skip link is the first tab stop and moves focus to main content', async ({ page }) => {
+    await open(page);
+    // macOS headless Chromium tabs only to form controls (OS keyboard-access setting), so the
+    // tab sequence is asserted from DOM order and the link is then operated by keyboard.
+    const first = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), select, input, summary, [tabindex]:not([tabindex="-1"])')][0]?.className);
+    expect(first).toBe('skip-link');
+    const skip = page.getByRole('link', { name: 'Skip to main content' });
+    await skip.focus();
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#main-content')).toBeFocused();
+  });
+
+  test('three-step navigation reflects reachability and the current step', async ({ page }) => {
+    await open(page);
+    const nav = page.getByRole('navigation', { name: 'PathCheck steps' });
+    await expect(nav.getByRole('button', { name: 'Get started' })).toHaveAttribute('aria-current', 'step');
+    await expect(nav.getByRole('button', { name: 'Academic record' })).toBeDisabled();
+    await expect(nav.getByRole('button', { name: 'Graduation planner' })).toBeDisabled();
+    await startGuest(page);
+    await expect(nav.getByRole('button', { name: 'Academic record' })).toHaveAttribute('aria-current', 'step');
+    await expect(nav.getByRole('button', { name: 'Graduation planner' })).toBeEnabled();
+    await nav.getByRole('button', { name: 'Get started' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Plan your path to graduation' })).toBeFocused();
+    await expect(page.getByLabel('University and program')).toBeDisabled();
+  });
+
+  test('focus is visible on keyboard focus and no element uses transition: all', async ({ page }) => {
+    await open(page);
+    await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
+    const outline = await page.evaluate(() => { const s = getComputedStyle(document.activeElement!); return `${s.outlineStyle} ${s.outlineWidth}`; });
+    expect(outline).toMatch(/^solid [1-9]/);
+    const all = await page.evaluate(() => [...document.querySelectorAll('*')].filter(el => getComputedStyle(el).transitionProperty.split(',').some(p => p.trim() === 'all') && getComputedStyle(el).transitionDuration !== '0s').length);
+    expect(all).toBe(0);
+    await expectAccessibleNames(page);
+  });
+
+  test('reduced motion collapses transitions', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await open(page);
+    const d = await page.getByRole('button', { name: 'Continue as guest' }).evaluate(el => parseFloat(getComputedStyle(el).transitionDuration));
+    expect(d).toBeLessThan(0.001);
+  });
+});
+
+test.describe('academic record screen', () => {
+  test('invalid rows show inline errors, announce an alert and focus the first invalid field', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await page.getByRole('button', { name: 'Add course attempt' }).click();
+    await page.getByRole('button', { name: 'Review record' }).click();
+    await expect(page.getByTestId('notice-alert')).toContainText('need corrections');
+    const code = page.getByLabel('Course code');
+    await expect(code).toHaveAttribute('aria-invalid', 'true');
+    await expect(code).toBeFocused();
+    const describedBy = await code.getAttribute('aria-describedby');
+    await expect(page.locator(`[id="${describedBy}"]`)).toContainText('Enter a course code');
+    await expect(page.getByRole('button', { name: 'Continue to planner' })).toBeDisabled();
+    await page.screenshot({ path: `${SHOTS}/desktop-1280-record-errors.png`, fullPage: true });
+  });
+
+  test('transcript upload sends nothing before explicit consent (approved double)', async ({ page }) => {
+    await open(page, 'transcript=approved');
+    await startGuest(page);
+    await page.getByRole('button', { name: 'Check upload availability' }).click();
+    await expect(page.getByTestId('disclosure')).toContainText('Google Gemini');
+    const file = page.getByLabel(/Transcript PDF/);
+    await expect(file).toBeDisabled();
+    expect(await page.evaluate(() => window.__pathcheckHarness!.transcriptCalls)).toEqual(['availability']);
+    await page.getByLabel(/I consent to sending this PDF/).check();
+    await file.setInputFiles({ name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic test document') });
+    await page.getByRole('button', { name: 'Send for extraction' }).click();
+    await expect(page.getByTestId('extraction-summary')).toContainText('2 proposed row(s)');
+    expect(await page.evaluate(() => window.__pathcheckHarness!.transcriptCalls)).toEqual(['availability', 'session', 'ticket', 'extract']);
+    await expect(page.getByTestId('extraction-included')).toContainText('2 extracted rows');
+  });
+});
+
+test.describe('selected-courses journey', () => {
+  test('issue, keyboard preview with exact before/after, acknowledgement, apply, undo', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    await addCourse(page, /^SYN 301/, 'Spring 2027');
+    await expect(page.getByTestId('outlook')).toContainText('Current plan conflicts with known rules');
+    await expect(page.getByTestId('issues').getByTestId('finding').first()).toContainText('Known conflict');
+    await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('6 of 15 cr');
+
+    const candidate = page.getByTestId('candidate').first();
+    await expect(candidate).toContainText('Move SYN 301 to Fall 2027');
+    const previewBtn = candidate.getByRole('button', { name: /Preview: Move SYN 301 to Fall 2027/ });
+    await previewBtn.focus();
+    await page.keyboard.press('Enter');
+    const panel = page.getByTestId('preview-panel');
+    await expect(panel.getByRole('heading', { name: 'Preview change' })).toBeFocused();
+    const row = panel.getByTestId('change-table').locator('tbody tr').first();
+    await expect(row.locator('th')).toContainText('SYN 301');
+    await expect(row.locator('td').nth(0)).toHaveText('Spring 2027');
+    await expect(row.locator('td').nth(1)).toHaveText('Fall 2027');
+    await expect(panel.getByTestId('impact-resolved')).toContainText('Prerequisite not met');
+    // Preview never mutates the active plan.
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-preview.png`, fullPage: true });
+
+    const apply = panel.getByRole('button', { name: 'Apply' });
+    await expect(apply).toBeDisabled();
+    await panel.getByTestId('preview-ack').focus();
+    await page.keyboard.press('Space');
+    await expect(apply).toBeEnabled();
+    await apply.click();
+    await expect(page.getByTestId('notice-status')).toContainText('Change applied');
+    await expect(termCard(page, 'Fall 2027').getByTestId('placement')).toContainText('SYN 301');
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(1);
+    await expect(page.getByText('Plan revision 3.')).toBeVisible();
+
+    await page.getByRole('region', { name: 'Undo' }).getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByTestId('notice-status')).toContainText('Undone');
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await expect(page.getByText('Plan revision 4.')).toBeVisible();
+  });
+
+  test('Cancel (Escape) dispatches reject, leaves the plan unchanged and returns focus', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    // Preview from the timeline: focus must come back to the same control.
+    const card = page.getByTestId('placement').filter({ hasText: 'SYN 201' });
+    await card.getByText('Edit', { exact: true }).click();
+    await card.getByLabel('Move SYN 201 to').selectOption({ label: 'Fall 2027' });
+    const previewMove = card.getByRole('button', { name: 'Preview move' });
+    await previewMove.click();
+    await expect(page.getByRole('heading', { name: 'Preview change' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('preview-panel')).toHaveCount(0);
+    await expect(page.getByTestId('notice-status')).toContainText('Change cancelled. Your plan is unchanged.');
+    await expect(previewMove).toBeFocused();
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toContainText('SYN 201');
+    await expect(page.getByText('Plan revision 1.')).toBeVisible();
+  });
+
+  test('a changed assumption makes an open preview stale and blocks Apply', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    await addCourse(page, /^SYN 301/, 'Spring 2027');
+    await page.getByTestId('candidate').first().getByRole('button').click();
+    await page.getByTestId('assumptions').locator('summary').click();
+    await page.getByLabel('Maximum credits per term').fill('12');
+    await page.getByRole('button', { name: 'Use this load' }).click();
+    const panel = page.getByTestId('preview-panel');
+    await expect(panel.getByRole('alert')).toContainText('cannot be applied');
+    await panel.getByTestId('preview-ack').check();
+    await expect(panel.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('6 of 12 cr');
+  });
+
+  test('student-reported availability is labeled unverified and timestamped', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    const q = page.getByTestId('availability-questions').getByTestId('availability-control').first();
+    await expect(q).toContainText('Is SYN 201 listed for Spring 2027?');
+    await q.getByRole('button', { name: 'Listed', exact: true }).click();
+    await expect(page.getByTestId('notice-status')).toContainText('student-reported, unverified');
+    const card = page.getByTestId('placement').filter({ hasText: 'SYN 201' });
+    await expect(card).toContainText('Listed, student-reported');
+    await card.getByText('Edit', { exact: true }).click();
+    await expect(card.getByTestId('availability-evidence')).toContainText('Student-reported, unverified');
+    await expect(card.getByTestId('availability-evidence').locator('time')).toHaveAttribute('datetime', /2026-11-12T/);
+    await expect(card.getByRole('button', { name: 'Listed', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('export downloads a real PDF of the active plan', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export PDF' }).click()]);
+    expect(download.suggestedFilename()).toMatch(/^pathcheck-plan-\d{4}-\d{2}-\d{2}\.pdf$/);
+    const bytes = await readFile((await download.path())!);
+    expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(bytes.toString('latin1')).toContain('SYN 201 Synthetic Systems');
+    expect(bytes.toString('latin1')).toMatch(/%%EOF\s*$/);
+  });
+
+  test('account menu: Save as new after OTP, Escape closes and restores focus', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    const summary = page.getByTestId('account-summary');
+    await expect(summary).toContainText('Guest, not saved');
+    await summary.click();
+    await page.getByLabel('Email').fill('student@example.test');
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    await page.getByLabel('One-time code').fill('123456');
+    await page.getByRole('button', { name: 'Verify code' }).click();
+    await expect(page.getByTestId('account-panel')).toContainText('Nothing has been saved yet');
+    expect(await page.evaluate(() => window.__pathcheckHarness!.savedPlanCount())).toBe(0);
+    await page.getByRole('button', { name: 'Save as new' }).click();
+    await expect(summary).toContainText('Saved');
+    expect(await page.evaluate(() => window.__pathcheckHarness!.savedPlanCount())).toBe(1);
+    await page.getByRole('button', { name: 'My saved plans' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(summary).toBeFocused();
+    await expect(page.locator('.account-menu')).not.toHaveAttribute('open', '');
+  });
+});
+
+test.describe('generated-draft journey', () => {
+  test('one unadopted draft is shown as projections, adoption needs acknowledgement and keeps provenance', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await toPlanner(page, 'generated');
+    const panel = page.getByTestId('draft-panel');
+    await expect(panel.getByRole('heading', { name: 'Draft plan, not adopted' })).toBeVisible();
+    await expect(page.getByTestId('projected-placement')).toHaveCount(5);
+    await expect(page.getByTestId('placement')).toHaveCount(0);
+    await expect(page.getByTestId('projected-placement').first()).toContainText('Unadopted projection');
+    await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-draft.png`, fullPage: true });
+    const adopt = panel.getByRole('button', { name: 'Adopt draft' });
+    await expect(adopt).toBeDisabled();
+    for (const box of await panel.getByTestId('draft-ack').all()) await box.check();
+    await adopt.click();
+    await expect(page.getByTestId('notice-status')).toContainText('Draft adopted');
+    await expect(page.getByTestId('projected-placement')).toHaveCount(0);
+    await expect(page.locator('[data-testid="placement"][data-origin="adopted_suggestion"]')).toHaveCount(5);
+    await expect(page.getByTestId('placement').first()).toContainText('PathCheck suggestion (adopted)');
+    await expect(page.getByRole('region', { name: 'Undo' })).toBeVisible();
+  });
+
+  test('bounded-search exhaustion is not described as impossibility', async ({ page }) => {
+    await open(page, 'draft=none');
+    await startGuest(page);
+    await toPlanner(page, 'generated');
+    const panel = page.getByTestId('draft-panel');
+    await expect(panel.getByRole('heading', { name: 'No draft found within search limits' })).toBeVisible();
+    await expect(panel).toContainText('does not mean no university-approved path exists');
+  });
+
+  test('an interrupted search reports no feasibility conclusion', async ({ page }) => {
+    await open(page, 'draft=interrupted');
+    await startGuest(page);
+    await toPlanner(page, 'generated');
+    await expect(page.getByTestId('draft-panel').getByRole('alert')).toContainText('No feasibility conclusion was drawn');
+  });
+});
+
+test('desktop screenshots of each screen', async ({ page }) => {
+  await open(page, 'long=1');
+  await page.getByLabel('University and program').selectOption({ index: 1 });
+  await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2028' });
+  await page.screenshot({ path: `${SHOTS}/desktop-1280-get-started.png`, fullPage: true });
+  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await enterCompletedAttempt(page);
+  await page.screenshot({ path: `${SHOTS}/desktop-1280-record.png`, fullPage: true });
+  await toPlanner(page, 'selected');
+  await addCourse(page, /^SYN 201/, 'Spring 2027');
+  await addCourse(page, /^SYN 301/, 'Spring 2027');
+  await addCourse(page, /^SYN 202/, 'Fall 2027');
+  await page.screenshot({ path: `${SHOTS}/desktop-1280-planner.png`, fullPage: true });
+});
