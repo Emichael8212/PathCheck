@@ -1,18 +1,20 @@
 # Synthetic transcript benchmark and secure local configuration
 
-The human confirmed the corrected key's project is on the Free tier. This is
-user-attested billing evidence; model metadata does not expose billing status.
-The saved confirmation flag remains0. Explicit process-only confirmation permits
-this authorized synthetic run without changing the private file or billing.
-Authenticated model metadata, a text generation control, a simple PDF/JSON control
-and one full structured PDF extraction PASS on gemini-3.5-flash-lite. The initial
-API_KEY_INVALID is resolved. Partial full-corpus results are recorded below;
-neither an access-only pass nor synthetic accuracy establishes browser acceptance.
+**Synthetic corpus PASS:**18/18 cases, comprising16 real Gemini PDF responses and
+2 malformed/encrypted preflight rejections.21/21 course attempts matched exactly;
+zero omissions, extra rows or critical-field mismatches. The first10 results were
+preserved; only incomplete cases11–16 were submitted in the final run.
+
+Human-confirmed Free project; fixed gemini-3.5-flash-lite. Saved private flag0 is
+unchanged; process-only1 was authorized by the explicit confirmation. No billing,
+model switch, paid fallback or real student transcript. This is synthetic model
+acceptance, not real-data privacy approval or a completed public upload service.
 
 ## Actual runtime and secret location
 
 Architecture specifies a Supabase Edge Function. The preserved extraction branch
-implements a handler/provider factory, but has no runnable index/secret loader yet.
+now implements a server-only Request→Response runtime/secret-reader factory.
+The host gateway/listener and live free-fixture browser composition are still pending.
 The lead benchmark is a local Node CLI; it does not open an HTTP endpoint. It calls
 Google for raw extraction, then actual G validation and E normalization. It is not
 proof of the unassembled browser/admission/Edge pipeline.
@@ -20,8 +22,8 @@ proof of the unassembled browser/admission/Edge pipeline.
 Canonical local secret file:
 `/Users/_eman5michael/pathcheck-lead/supabase/functions/.env`.
 This reuses [Supabase's local secrets location](https://supabase.com/docs/guides/functions/secrets).
-The current Node runner must load it explicitly with `--env-file`; the pending Edge
-entry must read server environment values and supply ProviderPolicy.apiKey.
+The current Node runner must load it explicitly with `--env-file`; G runtime reads server environment values and supplies ProviderPolicy.apiKey;
+the public listener/gateway remains a separate integration gate.
 
 Expected values (human supplies the key privately; never commit this file):
 
@@ -116,34 +118,84 @@ application-side validation when simplifying the grammar:
 26 scorer/evidence/diagnostic/wire-schema tests PASS. Independent static review
 found no remaining blocker in these lead-owned changes; reviewer ran no API calls.
 
-The G-owned provider at fbe9374 still sends the original bounds. Its owner must
-port and test this transport correction before claiming production pipeline
-compatibility. The lead benchmark does not modify or certify that provider.
+G PR8 now includes the reviewed wire correction and bounded runtime retries.
+Its simulated transport and actual local HTTP/database tests verify those paths;
+the earlier direct live benchmark does not independently certify the hosted handler.
 
-## Measured partial corpus — 2026-11-13
+## Measured complete corpus — 2026-11-13
 
-**BLOCKED by Google HTTP503 at generateContent.** Initial run completed cases01–08;
-one bounded resume reused their exact corpus/execution fingerprints and completed
-09–10 before another503. No further live retry or alternate model was attempted.
-Cases01–10 PASS:14 expected/14 extracted/14 exact attempts,0 missing,0 unexpected,
-0 critical-field errors,0 unalignable mismatches. Coverage and actual G/E
-normalization checks PASS for each. Completed requests consumed8,550 input and6,411
-output tokens; per-case elapsed11.010–15.447s includes local pacing/token-count work,
-not just provider latency. Failed attempts/control requests are excluded from those
-totals but included in the local daily call budget.
-
-Remaining live cases11–16 are NOT RUN to completion;17–18 malformed/encrypted
-preflight rejections previously PASS without provider egress. This is not full
-T-GEM accuracy acceptance, scanned-input approval or human browser acceptance.
-
-Private non-sensitive report:
-`/private/tmp/pathcheck-gemini-benchmark-v1/gemini-3.5-flash-lite-attempt-1794599892630.json`.
+Report `/private/tmp/pathcheck-gemini-benchmark-v1/gemini-3.5-flash-lite-attempt-1794600646577.json`.
 Corpus SHA256 `7bf670dca674d235798d685de6068390a802b5747a013cb98d4b5483cff442d9`;
-execution SHA256 `866917e1e1880ad7ae7f8f6557395ed14aa79c9d345f26fe3abcf79dd8697a90`.
-The same full-run command resumes only fingerprint-matching completed cases.
-Do not label service errors as model-quality failures or trigger a model comparison.
+execution SHA256 `d6527734ea5f308db0cafa6485ea76c321b11119f76b41ca4f90bdd74591d0a9`;
+extraction fingerprint `26610d180a22d7f95d66f87dcb114092b48bfff84abb3510fa1fb8ec17f2f509`.
+The checkpoint retains the first10 cases' original execution hashes. Compatibility
+migration reconstructed the exact8262320 benchmark source against unchanged G/E
+sources and compared extraction sections, schema, prompt, scorer and corpus.
+Transport-only changes do not erase successful evidence or trigger re-extraction.
+Changed extraction semantics fail closed and require an explicit new evaluation.
 
-The public endpoint still fails closed under its approved paid/real-data eligibility
-contract. A reviewed fixture-restricted synthetic runtime, actual admission adapter,
-trusted network rotation, current DB timestamps, post-dispatch revoke handling and
-runtime resource isolation remain separate work. No fake paid approval is used.
+| Fixture | Expected attempts | Extracted | Result |
+|---|---:|---:|---|
+| 01-standard | 2 | 2 | PASS |
+| 02-multipage | 2 | 2 | PASS |
+| 03-repeated-attempt | 2 | 2 | PASS |
+| 04-withdrawal | 1 | 1 | PASS |
+| 05-transfer | 1 | 1 | PASS |
+| 06-ambiguous-grade | 1 | 1 | PASS |
+| 07-in-progress | 1 | 1 | PASS |
+| 08-missing-grade | 1 | 1 | PASS |
+| 09-missing-credits | 1 | 1 | PASS |
+| 10-empty-middle-page | 2 | 2 | PASS |
+| 11-reversed-order | 2 | 2 | PASS |
+| 12-totals-not-courses | 2 | 2 | PASS |
+| 13-earned-before-attempted | 1 | 1 | PASS |
+| 14-scanned | 2 | 2 | PASS |
+| 15-empty-record | 0 | 0 | PASS |
+| 16-unsupported-document | 0 | 0 | PASS |
+| 17-truncated | — | No egress | PASS |
+| 18-encrypted | — | No egress | PASS |
+
+Fourteen course-bearing PDFs plus two zero-row empty/unsupported PDFs received real
+model responses. The zero-row cases were safely rejected by validation. Fifteen
+text-readable PDFs' attempt counts were independently checked against native PDF
+text; the scanned fixture's two rows were inspected visually. Generated fixture
+labels were not derived from Gemini responses.
+
+Critical-field comparison covers code, term, attempted/earned credits, grade,
+completion status and institution. Ambiguous/missing raw values remain preserved;
+G/E normalization requires explicit record acceptance and retains uncertainty.
+Title/provenance accuracy is outside this scorer; no real-format university support
+or academic equivalence is inferred from fictional layouts.
+
+Successful corpus responses:12,708 input/9,670 output tokens. Per-case elapsed
+8.621–15.447s, median11.897s includes pacing/countTokens, not only provider latency.
+The final resume made13 HTTP calls, all200; it needed zero retries. Two historical
+corpus503 responses and five earlier schema400 diagnostics remain separately
+recorded with source-report hashes. Historical latency/token usage not previously
+recorded remains unknown; no invented totals or hidden failures. No external-service
+blocker remains for this corpus.
+
+## Retry, checkpoint and quota semantics
+
+Benchmark:503 only, at most4 attempts and120s per HTTP operation,50s per-attempt
+ceiling, exponential jitter, Retry-After seconds/date, sequential requests, abort
+propagation.400/401/403/429 and rejected admission are never retried. Every outbound
+attempt reserves conservative24,576 tokens and a request in persistent rolling
+RPM/TPM and Pacific-day RPD accounting before egress, including failures. Other
+clients' project usage remains unknown; provider429 stops the run. Atomic checkpoints
+are written per attempt and completed fixture; pending transport failures never
+become extraction-accuracy failures.43 deterministic regression tests PASS, including
+bounded503 recovery, cancellation, Retry-After and incompatible-checkpoint refusal.
+Independent review ran40 of these tests before three additional regression cases.
+Live503 recovery was not observed in the final run; do not conflate simulations
+with the real successful extraction measurements.
+
+The standalone benchmark consumes no application admission tickets. Application
+runtime separately allows at most3 provider attempts within50s and an overall60s
+request deadline, under one120s DB reservation. Each extra egress rechecks processing
+approval, consent and lease using admission_retry_check; no new ticket, admission
+or student quota is consumed. Worst-case spend for all attempts is reserved upfront;
+unknown failed-attempt cost remains charged conservatively. Free synthetic provider
+composition additionally requires a durable per-attempt project budget callback,
+fixed model and fixture-digest allowlist. No synthetic mode enables public real-data
+processing. Failed retries return temporary-unavailable/manual entry, never rows.

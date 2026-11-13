@@ -1,16 +1,18 @@
 // Lead-owned, local-only integration benchmark. No HTTP listener or arbitrary-file upload.
 // Calls Google directly for measured raw extraction, then actual G validation + E normalization.
 // Does not certify the production provider/guest admission pipeline.
-import { readFile, writeFile, open, unlink, mkdir, readdir } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import { readFile, open, unlink, mkdir, stat } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createServer } from 'vite';
 import { z } from 'zod';
 import { scoreRows } from './score.mjs';
-import { reusableCases, exactCaseSet, eligibleComparison, assessCase } from './evidence.mjs';
+import { exactCaseSet, eligibleComparison, assessCase } from './evidence.mjs';
 import { providerErrorSummary, readBoundedJson } from './providerErrors.mjs';
 import { toProviderWireSchema } from './wireSchema.mjs';
+import { with503Retries, quotaWaitMs, RETRY_POLICY } from './retry.mjs';
+import { sourceFingerprints, resumeCheckpoint, atomicJson, historicalEvidence } from './checkpoint.mjs';
 
 const root = '/private/tmp/pathcheck-gemini-benchmark-v1';
 const live = process.argv.includes('--live');
@@ -20,47 +22,74 @@ const model = compare ? 'gemini-3.8-flash' : 'gemini-3.5-flash-lite';
 const modelLimits = compare ? { rpm: 5, tpm: 250000, rpd: 20 } : { rpm: 15, tpm: 250000, rpd: 500 };
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const report = { model, modelLimits, quotaEvidence: 'user-verified AI Studio 2026-11-13; shared project usage unknown',
-  status: 'NOT RUN', apiAccess: 'NOT RUN', syntheticOnly: true, productionPipelineTest: false, accessOnly, cases: [] };
+  status: 'NOT RUN', apiAccess: 'NOT RUN', syntheticOnly: true, productionPipelineTest: false, accessOnly, cases: [],
+  reportVersion: 2, retryPolicy: RETRY_POLICY, transportAttempts: [], historicalFailures: [], historicalReports: [] };
+const cancellation = new AbortController();
+process.once('SIGINT', () => cancellation.abort());
+process.once('SIGTERM', () => cancellation.abort());
+const runId = randomUUID();
+let operationSequence = 0;
+let checkpointReady = false;
+async function checkpoint() {
+  if (live && !accessOnly && lock && checkpointReady) await atomicJson(`${root}/${model}-resume.json`, report);
+}
 let server;
 let lock;
-let lastRequest = 0;
 let key;
 let usagePath;
 let daily;
 const secretSafeError = reason => Object.assign(new Error(reason), { safeReason: reason });
-async function executionHash() {
-  const paths = ['package-lock.json', 'src/app/normalizeExtraction.ts'];
-  async function visit(directory) {
-    for (const item of await readdir(directory, { withFileTypes: true })) {
-      if (item.isDirectory()) await visit(`${directory}/${item.name}`);
-      else if (item.isFile() && /\.(ts|mjs|py)$/.test(item.name)) paths.push(`${directory}/${item.name}`);
-    }
-  }
-  for (const directory of ['tests/e2e/transcript-benchmark', 'src/contracts', 'src/engine', 'src/catalog', 'src/transcript', 'supabase/functions/extract-transcript']) await visit(directory);
-  const digest = createHash('sha256');
-  for (const path of paths.sort()) digest.update(path).update(await readFile(path));
-  return digest.digest('hex');
-}
-
-async function request(suffix, body) {
-  // Pace ALL API calls, including metadata/countTokens, below the displayed RPM.
-  await delay(Math.max(0, (compare ? 14000 : 6000) - (Date.now() - lastRequest)));
+async function reserveAttempt({ deadline, signal }) {
   const currentDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
-  if (daily.day !== currentDay) daily = { day: currentDay, calls: 0 };
+  if (daily.day !== currentDay) daily = { ...daily, day: currentDay, calls: 0 };
   if (daily.calls >= modelLimits.rpd) throw secretSafeError('local_daily_call_budget_exhausted');
+  const waitMs = Math.max(quotaWaitMs(daily, Date.now(), modelLimits, compare ? 14000 : 6000),
+    (daily.legacyCooldownUntil || 0) - Date.now());
+  if (Date.now() + waitMs >= deadline) throw secretSafeError('temporary_unavailable_retry_budget_exhausted');
+  await delay(Math.max(0, waitMs), undefined, { signal });
+  if (signal.aborted) throw secretSafeError('cancelled');
+  const dispatchDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+  if (daily.day !== dispatchDay) daily = { ...daily, day: dispatchDay, calls: 0 };
   daily.calls++;
-  await writeFile(usagePath, JSON.stringify(daily), { mode: 0o600 });
-  lastRequest = Date.now();
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}${suffix}`, {
-    method: body ? 'POST' : 'GET', headers: { 'x-goog-api-key': key, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined, redirect: 'error', signal: AbortSignal.timeout(50000),
-  });
-  if (!response.ok) {
+  daily.lastRequestAt = Date.now();
+  daily.recentAttempts = (daily.recentAttempts || []).filter(a => a.at > Date.now() - 60000);
+  daily.recentAttempts.push({ at: daily.lastRequestAt, tokens: 24576 });
+  // Persist quota before dispatch; unknown outcomes remain charged conservatively.
+  await atomicJson(usagePath, daily);
+}
+async function request(suffix, body) {
+  const operationId = `${runId}:${++operationSequence}`;
+  try {
+    const result = await with503Retries({ signal: cancellation.signal, reserve: reserveAttempt,
+      record: async event => {
+        const evidence = { ...event, id: `${operationId}:${event.attempt}`, operation: suffix || 'model_metadata',
+          fixtureId: report.activeFixtureId || null, executionHash: report.executionHash };
+        const index = report.transportAttempts.findIndex(item => item.id === evidence.id);
+        if (index >= 0) report.transportAttempts[index] = evidence;
+        else {
+          if (report.transportAttempts.length >= 10000) throw secretSafeError('attempt_evidence_capacity_exceeded');
+          report.transportAttempts.push(evidence);
+        }
+        await checkpoint();
+      },
+      perform: async signal => {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}${suffix}`, {
+          method: body ? 'POST' : 'GET', headers: { 'x-goog-api-key': key, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+          body: body ? JSON.stringify(body) : undefined, redirect: 'error', signal,
+        });
+        const value = await readBoundedJson(response).catch(error => {
+          if (response.ok) throw error;
+          return null; // HTTP status remains evidence even for bounded malformed error bodies.
+        });
+        return { status: response.status, value: response.ok ? value : null,
+          retryAfter: response.headers.get('retry-after'), ...(response.ok ? {} : { providerError: providerErrorSummary(value) }) };
+      },
+    });
+    return result.value;
+  } catch (error) {
     report.failedOperation = suffix || 'model_metadata';
-    report.providerError = providerErrorSummary(await readBoundedJson(response));
-    throw secretSafeError(response.status === 429 ? 'rate_limited_manual_entry_available_no_retry' : `provider_http_${response.status}`);
+    throw error;
   }
-  return readBoundedJson(response);
 }
 
 try {
@@ -74,7 +103,9 @@ try {
   const manifest = JSON.parse(manifestBytes);
   if (manifest.syntheticOnly !== true || manifest.cases.length !== 18) throw secretSafeError('invalid_generated_corpus');
   report.corpusHash = hash(manifestBytes);
-  report.executionHash = await executionHash();
+  const fingerprints = await sourceFingerprints();
+  report.executionHash = fingerprints.executionHash;
+  report.extractionHash = fingerprints.extractionHash;
   const expected = { model, corpusHash: report.corpusHash, executionHash: report.executionHash, fixtures: manifest.cases };
   if (live) {
     key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -86,14 +117,36 @@ try {
     }
     try {
       const previous = JSON.parse(await readFile(`${root}/${model}-resume.json`));
-      report.cases = accessOnly ? [] : reusableCases(previous, expected);
+      if (!accessOnly) {
+        const resumed = resumeCheckpoint(previous, expected, fingerprints);
+        report.cases = resumed.cases;
+        report.resumeProof = resumed.proof;
+        report.transportAttempts = previous.transportAttempts || [];
+        report.historicalFailures = previous.historicalFailures || [];
+        report.historicalReports = previous.historicalReports || [];
+      }
       report.resumedCases = report.cases.length;
-    } catch (error) { if (error.code !== 'ENOENT') throw secretSafeError('invalid_resume_report'); }
+    } catch (error) { if (error.code !== 'ENOENT') throw secretSafeError(error.safeReason || 'invalid_resume_report'); }
+    if (!accessOnly && !report.historicalReports.length) {
+      const historical = await historicalEvidence(root, model, { ...manifest, hash: report.corpusHash });
+      report.historicalReports = historical.reports;
+      report.historicalFailures = historical.failures;
+    }
+    checkpointReady = true;
+    report.status = 'RUNNING';
+    await checkpoint();
     // Local conservative cap counts metadata/countTokens too. No assertion about other project clients.
     usagePath = `${root}/usage-${hash(key).slice(0, 24)}-${model}.json`;
     try { daily = JSON.parse(await readFile(usagePath)); }
     catch (error) { if (error.code !== 'ENOENT') throw secretSafeError('invalid_usage_ledger'); daily = { day: '', calls: 0 }; }
-    if (!Number.isSafeInteger(daily.calls) || daily.calls < 0) throw secretSafeError('invalid_usage_ledger');
+    if (!Number.isSafeInteger(daily.calls) || daily.calls < 0 || (daily.lastRequestAt !== undefined && !Number.isFinite(daily.lastRequestAt))
+      || (daily.recentAttempts !== undefined && (!Array.isArray(daily.recentAttempts) || daily.recentAttempts.some(a => !Number.isFinite(a.at) || a.tokens !== 24576)))) throw secretSafeError('invalid_usage_ledger');
+    if (!daily.recentAttempts) {
+      // Legacy ledger had only daily counts; wait out its last-write minute before
+      // beginning a fresh rolling window, rather than inventing past token usage.
+      daily.legacyCooldownUntil = (await stat(usagePath).catch(() => ({ mtimeMs: 0 }))).mtimeMs + 60000;
+      daily.recentAttempts = [];
+    }
     const info = await request('');
     if (info.name !== `models/${model}` || !info.supportedGenerationMethods?.includes('generateContent')) throw secretSafeError('model_generation_not_accessible');
     report.apiAccess = 'METADATA ONLY; generation pending';
@@ -114,6 +167,8 @@ try {
   const activeFixtures = accessOnly ? manifest.cases.slice(0, 1) : manifest.cases;
   for (const fixture of activeFixtures) {
     if (report.cases.some(c => c.id === fixture.id)) continue;
+    if (cancellation.signal.aborted) throw secretSafeError('cancelled');
+    report.activeFixtureId = fixture.id;
     if (!/^\d{2}-[a-z-]+\.pdf$/.test(fixture.file)) throw secretSafeError('invalid_fixture_path');
     const bytes = await readFile(`${root}/${fixture.file}`);
     if (hash(bytes) !== fixture.sha256) throw secretSafeError('fixture_hash_changed');
@@ -121,11 +176,11 @@ try {
     if (fixture.expected === 'reject_pdf' || !inspected.ok) {
       const pass = fixture.expected === 'reject_pdf' && !inspected.ok;
       report.cases.push({ id: fixture.id, fixtureHash: fixture.sha256, status: pass ? 'PASS' : 'FAIL', stage: 'actual_pdf_inspector', noProviderCall: true });
-      bytes.fill(0); continue;
+      bytes.fill(0); await checkpoint(); continue;
     }
     if (!live) {
       report.cases.push({ id: fixture.id, status: 'NOT RUN', preflight: inspected.value.pageCount === fixture.pages ? 'PASS' : 'FAIL' });
-      bytes.fill(0); continue;
+      bytes.fill(0); await checkpoint(); continue;
     }
     const started = Date.now();
     const contents = [{ role: 'user', parts: [{ inlineData: { mimeType: 'application/pdf', data: bytes.toString('base64') } }] }];
@@ -160,9 +215,13 @@ try {
           && normalized.value.extractionReviewStatus === 'needs_review' && normalized.value.record.courseAttempts.length === raw.rows.length;
       });
     } catch { item.reason = 'schema_coverage_or_normalization_failure'; }
+    item.measuredExecutionHash = report.executionHash;
+    item.transportRetries = report.transportAttempts.filter(a => a.fixtureId === fixture.id && a.attempt > 1).length;
     report.cases.push(item);
+    await checkpoint();
     console.log(JSON.stringify(item)); // Counts only: no extracted text, secrets or document contents.
   }
+  delete report.activeFixtureId;
   report.status = !exactCaseSet(report.cases, activeFixtures) ? 'BLOCKED'
     : report.cases.some(c => c.status === 'FAIL' || c.preflight === 'FAIL') ? 'FAIL' : live ? 'PASS' : 'NOT RUN';
 } catch (error) {
@@ -171,11 +230,11 @@ try {
 } finally {
   await server?.close();
   const output = `${root}/${model}-${live ? `attempt-${Date.now()}` : 'preflight'}.json`;
-  await writeFile(output, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
-  if (live && !accessOnly && lock && report.cases.length) {
-    await writeFile(`${root}/${model}-resume.json`, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
+  await atomicJson(output, report);
+  if (live && !accessOnly && lock && checkpointReady) {
+    await checkpoint();
     if (report.cases.length === 18 && ['PASS', 'FAIL'].includes(report.status)) {
-      await writeFile(`${root}/${model}-report.json`, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
+      await atomicJson(`${root}/${model}-report.json`, report);
     }
   }
   if (lock) { await lock.close(); await unlink(`${root}/run.lock`); }

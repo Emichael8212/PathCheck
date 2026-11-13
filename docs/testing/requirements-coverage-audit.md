@@ -2,30 +2,21 @@
 
 ## Current transcript checkpoint
 
-The corrected key authenticates and the human confirms its project is Free.
-Actual gemini-3.5-flash-lite text generation and structured synthetic PDF extraction
-PASS. Local saved confirmation0 is unchanged; the authorized run uses process-only1.
-The original schema's large array bounds caused HTTP400; the benchmark moves only
-those wire bounds to unchanged strict runtime validation. Full-corpus measurement
-is BLOCKED by two HTTP503 responses. One bounded resume advanced from8 to10 passing
-PDFs:14/14 exact attempts,0 omissions/extra rows/critical errors. Cases11–16 have no
-completed live result;17–18 preflight rejections previously PASS. No alternative
-model, paid fallback or real transcript is used. No full T-GEM PASS is claimed.
+**Synthetic benchmark PASS:**18/18 cases (16 real Gemini PDF responses;2 preflight
+rejections),21/21 exact attempts,0 omissions/extras/critical mismatches. First10 cases
+preserved. Historical2corpus503 and5diagnostic400 retained; final13HTTPcalls all200,
+no retry needed.43 deterministic benchmark regressions PASS. Independent report/source
+review confirms provenance; live503 recovery itself is not demonstrated. No current
+provider blocker for this corpus. [Measured evidence](transcript-synthetic-benchmark.md).
 
-Lead current checks: lint/typecheck/build/smoke1 PASS,435unit PASS/2live skips,
-26benchmark scoring/evidence/diagnostic/wire-schema tests PASS. Independent static
-review found no blocker in these benchmark corrections. See
-[benchmark scope, measured results and provider handoff](transcript-synthetic-benchmark.md).
-The G-owned production provider still needs the same wire correction; benchmark
-success does not establish browser/admission/Edge integration.
-
-U29c387c and S0deba01 fixes independently reviewed without remaining blocker in
-reviewed scope; current GitHub foundation checks PASS. Previous reconstructed
-candidate618units/2skips,UI65,desktop11,production1 PASS. Local SQL309, real12-worker
-replay/quota/budget races and6dispatch/revoke pairs PASS; REST1PASS/1guard skip.
-Human upload/PR7 acceptance NOT RUN. Public endpoint, distributed adapter and
-privacy/runtime integration remain mandatory incomplete work. Real-transcript
-release approval remains BLOCKED separately from synthetic model evaluation.
+Runtime retry/normalization/security work remains distinct from synthetic accuracy.
+Lead serverRPC adapter9tests PASS (simulated transport); actual local PostgreSQL371
+assertions PASS,12-worker quota/replay races and6 retry/revoke races PASS. S head
+c394241 fixes the explicit newRPC static allowlist; CI43501794085 PASS. Earlier
+94cfeaa CI failed that missing test-list entry; no security assertion was removed.
+G review fixed processing approval expiry duringbackoff and stale body-read timestamps.
+Human transcript-upload/PR7 acceptance remain NOT RUN; full real-data processing
+and deployment gates remain mandatory and are not satisfied by these tests.
 
 The historical matrix below retains its original inspected-source evidence.
 Superseding checkpoints above and at the end distinguish fixes from original gaps.

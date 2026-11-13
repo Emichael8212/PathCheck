@@ -20,7 +20,7 @@ text output, structured outputs, 1,048,576 input and 65,536 output tokens.
 
 | Exact model ID | Role in evaluation |
 |---|---|
-| [`gemini-3.5-flash-lite`](https://aistudio.google.com/docs/models/gemini-3.5-flash-lite) | Recommended initial synthetic benchmark: documented document-parsing focus and low latency. Accuracy unmeasured. |
+| [`gemini-3.5-flash-lite`](https://aistudio.google.com/docs/models/gemini-3.5-flash-lite) | Recommended initial synthetic benchmark: documented document-parsing focus and low latency. Synthetic corpus21/21 attempts exact; see measured benchmark. |
 | [`gemini-3.8-flash`](https://aistudio.google.com/docs/models/gemini-3.8-flash) | More capable Flash comparison if Lite misses the approved accuracy gates; not an automatic fallback. |
 | [`gemini-3.6-flash`](https://aistudio.google.com/docs/models/gemini-3.6-flash) | Previous-generation Flash alternative, not preferred over current candidates. |
 | [`gemini-3.1-flash-lite`](https://aistudio.google.com/docs/models/gemini-3.1-flash-lite) | Earlier lightweight alternative, subject to project verification. |
@@ -70,8 +70,8 @@ Inspected extraction branch fbe9374c40ba688be5c780f63eaf6a75e374864c:
   schema to generateContent. Raw proposed-row and deterministic normalization
   contracts need no model-specific change. Live testing found that the two large
   array maxItems wire bounds caused request rejection; the lead benchmark omits
-  those grammar bounds but keeps full runtime validation. The G provider still
-  needs the owned correction and retest; see the benchmark handoff.
+  those grammar bounds but keeps full runtime validation. G PR8 now includes
+  that correction with independent review and simulated transport regressions.
 - Free execution is **not** just a model-name change: maximumCost rejects zero
   prices and ProcessingEligibility.approved requires paidProjectId. Do not fake
   paid eligibility. A reviewed local-only, fixture-restricted synthetic execution

@@ -1,10 +1,11 @@
-// Test entry only: actual E/U/L modules; only catalog and time are synthetic.
+// Test entry: actual E/U/L modules; catalog/time are synthetic. The upload entry
+// additionally uses explicitly simulated Google/bot transport with live local SQL.
 // No canned evaluation, normalization, recommendation or command responses.
 import { createElement } from 'react';
 import type { ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CatalogModelSchema, SEARCH_POLICY, fingerprint } from '../../../src/contracts';
-import type { AcademicService, AnalysisResult, CatalogModel, ExportService, PlanningScenario } from '../../../src/contracts';
+import type { AcademicService, AnalysisResult, CatalogModel, ExportService, PlanningScenario, TranscriptClient, TranscriptService } from '../../../src/contracts';
 import { createGuestWorkflow } from '../../../src/app/createGuestWorkflow';
 
 const load = (path: string) => import(/* @vite-ignore */ path);
@@ -33,7 +34,15 @@ const academic: AcademicService = {
 };
 let id = 0;
 const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
-const services = Object.freeze({ ...realServices, commands: Object.freeze({
+const uploadTest = location.pathname === '/tests/e2e/upload/index.html';
+const transcript = uploadTest ? {
+  client: ((await load('/src/transcript/browser.ts')) as { createTranscriptClient(): TranscriptClient }).createTranscriptClient(),
+  validate: ((await load('/src/transcript/validation.ts')) as { validateExtraction: TranscriptService['validate'] }).validateExtraction,
+  // Explicit integration-only bot proof. The test server verifies this exact prefix;
+  // actual production bot verification remains a separate gate.
+  obtainBotAttestation: async () => ({ ok: true as const, value: `synthetic-browser-${crypto.randomUUID()}` }),
+} : null;
+const services = Object.freeze({ ...realServices, transcript, commands: Object.freeze({
   ...realServices.commands,
   acceptRecord: ((...args) => {
     window.__integration.acceptanceCalls += 1;

@@ -869,3 +869,73 @@ Next executable actions: resume remaining cases when provider503 clears; carry
 reviewed wire conversion to G-owned provider through its owner; finish reviewed
 synthetic Edge/admission composition and real browser upload before human acceptance.
 Existing production eligibility, privacy, consent and runtime gates remain mandatory.
+
+### Resumable benchmark and upload integration checkpoint — 2026-11-13
+
+User authorized bounded503 retries; authoritative decision GEM-002 records the
+unchanged one-use ticket/quota/consent boundaries. L delegated benchmark transport
+and Codex2 G-owned continuation under current AGENTS; Claude S resumed its existing
+worktree. No other owner's files edited by L. All owner executions have finished.
+
+**Live benchmark PASS:**18/18 cases,16 realGoogle PDF responses (14course-bearing,
+2empty/unsupported rejected),2malformed/encrypted local rejections.21/21 exact
+attempts,0missing/extra/critical-field errors. First10 cases preserved with original
+execution provenance; only11–16 submitted. Atomic checkpoints, explicit verified
+compatibility migration, persistent per-attempt quota accounting, bounded503-only
+backoff/jitter/Retry-After/cancellation implemented. Current13HTTPcalls all200,
+0new retries; historical2corpus503 and5schema400 diagnostics retained.43regressions
+PASS; independent reviewer reran40 and verified historical report hashes. Live503
+recovery not observed; deterministic tests establish that behavior. NativePDF
+attempt labels independently checked, scanned2rows visually inspected. Full metrics,
+hashes and private report path: docs/testing/transcript-synthetic-benchmark.md.
+No current external-service blocker for this corpus; no real student upload/billing.
+
+**S PR7:**c394241922a7513b9101561426d2979a0f1c0a17, base main, human NOT RUN.
+New service-role admission_retry_check verifies same dispatched reservation,
+session, DB-clock lease and live consent without writes or another quota/ticket.
+Lead liveSQL371/5files PASS;12worker replay/session/network/budget winners1/1/3/5;
+6dispatch/revoke pairs(5/1) and6retry/revoke pairs(2/4),22reservations,cleanup0 PASS.
+Exact migration/tests/race files matched committed source hashes. Static independent
+review no blocker.94cfeaa CI failed because security-definer test allowlist omitted
+newRPC; owner fixed exact allowlist without weakening assertions atc394241.
+CI43501794085 PASS; owner check421unit/2live skips+build/smoke PASS.
+Human guide ready docs/acceptance/pr-7/PR_ACCEPTANCE_TEST.md; no agent result is humanPASS.
+
+**G PR8:**75aa73ee912186670c4256189db48a4a238f7fcd, draft, human NOT RUN.
+Bounded provider retries3attempts/50stotal within60srequest/120sDBlease; sameadmission,
+conservative full-spend reservation; fresh processing eligibility/consent/lease
+before extraegress; fresh timestamp after bodyread; revoked finish suppresses rows.
+Runnable server-only env-reader factory and separate fixedmodel/digest-gated
+syntheticprovider factory added, no publicsyntheticbypass. Independentreview found
+two issues(expiry duringbackoff, stale ticket/revoke timestamps), both fixed with
+regressions; finalreview no blocker. Refreshed with human-main4f74a67 on its feature
+branch, no conflicts. Owncheck557unit/2live skips including137G;lint/type/build/smoke
+PASS. Current CI43502564822 PASS. PR https://github.com/Emichael8212/PathCheck/pull/8.
+
+**L composed verification:** lead serverRPCadapter9simulatedtransport tests PASS,
+preserves trusted rotatingkeys,120slease and revoked-settlement failure. Test-only
+HTTPS browser harness realU/G/L/E plus actuallocalSQL, Google/bot explicitlysimulated.
+Five browser cases PASS: proposal→explicitaccept→planner; two503→oneadmit/two checks;
+exhaustion→manualentry; malformedwithheld/no retry; withdrawal→actualHTTP200revoke
+andno further egress after8seconds. Independentreview corrected revoke assertion
+to check server success, not merely count invocation. No screenshots/traces.
+
+Latest candidate /private/tmp/pathcheck-upload-integration remains local-only and
+uncommitted; main4f74a67 + U29c387c + G75aa73e implementation + Sc394241 + Lpending.
+PATHCHECK_TEST_BUILD=1 npm run check PASS:lint/typecheck,649unit/2live skips,
+43benchmark regressions,build,actual-app smoke1. Initial generic scaffold assertion
+failed against assembledUI; explicit composed mode now runs the existing actual
+application smoke instead. Default lead scaffold smoke stillPASS. U browser65PASS
+(60desktop/5existingmobile); realE planning journeys11PASS; upload5PASS above.
+Lead owncheck444unit/2skips+43benchmark+build/scaffoldsmoke1PASS. Builtapplication
+contains no GEMINI_API_KEY/PATHCHECK_LOCAL_ROLE_KEY/testproviderkey markers.
+Production chunk559.58kB warning remainsnonblocking. LocalSupabase and Colima stopped successfully
+after tests. Test-onlycredentials never printed/committed.
+
+Remaining mandatory integration: actual trustedgateway/bot infrastructure and
+PDF resource isolation; complete local live-free fixture-only browser composition
+without manufacturing paid approval; cloudaccountcomposition; humanupload acceptance.
+These are engineering/privacy gates, not Gemini503 unavailability. No fullapplication
+completion, livepublicsecurity, realtranscriptapproval ordeployment claim. Nexthuman
+checkpoint available: PR7 database/retry acceptance (NOT RUN), then personalmerge
+only after all applicable gates. No merge/deploy/paidfallback performed.
