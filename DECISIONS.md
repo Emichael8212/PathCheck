@@ -80,3 +80,31 @@ When an external prerequisite is unavailable, agent must **record blocker and co
 - **DEP-001:** Gate 0 pins dependency versions/lockfile. `minimatch` override 11.0.7 addresses GHSA-g3hv-75wg-m249 in lint dependencies; verify compatibility through lint and full CI. Remove override when upstream ranges support a patched version. Evidence: https://github.com/advisories/GHSA-g3hv-75wg-m249 .
 
 These amendments supersede earlier statements that the curriculum interpretation has not yet been received. Official governing catalog verification remains unresolved; do not restart the completed departmental interpretation review.
+
+- **EXEC-004 (2026-11-12):** After personally merging PR #2, user authorized the next implementation phase, four isolated worktrees, routine development/testing/feature commits and draft PR preparation. Verified baseline merge: de28a31846688f1d1a1a29eb8b2708571bf16301. All five ownership roles, frozen contracts, academic uncertainties, mandatory checks and human-only merges remain unchanged; production deployment is not authorized.
+
+- **DEP-002 (lead implementation choice, pending PR merge):** Pin `pdf-lib` 1.17.1 for shared browser PDF generation and server PDF structural inspection requested by G. API reference: https://pdf-lib.js.org/docs/api/classes/pdfdocument . Parsing is not proof of transcript completeness or a security sandbox; real-data processing remains disabled. Feature agents consume the dependency only after human merge of the lead dependency change. `npm audit` reports zero vulnerabilities on the candidate lockfile.
+
+## Approved visual direction — UX-006
+
+User directs Apple-inspired typographic hierarchy, whitespace and restrained surfaces plus Meta-inspired navigation clarity, compact lists and contextual actions. This is a distinct PathCheck interface, not a reproduction of either brand. Use system-ui (no bundled proprietary fonts), a compact consistent token system, semester/course-first layout, exact compact recommendation previews and Apply/Cancel actions (Cancel dispatches existing reject). Preserve all existing contracts, domain logic and ownership. No decorative gradients, excessive cards, empty dashboard panels or unnecessary animation. Keyboard/mobile/contrast checks remain mandatory. Use installed frontend-design guidance and available web-interface guidelines, subject to project privacy/contracts. This updates presentation only; F01–F20 scope is unchanged.
+
+Implementation direction: system-ui; body16px/course14–15px/secondary13px/title28–32px; semibold headings and tabular credits. Base colors: canvas #F7F8FA, surface #FFFFFF, text #18212B, secondary #52606D, divider #DCE1E7, action #2457C5. Validate contrast, with stronger control borders as needed. Spacing4/8/12/16/24/32/48px; 44px touch targets; modest radii and visible focus. Compact navigation → outlook/issues → dominant semester timeline; mobile expanded semester groups. Preview shows exact course/term changes, prerequisite effects and uncertainties. No academic records or tokens in URLs; use only clearly synthetic student data in screenshots and visual fixtures.
+
+**UX-006 implementation priority clarification:** The user explicitly prioritizes desktop/laptop React web usability and integration readiness. Retain basic responsive behavior and existing small-screen regressions; no native mobile framework, mobile architecture, or further mobile-specific feature scope.
+
+
+### UX-006 record-flow and workspace amendment — 2026-11-13
+
+The user-approved frontend handoff (`tests/ui/LEAD_CHANGE_REQUEST.md` at U
+f413d189f93b4cd9de4821b4b0118120b57d245b) records a macOS-inspired workspace:
+restrained glass only on functional controls, opaque academic content, accessibility
+fallbacks, system fonts, light theme, desktop 40px controls and 44px below 1024px.
+A full-width semester list and one inspector remain the primary planner layout.
+Automatic E normalization checks draft rows; one explicit **Accept and continue**
+invokes L's existing `acceptRecord` / `accept_record` command before navigation.
+Automatic matching never accepts the record. Catalog provenance stays visible.
+Previews show both affected semesters and finding changes; they do not invent a
+projected outlook absent from CandidatePreview. Plain wording maps engine codes
+without reproducing academic logic. No shared contracts, academic policies, or
+mutation ownership change. This records the approved U handoff, not a new redesign.

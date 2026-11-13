@@ -164,3 +164,27 @@ U consumes engine-selected candidates and at most three structured course/term a
 Client transcript availability/disclosure, guest-session establishment, ticket request and revocation are distinct browser ports. Server session is issued via secure same-origin HttpOnly cookie; browser does not invent serverSessionId. Client availability is display-only; G always checks eligibility server-side. Export takes the whole scenario and checks fingerprint/current-policy validity before creating a report. No sensitive server configuration is exposed by availability.
 
 Scenario timestamps are snapshot values. Reuse evaluatedAt until explicit refresh; only L commands change plan.updatedAt. Cloud save updates row updatedAt separately, preserving submitted plan.updatedAt. A target outside the bounded horizon is allowed as user intent, but no path may be claimed through unmodeled terms; E returns an explicit horizon evidence gap. Horizon length cannot exceed selected search options.
+
+### Repeat-credit representation (PR #3, pending human merge)
+
+`CatalogModel.repeatCreditPolicy` is an exact-optional, nullable, evidence-backed
+credit-allocation rule. Omitted/null means unknown, never an implicit policy.
+The supported rule counts credit once per course and selects the latest qualifying
+attempt using explicitly listed grades. A non-null rule requires reviewed catalog
+applicability and verified university/departmental evidence, or an explicitly
+synthetic catalog and synthetic source. It cannot coexist with a
+`repeat-credit-policy` gap. This rule does not establish grade replacement/GPA,
+transfer equivalency, prerequisites, or the applicability of a minimum-grade rule.
+The provisional ASU configuration retains its unknown policy; its historical
+below-C notice is insufficient evidence for this field. The whole policy participates
+in the scenario fingerprint; omitted legacy fields preserve existing fingerprints.
+E must implement and independently verify the rule after this shared contract is
+human-merged. T-ENG-5 remains blocked until that consumer test passes.
+Changes to repeat-credit policy require a new `catalogVersion`, even when the
+catalog year is unchanged. Persisted plans reload their catalog by version; never
+silently replace a versioned rule. Grade comparisons are case-insensitive; ambiguous
+grade scales differing only by case cannot accompany this policy.
+The policy applies only to its explicit, unique `courseIds`, never catalog-wide by
+default. All other courses retain unknown repeat-credit treatment, including
+repeatable internships/topics unless separately sourced and representable. Adding a
+course to this scope requires supporting evidence; an empty scope is invalid.
