@@ -5,7 +5,7 @@ import { PlanSchema } from './planning';
 export const SavedPlanSchema = z.strictObject({
   schemaVersion: z.literal(1), id: IdSchema, ownerUserId: IdSchema, revision: RevisionSchema,
   record: AcademicRecordSchema, plan: PlanSchema, createdAt: TimestampSchema, updatedAt: TimestampSchema,
-}).refine(s => s.id === s.plan.planId && s.revision === s.plan.planRevision, 'Persistence/plan identity or revision mismatch');
+}).refine(s => s.id === s.plan.planId, 'Persistence/plan identity mismatch');
 export type SavedPlan = z.infer<typeof SavedPlanSchema>;
 export const GuestDraftSchema = z.strictObject({
   schemaVersion: z.literal(1), draftId: IdSchema, mode: z.enum(['session', 'cross_tab_opt_in']), explicitRecoveryConsent: z.boolean(),
@@ -25,5 +25,5 @@ export function readGuestDraft(input: unknown, now: string): GuestDraft | null {
 export const RECOVERY_CLEAR_EVENTS = ['save', 'cancel', 'expiry', 'sign_out'] as const;
 export const SaveIntentSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('create_new'), record: AcademicRecordSchema, plan: PlanSchema }),
-  z.strictObject({ kind: z.literal('update_owned'), id: IdSchema, expectedRevision: RevisionSchema, record: AcademicRecordSchema, plan: PlanSchema }),
+  z.strictObject({ kind: z.literal('update_owned'), id: IdSchema, expectedRevision: RevisionSchema, record: AcademicRecordSchema, plan: PlanSchema }).refine(s => s.id === s.plan.planId, 'Save identity mismatch'),
 ]);

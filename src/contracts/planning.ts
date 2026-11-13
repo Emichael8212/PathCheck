@@ -35,6 +35,7 @@ export const PlanningScenarioSchema = z.strictObject({
 }).superRefine((s, ctx) => {
   const issue = (message: string) => ctx.addIssue({ code: 'custom', message });
   if (JSON.stringify(s.plan.catalogRef) !== JSON.stringify(s.catalog.catalogRef)) issue('Plan/catalog mismatch');
+  if (s.assumptions.terms.length > s.searchOptions.horizonTerms) issue('Horizon exceeds search budget');
   const terms = s.assumptions.terms.map(t => t.sortIndex);
   if (terms.some((t, i) => i > 0 && t <= terms[i - 1]!)) issue('Term horizon must be strictly ordered');
   const caps = s.assumptions.creditCapacity.map(c => c.termId.sortIndex);
@@ -51,7 +52,7 @@ export const RuleFindingSchema = z.strictObject({
 });
 export type RuleFinding = z.infer<typeof RuleFindingSchema>;
 export const DegreeAuditSchema = z.strictObject({
-  requirements: z.array(z.strictObject({ requirementId: IdSchema, status: z.enum(['satisfied', 'unmet', 'unresolved']), attemptIds: z.array(IdSchema), applicableCredits: CreditsSchema.nullable(), sourceRefs: z.array(IdSchema) })),
+  requirements: z.array(z.strictObject({ requirementId: IdSchema, status: z.enum(['satisfied', 'unmet', 'unresolved']), attemptIds: z.array(IdSchema), placementIds: z.array(IdSchema), conditional: z.boolean(), applicableCredits: CreditsSchema.nullable(), sourceRefs: z.array(IdSchema) })),
   earnedCredits: CreditsSchema.nullable(), applicableCredits: CreditsSchema.nullable(), disputedRules: z.array(IdSchema),
   totalStatus: z.enum(['satisfied', 'unmet', 'unresolved']),
 });
@@ -60,11 +61,6 @@ export const OutlookSchema = z.strictObject({
   kind: z.enum(['conditional_path_found', 'target_at_risk', 'insufficient_evidence', 'known_constraints_block_current_plan', 'not_evaluated']),
   targetTerm: TermIdSchema, assumptionRefs: z.array(IdSchema), evidenceRefs: z.array(IdSchema),
 });
-export const AnalysisResultSchema = z.strictObject({
-  inputFingerprint: InputFingerprintSchema, degreeAudit: DegreeAuditSchema, outlook: OutlookSchema,
-  topFindings: z.array(RuleFindingSchema).max(3), evidenceGaps: z.array(IdSchema), bottlenecks: z.array(RuleFindingSchema),
-});
-export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;
 export const ChangeOperationSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('add'), placement: PlanPlacementSchema }),
   z.strictObject({ kind: z.literal('move'), placementId: IdSchema, termId: TermIdSchema }),
@@ -82,12 +78,18 @@ export const CandidatePreviewSchema = z.strictObject({
 export type CandidatePreview = z.infer<typeof CandidatePreviewSchema>;
 export const GeneratedDraftSchema = z.strictObject({
   draftId: IdSchema, baseFingerprint: InputFingerprintSchema, placements: z.array(PlanPlacementSchema),
-  assumptions: z.array(IdSchema), validation: z.array(RuleFindingSchema),
+  assumptions: z.array(IdSchema), validation: z.array(RuleFindingSchema), search: z.strictObject({ policyVersion: IdSchema, expansions: z.number().int().nonnegative(), stopReason: z.enum(['qualifying_candidate', 'expansion_limit', 'beam_exhausted', 'horizon_limit']) }),
 }).refine(d => unique(d.placements.map(x => x.placementId)) && d.placements.every(p => p.origin === 'system_projection' && !p.active), 'Draft must be unadopted');
 export type GeneratedDraft = z.infer<typeof GeneratedDraftSchema>;
 export const UndoCheckpointSchema = z.strictObject({
   checkpointId: IdSchema, beforeFingerprint: InputFingerprintSchema, afterFingerprint: InputFingerprintSchema, previousPlacements: z.array(PlanPlacementSchema), previousAcceptedDraft: PlanSchema.shape.acceptedDraft,
 });
 export type UndoCheckpoint = z.infer<typeof UndoCheckpointSchema>;
-export const ExplicitUserActionSchema = z.strictObject({ actionId: IdSchema, kind: z.enum(['apply', 'adopt', 'undo']), acknowledgedAssumptions: z.array(IdSchema), occurredAt: TimestampSchema });
+export const ExplicitUserActionSchema = z.strictObject({ actionId: IdSchema, kind: z.enum(['apply', 'adopt', 'undo', 'create', 'set_target', 'availability', 'student_edit', 'accept_record']), acknowledgedAssumptions: z.array(IdSchema), occurredAt: TimestampSchema });
 export type ExplicitUserAction = z.infer<typeof ExplicitUserActionSchema>;
+
+export const AnalysisResultSchema = z.strictObject({
+  inputFingerprint: InputFingerprintSchema, degreeAudit: DegreeAuditSchema, outlook: OutlookSchema,
+  topFindings: z.array(RuleFindingSchema).max(3), evidenceGaps: z.array(RuleFindingSchema), bottlenecks: z.array(RuleFindingSchema), candidates: z.array(CandidatePreviewSchema).max(3), availabilityQuestions: z.array(z.strictObject({ questionId: IdSchema, courseId: CourseIdSchema, termId: TermIdSchema, findingIds: z.array(IdSchema) })).max(3),
+});
+export type AnalysisResult = z.infer<typeof AnalysisResultSchema>;

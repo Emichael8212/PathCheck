@@ -3,7 +3,7 @@ import { AcademicRecordSchema, CatalogModelSchema, CourseAttemptSchema, Prerequi
 import { term, TermIdSchema } from './common';
 import { AnalysisResultSchema, CandidatePreviewSchema, GeneratedDraftSchema, PlanningScenarioSchema, PlanSchema } from './planning';
 import { canonicalJson, fingerprint, validateAnalysisForScenario } from './fingerprint';
-import { GuestDraftSchema, readGuestDraft, SavedPlanSchema } from './persistence';
+import { GuestDraftSchema, readGuestDraft, SavedPlanSchema, SaveIntentSchema } from './persistence';
 import { AdmissionRequestSchema, ProcessingEligibilitySchema, TicketClaimsSchema, TranscriptExtractionSchema, ValidatedExtractedRowsSchema } from './transcript';
 import { rawRows, syntheticScenario } from './synthetic.test-fixtures';
 import type { PlanningScenario } from './planning';
@@ -36,9 +36,9 @@ describe('strict academic boundaries', () => {
   });
   it('rejects missing catalog references and cyclic requirement groups', () => {
     const catalog = syntheticScenario().catalog;
-    catalog.requirementGroups = [{ kind: 'all', requirementId: 'loop', requirementIds: ['loop'], sourceRefs: ['synthetic'], uncertainty: 'unresolved', overlap: 'forbidden' }];
+    catalog.requirementGroups = [{ kind: 'all', requirementId: 'loop', requirementIds: ['loop'], sourceRefs: ['synthetic'], uncertainty: 'unresolved', overlap: { mode: 'forbidden' }, consumesCredits: true }];
     expect(CatalogModelSchema.safeParse(catalog).success).toBe(false);
-    catalog.requirementGroups = [{ kind: 'course', requirementId: 'missing', courseId: 'TEST-999', sourceRefs: ['missing'], uncertainty: 'unresolved', overlap: 'forbidden' }];
+    catalog.requirementGroups = [{ kind: 'course', requirementId: 'missing', courseId: 'TEST-999', sourceRefs: ['missing'], uncertainty: 'unresolved', overlap: { mode: 'forbidden' }, consumesCredits: true }];
     expect(CatalogModelSchema.safeParse(catalog).success).toBe(false);
   });
 });
@@ -94,7 +94,7 @@ describe('plan and complete scenario identity', () => {
   });
   it('prevents unresolved policies from becoming a completion claim', () => {
     const s = syntheticScenario();
-    const analysis = { inputFingerprint: fingerprint(s), degreeAudit: { requirements: [], earnedCredits: null, applicableCredits: null, disputedRules: [], totalStatus: 'unresolved' }, outlook: { kind: 'insufficient_evidence', targetTerm: s.plan.targetTerm, assumptionRefs: [], evidenceRefs: [] }, topFindings: [], evidenceGaps: ['unknown-rule'], bottlenecks: [] };
+    const analysis = { inputFingerprint: fingerprint(s), degreeAudit: { requirements: [], earnedCredits: null, applicableCredits: null, disputedRules: [], totalStatus: 'unresolved' }, outlook: { kind: 'insufficient_evidence', targetTerm: s.plan.targetTerm, assumptionRefs: [], evidenceRefs: [] }, topFindings: [], evidenceGaps: [], bottlenecks: [], candidates: [], availabilityQuestions: [] };
     expect(validateAnalysisForScenario(s, analysis).ok).toBe(true);
     expect(validateAnalysisForScenario(s, { ...analysis, outlook: { ...analysis.outlook, kind: 'conditional_path_found' } })).toMatchObject({ ok: false, code: 'unresolved' });
     expect(AnalysisResultSchema.safeParse({ ...analysis, outlook: { ...analysis.outlook, kind: 'graduation_guaranteed' } }).success).toBe(false);
@@ -138,6 +138,8 @@ describe('recovery and persistence', () => {
   it('rejects persisted identity/revision mismatches and derived state', () => {
     const d = draft(), saved = { schemaVersion: 1, id: d.plan.planId, ownerUserId: 'synthetic-owner', revision: 0, record: d.record, plan: d.plan, createdAt: d.createdAt, updatedAt: d.createdAt };
     expect(SavedPlanSchema.safeParse(saved).success).toBe(true);
-    for (const change of [{ id: 'different' }, { revision: 1 }, { analysis: {} }, { availability_json: [] }]) expect(SavedPlanSchema.safeParse({ ...saved, ...change }).success).toBe(false);
+    expect(SavedPlanSchema.safeParse({ ...saved, revision: 7, plan: { ...saved.plan, planRevision: 3 } }).success).toBe(true);
+    expect(SaveIntentSchema.safeParse({ kind: 'update_owned', id: 'different', expectedRevision: 0, record: d.record, plan: d.plan }).success).toBe(false);
+    for (const change of [{ id: 'different' }, { analysis: {} }, { availability_json: [] }]) expect(SavedPlanSchema.safeParse({ ...saved, ...change }).success).toBe(false);
   });
 });

@@ -9,7 +9,7 @@ export function syntheticScenario(): PlanningScenario {
     schemaVersion: 1,
     catalog: { schemaVersion: 1, catalogRef: ref, approval: 'synthetic', courses: {
       'TEST-101': { courseId: 'TEST-101', displayCode: 'TEST 101', title: 'Synthetic course', credits: 3, prerequisite: { kind: 'unresolved', description: 'Synthetic unknown rule', sourceRefs: ['synthetic'] }, sourceRefs: ['synthetic'], status: 'pending' },
-    }, requirementGroups: [{ requirementId: 'required', kind: 'course', courseId: 'TEST-101', sourceRefs: ['synthetic'], uncertainty: 'unresolved', overlap: 'forbidden' }], policyGaps: [{ policyId: 'unknown-rule', description: 'Unresolved synthetic policy', sourceRefs: ['synthetic'], blocksConclusions: true }], validationResults: [] },
+    }, requirementGroups: [{ requirementId: 'required', kind: 'course', courseId: 'TEST-101', sourceRefs: ['synthetic'], uncertainty: 'unresolved', overlap: { mode: 'forbidden' }, consumesCredits: true }], rootRequirementId: 'required', equivalencies: [], gradeScale: null, policyGaps: [{ policyId: 'unknown-rule', description: 'Unresolved synthetic policy', sourceRefs: ['synthetic'], blocksConclusions: true }], validationResults: [] },
     record: { schemaVersion: 1, recordRevision: 0, courseAttempts: [], unresolvedItems: [] },
     plan: { schemaVersion: 1, planId: 'synthetic-plan', planRevision: 0, catalogRef: ref, targetTerm: term(2030, 'fall'),
       activePlacements: [{ placementId: 'p1', courseId: 'TEST-101', termId: term(2030, 'fall'), origin: 'student_selected', active: true }],
