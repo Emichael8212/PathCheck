@@ -1124,3 +1124,41 @@ secret handling. All five human shell blocks passed zsh syntax validation. The
 rehearsal server exited cleanly, shared benchmark lock was released, and isolated
 Supabase/Colima services stopped successfully. PR6/8/9 descriptions now distinguish
 live Google evidence, simulated error tests, human NOT RUN and remaining gates.
+
+Human reported combined upload Stage 1: "Pinned upload setup PASS — human upload NOT RUN". The pinned checkout/dependency setup is human PASS; extraction and planner acceptance remain NOT RUN. Next: start the dedicated local services and inspect loopback port bindings before resetting the disposable database. No agent starts or modifies the human acceptance services during this procedure.
+
+Human supplied combined upload Stage 2 container bindings: API55431, DB55432 and mail55434 published only on127.0.0.1; REST running and other listed services healthy. Local startup/isolation PASS. Next is the documented disposable local database reset before live server startup. Human extraction/planner acceptance remains NOT RUN; no agent database command executed.
+
+Human reported "Local synthetic database reset PASS — human upload NOT RUN". The disposable local reset prerequisite is PASS. Next: human starts the documented fixture-only live server using the existing ignored server configuration and process-only free-tier confirmation. Extraction/planner acceptance remains NOT RUN; no agent server start or provider request performed at this checkpoint.
+
+Human confirms expected Stage 3 readiness output: local synthetic server startup PASS. Next is Chrome consent, generated fixture upload, proposed-row inspection and explicit Accept and continue. Human extraction/planner acceptance remains NOT RUN until the corresponding reported results. Server remains under human control; no agent upload, API request or screenshot performed.
+
+After the documented local self-signed certificate warning, human reports Stage 4 "works as intended and screenshot taken". Record human synthetic upload/record-acceptance stage PASS; screenshot remains human-managed for GitHub. No screenshot requested or captured by agents. Combined acceptance remains incomplete pending Stage 5 planner interactions/safe provider evidence and cleanup. No additional extraction requested.
+
+Human reports Stage 5 PASS for the pinned combined upload procedure: prerequisite conflict, unchanged preview, apply, undo and safe provider/admission evidence checks. Stage 4 upload/explicit record acceptance also human PASS. No detailed provider attempt count was supplied; retain the reported assertion PASS without inventing raw output. Combined functional human assertions PASS at Lf1b03b4/G6e294/U52a72 on main1c0b8d3; cleanup remains pending. Next: human stops the live server and dedicated Supabase/Colima services, then lead verifies current heads/CI and merge gates. No PR merge recommendation issued yet.
+
+
+### Combined human acceptance complete — 2026-11-13
+
+Human reports "Combined upload cleanup PASS" after Stage4 upload/explicit record
+acceptance and Stage5 real planner/provider-evidence PASS. Setup, localhost isolation,
+local DB reset and server startup also passed. Record scoped human acceptance PASS
+for PR6 U52a72dac5844e471c2957305105f4f344402abec, PR8
+G6e29425404a7a53bf7e7a6da19d477b49e89469a, and PR9 implementation
+Lf1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba on merged main1c0b8d3.
+User manages screenshots directly on GitHub. No agent capture, provider rerun or
+human-test repetition. Detailed human transport counts were not supplied; do not
+infer them from the earlier agent report.
+
+Current GitHub checks: PR6 foundation43517706821 PASS, PR8 foundation43521373169
+PASS, PR9 documentation-head a9fb8c9 foundation43522873303 PASS; all CLEAN against
+unchanged main1c0b8d3. PR6/8 executable heads equal accepted pins. PR9 differences
+from accepted f1b03b4 are documentation only. Independent final reviews have no
+blocking findings in the accepted scope; no GitHub approving review is fabricated.
+
+PR8 READY TO MERGE for its owned extraction component; next personal merge is #8,
+then refresh/revalidate #6, then #9. Human acceptance does not authorize an agent
+merge. Remaining public gateway/bot enforcement, PDF resource isolation, account
+composition and real-transcript privacy/release gates remain mandatory unfinished
+work. Synthetic acceptance is not full application or deployment completion.
+This checkpoint updates documentation only; accepted application behavior unchanged.

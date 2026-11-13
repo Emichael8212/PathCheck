@@ -4,7 +4,7 @@
 - Implementation SHA: `6e29425404a7a53bf7e7a6da19d477b49e89469a`.
 - Test type: live synthetic PDF browser/API integration.
 - Feature: consent, admission, PDF extraction, raw-row proposals and bounded retries.
-- Human status: **NOT RUN**. Eligibility: **READY for combined human verification**.
+- Human status: **PASS** for the pinned combined upload, planner, provider-evidence and cleanup procedure. Eligibility: **READY TO MERGE** for this component at the unchanged head.
 - Required `foundation` CI 43521373169 PASS; independent findings resolved.
 
 ## Before You Begin
@@ -38,7 +38,7 @@ startup logs. The agent does not capture screenshots or request their paths.
 
 ## Pass/Fail Criteria
 
-All combined assertions must pass. Human status stays NOT RUN until your report.
+All combined assertions passed according to the human report, including cleanup.
 Wrong fields, omissions, silent acceptance or incorrect mutations are FAIL;
 provider unavailability is BLOCKED. Agent live PASS is separate evidence.
 

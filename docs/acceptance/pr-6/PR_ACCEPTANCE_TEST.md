@@ -6,12 +6,13 @@ Current PR #6 head: `52a72dac5844e471c2957305105f4f344402abec`.
 Required CI `foundation` 43517706821 PASS. The refreshed baseline does not change
 U-owned code. Prior human manual-entry/PDF-export acceptance is retained.
 The combined live synthetic upload is now agent-verified with real Google and SQL;
-human upload status is **NOT RUN**, eligibility **READY for human verification**.
+human upload status is **PASS**, including planner/provider checks and cleanup.
+The accepted U head is unchanged; refresh and revalidate after the next PR #8 merge.
 Use the single [combined PR #6/#8/#9 procedure](../pr-9/PR_ACCEPTANCE_TEST.md).
 It pins all component heads and assigns the consent, file controls, extraction summary,
 explicit acceptance and planner controls to this PR. Do not repeat the already
 accepted manual/export procedure below. The historical blocked wording is superseded
-by this checkpoint; the PR remains on human merge hold.
+by this checkpoint. Only the human may merge, in the reviewed dependency order.
 
 ## Historical manual/export acceptance procedure
 

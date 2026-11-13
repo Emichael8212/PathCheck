@@ -13,8 +13,9 @@
   `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`.
 - Test type: real Chrome → HTTPS local endpoint → local PostgreSQL admission →
   real Gemini 3.5 Flash-Lite → deterministic normalization → explicit acceptance → planner.
-- Human status: **NOT RUN for this combined procedure**. Agent live run PASS is separate.
-- Eligibility: **READY for human verification**: pinned-head CI and independent reviews pass.
+- Human status: **PASS**, reported for upload/explicit acceptance, planner and provider-evidence checks, and final cleanup. Setup/isolation/reset/server startup also passed.
+  Accepted pins are the three implementation revisions above; agent evidence remains separate.
+- Acceptance complete. PR #8 is the next component for personal merge after current-head checks; dependent PRs refresh and revalidate after each merge.
   This does not approve public deployment, real transcripts or the entire MVP.
 
 | PR | Requirements verified by this procedure |
@@ -217,8 +218,7 @@ real Google 200 under one admission. Any wrong/omitted course, silent acceptance
 incorrect planning mutation or stale results is FAIL. Provider exhaustion or a
 missing service is BLOCKED; never substitute simulated responses for human PASS.
 Report **combined upload PASS/FAIL/BLOCKED** for these pinned revisions, including
-which step failed if applicable. Separate PR #6/8/9 human statuses remain NOT RUN until
-that report. This does not approve unrelated pending account/cloud or release gates.
+which step failed if applicable. The human has reported PASS for the scoped PR #6/#8/#9 assertions. This does not approve unrelated pending account/cloud or release gates.
 
 ## Cleanup
 

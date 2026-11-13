@@ -13,10 +13,10 @@ are recorded in the ledger/PR evidence, not represented as GitHub approvals.
 |---|---|---|---|
 | 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
 | 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
-| 6 `52a72dac5844e471c2957305105f4f344402abec` | Three screens, planner, PDF export and consent/upload UI; engine/main1c; upload uses PR8 through PR9 | U independent findings resolved; baseline-only refresh; CI43517706821 PASS; prior human manual/export retained, combined upload NOT RUN | HUMAN ACCEPTANCE REQUIRED; live composed upload agent PASS; human merge hold remains |
+| 6 `52a72dac5844e471c2957305105f4f344402abec` | Three screens, planner, PDF export and consent/upload UI; engine/main1c; upload uses PR8 through PR9 | U independent findings resolved; baseline-only refresh; CI43517706821 PASS; prior human manual/export retained, combined upload and cleanup human PASS | Human accepted; sequence after PR8 with baseline refresh/revalidation |
 | 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; authoritative merged database baseline | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | MERGED `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`, verified 2026-11-13T22:09:33Z; local main synchronized |
-| 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload PASS; human NOT RUN | HUMAN ACCEPTANCE REQUIRED; public runtime and real-data gates remain separately mandatory |
-| 9 implementation `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba` | Lead RPC adapter, benchmark, real local synthetic upload composition; requires PR6/8, merged PR7 | Independent L/G findings resolved; CI43521594660 PASS; composed 669 units,65 UI,11 journeys,5 simulated upload and1 live Google browser PASS; human NOT RUN | HUMAN ACCEPTANCE REQUIRED; later docs-only changes preserve tested implementation |
+| 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload and human acceptance/cleanup PASS | READY TO MERGE unchanged component head; public runtime and real-data gates remain separately mandatory |
+| 9 implementation `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba` | Lead RPC adapter, benchmark, real local synthetic upload composition; requires PR6/8, merged PR7 | Independent L/G findings resolved; CI43521594660 PASS; composed 669 units,65 UI,11 journeys,5 simulated upload and1 live Google browser PASS; human combined acceptance/cleanup PASS | Human accepted; depends on PR6/8 merges and subsequent revalidation; later docs-only changes preserve tested implementation |
 
 Current open implementation heads contain merged main1c0b8d3. Noncommitting
 reconstruction of all three heads is conflict-free. That is
@@ -33,15 +33,15 @@ its omission from the earlier sequence was incorrect.
    merge before this test; waiting for mutually dependent acceptance would create
    an unnecessary cycle. No fake paid approval, simulated Google acceptance or
    real student records. Existing benchmark cases are not rerun.
-3. READY: one pinned [human upload procedure](../acceptance/pr-9/PR_ACCEPTANCE_TEST.md) with explicit PR6 UI, PR8 extraction
+3. HUMAN PASS including cleanup: one pinned [human upload procedure](../acceptance/pr-9/PR_ACCEPTANCE_TEST.md) with explicit PR6 UI, PR8 extraction
    and PR9 integration assertions. A human result may cover all three only when
    each scope and exact source revisions are identified. Retain prior manual/PDF
    acceptance; request only changed/new behavior unless a regression justifies more.
 4. Once applicable gates pass, proposed merge order is **PR7 → PR8 → PR6 → PR9**.
    PR6 and PR8 have no strict code merge order relative to each other; this ordering
    lands the extraction module before its UI integration. Both must precede PR9's
-   completed application integration. This is a conditional sequence, not a current
-   merge recommendation for PR6/8/9.
+   completed application integration. PR8 is now the next recommended personal merge; revalidate dependent
+   branches after that merge before recommending the next one.
 5. After each human merge, refresh dependent feature branches non-destructively,
    rerun affected automated checks/strict CI, and assess acceptance impact. A
    documentation-only or behavior-preserving baseline refresh does not itself
@@ -614,3 +614,21 @@ not repeated. No remaining external Google blocker was observed in the final run
 Still mandatory: public trusted gateway/bot enforcement, resource-isolated PDF
 processing, real-transcript privacy/processing approval, final account/cloud and
 other integrated F01–F20 closure. Local synthetic acceptance does not waive them.
+
+### Human combined acceptance and next merge — 2026-11-13
+
+Human reports Stage4 upload/explicit acceptance, Stage5 planner/provider-evidence
+checks, and "Combined upload cleanup PASS". Stages1–3 and the disposable local
+reset also passed. Scoped combined human acceptance is PASS for U52a72da,
+G6e29425 and Lf1b03b4 on main1c0b8d3. No screenshot path requested, no agent capture,
+no invented human request/retry counts. Earlier NOT RUN rows are historical and
+superseded for this exact local synthetic procedure only.
+
+GitHub reverified: PR8 head6e29425404a7a53bf7e7a6da19d477b49e89469a,
+base main1c0b8d3, CLEAN; required foundation43521373169 SUCCESS. Independent
+findings resolved, 157 extraction tests/578 owner units and composed live evidence
+retained. No implementation change since acceptance. PR8 READY TO MERGE for the
+extraction component. PR6/9 are human accepted for the pinned combined scope but
+must refresh/revalidate in dependency order after each human merge. Public runtime,
+account composition and real-transcript/release gates remain mandatory and open;
+none is represented as complete by this component merge recommendation.
