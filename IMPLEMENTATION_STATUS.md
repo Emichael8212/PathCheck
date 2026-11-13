@@ -721,3 +721,33 @@ terms; incomplete unknown status/unresolved confidence/null term; needs_review
 envelope), reran composed runner PASS. Lead lint/typecheck PASS. S new branch
 feat/transcript-admission verified; U has owned TranscriptPanel/flow edits underway.
 Both Claude result files still pending; do not redispatch duplicate processes.
+
+### Free-tier verification checkpoint — 2026-11-13
+
+User authorized free-first synthetic Gemini evaluation, no paid billing/fallback:
+DECISIONS GEM-001; research in docs/testing/gemini-free-tier-verification.md.
+Public model/PDF/structured-output/pricing/terms verified. Project IDs/access,
+RPM/TPM/RPD and billing tier BLOCKED: no browser connection, native Chrome denied
+Computer Use permissions, API key env variables unset. No live call or billing
+change. Recommend evaluating gemini-3.5-flash-lite only after actual access checks.
+Existing provider policy rejects zero prices; approved eligibility requires paid
+project. Explicit local synthetic boundary/review required, never fabricated paid
+approval. Real-transcript gate unchanged.
+
+Lead reran extraction fbe9374 provider/browser tests: 23 PASS/2files; synthetic
+HTTP responses only, not an API benchmark. U completed and pushed0f1f2581ec692207f3f110bddcd243e70a286712:
+byte cleanup, file-read errors, consent cancellation/late-result suppression and
+summary. Owner reports481unit PASS/2skips,58UI PASS,10journeys PASS. Lead verified
+current-head foundation CI43484051244 SUCCESS; independent source review requested.
+Human transcript acceptance NOT RUN; PR6 remains withheld from merge. S admission
+result still pending; preserve its worktree and do not duplicate execution.
+
+Independent U review of0f1f258 found three blockers: receipt revocation waits for
+extract completion instead of immediately stopping pre-dispatch processing; old
+revoke responses can overwrite a newer run's consent state; summary uses the raw
+extraction envelope instead of G's validated/downgraded envelope. Explicit record
+acceptance remains intact. Actual U correction launched session27629, task
+/private/tmp/pathcheck-u-revoke-fix.txt, result pathcheck-u-revoke-fix-result.json.
+Additional two findings arrived after dispatch: queued handoff
+/private/tmp/pathcheck-u-revoke-followup.txt must be executed after current U task
+ends, never concurrently. No approval until all three regression fixes are reviewed.

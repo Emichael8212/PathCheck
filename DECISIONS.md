@@ -50,6 +50,8 @@ This is the canonical record of *why* a choice was made; precise contracts are i
 - A structured JSON response **does not** prove semantic accuracy or completeness. See https://ai.google.dev/gemini-api/docs/structured-output . Validate against ground truth, catalog, row/page counts when possible; explicitly report uncertainty and reject unsupported output.
 - **Unresolved:** paid-tier account/billing configuration, model choice/price as of actual implementation, data-processing eligibility, representative fixture set, and production extraction accuracy. None overrides ARCH-005.
 
+- **GEM-001 (2026-11-13, user direction):** Evaluate an accessible free-tier multimodal model first, with synthetic transcripts only. Verify actual project model access, billing tier and quotas before live calls. No paid billing, paid-only model or automatic paid fallback without separate human authorization. Quota exhaustion must preserve manual entry. This does not relax the real-transcript privacy gate or T-GEM accuracy requirements. Current research and unresolved project checks: `docs/testing/gemini-free-tier-verification.md`.
+
 ## Build and collaboration decisions
 
 - **Five specific roles (locked):** Codex Agent 1 lead integrator; Claude Agent 1 academic engine; Claude Agent 2 frontend/UX; Claude Agent 3 Supabase authentication/persistence; Codex Agent 2 Gemini transcript extraction. Separate **four implementation worktrees plus lead worktree** and exclusive paths; the lead alone authors/finalizes shared TypeScript contracts and integration adapters. Agent-role assignment does not change the approved F01–F20 MVP.

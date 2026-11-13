@@ -1,5 +1,18 @@
 # PathCheck requirements-to-test audit — 2026-11-13
 
+## Current transcript checkpoint
+
+Free-tier public research: [verification note](gemini-free-tier-verification.md).
+Project access/quota/billing verification and actual T-GEM PDF benchmark remain
+BLOCKED, not evidence of free-tier inadequacy. Lead reran G fbe9374 provider/browser
+tests: 23 PASS in2files using synthetic HTTP responses only. No live provider call.
+U0f1f258 current CI43484051244 PASS, but independent review FAIL: immediate consent
+revocation, cross-run revoke response isolation and validated-envelope summary each
+need regression correction. These block transcript integration/acceptance despite
+passing existing isolated tests. U correction in progress; human upload NOT RUN.
+Admission storage and endpoint composition remain pending. Real-transcript release
+privacy gate is unchanged; no paid configuration or fallback authorized.
+
 Read-only code audit with documentation changes only. No SQL/REST rerun, provider calls,
 screenshots, merges, deployment, or contract changes. One isolated in-memory recovery
 diagnostic is explicitly identified below; it is not database/human acceptance.
