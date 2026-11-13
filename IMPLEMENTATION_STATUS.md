@@ -13,10 +13,10 @@ On resume: read AGENTS.md, role-relevant specifications, this ledger, and assign
 | Role | Branch / worktree | Status |
 |---|---|---|
 | L | feat/integration-01 / ../pathcheck-lead | IN PROGRESS from de28a31846688f1d1a1a29eb8b2708571bf16301; foundation PR #2 MERGED; draft PR https://github.com/Emichael8212/PathCheck/pull/3 |
-| E | feat/academic-engine / ../pathcheck-engine | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
-| U | feat/frontend-ux / ../pathcheck-frontend | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
-| S | feat/supabase / ../pathcheck-supabase | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
-| G | feat/gemini-extraction / ../pathcheck-gemini | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
+| E | feat/academic-engine / ../pathcheck-engine | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; see current checkpoints below |
+| U | feat/frontend-ux / ../pathcheck-frontend | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; see current checkpoints below |
+| S | feat/supabase / ../pathcheck-supabase | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; see current checkpoints below |
+| G | feat/gemini-extraction / ../pathcheck-gemini | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; see current checkpoints below |
 
 ## Verified context
 
@@ -117,3 +117,38 @@ Verification commands: `gh api repos/Emichael8212/PathCheck/rulesets/27097753`; 
 - Follow-up: preserve a student report's observedAt independently of action.occurredAt; an earlier observation is valid. G reviewed the correction with no blocker. `npm run check` PASS again: 83 units / 5 files, lint/typecheck/build, 1 Chromium. Current follow-up CI is recorded in PR #3 after push.
 - E/U/S implementation sessions remain RUNNING in their assigned worktrees; code is incomplete/unreviewed and no test completion is inferred from files appearing. G is implementing and testing its independent module; parser/private RPC/live-provider integration remain pending. Resume by inspecting each worktree and active process before launching another writer.
 - Human approval/merge of the lead dependency PR is required before feature agents consume pdf-lib. Do not use main pushes or cross-branch dependency cherry-picks to bypass that checkpoint. Continue independent module work. No subsequent feature PR merged; no deployment.
+
+### S/G independent checkpoints (not integrated acceptance)
+
+- S reported `npm ci` PASS/zero vulnerabilities and `npm run check` PASS: 113 unit tests passed, 1 live test skipped, build/lint/typecheck and 1 Chromium smoke. 54 new tests use fake HTTP/storage or static migration inspection; they do not prove SQL execution or RLS. Owned SQL migration plus 68 pgTAP checks and live two-user REST suite exist. Mandatory SQL/live tests BLOCKED: no Docker/Supabase/Postgres test service. Exact commands and expected results: S-owned `supabase/tests/README.md`. S is preparing a draft PR, explicitly not ready to merge, and independently reviewing L commands.
+- S identified cross-tab magic-link auth completion missing from AuthService; same-tab OTP works in isolated tests. Shared interface proposal remains pending review, not silently added. G/S admission RPCs also pending joint review; no migration or public endpoint enforcement claimed.
+- G reported 78 transcript tests / 5 files PASS and lint PASS; WebCrypto TypeScript issue fixed with rerun pending at that report. Includes actual browser/provider adapter code and conservative extraction validation, not live-provider accuracy. PDF parser/corpus, actual atomic SQL race tests, Edge entry/module resolution and live Gemini benchmark remain BLOCKED/NOT RUN.
+- No real transcript processing enabled; unresolved catalog rules still cannot certify graduation.
+
+## Current resume checkpoint — Claude quota stop
+
+All three Claude processes exited with `You’ve hit your 5-hour limit`; CLI reports reset 10:50pm America/Chicago. Authentication is not the blocker; do not ask for another login. No automatic ownership reassignment or duplicate writer. Read existing work before resuming.
+
+| Role | Preserved state | Verified checks / remaining gate |
+|---|---|---|
+| L | feat/integration-01; draft PR #3; tested code a42769f (observation-time correction) | PASS npm run check: 83 units/5 files, lint/typecheck/build, 1 smoke; required CI PASS https://github.com/Emichael8212/PathCheck/actions/runs/43340406935. G independent review PASS. Latest ledger-only CI recorded on PR. |
+| E | Uncommitted src/engine files in pathcheck-engine, base de28a31; no catalog/service/test completion | FAIL typecheck: preview.ts unused isHard import (TS6133). npm test PASS only existing 59 foundation tests; no E acceptance credit. Confirmed audit allocation defect below. |
+| U | Uncommitted screens/UI/styles/export and tests in pathcheck-frontend, base de28a31 | L ran npm run check PASS: 83 units/6 files, lint/typecheck/build and 1 foundation smoke. Actual UI interaction/a11y/mobile and real-engine journeys NOT RUN; no feature completion. |
+| S | Owned files staged but uncommitted in pathcheck-supabase, base de28a31; second review/PR pass stopped by quota | Initial owner full check PASS 113 tests, 1 skipped live test, 1 smoke. Three blocking lifecycle findings below. SQL/live RLS BLOCKED; no PR or completed S review of L claimed. |
+| G | Local commit 43ebe463e84466227bfc7e9b62c6524022ef2cf5; clean feat/gemini-extraction; no push/PR | Owner full check PASS145 units/9 files (86G), lint/typecheck/build, 1 smoke. PDF parser/corpus, private RPC/race tests, deployable Edge resolution and live provider benchmark BLOCKED/NOT RUN. README in G-owned function directory records details. |
+
+### Blocking findings for owners to fix after quota reset
+
+- **E / forbidden credit reuse:** L ran a synthetic reproduction via `node /Users/_eman5michael/pathcheck-lead/node_modules/vitest/vitest.mjs run --root /private/tmp/pathcheck-e-review --config /private/tmp/pathcheck-e-review/vitest.config.mjs`: FAIL, 1/1. Input: one completed 3-credit TEST-101; root all(required-a=TEST-101, alternative=choose 1 of [need-b=TEST-102, need-a=TEST-101]); every group forbids overlap, no policy gaps. Expected root not satisfied because TEST-101 cannot serve both leaves. Actual totalStatus=satisfied. Inactive alternative leafOutcome ignores allocations, but parent choose_n still evaluates it; source src/engine/audit.ts. Owner must constrain parent outcomes to chosen allocations and add independent regression. No ASU rule changed. Repro is synthetic and contains no personal information.
+- **S / concealed recovery deletion failure:** guestRecovery.readSlot ignores failed remove(slot) for corrupt/expired/misplaced data and returns success/null. Return typed failure and test throwing removeItem; never claim cleanup succeeded.
+- **S / OTP sign-out/account race:** pending verifyEmailOtp unconditionally restores session after signOut or overwrites newer login. Add generation/operation guard and deferred-response regressions.
+- **S / refresh fallback race:** failed refresh can return captured old token after signOut/account switch. Require same current session/generation before fallback and test deferred failure. These three S findings are independent G code-review evidence; regressions/fixes NOT RUN.
+- E follow-up review: policy.ts states absent policy gap means catalog author sourced it; absence must not become invented repeat/grade policy. U follow-up review: custom PDF writer must be reconciled with approved maintained-library approach once lead dependency lands. Neither module is accepted.
+
+### Next actions
+
+1. Human reviews draft lead PR #3. No agent merge; shared PDF dependency unavailable to feature branches until human merge.
+2. After Claude quota resets, resume E/U/S in existing worktrees; fix E/S confirmed blockers first, preserve all existing work, complete owned tests and required independent reviews. E must deliver catalog + service + source/engine/scheduler fixtures; U must complete interaction/mobile/PDF tests.
+3. Review proposed G/S atomic RPC API jointly; do not deploy or claim database authorization without actual test-service evidence. Review magic-link completion proposal before any frozen interface change.
+4. E/U commits and functional draft PRs trigger L's local-only, uncommitted integration testing of I1/I2. No full planner E2E has passed yet.
+5. Keep real transcript processing disabled and ASU applicability/equivalencies explicitly unresolved. No subsequent PR merge or deployment has occurred; main remains de28a31846688f1d1a1a29eb8b2708571bf16301.
