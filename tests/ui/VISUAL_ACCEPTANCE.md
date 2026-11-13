@@ -44,6 +44,32 @@ Glass during scrolling: on the planner with several courses, scroll to the botto
 stays readable, the capsule floats clear of focused controls, the last course's Edit popover opens upward fully on screen,
 and an open preview keeps Apply/Cancel visible while you scroll.
 
+## Targeted re-check: two specific cases
+
+**Case A: incomplete course cannot be accepted** (harness URL above)
+1. Continue as guest → Add course attempt → type `SYN 101` → Done. Leave Status empty.
+2. Expect:
+   - The bar reads "⚠ Complete 1 course to continue: SYN 101 needs a status."
+   - The row shows "Needs status".
+   - "Accept and continue" is greyed out.
+3. Click it anyway, and also try Tab to it + Enter. Expect:
+   - An alert: "Some courses need corrections…".
+   - The row opens with focus in Status and the message "Choose a status (Unknown is allowed)".
+   - You stay on Academic record, and no "Record accepted" message appears.
+4. Choose Status "In progress" with no grade and no credits. Expect "1 course checked…" and a blue button. Grades and credits are not required.
+
+**Case B: empty-plan outlook**
+1. Harness: Accept and continue → "I already selected courses", nothing added.
+   - Expect the line "No courses are planned yet. This outlook reflects PathCheck's check of your remaining requirements, not a schedule you chose."
+   - The test double now reports "Reachable under current assumptions", because unplanned courses alone aren't a risk.
+2. Harness with `?draft=none`: same steps.
+   - Expect "Fall 2028 is at risk", plus the finding "No complete schedule found within search limits" in Needs attention.
+   - This is the risk case, coming from the engine's result rather than from the empty plan.
+3. Real engine (optional, recommended): ask the lead for a reconstructed candidate, or use the lead's integration harness. Choose target **Fall 2027** with no courses taken.
+   - Expect "Fall 2027 is at risk" with "⚠ 3 scheduling risks reported".
+   - Needs attention should list "No term fits within the planning horizon" and "Prerequisite chain is too long for the target". The 3-course chain can't fit in 2 terms.
+   - With SYN 101 completed, the same target shows "Not enough information to judge Fall 2027 yet" instead.
+
 ## Checklist (mark each PASS or FAIL)
 
 1. Typography and spacing are consistent across the three screens. Nothing is clipped or overlapping, and the page never scrolls sideways.

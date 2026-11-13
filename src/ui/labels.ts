@@ -151,7 +151,7 @@ export function formatTimestamp(iso: string): string {
 /** Outlook headline and one-line detail; `{target}` is replaced with the target term label. */
 export const OUTLOOK_UI: Record<AnalysisResult['outlook']['kind'], { title: string; detail: string; tone: 'ok' | 'warn' | 'conflict' | 'neutral' }> = {
   conditional_path_found: { title: 'Reachable under current assumptions', detail: 'Your plan meets the modeled requirements by {target} if the assumptions below hold. Not a guarantee of offerings, seats or grades.', tone: 'ok' },
-  target_at_risk: { title: '{target} is at risk', detail: 'The plan is tight or conflicts for this target. Another path may still exist.', tone: 'warn' },
+  target_at_risk: { title: '{target} is at risk', detail: 'PathCheck found a timing or scheduling risk for this target. Another path may still exist.', tone: 'warn' },
   insufficient_evidence: { title: 'Not enough information to judge {target} yet', detail: 'Missing or unresolved catalog, credit, transfer or availability details prevent a conclusion.', tone: 'warn' },
   known_constraints_block_current_plan: { title: 'Conflicts in your current plan', detail: 'Some selected courses break modeled rules. This doesn’t mean {target} is out of reach.', tone: 'conflict' },
   not_evaluated: { title: 'PathCheck couldn’t check this plan yet', detail: 'Required inputs are missing, the catalog is unsupported, or the check didn’t finish.', tone: 'neutral' },

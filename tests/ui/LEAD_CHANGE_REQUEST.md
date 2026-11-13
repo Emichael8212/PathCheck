@@ -7,7 +7,7 @@ Owner of every file below: **Codex Agent 1 (L)**. U has not edited any of them.
 **Issue:** The approved record flow replaces Review record → Accept this record → Continue to planner with automatic E
 normalization and a single explicit "Accept and continue". That button still calls L `acceptRecord` with an
 `accept_record` action.
-**Evidence:** On a local, uncommitted scratch merge (L `09ee8cb`, E `645111c`, U `3fc186b` (re-verified after the refinement round), S `8d28602`, G `b37f4c2`;
+**Evidence:** On a local, uncommitted scratch merge (L `09ee8cb`, E `645111c`, U `50f200d` (re-verified after the second refinement round), S `8d28602`, G `b37f4c2`;
 port 5181 was occupied, so the scratch copy used 5182):
 - Unchanged specs: `application.spec` PASS 1; journeys FAIL 9 at the removed `Review record` button.
 - With the replacement below: `npm run test:integration` PASS 10/10. `PATHCHECK_TEST_BUILD=1` build smoke PASS 1. Units PASS 505 (2 skipped). U browser suite PASS 45 in the combined tree. Lint and typecheck PASS.
@@ -56,6 +56,20 @@ The visual design steps are in `tests/ui/VISUAL_ACCEPTANCE.md`; link or fold the
 Searchable planner course selection: the planner "Course" stays a native `<select>` for this PR.
 `journey.spec.ts` `add()` calls `selectOption` on it. A future combobox needs a coordinated selector change.
 Existing selectors should not permanently dictate usability (user direction, 2026-11-13).
+
+## 5. Contract limitation (report only; no UI workaround)
+
+**Issue:** `AnalysisResult.outlook` carries `assumptionRefs` and `evidenceRefs`, but no reference to the findings that
+set its `kind`. The UI cannot say *why* an outlook is `target_at_risk` without copying E's rule (service.ts:113–143) into
+UI code, which the architecture forbids.
+**Evidence:** Real E, empty plan, scratch merge with U `50f200d`:
+- Fall 2027 with SYN 101 completed → `insufficient_evidence`.
+- Spring 2027 → `target_at_risk` via `target_at_risk_chain` and `no_feasible_term_in_horizon`.
+- Fall 2027 with an empty record → `target_at_risk` via the same chain findings.
+
+The UI shows these as findings and "scheduling risks", but cannot link them to the outlook.
+**Recommendation:** optional contract addition `outlook.reasonRefs: string[]` (finding ids that determined `kind`), owned by L/E.
+**Decision needed:** Yes, by L, when convenient. It does not block PR #6.
 
 ## Contract conflicts
 
