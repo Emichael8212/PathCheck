@@ -4,7 +4,7 @@ Read-only code audit with documentation changes only. No SQL/REST rerun, provide
 screenshots, merges, deployment, or contract changes. One isolated in-memory recovery
 diagnostic is explicitly identified below; it is not database/human acceptance.
 
-**Decision: BLOCKED for the next merge. PR #4 is the next candidate, but has a newly
+**Historical audit decision (superseded by execution checkpoint below): BLOCKED for the next merge. PR #4 is the next candidate, but has a newly
 confirmed recovery data-loss defect and is BEHIND protected main.** Human PR#4 acceptance
 remains PASS for localhost isolation + SQL172 + real REST1; it is not a claim that every
 recovery path passed. No other open PR is currently safe to recommend for merge.
@@ -437,3 +437,22 @@ At S `8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd`, L reported an actual in-memory 
 | T-AUTH simultaneous shared-slot read/write/clear safety | S + L + U | No new browser race evidence established by this audit. | Real concurrent browser contexts | Distinct from deterministic A/B deletion; conditional cleanup must also be checked against intervening edits and shared-slot races in actual integration. | None in this audit | BLOCKED / integration pending | B |
 
 PR4's user-executed SQL172 and REST1 PASS (plus intentional invalid-config guard skip) remain valid for the pinned tested scope. They neither cover nor disprove the draft-clear defect. Do not ask the human to rerun the database acceptance for this in-memory failure. No overall PR4-ready or G-ready recommendation follows from this audit.
+
+## Execution update — 2026-11-13 (supersedes affected audit rows)
+
+| Requirement | New evidence | Result / gate |
+|---|---|---|
+| A4 scoped save/recovery | S aeaee0b; `tests/persistence/saveFlows.test.ts`, group `save-triggered recovery cleanup is scoped to the saved draft (A4)`;13 cases | PASS agent regression; L70 actual save/recovery tests PASS. Independent review pending; human changed-behavior test NOT RUN. |
+| A4 fresh baseline/CI | S aeaee0b contains main2bb6b3f; foundation43473452035 | PASS CI; no merge recommendation yet |
+| SCH19 apply constituents | L pending commit `src/app/plannerCommands.test.ts`, `rejects stale ${name} independently without mutation`;23 variants including horizon/capacity, evaluatedAt, beam, source, repeat policy | PASS; isolated mutation boundary, not full cloud journey |
+| G→L→E malformed proposal | L `tests/e2e/normalization.integration.mjs` actual Gfbe9374/E645111c/L merged adapter | PASS forged mapping/credit withholding, unknown status, rejected/wrong-schema input and review-required result. Transfer/repeat/projection integration still pending. |
+| Combined regressions | Local main2bb6b3f + E645111c/Uf413d18/Gfbe9374/Saeaee0b and L test edits | PASS556units,2live skips;11desktop browser cases. No new human acceptance inferred. |
+
+Correction: old saveFlows tests already composed real modules for single-draft cases;
+the specific missing case was saving session A while unrelated valid shared B exists.
+Other unchanged rows retain their audit evidence/limitations. No live SQL/REST rerun
+or extraction provider calls in this execution checkpoint.
+
+Independent static review completed with no blocker in S recovery fix or L test
+changes; reviewer ran no tests. PR4 now HUMAN ACCEPTANCE REQUIRED for scoped cleanup,
+not READY TO MERGE. Existing database human PASS remains valid for unchanged code.

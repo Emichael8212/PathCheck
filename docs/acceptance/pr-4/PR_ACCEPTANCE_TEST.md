@@ -8,7 +8,7 @@
 - Test type: real local PostgreSQL/REST security and persistence
 - Feature being verified: owner isolation, anonymous denial, revision conflicts, quota, recent-auth deletion and JSON integrity
 - Human acceptance status: **PASS (human-executed, 2026-11-13)** for the pinned baseline and PR head. SQL172 PASS; real REST1 PASS with1 expected configuration-guard skip.
-- Eligibility: **BLOCKED for merge** by the save/recovery data-loss finding in the [coverage audit](../../testing/requirements-coverage-audit.md). Human security acceptance remains PASS; the correction, current-head CI, baseline freshness and independent review remain separate gates.
+- Eligibility: **HUMAN ACCEPTANCE REQUIRED** for the recovery correction at aeaee0b (procedure below). Historical database acceptance remains PASS. Current fix CI and independent static review pass.
 
 ## Before You Begin
 Git, Node24–26/npm, Python3, Colima, Docker CLI and Supabase CLI on macOS. Verified
@@ -198,3 +198,35 @@ Cleanup confirmed by the human: Supabase containers and the dedicated Colima VM
 stopped successfully; local backup volumes retained. No screenshot path requested.
 The later coverage audit found a separate in-memory save/recovery defect outside
 this SQL/REST scenario; it does not invalidate the reported security assertions.
+
+## Recovery correction acceptance — NOT RUN
+
+The historical database acceptance above remains PASS for unchanged SQL/REST code.
+The new recovery behavior at `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e`
+requires a separate human test; no database or Colima is needed. Independent review
+and current CI must pass before the lead presents this checkpoint.
+
+From the existing S worktree, verify the exact head and run only synthetic in-memory
+regressions (no checkout/reset, account, credentials or student data):
+
+```sh
+(
+set -eu
+cd /Users/_eman5michael/pathcheck-supabase
+test "$(git rev-parse HEAD)" = aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e
+npm ci --ignore-scripts
+node node_modules/vitest/vitest.mjs run tests/persistence/saveFlows.test.ts tests/persistence/guestRecovery.test.ts --reporter=verbose
+)
+```
+
+Expected: **2 test files passed, 70 tests passed**. In the A4 scoped-cleanup group,
+saving A must preserve unrelated B byte-for-byte, preserve newer same-ID edits,
+and report cleanup failures truthfully. The tests exercise actual save/recovery
+modules; only HTTP/storage infrastructure uses deterministic in-memory fixtures.
+PASS requires all assertions passing at the pinned head. Any failure is FAIL;
+head mismatch means stop and ask for updated instructions. Screenshot checkpoint:
+the A/B preservation test and final passing summary; all data are synthetic.
+The human attaches evidence directly to GitHub. No screenshot paths needed.
+Cleanup: the process exits automatically; no services or persistent test data exist.
+Limitations: this does not prove simultaneous browser-tab atomicity or live auth;
+those retain their separate integration gates.

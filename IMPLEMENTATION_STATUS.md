@@ -478,3 +478,55 @@ rerun, provider call, screenshot capture, merge or deployment.
 - **Next merge recommendation: BLOCKED; no current open PR recommended.** PR4 remains
   next candidate after correction, refreshed CI/review and acceptance impact review.
   Preserve existing H4 database PASS; do not request a blanket human rerun.
+
+
+### Autonomous execution checkpoint — 2026-11-13
+
+User authorized resuming existing Claude owners, approved implementation/tests and
+local synthetic security checks; no merges/deployment. Verified main2bb6b3f and PRs
+#2/#3 merged, #4–6 open. No existing Claude process was running before dispatch.
+Claude Opus5.5 medium executions (existing worktrees, no new feature scope):
+- S finished: aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e on feat/supabase,
+  refreshed main in f642525, scoped saved-draft cleanup and13 actual-module cases.
+  Owner check220units/2live skips/lint/typecheck/build/smoke PASS; CI43473452035 PASS.
+  L independently npm ci --ignore-scripts + verbose save/recovery suites PASS70/2files.
+  SQL/migration/live REST diff from8d28602 is empty; historical human security PASS
+  retained. New recovery human acceptance NOT RUN, guide appended. Independent
+  recovery review pending; not READY TO MERGE.
+- E running existing feat/academic-engine: main refresh d09588d, repeat-policy code
+  and tests currently uncommitted. Execution session19099, result file
+  /private/tmp/pathcheck-engine-execution.json. Do not overwrite or duplicate owner.
+- U running existing feat/frontend-ux: main refresh5424a85, pdf-lib writer/export
+  tests and async consumers currently uncommitted. Execution session64120, result
+  /private/tmp/pathcheck-frontend-execution.json. Do not overwrite or duplicate owner.
+- Extraction branch remains fbe9374. Gemini is an external extraction API, not a
+  coding agent. No new extraction engineering agent spawned. Existing Codex review
+  context used only for independent read-only review; ownership reassignment must
+  be recorded before another owner edits extraction paths.
+
+L added15 stale-apply regression variants (39 command tests total) and actual
+extraction-validator → lead → engine integration runner, plus conditional CI step.
+`npm run check` PASS118units/lint/typecheck/build/1smoke. One added horizon fixture
+initially lacked required capacity (validation_error); corrected fixture, no production
+contract change. Sandbox localhost bind failures resolved by scoped outside-sandbox
+rerun. Independent review initial feedback incorporated; final review pending.
+
+Reconstructed local-only /private/tmp/pathcheck-execution-integration on main2bb6b3f
+with noncommitting E645111c/Uf413d18/S8d28602/Gfbe9374, then applied exact S recovery
+diff8d28602→aeaee0b and L test edits. No scratch commit/push. Actual application.patch
+applied only there. `npm test` PASS556/2live skips; `npm run test:integration` PASS11
+desktop journeys. Earlier same candidate before recovery diff PASS539units/fullcheck,
+actual normalization runner PASS, production-built application smoke PASS1. That
+production smoke predates S fix; no new UI/engine owner work included yet.
+Runner proves malicious mapping/credits remain unresolved and review-required output;
+not full upload, transfer/repeat/projection or real provider accuracy acceptance.
+Next: finish independent S review, present focused recovery human test if cleared;
+inspect E/U completed heads, obtain independent reviews, reconstruct/retest candidate.
+
+Independent existing Codex reviewer completed static review: no blocking finding in
+Saeaee0b deterministic recovery fix or current L tests/CI. Reviewer ran no tests.
+Simultaneous cross-tab atomicity remains B; wrapped recovery services fail safely
+without clearing. PR4 readiness: HUMAN ACCEPTANCE REQUIRED for changed recovery.
+User-authorized four-person team supersedes historical fifth implementation role;
+extraction ownership still to be assigned explicitly within existing team, preserving
+branch and files. No additional extraction agent launched.
