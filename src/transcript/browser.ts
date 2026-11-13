@@ -18,9 +18,13 @@ export function createTranscriptClient(options: { basePath?: string; fetch?: typ
   const send = options.fetch ?? fetch;
   const now = options.now ?? Date.now;
   const tickets = new Map<string, { receipt: string; digest: string; expiresAt: number }>();
+  // In-flight uploads per consent receipt; revocation aborts them and discards any late result.
+  const inflight = new Map<string, Set<AbortController>>();
+  const revoked = new Set<string>();
   async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}): Promise<Result<T>> {
     try {
-      const response = await send(`${base}/${path}`, { ...init, credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(65_000) });
+      const timeout = AbortSignal.timeout(65_000);
+      const response = await send(`${base}/${path}`, { ...init, credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
       const reader = response.body?.getReader();
       if (!reader) return unavailable();
       const chunks: Uint8Array[] = []; let size = 0;
@@ -52,17 +56,34 @@ export function createTranscriptClient(options: { basePath?: string; fetch?: typ
     async extract(input, pdfBytes) {
       const parsed = AdmissionRequestSchema.safeParse(input);
       if (!parsed.success) return { ok: false, code: 'forbidden', reasonCode: 'ticket_required' };
-      const ticket = tickets.get(parsed.data.signedTicket);
-      if (!ticket || ticket.receipt !== input.consentReceiptId || ticket.expiresAt <= now()) return { ok: false, code: 'forbidden', reasonCode: 'ticket_required' };
+      const key = parsed.data.signedTicket;
+      const ticket = tickets.get(key);
+      const usable = () => tickets.get(key) === ticket && ticket !== undefined && ticket.receipt === parsed.data.consentReceiptId && ticket.expiresAt > now() && !revoked.has(ticket.receipt);
+      if (!ticket || !usable()) return { ok: false, code: 'forbidden', reasonCode: 'ticket_required' };
       if (!pdfBytes.length || pdfBytes.length > ADMISSION_LIMITS.maxPdfBytes || new TextDecoder().decode(pdfBytes.subarray(0, 5)) !== '%PDF-') return { ok: false, code: 'validation_error', reasonCode: 'invalid_pdf' };
-      if (await documentDigest(pdfBytes) !== ticket.digest) return { ok: false, code: 'forbidden', reasonCode: 'document_mismatch' };
-      tickets.delete(parsed.data.signedTicket); // one attempt; failure requires fresh attestation/ticket
-      return request('extract', TranscriptExtractionSchema, { method: 'POST', headers: { 'Content-Type': 'application/pdf', 'X-Extraction-Ticket': input.signedTicket, 'X-Consent-Receipt': input.consentReceiptId }, body: Uint8Array.from(pdfBytes) });
+      const digest = await documentDigest(pdfBytes);
+      // Re-check after the await: a concurrent extract or revocation may have consumed the ticket.
+      if (!usable()) return { ok: false, code: 'forbidden', reasonCode: 'ticket_required' };
+      if (digest !== ticket.digest) return { ok: false, code: 'forbidden', reasonCode: 'document_mismatch' };
+      tickets.delete(key); // synchronous claim: one attempt; failure requires fresh attestation/ticket
+      const controller = new AbortController();
+      const active = inflight.get(ticket.receipt) ?? new Set<AbortController>();
+      active.add(controller); inflight.set(ticket.receipt, active);
+      try {
+        const result = await request('extract', TranscriptExtractionSchema, { method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/pdf', 'X-Extraction-Ticket': parsed.data.signedTicket, 'X-Consent-Receipt': parsed.data.consentReceiptId }, body: Uint8Array.from(pdfBytes) });
+        // Already-transmitted data cannot be recalled, but a revoked proposal is never surfaced.
+        return revoked.has(ticket.receipt) ? { ok: false, code: 'forbidden', reasonCode: 'consent_revoked' } : result;
+      } finally {
+        active.delete(controller); if (!active.size) inflight.delete(ticket.receipt);
+      }
     },
     async revokeConsent(input) {
       const parsed = RevokeConsentRequestSchema.safeParse(input);
       if (!parsed.success) return { ok: false, code: 'validation_error', reasonCode: 'invalid_consent_receipt' };
-      for (const [key, ticket] of tickets) if (ticket.receipt === input.consentReceiptId) tickets.delete(key);
+      const receipt = parsed.data.consentReceiptId;
+      revoked.add(receipt);
+      for (const [key, ticket] of tickets) if (ticket.receipt === receipt) tickets.delete(key);
+      for (const controller of inflight.get(receipt) ?? []) controller.abort();
       return request('revoke', z.null(), json(parsed.data));
     },
   };

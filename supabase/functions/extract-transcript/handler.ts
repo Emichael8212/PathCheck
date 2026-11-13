@@ -38,6 +38,18 @@ async function boundedBody(request: Request, max: number): Promise<Uint8Array> {
   const result = new Uint8Array(count); let at = 0; for (const chunk of chunks) { result.set(chunk, at); at += chunk.length; }
   return result;
 }
+/**
+ * Admission leases last 120s (admission.ts) and the provider transport times out at 50s.
+ * Inspection must finish within this budget so dispatch + provider + settlement complete
+ * before lease recovery can release concurrency for a still-running provider call.
+ */
+export const INSPECTION_DEADLINE_MS = 30_000;
+async function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([work, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('deadline')), ms); })]);
+  } finally { clearTimeout(timer); }
+}
 const Session = z.strictObject({ sessionId: z.uuid(), issuedAt: z.number().int(), expiresAt: z.number().int() });
 
 /** Transport implementation; no global service key, listener or permissive dev mode. */
@@ -94,13 +106,19 @@ export function createTranscriptHandler(options: EndpointOptions): (request: Req
       const admission = await options.admission.admit(input, { sessionId: currentSession, networkKey: network, origin: options.allowedOrigin, documentDigest: await sha256(bytes), now: time, eligibility });
       if (!admission.ok) return respond(admission);
       const reservationId = admission.value.reservationId;
+      const admittedAt = Date.parse(now());
       let dispatched = false;
       let cost = 0;
       let outcome: 'success' | 'failed' = 'failed';
       let result: Result<unknown> = fail('external_failure', 'extraction_failed_manual_entry');
       try {
-        const inspected = await options.pdf.inspect(bytes);
-        if (!inspected.ok) result = inspected;
+        let inspected: Result<{ pageCount: number }> | null = null;
+        try { inspected = await withDeadline(options.pdf.inspect(bytes), INSPECTION_DEADLINE_MS); }
+        catch (error) { if (!(error instanceof Error && error.message === 'deadline')) throw error; }
+        // Also catches synchronous/CPU-bound inspection that a timer race cannot preempt.
+        const elapsed = Date.parse(now()) - admittedAt;
+        if (inspected === null || !Number.isFinite(elapsed) || elapsed < 0 || elapsed > INSPECTION_DEADLINE_MS) result = fail('external_failure', 'pdf_inspection_deadline_exceeded');
+        else if (!inspected.ok) result = inspected;
         else if (!Number.isInteger(inspected.value.pageCount) || inspected.value.pageCount < 1 || inspected.value.pageCount > ADMISSION_LIMITS.maxPages) result = fail('validation_error', 'pdf_page_limit');
         else if (!enabled(options.eligibility(), now())) result = fail('unavailable', 'processing_approval_expired');
         else {

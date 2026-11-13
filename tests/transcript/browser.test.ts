@@ -40,6 +40,35 @@ describe('browser consent and memory-only tickets', () => {
     expect((await client.revokeConsent({ consentReceiptId: ticket.consentReceiptId })).ok).toBe(false);
     expect((await client.extract(admission, bytes)).ok).toBe(false); expect(send).toHaveBeenCalledTimes(1);
   });
+  it('concurrent extracts with one ticket upload exactly once', async () => {
+    const { client, send } = await granted();
+    const results = await Promise.all([client.extract(admission, bytes), client.extract(admission, bytes)]);
+    expect(results.filter(r => r.ok)).toHaveLength(1);
+    expect(results.find(r => !r.ok)).toEqual({ ok: false, code: 'forbidden', reasonCode: 'ticket_required' });
+    expect(send).toHaveBeenCalledTimes(2); // ticket + one upload
+  });
+  it('revocation while the digest is computed prevents upload', async () => {
+    const { client, send } = await granted(); send.mockResolvedValueOnce(response(null));
+    const pending = client.extract(admission, bytes);
+    await client.revokeConsent({ consentReceiptId: ticket.consentReceiptId });
+    expect(await pending).toEqual({ ok: false, code: 'forbidden', reasonCode: 'ticket_required' });
+    expect(send.mock.calls.map(c => c[0])).toEqual(['/api/transcript/ticket', '/api/transcript/revoke']);
+  });
+  it('revocation aborts an in-flight upload and discards a late proposal', async () => {
+    const send = vi.fn<typeof fetch>().mockResolvedValueOnce(response(ticket));
+    let signal: AbortSignal | undefined; let release: (r: Response) => void = () => undefined;
+    // Deliberately ignores abort to model a response that was already in transit.
+    send.mockImplementationOnce((_url, init) => { signal = init?.signal ?? undefined; return new Promise<Response>(resolve => { release = resolve; }); });
+    send.mockResolvedValueOnce(response(null));
+    const client = createTranscriptClient({ fetch: send, now: () => now });
+    await client.requestTicket({ botAttestation: 'synthetic-attestation', disclosureVersion: 'v1', explicitConsent: true, documentDigest: await documentDigest(bytes) });
+    const pending = client.extract(admission, bytes);
+    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    expect((await client.revokeConsent({ consentReceiptId: ticket.consentReceiptId })).ok).toBe(true);
+    expect(signal?.aborted).toBe(true);
+    release(response(extraction()));
+    expect(await pending).toEqual({ ok: false, code: 'forbidden', reasonCode: 'consent_revoked' });
+  });
   it.each(['https://external.invalid', '//external.invalid', '/api?token=x'])('rejects off-origin/config injection %s', basePath => {
     expect(() => createTranscriptClient({ basePath })).toThrow();
   });

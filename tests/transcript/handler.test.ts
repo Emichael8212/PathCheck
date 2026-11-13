@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createTranscriptHandler } from '../../supabase/functions/extract-transcript/handler';
+import { createTranscriptHandler, INSPECTION_DEADLINE_MS } from '../../supabase/functions/extract-transcript/handler';
 import type { EndpointOptions } from '../../supabase/functions/extract-transcript/handler';
 import { createGuestAdmission } from '../../supabase/functions/extract-transcript/admission';
 import { sign } from '../../supabase/functions/extract-transcript/crypto';
@@ -47,6 +47,34 @@ describe('endpoint fail-closed controls (private SQL + PDF parser integration pe
   it('rejects excessive parser pages before dispatch', async () => {
     const f = await fixture(); f.pdf.inspect.mockResolvedValue({ ok: true, value: { pageCount: 21 } });
     expect((await createTranscriptHandler(f.options)(f.upload())).status).toBe(400); expect(f.provider.extract).not.toHaveBeenCalled(); expect(f.store.dispatch).not.toHaveBeenCalled();
+  });
+  it('times out a hung PDF inspection before dispatch, freeing the lease with zero cost', async () => {
+    const f = await fixture();
+    let called: () => void = () => undefined; const reached = new Promise<void>(resolve => { called = resolve; });
+    f.pdf.inspect.mockImplementation(() => { called(); return new Promise(() => undefined); });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const pending = createTranscriptHandler(f.options)(f.upload());
+      await reached; vi.advanceTimersByTime(INSPECTION_DEADLINE_MS);
+      const response = await pending;
+      expect(response.status).toBe(503); expect(await response.json()).toMatchObject({ reasonCode: 'pdf_inspection_deadline_exceeded' });
+    } finally { vi.useRealTimers(); }
+    expect(f.store.dispatch).not.toHaveBeenCalled(); expect(f.provider.extract).not.toHaveBeenCalled();
+    expect(f.store.finish).toHaveBeenCalledWith(expect.objectContaining({ actualCostMicrousd: 0, outcome: 'failed' }));
+  });
+  it('refuses dispatch when slow inspection would let the provider outlive the lease', async () => {
+    const f = await fixture(); let clock = Date.parse(time);
+    f.options.now = () => new Date(clock).toISOString();
+    f.pdf.inspect.mockImplementation(async () => { clock += INSPECTION_DEADLINE_MS + 1; return { ok: true, value: { pageCount: 1 } }; });
+    const response = await createTranscriptHandler(f.options)(f.upload());
+    expect(response.status).toBe(503); expect(f.store.dispatch).not.toHaveBeenCalled(); expect(f.provider.extract).not.toHaveBeenCalled();
+    expect(f.store.finish).toHaveBeenCalledWith(expect.objectContaining({ actualCostMicrousd: 0 }));
+  });
+  it('maps a throwing inspector to a manual-entry failure without dispatch', async () => {
+    const f = await fixture(); f.pdf.inspect.mockRejectedValue(new Error('synthetic parser crash'));
+    const response = await createTranscriptHandler(f.options)(f.upload());
+    expect(response.status).toBe(503); expect(await response.json()).toMatchObject({ reasonCode: 'extraction_failed_manual_entry' });
+    expect(f.store.dispatch).not.toHaveBeenCalled(); expect(f.store.finish).toHaveBeenCalledWith(expect.objectContaining({ actualCostMicrousd: 0, outcome: 'failed' }));
   });
   it('returns raw proposal only after dispatch and successful settlement', async () => {
     const f = await fixture(); const response = await createTranscriptHandler(f.options)(f.upload());
