@@ -111,6 +111,61 @@ describe('Gemini boundary: schema-valid malicious rows stay unresolved (T-SEC no
   });
 });
 
+describe('G independent review regressions: conservative unresolved handling', () => {
+  // An extracted row with NO G uncertainty tag, so only E's own checks decide confidence.
+  const clean = (o: Partial<ProposedRow> = {}, extra: Partial<ValidatedExtractedRows['extraction']> = {}) => ({ kind: 'validated_proposed_rows', extraction: { ...rawRows.extraction, acceptanceStatus: 'accepted', completeness: 'demonstrated', documentPageCount: 3, coveredPages: [1, 2, 3], detectedRowCount: 1, unrecognizedRows: [], warnings: [], ...extra, rows: [row('x1', { rawInstitution: 'Alabama State University', ...o })] } }) as unknown as ValidatedExtractedRows;
+  const ext = (o: Partial<ProposedRow> = {}, extra: Partial<ValidatedExtractedRows['extraction']> = {}) => { const r = normalizeAttempts(clean(o, extra), cat); if (!r.ok) throw new Error(r.reasonCode); return { ...r.value, a: r.value.record.courseAttempts[0]! }; };
+
+  it('control: fully stated home institution, untagged and consistent, is provisional', () => {
+    const r = ext();
+    expect(r.a.confidence).toBe('provisional'); expect(r.a.normalizedCourseId).toBe('TEST-101');
+  });
+  it('extracted missing institution is unknown provenance: unresolved, never a certified match', () => {
+    for (const inst of [null, '  ']) {
+      const r = ext({ rawInstitution: inst });
+      expect(r.a.confidence).toBe('unresolved'); expect(r.warnings).toContain('institution_unknown:x1');
+      expect(r.record.unresolvedItems).toContain(`attempt:${r.a.attemptId}`);
+    }
+  });
+  it('extracted "ASU" abbreviation is ambiguous and never certifies the match', () => {
+    const r = ext({ rawInstitution: 'ASU' });
+    expect(r.a.confidence).toBe('unresolved'); expect(r.warnings).toContain('institution_ambiguous:x1');
+  });
+  it('manual blank / ASU institution keeps the home convention', () => {
+    expect(one({ rawInstitution: null }).a.confidence).toBe('provisional');
+    expect(one({ rawInstitution: 'ASU' }).a.confidence).toBe('provisional');
+    expect(one({ rawInstitution: null }).warnings.some(w => w.startsWith('institution_'))).toBe(false);
+  });
+  it('completed status with contradictory F/W/I grade and positive credit stays unresolved (manual and extracted)', () => {
+    for (const g of ['F', 'W', 'I', 'wf', 'INC']) {
+      const m = one({ rawGrade: g });
+      expect(m.a.confidence).toBe('unresolved'); expect(m.warnings).toContain('status_grade_contradiction:r1');
+      expect(ext({ rawGrade: g }).a.confidence).toBe('unresolved');
+    }
+    // Inferred completion from earned credit plus a contradictory grade is also withheld.
+    expect(one({ rawStatus: null, rawGrade: 'F' }).a.confidence).toBe('unresolved');
+  });
+  it('unrecognized / transfer-marker grade evidence stays unresolved; known letters are not judged', () => {
+    for (const g of ['TA', 'T', '??', 'unknown']) expect(one({ rawGrade: g }).warnings).toContain('unrecognized_grade:r1');
+    for (const g of ['A', 'B+', 'C-', 'D', 'P', 'S']) expect(one({ rawGrade: g }).a.confidence).toBe('provisional');
+    const scaled = catalog([course('TEST-101')], [reqCourse('r', 'TEST-101')], { gradeScale: { ordered: ['H', 'M', 'L'], sourceRefs: [SYN] } });
+    const n = normalizeAttempts({ kind: 'manual_rows', rows: [row('r1', { rawGrade: 'H' }), row('r2', { rawGrade: 'B', rawTerm: 'Spring 2025' })] }, scaled); if (!n.ok) throw new Error();
+    expect(n.value.record.courseAttempts.map(a => a.confidence)).toEqual(['provisional', 'unresolved']);
+  });
+  it('failed/withdrawn/incomplete status with positive earned credit is a contradiction', () => {
+    const r = one({ rawStatus: 'withdrawn', rawGrade: 'W', rawEarnedCredits: '3' });
+    expect(r.a.status).toBe('withdrawn'); expect(r.a.confidence).toBe('unresolved'); expect(r.warnings).toContain('status_credit_contradiction:r1');
+  });
+  it('extraction warnings are preserved and all unique page references kept without quotes', () => {
+    const r = ext({ provenance: [
+      { field: 'code', page: 2, row: 4, quote: 'SECRET-QUOTE' }, { field: 'grade', page: 3, row: 1, quote: 'SECRET-QUOTE' }, { field: 'term', page: 2, row: 4, quote: null },
+    ] }, { warnings: ['independent_coverage_unverified'] });
+    expect(r.warnings).toContain('extraction_warning:independent_coverage_unverified');
+    expect(r.a.evidence[0]!.description).toBe('Proposed transcript row (pages 2, 3)');
+    expect(JSON.stringify(r)).not.toContain('SECRET-QUOTE');
+  });
+});
+
 describe('round trip and determinism', () => {
   it('serialized record preserves every attempt and metadata; same input -> same output', () => {
     const input = { kind: 'manual_rows' as const, rows: [row('r1'), row('r2', { rawTerm: 'Spring 2025', rawStatus: 'in progress', rawEarnedCredits: null, rawGrade: null })] };

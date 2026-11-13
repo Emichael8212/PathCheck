@@ -2,7 +2,7 @@
 // into AcademicRecord attempts. Gemini/G provisional identifiers are never trusted.
 import { AcademicRecordSchema, CatalogModelSchema, ProposedRowSchema, ValidatedExtractedRowsSchema, term } from '../contracts';
 import type { AcademicRecord, CatalogModel, CourseAttempt, ProposedRow, Result, SourceEvidence, TermId, ValidatedExtractedRows } from '../contracts';
-import { isHomeInstitution } from './policy';
+import { classifyInstitution } from './policy';
 import { courseCredits, stableId } from './util';
 
 export type NormalizationInput = ValidatedExtractedRows | { kind: 'manual_rows'; rows: ProposedRow[] } | { kind: 'mixed_rows'; extracted: ValidatedExtractedRows | null; manualRows: ProposedRow[] };
@@ -48,18 +48,33 @@ function parseStatus(raw: string | null): CourseAttempt['status'] | 'unrecognize
   return 'unrecognized';
 }
 
+// Grade tokens whose own label denotes failure, withdrawal, incompletion, audit or no credit.
+// Seeing one on a "completed" row is a contradiction, never a policy decision about passing.
+const NON_COMPLETION_GRADES = new Set(['F', 'W', 'WF', 'WP', 'WD', 'WU', 'I', 'IN', 'INC', 'IP', 'NC', 'NG', 'AU', 'U', 'FA', 'FN', 'X']);
+const GENERIC_GRADE = /^([A-D][+-]?|F|P|S|CR)$/;
+function recognizedGrade(grade: string, catalog: CatalogModel): boolean {
+  if (NON_COMPLETION_GRADES.has(grade)) return true;
+  return catalog.gradeScale ? catalog.gradeScale.ordered.some(g => g.toUpperCase() === grade) : GENERIC_GRADE.test(grade);
+}
+
 interface Collected { attempts: CourseAttempt[]; unmatched: string[]; warnings: string[]; unresolved: string[] }
 
 function normalizeRow(row: ProposedRow, idPrefix: 'm' | 'x', source: 'manual' | 'extracted', catalog: CatalogModel, out: Collected, reviewNeeded: boolean): void {
   const attemptId = stableId('att', [idPrefix, row.rowId]);
   const issues: string[] = [];
   const warn = (code: string) => { issues.push(code); out.warnings.push(`${code}:${row.rowId}`); };
+  // Page numbers only (unique, sorted); provenance quotes never leave the extraction boundary.
+  const pages = [...new Set(row.provenance.map(p => p.page))].sort((a, b) => a - b);
   const evidence: SourceEvidence[] = [{
     sourceId: stableId('row', [idPrefix, row.rowId]), kind: source === 'manual' ? 'student_report' : 'derived', urlOrRef: null, observedAt: null,
-    description: source === 'manual' ? 'Manually entered course row' : `Proposed transcript row${row.provenance[0] ? ` (page ${row.provenance[0].page})` : ''}`,
+    description: source === 'manual' ? 'Manually entered course row' : `Proposed transcript row${pages.length ? ` (${pages.length === 1 ? 'page' : 'pages'} ${pages.join(', ')})` : ''}`,
     verificationStatus: 'unverified',
   }];
-  const home = isHomeInstitution(row.rawInstitution);
+  const institution = classifyInstitution(row.rawInstitution, source);
+  const home = institution !== 'external';
+  // Candidate match is retained (so prerequisite/audit checks report "unresolved", not a false
+  // definite "missing"), but the row can never be provisional/definite on this provenance.
+  if (institution === 'home_unverified') warn(row.rawInstitution === null || row.rawInstitution.trim() === '' ? 'institution_unknown' : 'institution_ambiguous');
   const parsedStatus = parseStatus(row.rawStatus);
   let status: CourseAttempt['status'] | null = parsedStatus === 'unrecognized' ? 'unknown' : parsedStatus;
   const transferFlag = !home || status === 'transfer_pending';
@@ -106,6 +121,11 @@ function normalizeRow(row: ProposedRow, idPrefix: 'm' | 'x', source: 'manual' | 
     if (grade !== null && earnedCredits !== null && earnedCredits > 0) { status = 'completed'; warn('status_inferred_from_earned_credits'); }
     else { status = 'unknown'; warn('missing_status'); }
   }
+  // Grade evidence is never interpreted as passing/minimum-grade policy. Grades that are
+  // unrecognized, or that contradict the reported status/credits, only withhold certainty.
+  if (grade !== null && !recognizedGrade(grade, catalog)) warn('unrecognized_grade');
+  if (status === 'completed' && grade !== null && NON_COMPLETION_GRADES.has(grade)) warn('status_grade_contradiction');
+  if ((status === 'failed' || status === 'withdrawn' || status === 'incomplete') && earnedCredits !== null && earnedCredits > 0) warn('status_credit_contradiction');
   if (transferFlag && status !== 'in_progress' && status !== 'failed' && status !== 'withdrawn') status = 'transfer_pending';
   if (status === 'completed' && earnedCredits === null) warn('completed_without_earned_credits');
   if (row.uncertainty.length > 0) warn('extraction_uncertainty');
@@ -141,6 +161,8 @@ export function normalizeAttempts(input: NormalizationInput, catalogInput: Catal
     const e = extracted.extraction, review = e.acceptanceStatus !== 'accepted';
     if (review) { out.warnings.push('extraction_needs_review'); out.unresolved.push('extraction-review-required'); }
     if (e.completeness !== 'demonstrated') { out.warnings.push('extraction_completeness_unknown'); out.unresolved.push('extraction-completeness'); }
+    // G's extraction-level warnings are preserved verbatim (IDs only, never quotes).
+    for (const w of e.warnings) out.warnings.push(`extraction_warning:${w}`);
     for (const id of e.unrecognizedRows) { out.warnings.push(`unrecognized_extraction_row:${id}`); out.unresolved.push(stableId('unrecognized-row', [id])); }
     for (const row of e.rows) normalizeRow(row, 'x', 'extracted', catalog, out, review);
   }

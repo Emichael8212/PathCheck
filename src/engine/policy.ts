@@ -35,3 +35,17 @@ export function isHomeInstitution(raw: string | null): boolean {
   const s = raw.trim().toLowerCase();
   return s === '' || s === 'asu' || s === 'alabama state university' || s === 'alabama state';
 }
+
+export type InstitutionClass = 'home' | 'home_unverified' | 'external';
+/**
+ * Manual rows keep the blank/ASU = home convention (the student is entering their own
+ * home-institution work). Extracted rows carry no such authority: a missing institution is
+ * unknown provenance, and "ASU" is an ambiguous abbreviation (several institutions use it),
+ * so both are only an UNVERIFIED home candidate that can never yield a definite match.
+ */
+export function classifyInstitution(raw: string | null, source: 'manual' | 'extracted'): InstitutionClass {
+  if (!isHomeInstitution(raw)) return 'external';
+  if (source === 'manual') return 'home';
+  const s = (raw ?? '').trim().toLowerCase();
+  return s === 'alabama state university' || s === 'alabama state' ? 'home' : 'home_unverified';
+}
