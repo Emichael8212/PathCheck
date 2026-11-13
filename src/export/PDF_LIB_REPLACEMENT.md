@@ -4,6 +4,8 @@
 
 **Deviation from step 2 (determinism):** `page.drawText` names font resources with `Math.random` suffixes, so output was not byte-identical (U10). The renderer registers fixed `/F1` `/F2` resources once per page and emits text through pdf-lib's public operator API (`beginText`, `setFontAndSize`, `moveText`, `showText(font.encodeText(..))`, `endText`). The sanitizer asks the embedded font whether a character is encodable instead of keeping a private WinAnsi table, and NFC-normalizes first.
 
+**Deviation from step 2 (lazy boundary, for B3):** Vite 8 wraps every client dynamic import in its `__vitePreload` helper (~1.6 kB minified), even when the dependency list is empty, and offers no per-import opt-out. `/* @vite-ignore */` on `import('pdf-lib')` skips the wrapper but leaves pdf-lib unbundled (a bare runtime import), so it is not acceptable. `build.modulePreload: false` still inserts the wrapper. Only library or worker builds disable it, and neither is an app build. The lazy boundary therefore moved one level up. `pdfWriter.ts` keeps the types and a thin `renderPdf` that validates the date and calls `await import('./pdfRender')`. `pdfRender.ts` holds the sanitizer, wrap, layout and renderer and imports pdf-lib statically, so the renderer and pdf-lib ship together in one lazy chunk. Application code must not import `pdfRender.ts` statically.
+
 ## What stays (frozen or already reviewed)
 
 - `ExportService.exportPdf(scenario, analysis): Promise<Result<Blob>>` (contract), `createPdfExportService`, `exportFileName`.
@@ -47,7 +49,7 @@ Browser tests (`tests/ui/browser`, desktop 1280):
 
 - **B1:** Export downloads a file named `pathcheck-plan-YYYY-MM-DD.pdf`. Run the inspector and `PDFDocument.load` on the downloaded bytes. Check the active course and conditions are present and the attempt term, grade and fingerprint are absent.
 - **B2:** Export is disabled while there is no analysis or it is stale. An exporter failure shows an alert and starts no download.
-- **B3:** `npm run build` emits pdf-lib as a separate lazy chunk, and the main chunk does not grow. Record the chunk sizes in the PR.
+- **B3:** `npm run build` emits pdf-lib as a separate lazy chunk, and the main chunk does not grow. Record the chunk sizes in the PR. The root `index.html` build does not reach the UI yet (L owns root wiring), so measure a production build of the UI harness entry `tests/ui/browser/harness/index.html`. Compare against the same build with the pre-replacement `src/export` and `PathCheckWorkflow.tsx` from `5424a85` and the current fixtures.
 
 Full checks: `npm run check`, `node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts` and `git diff --check`.
 

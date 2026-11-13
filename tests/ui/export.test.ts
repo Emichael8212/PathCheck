@@ -3,8 +3,9 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { fingerprint, term } from '../../src/contracts';
 import type { AnalysisResult } from '../../src/contracts';
 import { buildPlanReport, createPdfExportService, exportFileName, exportPdfBytes, renderPdf, reportConditions } from '../../src/export';
-import { layout, MARGIN, PAGE_W, sanitizer, wrap } from '../../src/export/pdfWriter';
-import type { Block, Measure } from '../../src/export/pdfWriter';
+import { layout, MARGIN, PAGE_W, sanitizer, wrap } from '../../src/export/pdfRender';
+import type { Measure } from '../../src/export/pdfRender';
+import type { Block } from '../../src/export/pdfWriter';
 import { inspectPdf, libraryPageCount } from './pdfInspect';
 import { syntheticPlan, syntheticScenarioAndAnalysis } from '../fixtures/ui/scenarioFixtures';
 
