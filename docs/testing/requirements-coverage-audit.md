@@ -2,6 +2,16 @@
 
 ## Current transcript checkpoint
 
+Superseding execution evidence: U29c387c and S0deba01 fixes independently reviewed
+without remaining blocker in reviewed scope; current CI PASS. Reconstructed candidate
+618units/2skips,UI65,desktop11,production1 PASS. Local SQL309 and real12-worker
+replay/quota/budget races plus6dispatch/revoke pairs PASS; realREST1PASS/1guard skip.
+Human upload/PR7 acceptance NOT RUN.17benchmark scoring/evidence regressions PASS;
+18PDF actual parser preflight PASS (16valid,2rejected); live model test BLOCKED
+missing server key. No accuracy denominator measured. See
+[benchmark scope and setup](transcript-synthetic-benchmark.md). Public endpoint,
+distributed adapter and privacy/runtime integration remain mandatory incomplete work.
+
 Free-tier public research: [verification note](gemini-free-tier-verification.md).
 Project access/quota/billing verification and actual T-GEM PDF benchmark remain
 BLOCKED, not evidence of free-tier inadequacy. Lead reran G fbe9374 provider/browser

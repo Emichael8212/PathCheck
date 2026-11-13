@@ -51,6 +51,7 @@ This is the canonical record of *why* a choice was made; precise contracts are i
 - **Unresolved:** paid-tier account/billing configuration, model choice/price as of actual implementation, data-processing eligibility, representative fixture set, and production extraction accuracy. None overrides ARCH-005.
 
 - **GEM-001 (2026-11-13, user direction):** Evaluate an accessible free-tier multimodal model first, with synthetic transcripts only. Verify actual project model access, billing tier and quotas before live calls. No paid billing, paid-only model or automatic paid fallback without separate human authorization. Quota exhaustion must preserve manual entry. This does not relax the real-transcript privacy gate or T-GEM accuracy requirements. Current research and unresolved project checks: `docs/testing/gemini-free-tier-verification.md`.
+  User subsequently selected `gemini-3.5-flash-lite` and verified free-tier quotas in AI Studio: 15 RPM/250,000 TPM/500 RPD; `gemini-3.8-flash` 5 RPM/250,000 TPM/20 RPD; `gemini-2.5-flash-lite` 10 RPM/250,000 TPM/20 RPD. These are user-attested project observations, not authenticated API-access evidence. Compare 3.8 on the same synthetic corpus only after a measured 3.5 quality failure. Never enable billing or paid fallback.
 
 ## Build and collaboration decisions
 

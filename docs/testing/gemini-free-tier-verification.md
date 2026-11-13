@@ -4,6 +4,12 @@ Public documentation verified; project access and live accuracy **BLOCKED**.
 This is research evidence, not a completed T-GEM benchmark or processing approval.
 User direction is DECISIONS.md GEM-001.
 
+Update: user selected3.5 Flash-Lite and supplied AI Studio free quotas:
+3.5 Flash-Lite15RPM/250,000TPM/500RPD;3.8 Flash5RPM/250,000TPM/20RPD;
+2.5 Flash-Lite10RPM/250,000TPM/20RPD. Quotas are now user-verified;
+authenticated API access is still NOT RUN. See
+[executable benchmark and configuration](transcript-synthetic-benchmark.md).
+
 ## Publicly documented candidates
 
 Google lists Standard input/output as free for the models below in its

@@ -751,3 +751,57 @@ acceptance remains intact. Actual U correction launched session27629, task
 Additional two findings arrived after dispatch: queued handoff
 /private/tmp/pathcheck-u-revoke-followup.txt must be executed after current U task
 ends, never concurrently. No approval until all three regression fixes are reviewed.
+
+### Synthetic benchmark and upload-security checkpoint — 2026-11-13
+
+User selected free gemini-3.5-flash-lite and supplied actual displayed quotas; see
+DECISIONS GEM-001. Free-only, compare3.8 only after actual quality failure. No paid
+fallback. L added tests/e2e/transcript-benchmark: generated-only18PDF corpus,
+realG PDF preflight, strict raw-row scoring, actualG/E normalization and safe direct
+Google CLI benchmark. It explicitly does NOT certify the production handler/admission
+pipeline.17scorer/evidence tests PASS; resume binds actual code/schema/prompt/config
+and corpus; comparison cannot be triggered by normalization failures. Independent
+review findings fixed; final static review no remaining blocker on reviewed fixes.
+18PDFs generated deterministically;19valid-page renders inspected. RealG preflight
+16valid PASS and2 malformed/encrypted rejections PASS. Actual --live invocation:
+BLOCKED server_api_key_unavailable before any request. No measured Gemini accuracy.
+
+Canonical local secret path confirmed: /Users/_eman5michael/pathcheck-lead/supabase/functions/.env,
+ignored by .gitignore69, not tracked, not yet present. Existing Supabase secret
+mechanism reused; Node benchmark loads via --env-file. Synthetic sentinel loader
+test PASS and actual integrated browser build contains no sentinel PASS. No React
+secret/provider imports. Supabase Edge entry/env wiring remains incomplete; do not
+claim file creation makes browser upload available. Human is configuring key privately.
+Details: docs/testing/transcript-synthetic-benchmark.md. No credentials read or logged.
+
+U completed b8aafc8 immediate revoke,866f291 stale revoke/validated summary,
+29c387caef967990abd6db06ab7696c05c416f36 validation-failure suppression/manual fallback.
+S completed0deba018713c83a0f842fe0f50ed74b709a08a57 PR7: deterministic ticket timestamps,
+pinned localhost test target, proven contention, strict outcomes and cleanup,
+actual competing revoke/dispatch test. Both executions ended, no agent still claimed
+running. Independent final static U/S review: no blocker in reviewed fixes.
+Current CI verified: PR6 foundation43489146280 PASS; PR7 foundation43489148904 PASS.
+PR6 human upload NOT RUN/merge withheld; PR7 human acceptance NOT RUN/guide pending.
+
+Local-only /private/tmp/pathcheck-upload-integration: HEAD4f74a67, noncommitting
+bc54f56/fbe9374/b8aafc8/2fe08c2 merges, followed by exact U b8..29c and S2fe..0de
+diffs; pending Lbenchmark copied. Root application.patch applied after scaffold check.
+Preserve this uncommitted worktree; never push/commit it. Measured checks:
+- npm run check: lint/typecheck PASS,618unit PASS/2live skips,build PASS,smoke1PASS.
+- UI Playwright65PASS (including existing5mobile),screenshots off; initial sandbox
+  localhost EPERM resolved by scoped outside-sandbox run.
+- Real engine desktop journeys11PASS on temporary5183config, human5181server preserved.
+- Production browser1PASS after L fixed hardcoded5181 origin assertion to use the
+  configured baseURL; prior failure was test-port assumption, external-request check retained.
+- Actual local Supabase SQL309PASS across4files (172existing+137admission).
+- Actual12-worker concurrent replay/session/network/budget winners1/1/3/5; six
+  dispatch/revoke races (4dispatch-first,2revoke-first),16reservations; cleanup0rows PASS.
+- Actual two-user REST authorization1PASS/1documented config-guard skip.
+Dedicated localhost ports verified55431/55432/55434. Services and Colima stopped.
+These are agent-run automated checks, never human acceptance. No hosted security claim.
+
+Remaining: provider key/access/benchmark, reviewed free synthetic runtime and actual
+Edge/gateway/store adapter; current+previous trusted network keys; fresh DB timestamps;
+120sDB lease and suppress consent_revoked finish results. Extraction source ownership
+reassignment remains unresolved from prior directive; no lead edits to G-owned paths.
+Production chunk warning559.58kB observed; no new architecture change. No merge/deploy.

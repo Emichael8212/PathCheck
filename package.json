@@ -15,7 +15,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test:e2e": "playwright test",
     "test:integration": "playwright test -c playwright.integration.config.ts",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e"
+    "test:transcript-benchmark": "node --test tests/e2e/transcript-benchmark/*.node.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run test:transcript-benchmark && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "@noble/hashes": "2.4.0",

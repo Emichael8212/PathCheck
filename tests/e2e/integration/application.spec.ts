@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-test('assembled application loads provisional curriculum without inventing catalog applicability', async ({ page }) => {
+test('assembled application loads provisional curriculum without inventing catalog applicability', async ({ page, baseURL }) => {
+  if (!baseURL) throw new Error('Integration test requires an explicit local baseURL');
+  const expectedOrigin = new URL(baseURL).origin;
   const errors: string[] = [];
   const external: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
-  page.on('request', r => { if (new URL(r.url()).origin !== 'http://127.0.0.1:5181') external.push(r.url()); });
+  page.on('request', r => { if (new URL(r.url()).origin !== expectedOrigin) external.push(r.url()); });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Plan your path to graduation' })).toBeVisible();
   await page.getByLabel('University and program').selectOption('asu-cis-department-provisional-v1');
