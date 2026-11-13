@@ -125,7 +125,7 @@ Verification commands: `gh api repos/Emichael8212/PathCheck/rulesets/27097753`; 
 - G reported 78 transcript tests / 5 files PASS and lint PASS; WebCrypto TypeScript issue fixed with rerun pending at that report. Includes actual browser/provider adapter code and conservative extraction validation, not live-provider accuracy. PDF parser/corpus, actual atomic SQL race tests, Edge entry/module resolution and live Gemini benchmark remain BLOCKED/NOT RUN.
 - No real transcript processing enabled; unresolved catalog rules still cannot certify graduation.
 
-## Current resume checkpoint — Claude quota stop
+## Historical checkpoint — Claude quota stop
 
 All three Claude processes exited with `You’ve hit your 5-hour limit`; CLI reports reset 10:50pm America/Chicago. Authentication is not the blocker; do not ask for another login. No automatic ownership reassignment or duplicate writer. Read existing work before resuming.
 
@@ -152,3 +152,75 @@ All three Claude processes exited with `You’ve hit your 5-hour limit`; CLI rep
 3. Review proposed G/S atomic RPC API jointly; do not deploy or claim database authorization without actual test-service evidence. Review magic-link completion proposal before any frozen interface change.
 4. E/U commits and functional draft PRs trigger L's local-only, uncommitted integration testing of I1/I2. No full planner E2E has passed yet.
 5. Keep real transcript processing disabled and ASU applicability/equivalencies explicitly unresolved. No subsequent PR merge or deployment has occurred; main remains de28a31846688f1d1a1a29eb8b2708571bf16301.
+
+## Resume with requested model and visual steering
+
+- User requested Opus5.5 at medium effort for each implementation role. Tool-only probe with `claude -p --model claude-opus-5-5 --effort medium` succeeded; returned modelUsage canonicalModel=claude-opus-5-5. E/S resumed in existing worktrees with those explicit flags. U was safely interrupted before visual edits to incorporate the subsequent design brief; resuming with same model/effort after design definition. G will resume its existing checkpoint with requested model, preserving ownership. Previous quota message is historical; current access succeeded.
+- PR #3 verified OPEN, no mergeCommit. Shared PDF dependency remains unavailable to feature branches.
+- User-approved visual direction recorded in DECISIONS UX-006. Lead read installed frontend-design SKILL.md and available Vercel Web Interface Guidelines, defined compact tokens/layout before implementation, and delegated UI changes only to U-owned paths. Guideline URL-state advice must never expose academic records in URLs. No architecture or academic rule change.
+
+- All four implementation roles were launched with explicit `--model claude-opus-5-5 --effort medium`; S/G completed responses report canonicalModel claude-opus-5-5. U restarted with frontend-design skill and UX-006 after an intentional interrupt, preserving files.
+- S local implementation ed3d6ecad486cdf2ca2f53cedba3fdee46237211 pushed by S; draft PR https://github.com/Emichael8212/PathCheck/pull/4. Owner reports fullcheck135pass/1skipped +1smoke,76ownedpass/1skipped; required CI PASS https://github.com/Emichael8212/PathCheck/actions/runs/43344045035. Original three lifecycle findings have owner fixes/regressions. L found a new save/recovery comparison failure path that could clear an unread newer draft; S is correcting it before acceptance. SQL/live database tests remain BLOCKED; PR not merge-ready. S independently reviewed L commands: no blocking persistence findings.
+- G checkpoint b37f4c2 (local only) fixes duplicate-upload ticket race, revoke-during-upload handling and inspector deadline. Owner reports fullcheck151unit/9files (92G),1smoke,lint/typecheck/build PASS. Parser/PDF benchmark, distributed store, Edge deployment resolution and live provider gates still BLOCKED.
+- UX palette initial contrast calculation: text/white16.26:1; secondary/white6.46:1; action/white6.47:1; secondary/canvas6.08:1. Actual component states/mobile/keyboard/screenshots await U render tests. No claim of visual acceptance yet.
+
+## Plan-upgrade resume checkpoint
+
+- User confirmed Claude plan upgrade. Existing Claude E/U/S roles resumed with `claude-opus-5-5` and medium effort; no new login requested, no worktrees restarted. Native CLI auto-memory disabled for these invocations; this ledger remains the integration record.
+- E: draft PR https://github.com/Emichael8212/PathCheck/pull/5, head da4c065b6e9a7330c0bcb365391b2b64172b4dcf. Owner reports `npm run check` PASS: 166 units (107 E + 59 foundation), lint/typecheck/build, 1 Chromium smoke. L verified required foundation CI PASS: https://github.com/Emichael8212/PathCheck/actions/runs/43346262741. L independent original forbidden-credit-reuse reproduction PASS after fix. New owner regression preserves unresolved applicability for unallocated earned credits instead of falsely declaring unmet. T-ENG-5 sourced repeat policy remains BLOCKED by missing contract representation; repeat/minimum-grade contract proposals await lead review, no academic policy or frozen contract changed. Real E/L/U and G→E integration NOT RUN.
+- U: existing work preserved at b877a4a plus active owned visual corrections. L independently ran earlier full check (83 units and 1 smoke) and 19 UI browser tests PASS. Visual review FAILED course-first hierarchy: issues/preview buried timeline. U is correcting layout, fixture consistency, contextual previews and objective viewport tests. Updated tests/screenshots still pending; earlier passes do not establish acceptance of current edits.
+- S: draft PR https://github.com/Emichael8212/PathCheck/pull/4 at 9f8ed5b3e131197f9f1f48573c7c7863be85eeb4. Owner reports full check PASS 137 units/1 skipped live check, lint/typecheck/build, 1 smoke; targeted 78 PASS/1 skipped. G read-only review found no remaining blocking lifecycle defects after recovery comparison fix. SQL/68 pgTAP and live two-user authorization tests remain BLOCKED, not waived. Resumed read-only G/S admission RPC coordination; no unreviewed shared interface implementation.
+- Next: finish U visual/browser review; review E contract proposals and private S/G admission design; run real integration on local-only scratch branch when dependencies permit. PR #3 is still OPEN, so feature consumption of its PDF dependency remains pending human merge. No subsequent PR merged, no deployment, no main push.
+
+## Desktop integration checkpoint — current
+
+User prioritizes functional desktop/laptop web integration; no new scope/native mobile work. E/U/S continued existing branches using Opus5.5/medium; G performed independent reviews. No role was replaced or additional feature agent created. Main remains de28a31846688f1d1a1a29eb8b2708571bf16301.
+
+### Candidate implementation and review evidence
+
+- **E / PR #5:** 663a54548a2a7d90d54a77afc86d5c721f138458. Fixed preview placement-order mismatch, in_progress normalization, dangling question references, ignored future-pass assumption and draft acknowledgement mismatch. G independently found missing extracted institution and contradictory grade/status confidence issues; E fixed these conservatively with unresolved warnings, retaining safe page provenance and extraction warnings. Owner full check PASS183 units (124E+59foundation), lint/typecheck/build/1smoke. Required CI PASS https://github.com/Emichael8212/PathCheck/actions/runs/43349459939. Final independent fix review pending below. No ASU policy/equivalency silently changed.
+- **U / PR #6:** a04caa1d0960a542e3d72e593938be8f545ef818. Desktop timeline-first UI; actual intent controls for all three screens, unknown/unresolved preview blocking, stale undo withdrawal and availability skip handling. Owner fullcheck PASS86units+1smoke. L combined-snapshot run of `node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts`: PASS26 (21desktop,5existingresponsive). Required CI PASS https://github.com/Emichael8212/PathCheck/actions/runs/43348653475. U independently reviewed E/L calls and reproduced order mismatch; E fixed it. PDF writer replacement remains dependent on human merge of PR#3.
+- **S / PR #4:** 0962aa1d990ac8a89d73176d34a0d026f64dc27b checkpoint. Fixed original lifecycle failures, save comparison cleanup, expired second-slot cleanup, cross-tab session-stash deletion and future-clock deletion. Owner fullcheck PASS155units/1skipped live+1smoke. Another shared-slot collision guard is in progress; do not treat this SHA as final security acceptance.
+- **G:** local b37f4c2, no extraction PR or live processing accepted. Independent read-only reviews found E normalization and S recovery defects with concrete file evidence; owner regressions addressed them. Provider/parser/atomic admission RPC integration remains separate and blocked.
+- L verified all five worktrees have byte-identical contract TypeScript files. No frozen shared contract revision in this work.
+
+### Cross-component checklist and executable evidence
+
+| Boundary / requirement | Status | Evidence / dependency |
+|---|---|---|
+| Actual E normalization → U academic record → L acceptance | PASS synthetic | Browser manually enters completed SYN101; real E normalizes it, L accepts it |
+| Selected conflict and unselected prerequisite recommendation | PASS synthetic | Real SYN101→201→301 graph, prior-term constraints, no canned analyses |
+| Preview/apply/reject/undo, acknowledgements, revision consistency | PASS synthetic | Candidate ordering defect reproduced as FAIL before E fix; now genuine browser apply, cancellation hiding and fresh recommendation, atomic revision increments/undo |
+| Full fingerprint and availability ownership | PASS synthetic | Capacity and offering changes block old preview; repeated report replaces one Plan entry, increments availabilityRevision, UI shows current findings |
+| Real deterministic generated draft | PASS synthetic | Actual bounded search generates201spring/301fall; no active changes before acknowledged adoption |
+| Provisional ASU authority | PASS conservative behavior | Assembled root app lists provisional configuration with unresolved catalog year; insufficient-evidence outlook, no invented formal applicability |
+| Actual E/U/L desktop composition | PASS candidate snapshot | Six Chromium integration tests; plus production-bundle ASU smoke; root wiring is a local-only patch pending dependent human merges |
+| Shared contracts | PASS | Five worktrees byte-identical; E public registry factory adds no frozen interface changes |
+| S auth/CAS/RLS and U cloud integration | BLOCKED | Units are not live RLS proof; no running test stack and no integrated authenticated browser journey |
+| G→E live extraction and row correction journey | BLOCKED | Real processing disabled; parser/RPC/provider gates pending; accepted needs_review rows stay unresolved; manual reentry must discard/replace extracted originals to avoid duplicate attempts |
+| Final PDF implementation | BLOCKED dependency | U replacement with maintained pdf-lib awaits PR#3 human merge; current writer is not final acceptance |
+| Sourced repeat/minimum-grade academic policies | BLOCKED contract | T-ENG-5 positive sourced-repeat case cannot be represented by contracts-v1; proposed additions need reviewed contract change, not fabricated ASU values |
+
+Commands on local-only `/private/tmp/pathcheck-integration` combining L6923f73, E663a545, Ua04caa1, S0962aa1 and Gb37f4c2 plus lead test/composition changes: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` PASS:422units/1skipped live,163build modules. Build warning:517kB minified JS (151kB gzip); no threshold weakened. `npm run test:integration` PASS6, `PATHCHECK_TEST_BUILD=1 npm run test:integration` PASS1 built-app smoke. Test-only synthetic catalog/clock; real engine, registry, normalization, UI, commands and search. No production test bypass. U independent harness review identified weak rejection/acknowledgement/evidence assertions; L strengthened them and reran PASS6. Keyboard startup test initially raced module loading; fixed by waiting for actual screen before Tab, not by dropping the assertion.
+
+The combined root App imports real E/U/export modules. It is intentionally an uncommitted local candidate; `tests/e2e/integration/application.patch` records repeatable root wiring. L-owned `createGuestWorkflow` and harness are saved on PR#3. Main still shows the foundation until reviewed dependencies and root wiring are human-merged. The isolated lead `npm run check` remains PASS83units/1smoke; combined application replaces the scaffold-only smoke with its actual-app smoke, documented in the harness README.
+
+### Exact backend dependency
+
+S inventory found no docker/supabase/psql/pg_ctl/postgres/pg_prove/colima/podman or installed container app. Need a local container runtime plus Supabase CLI/test stack (or an explicitly authorized disposable Supabase test project). Lead-owned `supabase/config.toml` is also not yet created. Once available: initialize reviewed local config, `supabase start`, `supabase db reset`, `supabase test db` (68 pgTAP checks PASS), then live suite with PATHCHECK_LIVE_SUPABASE_URL and PATHCHECK_LIVE_SUPABASE_PUBLISHABLE_KEY; remote disposable tests additionally require PATHCHECK_LIVE_ALLOW_REMOTE_TEST_PROJECT=1. Do not print/commit values. Expect 1 live test passed, not skipped. See S supabase/tests/README.md. No service provisioned; no SQL/RLS authorization PASS claimed.
+
+### Remaining decisions/dependencies and next actions
+
+1. Final independent review of E fixes and L harness; finish S collision guard and record actual head/tests.
+2. Human reviews PR#3 for shared PDF dependency and lead commands/test composition; only human merges. U then replaces PDF writer and retests.
+3. Review contract amendment for explicitly sourced repeat-credit/minimum-grade rules (catalog-version migration defaults old inputs to unresolved); no actual ASU values inferred. T-ENG-5 stays BLOCKED until approved representation and positive synthetic test exist.
+4. Preserve conservative command behavior: rejected preview cannot apply; a freshly changed scenario can produce a new preview. L also refuses any remaining hard conflict, even if a candidate fixes another conflict. Do not silently relax this gate; multi-conflict recommendation usability requires coordinated review.
+5. Finish live database and extraction security dependencies; cross-tab recovery and extracted-row correction need genuine integrated journeys. Neither unit passes nor manual-entry E2E satisfy those gates.
+6. Retest integrated candidate after each human merge; commit root wiring only on L feature branch once dependencies land. No scratch commit/push, main push, merge, auto-merge or deployment.
+
+### Review-resolution checkpoint
+
+- S final head9f26a38f492b3e049ce7e89089075986899d73ec; PR#4 required CI PASS https://github.com/Emichael8212/PathCheck/actions/runs/43350196511. Owner fullcheck163units/1skipped+1smoke. Different-draft shared-slot stash now refuses with existing typed conflict and preserves both drafts; same-ID update remains allowed. L read the guard and reran the combined suite. Browser localStorage lacks atomic compare-and-set: simultaneous tabs and same-ID edits still require I3 review/tests; this is not claimed race-safe. LiveSQL stillBLOCKED.
+- G final independent read-only review found no blocking issue in L composition/harness, confirmed synthetic harness absent from production bundle, and requested a fresh build in production-smoke command. L fixed it: build-mode server now builds before serving. G found E downstream loss of unresolved confidence; L reproduced it in an actual browser (withdrawn/W/earned3 produced false prerequisite_unsatisfied). E5e7d189 fixed mapped/unmapped contradictory attempts and positive-credit completed/earned0 handling with15 pipeline regressions. L reran negative browser test PASS. E's reported zero-credit completion and unresolved-in-progress consumer inconsistencies are undergoing focused owner correction; they do not require invented university policy.
+- L updated CI to retain required foundation checks and run U browser regressions whenever U exists, plus real E/U journey tests whenever both modules exist. Production root smoke remains the separate actual-app integration check until root wiring is adopted; no existing protection or executable test weakened.
+- Latest executed combined verification at E5e7d189/U a04caa1/S9f26a38/Gb37f4c2: lint/typecheck PASS;445units PASS/1live skipped;8desktop integration tests PASS (including2uncertainty negatives); fresh production build+1built-app Chromium smoke PASS. These supersede earlier6-test and422-unit counts for this snapshot. Final E edge correction will trigger relevant reruns before final report.
