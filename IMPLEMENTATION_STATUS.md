@@ -530,3 +530,16 @@ without clearing. PR4 readiness: HUMAN ACCEPTANCE REQUIRED for changed recovery.
 User-authorized four-person team supersedes historical fifth implementation role;
 extraction ownership still to be assigned explicitly within existing team, preserving
 branch and files. No additional extraction agent launched.
+
+
+### PR #4 human recovery acceptance PASS — 2026-11-13
+
+Human reported expected2files/70tests PASS from the supplied scoped recovery procedure.
+Accepted head aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e remains unchanged on GitHub;
+foundation CI43473452035 SUCCESS, merge state CLEAN, main still2bb6b3f. Independent
+static review has no blocker. Original human SQL172/REST1 PASS remains applicable
+to unchanged SQL/REST code. **PR4 READY TO MERGE**, human alone executes merge.
+No deployment authorization. Browser OTP/reopen/concurrent-tab and admission/privacy
+gates remain pending integration/release work, not falsely marked PASS.
+E/U executions have not emitted final result JSON at this checkpoint; preserve their
+existing worktrees and inspect process/result state before any redispatch.

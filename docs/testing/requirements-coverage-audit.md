@@ -456,3 +456,9 @@ or extraction provider calls in this execution checkpoint.
 Independent static review completed with no blocker in S recovery fix or L test
 changes; reviewer ran no tests. PR4 now HUMAN ACCEPTANCE REQUIRED for scoped cleanup,
 not READY TO MERGE. Existing database human PASS remains valid for unchanged code.
+
+### Human recovery result — 2026-11-13
+User reports expected70tests/2files PASS on S aeaee0b. Head unchanged; foundation
+43473452035 SUCCESS; CLEAN against main2bb6b3f. A4 regression, review, CI and human
+gates PASS. **PR4 READY TO MERGE**; historical audit blocker resolved for deterministic
+A/B cleanup. Concurrent-tab integration and other B/C gates remain open.

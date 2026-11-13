@@ -8,7 +8,7 @@
 - Test type: real local PostgreSQL/REST security and persistence
 - Feature being verified: owner isolation, anonymous denial, revision conflicts, quota, recent-auth deletion and JSON integrity
 - Human acceptance status: **PASS (human-executed, 2026-11-13)** for the pinned baseline and PR head. SQL172 PASS; real REST1 PASS with1 expected configuration-guard skip.
-- Eligibility: **HUMAN ACCEPTANCE REQUIRED** for the recovery correction at aeaee0b (procedure below). Historical database acceptance remains PASS. Current fix CI and independent static review pass.
+- Eligibility: **READY TO MERGE** at aeaee0b after human recovery PASS. Historical database acceptance remains PASS; current CI and independent review pass. Human alone performs the merge.
 
 ## Before You Begin
 Git, Node24–26/npm, Python3, Colima, Docker CLI and Supabase CLI on macOS. Verified
@@ -199,7 +199,7 @@ stopped successfully; local backup volumes retained. No screenshot path requeste
 The later coverage audit found a separate in-memory save/recovery defect outside
 this SQL/REST scenario; it does not invalidate the reported security assertions.
 
-## Recovery correction acceptance — NOT RUN
+## Recovery correction acceptance — PASS
 
 The historical database acceptance above remains PASS for unchanged SQL/REST code.
 The new recovery behavior at `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e`
@@ -230,3 +230,10 @@ The human attaches evidence directly to GitHub. No screenshot paths needed.
 Cleanup: the process exits automatically; no services or persistent test data exist.
 Limitations: this does not prove simultaneous browser-tab atomicity or live auth;
 those retain their separate integration gates.
+
+Human reported the expected result for the pinned recovery procedure on 2026-11-13:
+2 files /70 tests passed. Recovery acceptance **PASS** at
+`aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e`. GitHub head unchanged, foundation CI
+43473452035 SUCCESS and merge state CLEAN verified after the report. No screenshot
+paths requested. Independent review found no blocking defect; browser auth/reopen
+and simultaneous-tab integration remain separate pending gates.
