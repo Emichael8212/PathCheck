@@ -27,6 +27,12 @@
 #       dispatch first -> dispatch ok; dispatched_at <= revoked_at; provider cost settles (ok) and
 #                         finish reports consent_revoked=true so the server suppresses the result
 #     Either serialization is accepted per pair; anything else fails.
+#   6 retry_vs_revoke    N/2 pairs on a DISPATCHED reservation: admission_retry_check races revoke.
+#       Each retry worker also reports clock_timestamp() taken after the check returned, while it still
+#       holds the store lock (released only at its commit).
+#       retry first  -> ok and that time <= revoked_at      revoke first -> consent_revoked, revoked_at <= that time
+#     Both: reservation row physically unchanged (ctid/xmin/xmax/state/dispatch/lease/cost), a later
+#     recheck is consent_revoked, and finish reports consent_revoked=true.
 # Usage: bash supabase/tests/admission/concurrency.sh   (env: PATHCHECK_RACE_PARALLEL 6..64, default 12)
 set -euo pipefail
 umask 077
@@ -93,7 +99,8 @@ dbinfo="$(psql_c "${APP}_preflight" -c "select current_database() || '|' || pg_i
   || (to_regnamespace('admission_private') is not null)::text || '|'
   || (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname like 'admission\_%')")" \
   || die "cannot query ${CONTAINER} as local postgres"
-[[ "$dbinfo" == "postgres|false|true|6" ]] || die "database '${dbinfo}' is not a primary with the admission migration applied"
+[[ "$dbinfo" == "postgres|false|true|7" ]] \
+  || die "database '${dbinfo}' is not a primary with the admission + retry_check migrations applied (7 RPCs)"
 echo "target: ${DOCKER_URL} daemon=${CONTEXT_NAME} container=${CONTAINER} project=${PROJECT} db=postgres workers=${N} run=${RUN}"
 
 # ---------------------------------------------------------------- state + cleanup ---------------
@@ -369,8 +376,69 @@ else
   FAILED=1
 fi
 
+echo "6 retry_vs_revoke"
+# Physical identity + accounting of a reservation row: any write (even a no-op UPDATE) or row lock changes it.
+ident_sql() {
+  printf "select ctid::text || '|' || xmin::text || '|' || xmax::text || '|' || state || '|' || dispatched_at || '|'
+      || lease_expires_at || '|' || reserved_microusd || '|' || coalesce(actual_microusd::text, '-')
+    from admission_private.reservations where reservation_id = '%s'" "$1"
+}
+retry_sql() {   # <reservation id> <session uuid> -> reason/status
+  printf "select coalesce(r ->> 'reason', r ->> 'status') from (select public.admission_retry_check('%s', '%s', clock_timestamp())) q(r)" "$1" "$2"
+}
+files="" roles=""
+for p in $(seq 1 "$P"); do
+  t=$((600 + p))
+  c="$(issue "$t" "$t" "$t")"
+  rid="$(as_service "$(admit_sql "$t" "$t" "$t" "$CEIL_BIG" "$c" id)")" || fail "retry pair ${p}: admit psql error"
+  [[ "$rid" =~ ^[0-9a-f-]{36}$ ]] || fail "retry pair ${p}: admit failed: ${rid}"
+  d="$(as_service "select coalesce(r ->> 'reason', r ->> 'status') from (select public.admission_dispatch('${rid}', '$(uid 0003 "$t")', clock_timestamp())) q(r)")"
+  [[ "$d" == "ok" ]] || fail "retry pair ${p}: dispatch=${d}"
+  r0="$(as_service "$(retry_sql "$rid" "$(uid 0003 "$t")")")"
+  [[ "$r0" == "ok" ]] || fail "retry pair ${p}: pre-race recheck=${r0}"
+  echo "$rid" >"$TMP/s6.rid.$p"
+  psql_c "${APP}_setup" -c "$(ident_sql "$rid")" >"$TMP/s6.ident.$p" || fail "retry pair ${p}: ident"
+  # The materialized CTE runs the check first; clock_timestamp() is read after it returned, lock still held.
+  printf "with q as materialized (select public.admission_retry_check('%s', '%s', clock_timestamp()) r)
+    select coalesce(r ->> 'reason', r ->> 'status') || '|' || clock_timestamp() from q" "$rid" "$(uid 0003 "$t")" >"$TMP/s6.c.$p.sql"
+  printf "select (r ->> 'status') || '|' || coalesce(r ->> 'already_revoked', r ->> 'reason') from (select public.admission_revoke('%s', '%s', clock_timestamp())) q(r)" \
+    "$(uid 0002 "$t")" "$(uid 0003 "$t")" >"$TMP/s6.v.$p.sql"
+  if (( RANDOM % 2 )); then files="${files} $TMP/s6.c.$p.sql $TMP/s6.v.$p.sql"; roles="${roles} c:$p v:$p"
+  else files="${files} $TMP/s6.v.$p.sql $TMP/s6.c.$p.sql"; roles="${roles} v:$p c:$p"; fi
+done
+# shellcheck disable=SC2086
+race s6 $files
+i=0
+for role in $roles; do i=$((i + 1)); cp "$TMP/s6.out.$i" "$TMP/s6.${role%%:*}.$((${role#*:})).out"; done
+cfirst=0 vfirst=0 bad=""
+for p in $(seq 1 "$P"); do
+  t=$((600 + p)) rid="$(cat "$TMP/s6.rid.$p")" cr="$(cat "$TMP/s6.c.$p.out")" v="$(cat "$TMP/s6.v.$p.out")"
+  [[ "$v" == "ok|false" ]] || { bad="${bad} [pair ${p}: revoke=${v}]"; continue; }
+  res="${cr%%|*}" at="${cr#*|}"
+  # "<check-time <= revoked_at>|<revoked_at <= check-time>" (non-strict: equal clock readings are not misordered)
+  order="$(psql_c "${APP}_setup" -c "select ('${at}'::timestamptz <= c.revoked_at)::text || '|' || (c.revoked_at <= '${at}'::timestamptz)::text
+    from admission_private.reservations r
+    join admission_private.tickets k on k.ticket_id = r.ticket_id join admission_private.consent_receipts c on c.receipt_id = k.consent_receipt_id
+    where r.reservation_id = '${rid}'" 2>&1)" || { bad="${bad} [pair ${p}: order query: ${order}]"; continue; }
+  if [[ "$res" == "ok" && "$order" == true\|* ]]; then cfirst=$((cfirst + 1))
+  elif [[ "$res" == "consent_revoked" && "$order" == *\|true ]]; then vfirst=$((vfirst + 1))
+  else bad="${bad} [pair ${p}: recheck=$(printf '%s' "$cr" | tr '\n' ' ' | cut -c1-120) before_revoke=${order}]"; continue; fi
+  now_ident="$(psql_c "${APP}_setup" -c "$(ident_sql "$rid")")"
+  [[ "$now_ident" == "$(cat "$TMP/s6.ident.$p")" ]] || { bad="${bad} [pair ${p}: reservation row changed]"; continue; }
+  r2="$(as_service "$(retry_sql "$rid" "$(uid 0003 "$t")")")"
+  [[ "$r2" == "consent_revoked" ]] || { bad="${bad} [pair ${p}: post-race recheck=${r2}]"; continue; }
+  f="$(as_service "$(finish_sql "$rid" 600 success)")"
+  [[ "$f" == "ok|false|true" ]] || bad="${bad} [pair ${p}: finish=${f}]"
+done
+if [[ -z "$bad" ]] && (( cfirst + vfirst == P )); then
+  echo "PASS retry_vs_revoke: pairs=${P} queued=$((2 * P)) recheck_first=${cfirst} revoke_first=${vfirst}"
+else
+  echo "FAIL retry_vs_revoke: pairs=${P} recheck_first=${cfirst} revoke_first=${vfirst} unexpected=${bad}"
+  FAILED=1
+fi
+
 # Post-condition: exactly one stored reservation per ok admission across all scenarios.
-want_stored=$((1 + 1 + 3 + 5 + P))
+want_stored=$((1 + 1 + 3 + 5 + P + P))
 stored="$(psql_c "${APP}_setup" -c "select count(*) from admission_private.reservations where session_id::text like '${RUN}-%'")"
 if [[ "$stored" == "$want_stored" ]]; then echo "PASS stored_reservations=${stored}"
 else echo "FAIL stored_reservations=${stored} expected=${want_stored}"; FAILED=1; fi

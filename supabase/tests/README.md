@@ -33,10 +33,17 @@ rows, bot token or raw IP.
 
 ```sh
 # dedicated Colima stack of docs/testing/local-security.md, only after lead coordination
-DOCKER_CONTEXT=colima-pathcheck-test supabase db reset --local --network-id pathcheck-local-only
-DOCKER_CONTEXT=colima-pathcheck-test supabase test db --network-id pathcheck-local-only   # 004 ok 1..137
+DOCKER_CONTEXT=colima-pathcheck-test supabase db reset --network-id pathcheck-local-only   # CLI 3.1: no --local flag
+DOCKER_CONTEXT=colima-pathcheck-test supabase test db --network-id pathcheck-local-only   # 004 ok 1..137, 005 ok 1..62
 bash supabase/tests/admission/concurrency.sh   # live multi-backend races, self-cleaning
 ```
+
+**Lead-run automated evidence (not human acceptance).** On the isolated loopback-only local stack
+(no secrets or real data): `supabase db reset --network-id pathcheck-local-only`; `supabase test db`
+→ 5 files, 371 assertions, PASS; `bash -n concurrency.sh` PASS; `concurrency.sh` (real Postgres,
+12 workers) → winners replay 1 / session 1 / network 3 / budget 5; dispatch_vs_revoke 6 pairs
+(5 dispatch-first, 1 revoke-first); retry_vs_revoke 6 pairs (2 recheck-first, 4 revoke-first);
+22 stored reservations; cleanup 0 left; PASS. Human acceptance: NOT RUN.
 
 **Pinned target (no overrides).** The race script uses only `docker --host
 unix://$HOME/.colima/pathcheck-test/docker.sock` and container `supabase_db_pathcheck-local-test`.
@@ -45,7 +52,7 @@ Before its first write it verifies, read-only: no `DOCKER_HOST`/`DOCKER_TLS_VERI
 socket is a real socket owned by the user; context `colima-pathcheck-test` endpoint equals that
 socket; daemon `Name|OSType` = `colima-pathcheck-test|linux`; container running, label
 `com.supabase.cli.project=pathcheck-local-test`, image `supabase/postgres:*`, no port on a non-loopback
-address; DB is a primary `postgres` with `admission_private` and 6 RPCs. Any mismatch prints
+address; DB is a primary `postgres` with `admission_private` and 7 RPCs (incl. `admission_retry_check`). Any mismatch prints
 `REFUSING:` and exits 2 with nothing written. psql runs as OS user `postgres` (`docker exec -u
 postgres`, local peer/trust auth); no key, URL or password is read.
 
@@ -61,7 +68,10 @@ Expected (N=12): `PASS s1: ... ok=1 ticket_replayed=11`, `PASS s2: ... ok=1 sess
 serialization is valid per pair: revoke-first → `consent_revoked`, cost settlement refused, release
 reports `consent_revoked`; dispatch-first → `dispatched_at <= revoked_at`, cost settles,
 finish reports `consent_revoked=true` so the server must suppress the result),
-`PASS stored_reservations=16`, `cleanup: run … 0 left`, then `Result: PASS`. The verdict is printed
+`PASS retry_vs_revoke: pairs=6 queued=12 recheck_first=c revoke_first=d` (c+d=6; recheck-first →
+`ok` read before `revoked_at`; revoke-first → `consent_revoked`; both: reservation row physically
+unchanged, later recheck `consent_revoked`, finish reports `consent_revoked=true`),
+`PASS stored_reservations=22`, `cleanup: run … 0 left`, then `Result: PASS`. The verdict is printed
 only after cleanup is verified; a cleanup failure or any remaining run row exits non-zero.
 Failure indicators: any `not ok`, `FAIL`, `REFUSING`, `TIMEOUT`; a `42501` for service_role;
 `PA001`. Workers: `PATHCHECK_RACE_PARALLEL` 6–64 (default 12).
@@ -90,6 +100,22 @@ browser code). `GuestAdmissionService` and `src/contracts` stay unchanged. Every
 | `revoke({consentReceiptId, sessionId})` | `admission_revoke(p_consent_receipt_id, p_session_id, p_client_now)` → `{status:'ok', already_revoked}` |
 | `finish({reservationId, actualCostMicrousd, outcome})` | `admission_finish(p_reservation_id, p_actual_microusd, p_outcome, p_client_now)` → `{status:'ok', replayed, consent_revoked, cost_day}` |
 | (scheduled job, L) | `admission_purge(p_client_now)` — removes rows older than 2 days |
+| (G provider, before EACH extra egress after a transport 503) | `admission_retry_check(p_reservation_id, p_session_id, p_client_now)` → `{status:'ok'}` or `{status:'denied', reason}` |
+
+### Bounded transport retry check (`20261114000000_admission_retry_check.sql`)
+
+`public.admission_retry_check(p_reservation_id uuid, p_session_id uuid, p_client_now timestamptz)
+returns jsonb` — SECURITY DEFINER, `search_path=''`, `service_role` only. Takes the shared store
+advisory lock and DB clock (`lock_and_now`), then **only reads**. `ok` only for the same session's
+`dispatched` reservation with a live DB-clock lease and unrevoked consent. Denials (existing shape):
+`invalid_input`, `clock_mismatch`, `unknown_reservation` (missing or foreign), `not_retryable`
+(admitted/settled/released), `lease_expired`, `consent_revoked`. It consumes no ticket, creates no
+reservation, and charges/resets no quota, concurrency, cost or lease; `admission_dispatch` is
+unchanged. It does not make concurrent provider requests safe: G keeps singleflight and a bounded
+attempt count within the worst-case cost reserved at admission, then settles once via `finish`.
+pgTAP `005` (62): signature/definer/grants, live anon/authenticated 42501, read-only body, every
+denial, repeated allows with a whole-store ctid/xmin/xmax fingerprint unchanged, quota/ticket/
+dispatch/settlement unaffected, revoked finish still reported. Live race: `concurrency.sh` s6.
 
 Result mapping: `ok` → `{ok:true}`; `denied` → `forbidden`/`admission_denied`; `rate_limited` →
 `rate_limited`/`admission_denied`; `conflict` → `conflict`; any thrown error, transport failure,

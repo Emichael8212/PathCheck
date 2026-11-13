@@ -129,8 +129,8 @@ select is((select count(*)::int from pg_class c where c.relnamespace = 'admissio
 select is((select count(*)::int from pg_proc p, aclexplode(p.proacl) a
            where p.pronamespace = 'admission_private'::regnamespace and a.grantee <> p.proowner), 0,
           'admission_private helper functions: no EXECUTE for any non-owner role');
-select is((select count(*)::int from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'admission\_%'), 6,
-          'exactly six public admission RPCs');
+select is((select count(*)::int from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'admission\_%'), 7,
+          'exactly seven public admission RPCs (six store RPCs + admission_retry_check, migration 20261114000000)');
 select is((select count(*)::int from pg_proc p, aclexplode(p.proacl) a
            where p.pronamespace = 'public'::regnamespace and p.proname like 'admission\_%' and a.grantee = 0), 0,
           'admission RPCs: no PUBLIC EXECUTE');
@@ -138,9 +138,9 @@ select is((select count(*)::int from pg_proc p cross join (values ('anon'), ('au
            where p.pronamespace = 'public'::regnamespace and p.proname like 'admission\_%'
              and has_function_privilege(r.role, p.oid, 'EXECUTE')), 0, 'anon/authenticated cannot EXECUTE any admission RPC');
 select is((select count(*)::int from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'admission\_%'
-             and has_function_privilege('service_role', p.oid, 'EXECUTE')), 6, 'service_role can EXECUTE all six admission RPCs');
+             and has_function_privilege('service_role', p.oid, 'EXECUTE')), 7, 'service_role can EXECUTE all seven admission RPCs');
 select is((select count(*)::int from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname like 'admission\_%'
-             and p.prosecdef and p.proconfig @> array['search_path=""']), 6, 'all RPCs SECURITY DEFINER with empty search_path');
+             and p.prosecdef and p.proconfig @> array['search_path=""']), 7, 'all RPCs SECURITY DEFINER with empty search_path');
 select is((select string_agg(table_name || '.' || column_name, ',' order by table_name, column_name)
            from information_schema.columns where table_schema = 'admission_private'),
   'consent_receipts.disclosure_version,consent_receipts.granted_at,consent_receipts.processor,consent_receipts.purpose,consent_receipts.receipt_id,consent_receipts.revoked_at,consent_receipts.session_id,'
