@@ -3,6 +3,7 @@
 import { AnalysisResultSchema, DegreeAuditSchema, GeneratedDraftSchema, PlanningScenarioSchema, fingerprint } from '../contracts';
 import type { AcademicService, AnalysisResult, DegreeAudit, GeneratedDraft, InputFingerprint, PlanPlacement, PlanningScenario, Result, RuleFinding, TypedFailure } from '../contracts';
 import { listCatalogs, loadValidatedCatalog } from '../catalog';
+import type { CatalogRegistry } from '../catalog';
 import { analyzePlacements, issueFindings } from './analysis';
 import type { PlanAnalysis } from './analysis';
 import { dependencyInfo } from './dependency';
@@ -110,29 +111,45 @@ export function evaluate(input: PlanningScenario): Result<AnalysisResult> {
     const root = a.audit.rootStatus;
     const issues = [...issueFindings(a)];
     let kind: AnalysisResult['outlook']['kind'];
+    let futurePassDeclined = false;
     if (targetBefore) kind = 'not_evaluated';
     else if (a.hard.length > 0) kind = 'known_constraints_block_current_plan';
     else if (blocked || targetOutside || root.status === 'unresolved') kind = 'insufficient_evidence';
     else if (a.bottlenecks.some(f => f.code === 'target_at_risk_chain' || f.code === 'no_feasible_term_in_horizon')) kind = 'target_at_risk';
-    else if (root.status === 'satisfied') kind = 'conditional_path_found';
+    // A conditional path relies on future passes; if the scenario declines that assumption the
+    // engine must not claim one (fail closed to insufficient evidence, disclosed as a gap).
+    else if (root.status === 'satisfied') {
+      futurePassDeclined = root.conditional && !s.assumptions.assumeFuturePass;
+      kind = futurePassDeclined ? 'insufficient_evidence' : 'conditional_path_found';
+    }
     else {
       // Bounded completion check from the student's own selections (never auto-adopted).
       const r = completionSearch(s, s.plan.activePlacements, 'outlook', 'system_projection', false);
       let outcome: SearchOutcome;
       for (;;) { const step = r.step(Number.MAX_SAFE_INTEGER); if (step.done) { outcome = step.outcome; break; } }
-      if (outcome.kind === 'found' && outcome.unplannable.length === 0) kind = 'conditional_path_found';
+      if (outcome.kind === 'found' && outcome.unplannable.length === 0) {
+        futurePassDeclined = !s.assumptions.assumeFuturePass;
+        kind = futurePassDeclined ? 'insufficient_evidence' : 'conditional_path_found';
+      }
       else if (outcome.kind === 'found') kind = 'insufficient_evidence';
       else {
         kind = 'target_at_risk';
         issues.push(finding({ code: 'no_completion_found_under_search_bounds', severity: 'warning', status: { status: 'unresolved', conditional: false }, termIds: [s.plan.targetTerm], explanationParams: { expansions: outcome.expansions, stopReason: outcome.stopReason, searchPolicy: s.searchOptions.version }, nextAction: 'adjust_plan_or_target' }));
       }
     }
+    if (futurePassDeclined) {
+      gaps.push(finding({ code: 'future_pass_not_assumed', severity: 'warning', status: { status: 'unresolved', conditional: false }, termIds: [s.plan.targetTerm], explanationParams: { assumeFuturePass: false }, nextAction: 'review_future_completion_assumption' }));
+    }
     const assumptionRefs = uniqueSorted([...a.planFindings.flatMap(f => f.assumptions), ...a.gaps.flatMap(f => f.assumptions)]);
+    const topFindings = prioritize(issues).slice(0, 3);
+    // Questions may cite only findings present in this result (L rejects dangling references).
+    const present = new Set([...topFindings, ...gaps, ...a.bottlenecks].map(f => f.findingId));
+    const questions = availabilityQuestions(s, a).map(q => ({ ...q, findingIds: q.findingIds.filter(id => present.has(id)) }));
     const analysis: AnalysisResult = {
       inputFingerprint: fp, degreeAudit: a.audit.audit,
       outlook: { kind, targetTerm: s.plan.targetTerm, assumptionRefs, evidenceRefs: gaps.map(g => g.findingId) },
-      topFindings: prioritize(issues).slice(0, 3), evidenceGaps: gaps, bottlenecks: a.bottlenecks,
-      candidates: generateCandidates(s, fp, a), availabilityQuestions: availabilityQuestions(s, a),
+      topFindings, evidenceGaps: gaps, bottlenecks: a.bottlenecks,
+      candidates: generateCandidates(s, fp, a), availabilityQuestions: questions,
     };
     const out = AnalysisResultSchema.safeParse(analysis);
     return out.success ? { ok: true, value: out.data } : fail('validation_error', 'engine_produced_invalid_analysis');
@@ -152,9 +169,14 @@ function draftFrom(s: PlanningScenario, fp: InputFingerprint, outcome: SearchOut
   if (outcome.kind === 'none') return { ok: true, value: { kind: 'no_valid_draft_under_search_bounds', expansions: outcome.expansions } };
   const a = analyzePlacements(s, outcome.placements);
   const unplannable = outcome.unplannable.map(d => finding({ code: 'draft_requirement_not_plannable', severity: 'warning', status: { status: 'unresolved', conditional: false }, courseIds: d.options, requirementIds: [d.requirementId], explanationParams: { reason: d.reason ?? 'unknown' }, nextAction: 'confirm_requirement_evidence' }));
+  // Adoption is validated as a preview that replaces the active plan with these placements; the
+  // draft must disclose every assumption label that preview reports, so acknowledging the draft's
+  // assumptions is sufficient for L's adopt command (same labels as previewWith's `touching`).
+  const ids = new Set(outcome.placements.map(p => p.placementId));
+  const placementAssumptions = a.planFindings.filter(f => ids.has(String(f.explanationParams.placementId ?? ''))).flatMap(f => f.assumptions);
   const draft: GeneratedDraft = {
     draftId: stableId('draft', [shortDigest({ fp, p: outcome.placements.map(p => [p.courseId, p.termId.sortIndex]) }, 24)]), baseFingerprint: fp,
-    placements: outcome.placements, assumptions: uniqueSorted([...outcome.assumptions, ...s.assumptions.creditCapacity.filter(c => c.source === 'scenario_assumption').map(() => 'capacity:scenario_assumption')]),
+    placements: outcome.placements, assumptions: uniqueSorted([...outcome.assumptions, ...placementAssumptions, ...s.assumptions.creditCapacity.filter(c => c.source === 'scenario_assumption').map(() => 'capacity:scenario_assumption')]),
     validation: dedupeFindings([...issueFindings(a), ...a.gaps, ...unplannable]),
     search: { policyVersion: s.searchOptions.version, expansions: outcome.expansions, stopReason: outcome.stopReason },
   };
@@ -197,10 +219,21 @@ export function generateDraft(input: PlanningScenario): Result<GeneratedDraft | 
   for (;;) { const r = gen.value.step(Number.MAX_SAFE_INTEGER); if (r.done) return r.result; }
 }
 
-export const academicService: AcademicService = {
-  listCatalogs, loadValidatedCatalog, normalizeAttempts,
-  audit, evaluate,
-  preview: (s, c) => guard(() => { const k = checkScenario(s); return k.ok ? preview(k.value, c) : k; }),
-  validateCandidate: (s, p) => guard(() => { const k = checkScenario(s); return k.ok ? validateCandidate(k.value, p) : k; }),
-  generateDraft,
-};
+/**
+ * AcademicService over an explicit catalog registry. The default service lists only the
+ * user-approved curriculum configurations; integration/browser tests may inject a labeled
+ * synthetic catalog. Academic evaluation is identical: it reads only the frozen scenario.
+ */
+export function createAcademicService(catalogs: CatalogRegistry = { listCatalogs, loadValidatedCatalog }): AcademicService {
+  return Object.freeze({
+    listCatalogs: () => catalogs.listCatalogs(),
+    loadValidatedCatalog: (ref: Parameters<AcademicService['loadValidatedCatalog']>[0]) => catalogs.loadValidatedCatalog(ref),
+    normalizeAttempts,
+    audit, evaluate,
+    preview: (s, c) => guard(() => { const k = checkScenario(s); return k.ok ? preview(k.value, c) : k; }),
+    validateCandidate: (s, p) => guard(() => { const k = checkScenario(s); return k.ok ? validateCandidate(k.value, p) : k; }),
+    generateDraft,
+  } satisfies AcademicService);
+}
+
+export const academicService: AcademicService = createAcademicService();

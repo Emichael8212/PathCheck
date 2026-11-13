@@ -33,17 +33,19 @@ export function parseCredits(raw: string | null): number | null | 'invalid' {
 }
 const STATUS_WORDS: Array<[RegExp, CourseAttempt['status']]> = [
   [/^(completed?|passed|pass|earned)$/, 'completed'],
-  [/^(in[\s-]?progress|ip|current|enrolled|registered)$/, 'in_progress'],
+  [/^(in[\s_-]?progress|ip|current|enrolled|registered)$/, 'in_progress'],
   [/^(failed|fail)$/, 'failed'],
   [/^(withdrawn|withdrew|withdraw|w)$/, 'withdrawn'],
   [/^(incomplete|inc)$/, 'incomplete'],
   [/^(transfer[\s_-]?pending|pending[\s_-]?transfer|transfer)$/, 'transfer_pending'],
+  // An explicit "unknown" answer is a valid status (still unresolved), not an unrecognized word.
+  [/^(unknown|not[\s_-]?known)$/, 'unknown'],
 ];
-function parseStatus(raw: string | null): CourseAttempt['status'] | null {
+function parseStatus(raw: string | null): CourseAttempt['status'] | 'unrecognized' | null {
   if (raw === null || raw.trim() === '') return null;
   const s = raw.trim().toLowerCase();
   for (const [re, status] of STATUS_WORDS) if (re.test(s)) return status;
-  return 'unknown';
+  return 'unrecognized';
 }
 
 interface Collected { attempts: CourseAttempt[]; unmatched: string[]; warnings: string[]; unresolved: string[] }
@@ -58,7 +60,8 @@ function normalizeRow(row: ProposedRow, idPrefix: 'm' | 'x', source: 'manual' | 
     verificationStatus: 'unverified',
   }];
   const home = isHomeInstitution(row.rawInstitution);
-  let status = parseStatus(row.rawStatus);
+  const parsedStatus = parseStatus(row.rawStatus);
+  let status: CourseAttempt['status'] | null = parsedStatus === 'unrecognized' ? 'unknown' : parsedStatus;
   const transferFlag = !home || status === 'transfer_pending';
   const canonical = canonicalCourseCode(row.rawCourseCode);
   let normalizedCourseId: string | null = null;
@@ -96,7 +99,8 @@ function normalizeRow(row: ProposedRow, idPrefix: 'm' | 'x', source: 'manual' | 
   if (row.rawTerm === null) warn('missing_term');
   const grade = row.rawGrade === null || row.rawGrade.trim() === '' ? null : row.rawGrade.trim().toUpperCase();
 
-  if (status === 'unknown') warn('unrecognized_status');
+  if (parsedStatus === 'unrecognized') warn('unrecognized_status');
+  else if (parsedStatus === 'unknown') warn('status_reported_unknown');
   if (status === null) {
     // Only explicit earned credit with a recorded grade implies completion; never infer from grade letters.
     if (grade !== null && earnedCredits !== null && earnedCredits > 0) { status = 'completed'; warn('status_inferred_from_earned_credits'); }

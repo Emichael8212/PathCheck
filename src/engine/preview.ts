@@ -56,7 +56,10 @@ export interface PreviewDetail { preview: CandidatePreview; comparison: Comparis
 export function previewWith(scenario: PlanningScenario, base: InputFingerprint, before: PlanAnalysis, changes: ChangeSet): Result<PreviewDetail> {
   const applied = applyChangeSet(scenario, scenario.plan.activePlacements, changes);
   if (!applied.ok) return applied;
-  const proposed = sortPlacements(applied.value);
+  // Keep exact structural change-set order (base order, edits in place, adds appended): L's
+  // atomic command reproduces this order and compares it canonically, and the applied plan's
+  // array order is part of the full fingerprint. Never re-sort here.
+  const proposed = applied.value;
   const after = analyzePlacements(scenario, proposed);
   const cmp = compare(before, after);
   const benefit = cmp.fixedHard > 0 || cmp.coverageDelta > 0 || cmp.riskDelta < 0 || cmp.unselectedDelta < 0;
@@ -171,7 +174,7 @@ export function generateCandidates(scenario: PlanningScenario, base: InputFinger
   for (const ops of sets) {
     const r = previewWith(scenario, base, before, { baseFingerprint: base, operations: ops });
     if (!r.ok || r.value.preview.benefitClass === 'no_valid_alternative' || r.value.comparison.introducedHard > 0) continue;
-    const key = canonicalJson(r.value.preview.proposedPlacements.map(p => [p.courseId, p.termId.sortIndex]));
+    const key = canonicalJson(sortPlacements(r.value.preview.proposedPlacements).map(p => [p.courseId, p.termId.sortIndex]));
     const c = r.value.comparison;
     const rank = [r.value.preview.benefitClass === 'improved' ? 0 : 1, -c.fixedHard, -c.coverageDelta, c.riskDelta, vRank[r.value.preview.validabilityStatus], ops.length, r.value.preview.previewId];
     const prev = results.get(key);
