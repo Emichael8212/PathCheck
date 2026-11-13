@@ -376,3 +376,12 @@ authorization or a human result for PR#4/#5/#6. PR#4's unchanged local SQL/REST 
 is the next eligible human test. This update is documentation-only; its own CI must
 pass before any merge recommendation. No code changes, merge, deployment or cleanup
 of the user's checkouts.
+
+
+### PR #3 evidence-location clarification
+
+User reconfirmed PR#3 PASS and will attach screenshots directly on GitHub.
+Do not request screenshots in chat or treat their absence here as a failed human
+test. Screenshot attachment remains the human's GitHub checkpoint; no claim that
+an attachment has already been verified. This supersedes earlier requests to send
+or link screenshots here. No merge authorization inferred; human alone merges.

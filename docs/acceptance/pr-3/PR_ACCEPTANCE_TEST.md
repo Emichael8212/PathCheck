@@ -6,8 +6,8 @@
 - Commit SHA: `37c2f0adb8972736cc31247df3ddc19339cd6cfa` (implementation baseline; subsequent acceptance-document commits do not change its behavior)
 - Test type: real integrated browser workflow
 - Feature being verified: E analysis + U timeline + L preview/apply/undo and stale-analysis prevention
-- Human acceptance status: **PASS (user-reported)** for this renewed candidate. Required Apply/Undo screenshots have not yet been supplied or linked.
-- Eligibility: human execution PASS; self-captured Apply/Undo screenshot evidence remains pending before final merge recommendation. Agent tests are separate evidence.
+- Human acceptance status: **PASS (user-reported)** for this renewed candidate. The human will attach screenshot evidence directly on GitHub; no submission in chat is required.
+- Eligibility: human execution PASS; screenshot attachment and final merge remain human-controlled GitHub checkpoints. Agent tests are separate evidence.
 
 ## Before You Begin
 Required: this repository, Git, Node24–26/npm, Chrome; no account, cloud service or
