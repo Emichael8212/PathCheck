@@ -108,3 +108,16 @@ Previews show both affected semesters and finding changes; they do not invent a
 projected outlook absent from CandidatePreview. Plain wording maps engine codes
 without reproducing academic logic. No shared contracts, academic policies, or
 mutation ownership change. This records the approved U handoff, not a new redesign.
+
+
+## EXEC-004 — Application-level final acceptance (2026-11-13)
+User reaffirmed the approved F01–F20 scope: component PR merge readiness is not
+application completion. All reproducible defects, missing implementations, broken
+integrations and incomplete security enforcement affecting supported workflows must
+be resolved; they cannot be relabeled final limitations. Verify actual integrated
+components/services and all applicable correctness/privacy/security/human gates.
+Unavailable university rules remain explicit, with conditional behavior and an
+advisor/official verification path; never invent policy. Track per-feature closure
+in IMPLEMENTATION_STATUS.md and exact tests in the coverage audit. Separately report
+implementation, integration, human acceptance and deployment readiness. Only the
+human merges; deployment retains separate authorization. No architecture/scope change.

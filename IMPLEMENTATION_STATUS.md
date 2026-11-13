@@ -2,6 +2,56 @@
 
 Owner: Codex Agent 1 (L). Updated: 2026-11-13. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
 
+## Application completion checklist (current)
+
+Updated 2026-11-13. **Application INCOMPLETE; deployment NOT READY.** A merged PR
+or candidate test PASS is not final feature completion. Each row remains open until
+its actual integrated behavior, applicable automated/security checks, independent
+review and human acceptance all pass on the approved baseline. The detailed
+requirement/test/commit evidence is in docs/testing/requirements-coverage-audit.md.
+
+| Feature | Verified candidate evidence | Required remaining closure / owner | Final complete |
+|---|---|---|---|
+| F01 Three screens | Real E/L/U desktop journey PASS | Merge reviewed components, final application composition and human journey / L,U | No |
+| F02 Both planner paths | Manual + genuine generated draft PASS | Final composed baseline regression/human acceptance / L,E,U | No |
+| F03 Manual records | Normalize, edit, explicit acceptance, invalid input PASS | Final baseline record lifecycle acceptance / L,E,U | No |
+| F04 Transcript extraction | Parser/validator/client units; real G→L→E narrow case PASS | Actual endpoint/admission storage, authorized synthetic benchmark, consent/revoke/fallback/upload integration and privacy gates / existing team, L coordinates | No |
+| F05 Normalized attempts | Engine normalization units and malicious-row composition PASS | Full extraction transfer/repeat/provenance and persistence projection integration / L,E | No |
+| F06 Degree audit | Engine tests; positive scoped-repeat human PASS | Final integration; unknown real rules remain explicitly unresolved / E,L | No |
+| F07 Prerequisites/corequisites | AND/OR, grade, timing, coreq and human engine PASS | Final integrated regression / E,L | No |
+| F08 Unselected-course detection | Real overlooked-course recommendation journey PASS | Final baseline regression/human workflow / E,L,U | No |
+| F09 Conditional outlook | Uncertainty-preserving engine/UI journeys PASS | Final application evidence disclosure and advisor-verification path / E,L,U | No |
+| F10 Availability reports | Real evidence edit/stale invalidation PASS | Persistence round-trip and final human workflow / L,E,U,S | No |
+| F11 Recommendations | Real preview/actionable findings PASS | Final integrated current-analysis/error-state acceptance / E,L,U | No |
+| F12 Editable timeline | Real additions/moves/removals/atomic mutations PASS | Final application baseline and human workflow / L,U | No |
+| F13 Preview/apply/reject/undo | Atomic/stale command tests and browser PASS | Cloud-conflict composition and final human workflow / L,U,S | No |
+| F14 Genuine generated draft | Deterministic bounded engine + explicit adoption PASS | Actual browser cancellation/watchdog and final baseline acceptance / L,E,U | No |
+| F15 Guest access | Real manual/generated guest journeys PASS | Complete supported upload/export/recovery paths; no unfinished controls / L,U | No |
+| F16 Authentication/cloud save | Live SQL/REST human PASS; S modules merged | Wire actual account service; real OTP/save UI journey / L,S,U | No |
+| F17 Safe guest migration | Scoped cleanup fix automated/human PASS | Actual OTP/save migration UI and simultaneous-tab conflict tests / L,S,U | No |
+| F18 Returning recovery/update | CAS/owner isolation and module recovery PASS | Actual list/open/recompute/update/delete/recent-auth and cross-tab journeys / L,S,U | No |
+| F19 PDF export | Maintained library, privacy tests and real-engine download PASS | Latest lazy renderer integrated/production regression and human Preview/Chrome acceptance / U,L | No |
+| F20 Accessible desktop web | Keyboard, computed contrast,53browser regressions PASS | Final integrated accessibility/errors and human usability; retain basic responsive tests / U,L | No |
+
+**Engineering incompleteness:** missing account/endpoint composition, atomic admission
+storage/security, provider benchmark, simultaneous-tab safeguards, runtime cancellation,
+missing integration tests or failed assertions must be fixed. They are not acceptable
+final limitations. `createGuestWorkflow` currently supplies account:null and transcript:null;
+main UI composition still awaits feature integration. No complete-application claim.
+
+**Unavailable academic information:** formal catalog/cohort applicability; prerequisite
+and corequisite rules for replacement courses; minimum-grade/repeat-policy applicability;
+historical equivalency/transfer/substitution permissions; current suspended-rule status;
+future offerings. Approved provisional121-credit structure and user-attested replacements
+remain intact. No rule is invented. Each affected conclusion must name the exact gap,
+remain unresolved/conditional, and expose what the student must verify with an advisor
+or official source. Lack of university information does not excuse a broken workflow.
+
+**Separate gates:** implementation complete → integration verified → human accepted
+→ deployment ready. No stage implies the next. Paid/data-handling eligibility, actual
+privacy controls, hosted configuration and explicit human deployment authorization are
+separate release gates; local SQL or synthetic extraction cannot substitute for them.
+
 ## Execution-memory protocol
 
 This is the single live status ledger. L alone updates it at meaningful integration checkpoints and before ending or handing off a session. Feature agents report via PRs, never concurrent ledger edits. Record exact commands, actual counts/results, tested SHAs, PR URLs, dependencies with owner/test/trigger, blockers and next actions. Planned or blocked work is never verified completion. Evidence statuses: PASS / FAIL / BLOCKED / NOT RUN.
@@ -584,3 +634,15 @@ foundation43475690184 SUCCESS, CLEAN against main9f46d23. Independent review no
 blocking findings; engine-owned implementation unchanged from reviewed097ed76.
 **PR5 READY TO MERGE**; human alone merges. No screenshot requested, no deployment.
 Unknown real ASU policies remain unresolved; acceptance does not certify those rules.
+
+
+### Final acceptance standard enforced — 2026-11-13
+User clarification recorded as DECISIONS EXEC-004; current F01–F20 closure checklist
+added above. No feature marked finally complete. Missing account/transcript composition
+and security/runtime tests are engineering incompleteness, not academic uncertainty.
+U7c17d49 lazy renderer reviewed independently without blocker; foundation43476512604
+PASS. Exact Uexport source/test delta applied to existing scratch. Initial partial
+patch omitted updated test imports and caused typecheck/3unit failures; corrected
+scratch to include complete Utest delta (no production fix needed). Final lint/typecheck
+PASS,595units PASS/2live skipped,12desktop journeys PASS, production-built smoke1PASS.
+Human PDF visual and PR6 acceptance remain NOT RUN. No merge or deployment.

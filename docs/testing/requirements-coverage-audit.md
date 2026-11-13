@@ -479,3 +479,11 @@ acceptance and other cloud/upload integration gates remain pending.
 Human PASS106tests/3files at5344bc2; unchanged head, requiredCI43475690184 PASS,
 GitHub CLEAN and independent review no blocker. PR5 READY TO MERGE. Actual ASU
 policy uncertainties and remaining cross-component/release gates remain unchanged.
+
+### Full-application acceptance clarification
+DECISIONS EXEC-004 and the live F01–F20 checklist govern final closure. Component
+PASS does not close unimplemented workflows or missing integration/security tests.
+U7c17d49 renderer delta: independent review no blocker; currentCI43476512604 PASS;
+combined lint/typecheck595units,12desktop journeys and production smoke PASS. Initial
+scratch omitted matching Utest imports; corrected reconstruction and rerun resolved
+those failures. Human PDF readability/PR6 acceptance remain NOT RUN.
