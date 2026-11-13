@@ -128,6 +128,10 @@ function normalizeRow(row: ProposedRow, idPrefix: 'm' | 'x', source: 'manual' | 
   if ((status === 'failed' || status === 'withdrawn' || status === 'incomplete') && earnedCredits !== null && earnedCredits > 0) warn('status_credit_contradiction');
   if (transferFlag && status !== 'in_progress' && status !== 'failed' && status !== 'withdrawn') status = 'transfer_pending';
   if (status === 'completed' && earnedCredits === null) warn('completed_without_earned_credits');
+  // Completed with zero earned credit on a course the catalog lists as carrying credit is a
+  // contradiction (e.g. a misread column), not a grade judgment. Zero-credit catalog courses and
+  // courses with unknown catalog credit are not flagged on this basis.
+  if (status === 'completed' && earnedCredits === 0 && catalogCredits !== null && catalogCredits > 0) warn('completed_zero_earned_credit_contradiction');
   if (row.uncertainty.length > 0) warn('extraction_uncertainty');
   const confidence: CourseAttempt['confidence'] = issues.some(i => i !== 'provisional_match_ignored' && i !== 'credit_mismatch_with_catalog' && i !== 'status_inferred_from_earned_credits') ? 'unresolved' : 'provisional';
   if (confidence === 'unresolved' || reviewNeeded) out.unresolved.push(stableId('attempt', [attemptId]));

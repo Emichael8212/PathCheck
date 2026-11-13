@@ -6,7 +6,7 @@
 import type { CatalogModel, CourseAttempt, DegreeAudit, PlanPlacement, RequirementGroup } from '../contracts';
 import { canonicalCourseCode } from './normalize';
 import { requirementPoliciesUnmodeled } from './policy';
-import { catalogBlocksConclusions, compareStrings, compareTuples, courseCredits, courseLevel, coursePrefix, uniqueSorted } from './util';
+import { catalogBlocksConclusions, compareStrings, definitelyNotPassed, compareTuples, courseCredits, courseLevel, coursePrefix, uniqueSorted } from './util';
 
 /** 0 = definite earned, 1 = conditional (in progress / planned), 2 = unresolved. */
 export type Quality = 0 | 1 | 2;
@@ -52,7 +52,10 @@ export function buildUnits(input: AuditInput): Unit[] {
     const planned = input.placements.filter(p => p.courseId === courseId && p.termId.sortIndex <= input.targetSort);
     const reasons: string[] = []; let quality: Quality | null = null, credits: number | null = null; const attemptIds: string[] = [];
     const definite = own.filter(a => a.status === 'completed' && a.earnedCredits !== null && a.earnedCredits > 0 && a.confidence !== 'unresolved');
-    const unresolvedDone = own.filter(a => (a.status === 'completed' && (a.earnedCredits === null || a.confidence === 'unresolved')) || a.status === 'incomplete' || a.status === 'unknown' || a.status === 'transfer_pending');
+    // Untrusted failed/withdrawn rows (e.g. status contradicting earned credit) stay possible
+    // evidence at unresolved quality, so the requirement is never reported as a definite gap.
+    const unresolvedDone = own.filter(a => (a.status === 'completed' && (a.earnedCredits === null || a.confidence === 'unresolved')) || a.status === 'incomplete' || a.status === 'unknown' || a.status === 'transfer_pending'
+      || ((a.status === 'failed' || a.status === 'withdrawn') && !definitelyNotPassed(a)));
     const inProgress = own.filter(a => a.status === 'in_progress');
     const pick = (list: CourseAttempt[]) => [...list].sort((a, b) => compareTuples([b.term?.sortIndex ?? -1, a.attemptId], [a.term?.sortIndex ?? -1, b.attemptId]))[0]!;
     if (definite.length) { const a = pick(definite); quality = 0; credits = a.earnedCredits; attemptIds.push(a.attemptId); }
@@ -72,7 +75,7 @@ export function buildUnits(input: AuditInput): Unit[] {
     units.push({ unitId: `unit:${courseId}`, courseId, rawCode: null, quality, credits, attemptIds, placementIds: quality === 0 ? [] : placementIds, reasons: uniqueSorted(reasons), orphan: false });
   }
   for (const a of [...attempts].sort((x, y) => compareStrings(x.attemptId, y.attemptId))) {
-    if (a.normalizedCourseId !== null || a.status === 'failed' || a.status === 'withdrawn') continue;
+    if (a.normalizedCourseId !== null || definitelyNotPassed(a)) continue;
     units.push({ unitId: `orphan:${a.attemptId}`, courseId: null, rawCode: canonicalCourseCode(a.rawCourseCode), quality: 2, credits: a.earnedCredits ?? a.attemptedCredits, attemptIds: [a.attemptId], placementIds: [], reasons: [a.origin === 'transfer' ? 'transfer_equivalency_unverified' : 'unmapped_attempt'], orphan: true });
   }
   return units;

@@ -4,7 +4,7 @@ import type { AvailabilityEvidence, PlanPlacement, PlanningScenario, RuleFinding
 import type { AuditDetail } from './audit';
 import { POLICY, UNMODELED_REQUIREMENT_POLICIES, requirementPoliciesUnmodeled } from './policy';
 import { evaluatePrerequisite, gradeIndexOf, impossibleCycles } from './prerequisites';
-import { compareTuples, courseCredits, finding, hasPolicyGap } from './util';
+import { compareTuples, courseCredits, definitelyNotPassed, finding, hasPolicyGap } from './util';
 
 /** Codes that represent known (sourced or student-reported-scenario) hard constraint violations. */
 export const HARD_CODES = new Set(['prerequisite_unsatisfied', 'reported_not_listed', 'term_capacity_exceeded', 'prerequisite_cycle']);
@@ -74,7 +74,7 @@ export function recordAndCatalogGaps(scenario: PlanningScenario, audit: AuditDet
   for (const g of catalog.policyGaps) if (g.blocksConclusions) out.push(finding({ code: 'policy_unresolved', severity: 'warning', status: { status: 'unresolved', conditional: false }, requirementIds: [], sourceRefs: g.sourceRefs, explanationParams: { policyId: g.policyId }, idParts: [g.policyId], nextAction: 'confirm_policy_with_department' }));
   for (const a of record.courseAttempts) {
     const params = { attemptId: a.attemptId };
-    if (a.normalizedCourseId === null && a.status !== 'failed' && a.status !== 'withdrawn') out.push(finding({ code: a.origin === 'transfer' ? 'transfer_equivalency_unverified' : 'unmapped_attempt', severity: 'warning', status: { status: 'unresolved', conditional: false }, explanationParams: params, idParts: [a.attemptId], nextAction: a.origin === 'transfer' ? 'request_transfer_evaluation' : 'resolve_course_mapping' }));
+    if (a.normalizedCourseId === null && !definitelyNotPassed(a)) out.push(finding({ code: a.origin === 'transfer' ? 'transfer_equivalency_unverified' : 'unmapped_attempt', severity: 'warning', status: { status: 'unresolved', conditional: false }, explanationParams: params, idParts: [a.attemptId], nextAction: a.origin === 'transfer' ? 'request_transfer_evaluation' : 'resolve_course_mapping' }));
     else if (a.normalizedCourseId !== null && (a.status === 'unknown' || a.status === 'incomplete' || a.status === 'transfer_pending' || (a.status === 'completed' && a.earnedCredits === null) || a.confidence === 'unresolved')) out.push(finding({ code: 'attempt_status_unresolved', severity: 'warning', status: { status: 'unresolved', conditional: false }, courseIds: [a.normalizedCourseId], explanationParams: { ...params, status: a.status }, idParts: [a.attemptId], nextAction: 'confirm_attempt_details' }));
     if (a.status === 'in_progress') out.push(finding({ code: 'in_progress_not_earned', severity: 'info', status: { status: 'unresolved', conditional: true }, courseIds: a.normalizedCourseId ? [a.normalizedCourseId] : [], explanationParams: params, idParts: [a.attemptId], assumptions: [`future_pass:${a.normalizedCourseId ?? a.attemptId}`], nextAction: null }));
   }

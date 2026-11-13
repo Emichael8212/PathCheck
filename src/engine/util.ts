@@ -2,7 +2,7 @@
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { canonicalJson } from '../contracts';
-import type { CatalogModel, CourseDefinition, RuleFinding, TermId } from '../contracts';
+import type { CatalogModel, CourseAttempt, CourseDefinition, RuleFinding, TermId } from '../contracts';
 
 export const ENGINE_VERSION = 'pathcheck-engine-v1';
 
@@ -36,6 +36,18 @@ export function courseLevel(courseId: string): number | null {
   return match ? Math.floor(Number(match[1]) / 100) * 100 : null;
 }
 export function coursePrefix(courseId: string): string { return courseId.split('-')[0] ?? courseId; }
+/**
+ * Failed/withdrawn attempt that can be set aside as definitely not counting. Mapped attempts rely
+ * on normalization's confidence. Unmapped/transfer attempts are always `unresolved` (mapping), so
+ * only their own fields can show a status/credit contradiction (positive earned credit).
+ */
+export function definitelyNotPassed(a: Pick<CourseAttempt, 'status' | 'confidence' | 'earnedCredits' | 'normalizedCourseId'>): boolean {
+  if (a.status !== 'failed' && a.status !== 'withdrawn') return false;
+  return a.normalizedCourseId === null ? definitelyNotPassedUnmapped(a) : a.confidence !== 'unresolved';
+}
+export function definitelyNotPassedUnmapped(a: Pick<CourseAttempt, 'status' | 'earnedCredits'>): boolean {
+  return (a.status === 'failed' || a.status === 'withdrawn') && !(a.earnedCredits !== null && a.earnedCredits > 0);
+}
 export function courseCredits(catalog: CatalogModel, courseId: string): number | null {
   const c: CourseDefinition | undefined = catalog.courses[courseId];
   return c && c.credits !== 'unknown' ? c.credits : null;

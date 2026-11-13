@@ -2,7 +2,7 @@
 // OR branches are never flattened into mandatory edges; unresolved nodes never pass through.
 import type { CatalogModel, CourseAttempt, PlanPlacement, PrerequisiteExpr } from '../contracts';
 import { canonicalCourseCode } from './normalize';
-import { compareStrings, uniqueSorted } from './util';
+import { compareStrings, definitelyNotPassed, definitelyNotPassedUnmapped, uniqueSorted } from './util';
 
 export type Status = 'satisfied' | 'unsatisfied' | 'unresolved';
 export interface PrereqResult {
@@ -54,10 +54,14 @@ function gradeCheck(ctx: PrereqContext, grade: string | null, minGrade: string |
 }
 
 function attemptResult(ctx: PrereqContext, a: CourseAttempt, termSort: number, minGrade: string | null, verified: boolean, allowPrior: boolean): PrereqResult | null {
-  if (a.status === 'failed' || a.status === 'withdrawn') return unsat(['prerequisite_attempt_not_passed'], []);
+  // A failed/withdrawn row is only a definite "not passed" when normalization trusted it; an
+  // unresolved one (e.g. status contradicting earned credit) withholds certainty, never passes.
+  const notPassed = a.status === 'failed' || a.status === 'withdrawn';
+  if (definitelyNotPassed(a)) return unsat(['prerequisite_attempt_not_passed'], []);
   if (a.term === null) return unres(['prerequisite_attempt_term_unknown']);
   if (a.term.sortIndex >= termSort) return null;
   if (!allowPrior) return null;
+  if (notPassed) return unres(['prerequisite_attempt_unresolved']);
   const tag = verified ? [] : ['equivalency_unresolved'];
   if (a.status === 'in_progress') {
     const r = sat(true, ['depends_on_in_progress_pass', ...tag], [`future_pass:${a.normalizedCourseId ?? a.attemptId}`]);
@@ -65,8 +69,8 @@ function attemptResult(ctx: PrereqContext, a: CourseAttempt, termSort: number, m
   }
   if (a.status !== 'completed') return unres([`prerequisite_attempt_${a.status}`]);
   if (a.earnedCredits === null) return unres(['prerequisite_earned_credit_unknown']);
-  if (a.earnedCredits === 0) return unsat(['prerequisite_no_credit_earned'], []);
   if (a.confidence === 'unresolved') return unres(['prerequisite_attempt_unresolved']);
+  if (a.earnedCredits === 0) return unsat(['prerequisite_no_credit_earned'], []);
   const g = gradeCheck(ctx, a.grade, minGrade);
   if (g === 'below') return unsat(['grade_below_minimum'], []);
   if (g === 'unknown') return unres(['minimum_grade_unverifiable']);
@@ -86,7 +90,7 @@ function courseNode(ctx: PrereqContext, courseId: string, minGrade: string | nul
   }
   // Transfer work with a matching raw code is never assumed equivalent.
   for (const a of ctx.attempts) {
-    if (a.normalizedCourseId === null && a.origin === 'transfer' && a.status !== 'failed' && a.status !== 'withdrawn' && canonicalCourseCode(a.rawCourseCode) === courseId) results.push(unres(['transfer_equivalency_unverified']));
+    if (a.normalizedCourseId === null && a.origin === 'transfer' && !definitelyNotPassedUnmapped(a) && canonicalCourseCode(a.rawCourseCode) === courseId) results.push(unres(['transfer_equivalency_unverified']));
   }
   const fallback = unsat(['prerequisite_missing'], [courseId]);
   const b = best(results, fallback);
