@@ -68,8 +68,31 @@ UI code, which the architecture forbids.
 - Fall 2027 with an empty record → `target_at_risk` via the same chain findings.
 
 The UI shows these as findings and "scheduling risks", but cannot link them to the outlook.
-**Recommendation:** optional contract addition `outlook.reasonRefs: string[]` (finding ids that determined `kind`), owned by L/E.
-**Decision needed:** Yes, by L, when convenient. It does not block PR #6.
+**Recommendation:** follow-up only, outside the current integration scope. An optional `outlook.reasonRefs: string[]`
+(finding ids that determined `kind`), owned by L/E, would let the UI say "at risk because of…".
+It is not needed for correctness: the UI shows E's outlook and findings verbatim and makes no causal claim.
+**Decision needed:** No for now. Revisit after the MVP release gate; any change needs the usual contract approval.
+
+## 6. Read-only candidate verification (2026-11-13) and observations for L
+
+Candidate: L `09ee8cb` + E `645111c` + U `1103ab1` + S `8d28602` + G `b37f4c2` (local, uncommitted, discarded).
+- **Checks:** lint PASS, typecheck PASS, units PASS 505 (2 skipped), build PASS. The build warns about a 553 kB chunk, a known nonblocking issue.
+- **Lead specs as committed:** application PASS 1; journeys FAIL 9, all at the removed "Review record".
+- **With the section 1 diff (scratch only):** integration PASS 10/10; `PATHCHECK_TEST_BUILD=1` smoke PASS 1; U browser suite PASS 48.
+- **Foundation scaffold smoke** fails in the assembled tree. Your README says it is superseded there, so this is expected.
+- **Real E in Chromium:**
+  - Blocked record: alert, focus moves to Status, `recordRevision` unchanged.
+  - Valid record: accepted once (`recordRevision` 1, SYN-101 provisional).
+  - Empty planner: `insufficient_evidence`, plus the "no courses planned" line.
+  - Draft: 2 rows; adopting gives `conditional_path_found`; Undo restores.
+  - Empty record, Fall 2027: `target_at_risk` from chain findings.
+
+Observations, none blocking U:
+1. **E (question for the engine owner):** with SYN 101 completed and target Fall 2027, the empty-plan outlook is
+   `insufficient_evidence`. `generateDraft` immediately finds a 2-course plan, and adopting it yields `conditional_path_found`.
+   That is conservative rather than unsafe, but you may want E to confirm it is the intended empty-plan semantics.
+2. **G:** `feat/gemini-extraction` (`b37f4c2`) exists only locally, with no remote branch or PR.
+3. The PR #6 acceptance guide and UX-006 entry remain lead actions (sections 2–3).
 
 ## Contract conflicts
 

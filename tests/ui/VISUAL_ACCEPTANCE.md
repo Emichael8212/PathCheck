@@ -44,6 +44,44 @@ Glass during scrolling: on the planner with several courses, scroll to the botto
 stays readable, the capsule floats clear of focused controls, the last course's Edit popover opens upward fully on screen,
 and an open preview keeps Apply/Cancel visible while you scroll.
 
+## Real-engine browser test (recommended before final approval)
+
+This runs PR #6's UI against the **real academic engine (E) and planner commands (L)** on a local, uncommitted
+integration candidate. The data is the lead's synthetic graph: SYN-101 → SYN-201 → SYN-301, three credits each.
+It is not ASU policy and uses no student data. U verified this exact sequence on the candidate L `09ee8cb` + E `645111c` +
+U `1103ab1` + S `8d28602` + G `b37f4c2`.
+
+```sh
+cd /Users/_eman5michael/PathCheck && git fetch origin
+git worktree add /private/tmp/pathcheck-pr6-real -b integration/pr6-real-check 09ee8cbf9f1aa4af219037f96045fd81d89a63b5
+cd /private/tmp/pathcheck-pr6-real
+git merge --no-commit --no-ff 645111c43f65b21fc73b776a763360a8cbddb4a4 1103ab1 8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd b37f4c2ab6a9709bfae26c57635f1991a3c6ab9f
+git apply tests/e2e/integration/application.patch
+npm ci
+npx vite --host 127.0.0.1 --port 5183 --strictPort
+```
+
+Open `http://127.0.0.1:5183/tests/e2e/integration/index.html` at 1440 px (repeat at 1280 if you like).
+
+| Step | Do | Expect | Screenshot |
+|---|---|---|---|
+| R1 | Choose the program and target **Fall 2027** | Option "B.S. Computer Information Systems · Test catalog"; "Test catalog" chip and banner; catalog year shown | `pr6-real-1-start.png` |
+| R2 | Continue as guest → Add course attempt → `SYN 101` only | "⚠ Complete 1 course to continue: SYN 101 needs a status."; row "Needs status"; grey Accept button. Clicking it shows the alert, focuses Status, and accepts nothing. | `pr6-real-2-blocked.png` |
+| R3 | Term Fall 2026, Completed, 3/3, grade B | "1 course checked. All found in this catalog."; blue "Accept and continue" | `pr6-real-3-checked.png` |
+| R4 | Accept and continue → "I already selected courses" | "Record accepted…"; **"Not enough information to judge Fall 2027 yet"**; the line "No courses are planned yet…"; "⚠ 1 scheduling risk"; Needs attention with suggested fix "Add SYN 201 to Spring 2027"; "No courses planned yet" with two actions | `pr6-real-4-empty-planner.png` |
+| R5 | Help me build a plan | Draft rows SYN 201 (Spring 2027) and SYN 301 (Fall 2027); four assumptions to confirm; outlook adds "Draft courses count only after you adopt them." | `pr6-real-5-draft.png` |
+| R6 | Check all four boxes → Adopt draft | "Reachable under current assumptions"; both rows tagged "Suggested"; Undo in the capsule | `pr6-real-6-adopted.png` |
+| R7 | Undo | Back to the empty planner and "Not enough information…" | none |
+| R8 | Reload the page. Same program, target **Fall 2027**, Continue as guest, add nothing, Continue to planner → I already selected courses | **"Fall 2027 is at risk"**; "⚠ 3 scheduling risks reported"; "No term fits within the planning horizon" and "Prerequisite chain is too long for the target" (the 3-course chain can't fit in 2 terms) | `pr6-real-7-at-risk.png` |
+
+Cleanup (nothing is committed):
+
+```sh
+# Ctrl+C the server, then
+cd /Users/_eman5michael/PathCheck
+git worktree remove --force /private/tmp/pathcheck-pr6-real && git branch -D integration/pr6-real-check
+```
+
 ## Targeted re-check: two specific cases
 
 **Case A: incomplete course cannot be accepted** (harness URL above)
