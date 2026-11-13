@@ -2,40 +2,33 @@
 
 ## Current transcript checkpoint
 
-Latest retry supersedes invalid-key blocker: actual authenticated model metadata
-PASS for exact gemini-3.5-flash-lite with generateContent supported. Free-project
-association/tier remains unverified (local flag0, Computer Use denied). No generation
-or PDF call; full benchmark remains BLOCKED, not FAIL and not PASS.
+The corrected key authenticates and the human confirms its project is Free.
+Actual gemini-3.5-flash-lite text generation and structured synthetic PDF extraction
+PASS. Local saved confirmation0 is unchanged; the authorized run uses process-only1.
+The original schema's large array bounds caused HTTP400; the benchmark moves only
+those wire bounds to unchanged strict runtime validation. Full-corpus measurement
+is BLOCKED by two HTTP503 responses. One bounded resume advanced from8 to10 passing
+PDFs:14/14 exact attempts,0 omissions/extra rows/critical errors. Cases11–16 have no
+completed live result;17–18 preflight rejections previously PASS. No alternative
+model, paid fallback or real transcript is used. No full T-GEM PASS is claimed.
 
-Latest access check: secure local env loading PASS (0600, owned, Git-ignored), but
-actual Google model-metadata GET returns400 API_KEY_INVALID. Extraction benchmark
-BLOCKED on invalid credential; no model-generation or PDF call attempted. Local
-free-tier flag remains0. Correct credential/free-project confirmation required.
+Lead current checks: lint/typecheck/build/smoke1 PASS,435unit PASS/2live skips,
+26benchmark scoring/evidence/diagnostic/wire-schema tests PASS. Independent static
+review found no blocker in these benchmark corrections. See
+[benchmark scope, measured results and provider handoff](transcript-synthetic-benchmark.md).
+The G-owned production provider still needs the same wire correction; benchmark
+success does not establish browser/admission/Edge integration.
 
-Superseding execution evidence: U29c387c and S0deba01 fixes independently reviewed
-without remaining blocker in reviewed scope; current CI PASS. Reconstructed candidate
-618units/2skips,UI65,desktop11,production1 PASS. Local SQL309 and real12-worker
-replay/quota/budget races plus6dispatch/revoke pairs PASS; realREST1PASS/1guard skip.
-Human upload/PR7 acceptance NOT RUN.17benchmark scoring/evidence regressions PASS;
-18PDF actual parser preflight PASS (16valid,2rejected); live model test BLOCKED
-missing server key. No accuracy denominator measured. See
-[benchmark scope and setup](transcript-synthetic-benchmark.md). Public endpoint,
-distributed adapter and privacy/runtime integration remain mandatory incomplete work.
+U29c387c and S0deba01 fixes independently reviewed without remaining blocker in
+reviewed scope; current GitHub foundation checks PASS. Previous reconstructed
+candidate618units/2skips,UI65,desktop11,production1 PASS. Local SQL309, real12-worker
+replay/quota/budget races and6dispatch/revoke pairs PASS; REST1PASS/1guard skip.
+Human upload/PR7 acceptance NOT RUN. Public endpoint, distributed adapter and
+privacy/runtime integration remain mandatory incomplete work. Real-transcript
+release approval remains BLOCKED separately from synthetic model evaluation.
 
-Free-tier public research: [verification note](gemini-free-tier-verification.md).
-Project access/quota/billing verification and actual T-GEM PDF benchmark remain
-BLOCKED, not evidence of free-tier inadequacy. Lead reran G fbe9374 provider/browser
-tests: 23 PASS in2files using synthetic HTTP responses only. No live provider call.
-U0f1f258 current CI43484051244 PASS, but independent review FAIL: immediate consent
-revocation, cross-run revoke response isolation and validated-envelope summary each
-need regression correction. These block transcript integration/acceptance despite
-passing existing isolated tests. U correction in progress; human upload NOT RUN.
-Admission storage and endpoint composition remain pending. Real-transcript release
-privacy gate is unchanged; no paid configuration or fallback authorized.
-
-Read-only code audit with documentation changes only. No SQL/REST rerun, provider calls,
-screenshots, merges, deployment, or contract changes. One isolated in-memory recovery
-diagnostic is explicitly identified below; it is not database/human acceptance.
+The historical matrix below retains its original inspected-source evidence.
+Superseding checkpoints above and at the end distinguish fixes from original gaps.
 
 **Historical audit decision (superseded by execution checkpoint below): BLOCKED for the next merge. PR #4 is the next candidate, but has a newly
 confirmed recovery data-loss defect and is BEHIND protected main.** Human PR#4 acceptance

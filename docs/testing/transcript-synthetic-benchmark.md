@@ -1,12 +1,13 @@
 # Synthetic transcript benchmark and secure local configuration
 
-Status: live extraction **BLOCKED** on free-project verification. After the human
-corrected the private key, authenticated model metadata for gemini-3.5-flash-lite
-returned PASS and lists generateContent (input1,048,576/output65,536). The previous
-API_KEY_INVALID failure is resolved. Metadata does not expose project association
-or billing tier. Free-project confirmation remains0; Computer Use access was denied.
-No generation/PDF upload has run and no local gate was overridden. No human upload
-acceptance is claimed.
+The human confirmed the corrected key's project is on the Free tier. This is
+user-attested billing evidence; model metadata does not expose billing status.
+The saved confirmation flag remains0. Explicit process-only confirmation permits
+this authorized synthetic run without changing the private file or billing.
+Authenticated model metadata, a text generation control, a simple PDF/JSON control
+and one full structured PDF extraction PASS on gemini-3.5-flash-lite. The initial
+API_KEY_INVALID is resolved. Partial full-corpus results are recorded below;
+neither an access-only pass nor synthetic accuracy establishes browser acceptance.
 
 ## Actual runtime and secret location
 
@@ -63,13 +64,15 @@ without egress PASS. Model extraction remains NOT RUN in preflight mode.
 After the human creates the private file, lead runs from the composed checkout:
 
 ```sh
-env -u GEMINI_API_KEY -u GOOGLE_API_KEY -u PATHCHECK_GEMINI_MODEL -u PATHCHECK_GEMINI_FREE_TIER_CONFIRMED \
+env -u GEMINI_API_KEY -u GOOGLE_API_KEY -u PATHCHECK_GEMINI_MODEL PATHCHECK_GEMINI_FREE_TIER_CONFIRMED=1 \
   node --env-file=/Users/_eman5michael/pathcheck-lead/supabase/functions/.env \
   tests/e2e/transcript-benchmark/run.mjs --live --access-only
 ```
 
 This checks the exact model metadata, counts tokens and attempts one actual
 structured synthetic PDF extraction. Access-only is never a full benchmark PASS.
+The explicit confirmation value is authorized by the human's Free-tier verification;
+do not use it for a different/unverified project.
 For the complete corpus, repeat without `--access-only`. Only after a completed
 matching primary benchmark has an actual model-quality failure, add `--compare`
 to run 3.8 on identical fixtures. No automatic fallback, retry or billing change.
@@ -94,6 +97,51 @@ alignment is reported separately, never as zero errors. Title and per-row proven
 accuracy are not yet scored. Normalization checks record count, uncertainty and
 explicit acceptance; academic-rule correctness remains covered by engine tests.
 No T-GEM or end-to-end completion until actual provider and pipeline gates pass.
+
+## Live request correction and production handoff
+
+The original wire schema returned HTTP400 INVALID_ARGUMENT at generateContent;
+metadata and countTokens succeeded. Removing the body model field or the schema
+dialect annotation did not resolve it. Keeping the same prompt, model, PDF and
+schema while removing only the two maxItems1000 wire constraints succeeded.
+`wireSchema.mjs` therefore leaves these bounds to the unchanged original Zod
+validator. Required keys, raw field types, page bounds and all local limits remain.
+Oversized responses still fail before G validation or E normalization. The full
+response byte cap applies to both successful and error bodies; diagnostics use
+exact allowlists and never preserve Google's raw text.
+
+Google documents that complex decoding schemas can return400 and recommends
+application-side validation when simplifying the grammar:
+[structured-output limitations](https://aistudio.google.com/docs/structured-output#limitations).
+26 scorer/evidence/diagnostic/wire-schema tests PASS. Independent static review
+found no remaining blocker in these lead-owned changes; reviewer ran no API calls.
+
+The G-owned provider at fbe9374 still sends the original bounds. Its owner must
+port and test this transport correction before claiming production pipeline
+compatibility. The lead benchmark does not modify or certify that provider.
+
+## Measured partial corpus — 2026-11-13
+
+**BLOCKED by Google HTTP503 at generateContent.** Initial run completed cases01–08;
+one bounded resume reused their exact corpus/execution fingerprints and completed
+09–10 before another503. No further live retry or alternate model was attempted.
+Cases01–10 PASS:14 expected/14 extracted/14 exact attempts,0 missing,0 unexpected,
+0 critical-field errors,0 unalignable mismatches. Coverage and actual G/E
+normalization checks PASS for each. Completed requests consumed8,550 input and6,411
+output tokens; per-case elapsed11.010–15.447s includes local pacing/token-count work,
+not just provider latency. Failed attempts/control requests are excluded from those
+totals but included in the local daily call budget.
+
+Remaining live cases11–16 are NOT RUN to completion;17–18 malformed/encrypted
+preflight rejections previously PASS without provider egress. This is not full
+T-GEM accuracy acceptance, scanned-input approval or human browser acceptance.
+
+Private non-sensitive report:
+`/private/tmp/pathcheck-gemini-benchmark-v1/gemini-3.5-flash-lite-attempt-1794599892630.json`.
+Corpus SHA256 `7bf670dca674d235798d685de6068390a802b5747a013cb98d4b5483cff442d9`;
+execution SHA256 `866917e1e1880ad7ae7f8f6557395ed14aa79c9d345f26fe3abcf79dd8697a90`.
+The same full-run command resumes only fingerprint-matching completed cases.
+Do not label service errors as model-quality failures or trigger a model comparison.
 
 The public endpoint still fails closed under its approved paid/real-data eligibility
 contract. A reviewed fixture-restricted synthetic runtime, actual admission adapter,

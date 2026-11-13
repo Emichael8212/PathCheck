@@ -9,6 +9,8 @@ import { createServer } from 'vite';
 import { z } from 'zod';
 import { scoreRows } from './score.mjs';
 import { reusableCases, exactCaseSet, eligibleComparison, assessCase } from './evidence.mjs';
+import { providerErrorSummary, readBoundedJson } from './providerErrors.mjs';
+import { toProviderWireSchema } from './wireSchema.mjs';
 
 const root = '/private/tmp/pathcheck-gemini-benchmark-v1';
 const live = process.argv.includes('--live');
@@ -54,19 +56,11 @@ async function request(suffix, body) {
     body: body ? JSON.stringify(body) : undefined, redirect: 'error', signal: AbortSignal.timeout(50000),
   });
   if (!response.ok) {
-    await response.body?.cancel();
+    report.failedOperation = suffix || 'model_metadata';
+    report.providerError = providerErrorSummary(await readBoundedJson(response));
     throw secretSafeError(response.status === 429 ? 'rate_limited_manual_entry_available_no_retry' : `provider_http_${response.status}`);
   }
-  const reader = response.body?.getReader();
-  if (!reader) throw secretSafeError('empty_provider_response');
-  const chunks = []; let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read(); if (done) break;
-    size += value.length;
-    if (size > 2000000) { await reader.cancel(); throw secretSafeError('provider_response_size_limit'); }
-    chunks.push(value);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  return readBoundedJson(response);
 }
 
 try {
@@ -116,6 +110,7 @@ try {
   const shape = z.strictObject({ documentPageCount: z.number().int().min(1).max(20),
     detectedRowCount: z.number().int().min(0).max(1000).nullable(), rows: z.array(ProposedRowSchema).max(1000),
     coveredPages: z.array(z.number().int().min(1).max(20)).max(20), unrecognizedRows: z.array(z.string().min(1).max(160)).max(1000) });
+  const wireSchema = toProviderWireSchema(z.toJSONSchema(shape));
   const activeFixtures = accessOnly ? manifest.cases.slice(0, 1) : manifest.cases;
   for (const fixture of activeFixtures) {
     if (report.cases.some(c => c.id === fixture.id)) continue;
@@ -134,10 +129,10 @@ try {
     }
     const started = Date.now();
     const contents = [{ role: 'user', parts: [{ inlineData: { mimeType: 'application/pdf', data: bytes.toString('base64') } }] }];
-    const generation = { model: `models/${model}`, systemInstruction: { parts: [{ text: EXTRACTION_PROMPT }] }, contents,
-      generationConfig: { candidateCount: 1, maxOutputTokens: 8192, responseMimeType: 'application/json', responseJsonSchema: z.toJSONSchema(shape) } };
+    const generation = { systemInstruction: { parts: [{ text: EXTRACTION_PROMPT }] }, contents,
+      generationConfig: { candidateCount: 1, maxOutputTokens: 8192, responseMimeType: 'application/json', responseJsonSchema: wireSchema } };
     bytes.fill(0);
-    const tokenCount = await request(':countTokens', { generateContentRequest: generation });
+    const tokenCount = await request(':countTokens', { generateContentRequest: { model: `models/${model}`, ...generation } });
     if (!Number.isSafeInteger(tokenCount.totalTokens) || tokenCount.totalTokens > 16384) throw secretSafeError('fixture_input_token_budget_exceeded');
     const envelope = await request(':generateContent', generation);
     report.apiAccess = 'PASS: actual generateContent response';

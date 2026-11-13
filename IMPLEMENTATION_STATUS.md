@@ -833,3 +833,39 @@ native Computer Use initially pending then denied. Required action requested:
 read-only browser access or human verification that this exact key's project is Free
 and update the local attestation flag. No generation/PDF/token-count calls, billing
 change, alternative model or gate override. Benchmark stays BLOCKED on this evidence.
+
+### Free-project confirmation and measured synthetic extraction — 2026-11-13
+
+Supersedes the preceding billing blocker: human explicitly confirmed corrected
+key's project is Free. Saved env confirmation remains0; authorized process-only1
+used without changing credentials/billing. Actual3.5 text control and PDF/simple
+schema generation HTTP200. Full original schema returned400 INVALID_ARGUMENT;
+removing model body field or $schema alone did not fix it. Removing only two
+maxItems1000 decoding bounds succeeded; unchanged original Zod still rejects
+oversized results before G/E processing. Lead owns only benchmark transport fix;
+G provider fbe9374 still requires its owner to port/test it. No contract weakening.
+Diagnostics now exact allowlists and bounded2MB JSON for errors and successes.
+Independent reviewer gemini_review found no remaining blocker in these changes;
+static review only, no reviewer tests/API/key access.
+
+Actual full18PDF run completed01–08 then HTTP503. One bounded fingerprint-checked
+resume reused8 and completed09–10 before a second503. Live retries stopped.
+Status BLOCKED, not accuracy FAIL/PASS. Ten PDFs PASS,14/14 exact attempts,0missing,
+0extra,0critical mismatches; coverage and G/E normalization PASS. Completed-case
+tokens8,550input/6,411output; elapsed11.010–15.447seconds including pacing/counting.
+Remaining11–16 live NOT RUN to completion;17–18 rejection preflight previously PASS.
+Exact report/hashes and resume command in docs/testing/transcript-synthetic-benchmark.md.
+No3.8comparison, paid fallback, real transcript, billing change, merge or deploy.
+
+Current lead npm run check PASS: lint/typecheck/build,435unit/2live skips,
+26benchmark regressions,Chromium smoke1. git diff --check PASS. Candidate source
+hash866917e1e1880ad7ae7f8f6557395ed14aa79c9d345f26fe3abcf79dd8697a90 binds live
+evidence to exact composed source (L pending changes,E main4f74a67,G fbe9374,
+U29c387c,S0deba01); scratch worktree remains uncommitted/local-only.
+PR6/7 heads unchanged and GitHub foundation checks reverified PASS. Human upload
+and PR7 acceptance remain NOT RUN; no merge recommendation.
+
+Next executable actions: resume remaining cases when provider503 clears; carry
+reviewed wire conversion to G-owned provider through its owner; finish reviewed
+synthetic Edge/admission composition and real browser upload before human acceptance.
+Existing production eligibility, privacy, consent and runtime gates remain mandatory.

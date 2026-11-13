@@ -1,13 +1,14 @@
 # Gemini free-tier verification — 2026-11-13
 
-Public documentation verified; project access and live accuracy **BLOCKED**.
-This is research evidence, not a completed T-GEM benchmark or processing approval.
+Public documentation checked; exact-model generation access now PASS and the
+human confirms the key's project is Free. Full synthetic benchmark evidence is
+maintained in the linked execution note; real-transcript processing is not approved.
 User direction is DECISIONS.md GEM-001.
 
 Update: user selected3.5 Flash-Lite and supplied AI Studio free quotas:
 3.5 Flash-Lite15RPM/250,000TPM/500RPD;3.8 Flash5RPM/250,000TPM/20RPD;
 2.5 Flash-Lite10RPM/250,000TPM/20RPD. Quotas are now user-verified;
-authenticated API access is still NOT RUN. See
+authenticated metadata and actual structured synthetic-PDF generation now PASS. See
 [executable benchmark and configuration](transcript-synthetic-benchmark.md).
 
 ## Publicly documented candidates
@@ -31,14 +32,15 @@ December 1, 2026. Avoid deprecated aliases and unreviewed model transitions.
 
 ## Limits, billing and privacy
 
-- Exact RPM, input TPM and RPD for every candidate: **UNVERIFIED**. Google directs
+- RPM, input TPM and RPD above are **user-verified in AI Studio**, not independently
+  read through the API. Google directs
   users to [AI Studio active limits](https://aistudio.google.com/rate-limit).
   Limits apply per project; daily reset is midnight Pacific; capacity is not
   guaranteed. Grounding search allowances are not extraction-request quotas.
   Source: [rate limits](https://aistudio.google.com/docs/rate-limits).
 - Free tier generally requires an active eligible project, not paid billing;
-  some projects require verification. This project's billing status is unknown.
-  Inspect Projects → Billing Tier without selecting setup/upgrade.
+  some projects require verification. The human confirmed this key's project is
+  Free; no billing configuration was changed.
   Source: [billing](https://aistudio.google.com/docs/billing).
 - Google's PDF ceiling is 50 MB/1,000 pages, within the model context limit.
   PathCheck retains its stricter 10 MiB/20-page boundary and bounded output.
@@ -51,20 +53,14 @@ December 1, 2026. Avoid deprecated aliases and unreviewed model transitions.
   Files API but does not negate Google's data-use/retention terms.
   Source: [terms](https://aistudio.google.com/docs/terms).
 
-## Actual project verification blocker
+## Actual project verification
 
-No browser connection was listed; native Chrome access returned Computer Use
-permissions not granted. Presence-only checks found GEMINI_API_KEY and
-GOOGLE_API_KEY unset in this process. No credential contents were inspected.
-No project identity, model-access list, quota, billing tier or live response has
-been verified. This is an access blocker, not evidence that free tier is inadequate.
-
-When access is available: verify Free tier and active quota for the same project;
-use server-only credentials with the authenticated
-[models endpoint](https://aistudio.google.com/api-reference/models), retain only
-IDs/capabilities/token limits, then make a bounded synthetic request. Listing a
-model alone does not establish available quota or successful PDF/JSON generation.
-Never print credentials, request headers or raw provider failures.
+The corrected private key loads through Node --env-file from the existing ignored
+server file (0600). The exact-model GET and actual synthetic text/PDF generation
+succeeded. The user supplied Free-tier and quota confirmation; no browser or billing
+API inspection is claimed. Saved confirmation0 remains unchanged; the authorized
+benchmark sets process-only confirmation1. No keys, headers, raw failures or
+extracted document text are displayed or persisted in reports.
 
 ## Adapter compatibility and executable evidence
 
@@ -72,7 +68,10 @@ Inspected extraction branch fbe9374c40ba688be5c780f63eaf6a75e374864c:
 
 - Provider accepts a configured exact model ID and sends inline PDF with JSON
   schema to generateContent. Raw proposed-row and deterministic normalization
-  contracts need no model-specific change. Live schema compatibility is NOT RUN.
+  contracts need no model-specific change. Live testing found that the two large
+  array maxItems wire bounds caused request rejection; the lead benchmark omits
+  those grammar bounds but keeps full runtime validation. The G provider still
+  needs the owned correction and retest; see the benchmark handoff.
 - Free execution is **not** just a model-name change: maximumCost rejects zero
   prices and ProcessingEligibility.approved requires paidProjectId. Do not fake
   paid eligibility. A reviewed local-only, fixture-restricted synthetic execution
