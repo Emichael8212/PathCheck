@@ -84,3 +84,14 @@ describe('plain labels keep academic meaning', () => {
     expect(catalogStatus({ ...SYNTHETIC_REF, ruleSetStatus: 'verified' }, 'unreviewed').tone).toBe('warn');
   });
 });
+
+describe('finding grouping keeps every finding', () => {
+  it('groups repeated non-conflict findings at the first position and never drops or merges conflicts', async () => {
+    const { groupFindings } = await import('../../src/ui/planView');
+    const unplaced = (id: string) => f({ findingId: id, code: 'required_course_unplaced', severity: 'warning', courseIds: [id] });
+    const items = groupFindings([conflict, unplaced('a'), f({ findingId: 'y' }), unplaced('b'), unplaced('c')], x => findingMark(x).tone, x => findingMark(x).tone !== 'conflict');
+    expect(items.map(i => (i.kind === 'single' ? i.finding.findingId : `group:${i.findings.map(x => x.findingId).join(',')}`))).toEqual(['x', 'group:a,b,c', 'y']);
+    const single = groupFindings([unplaced('a'), potential], x => findingMark(x).tone, () => true);
+    expect(single.every(i => i.kind === 'single')).toBe(true);
+  });
+});

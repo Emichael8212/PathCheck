@@ -112,7 +112,7 @@ test.describe('academic record screen', () => {
     await fillAttempt(page, 'XYZ 210');
     const summary = page.getByTestId('record-summary');
     await expect(summary).toHaveText('2 courses checked. 1 isn’t in this catalog and won’t count until resolved.');
-    await expect(page.getByTestId('record-row').first()).toContainText('Matched');
+    await expect(page.getByTestId('record-row').first()).toContainText('In catalog');
     await expect(page.getByTestId('record-row').last()).toContainText('Not in this catalog');
     // No separate review or confirmation step exists.
     await expect(page.getByRole('button', { name: 'Review record' })).toHaveCount(0);
@@ -168,7 +168,7 @@ test.describe('academic record screen', () => {
   test('a disabled transcript service shows a concise message and no upload control', async ({ page }) => {
     await open(page);
     await startGuest(page);
-    await expect(page.getByTestId('upload-unavailable')).toHaveText('Transcript import isn’t available yet. Add your courses manually. Nothing is uploaded.');
+    await expect(page.getByTestId('upload-unavailable')).toHaveText('Transcript import isn’t available yet. Add courses manually.');
     await expect(page.getByTestId('transcript-panel').locator('input[type="file"]')).toHaveCount(0);
     expect(await page.evaluate(() => window.__pathcheckHarness!.transcriptCalls)).toEqual(['availability']);
   });
@@ -563,6 +563,11 @@ test.describe('generated-draft journey', () => {
     await expect(page.getByTestId('projected-placement')).toHaveCount(5);
     await expect(page.getByTestId('placement')).toHaveCount(0);
     await expect(page.getByTestId('projected-placement').first()).toContainText('Draft');
+    // Repeated non-conflict findings are grouped; each one is retained with its own details.
+    const group = page.getByTestId('issues').getByTestId('finding-group');
+    await expect(group).toHaveCount(1);
+    await expect(group).toContainText('3 required courses not planned');
+    await expect(group.getByTestId('finding')).toHaveCount(3);
     // Unplaced-course issues offer no "Show in plan" control that would do nothing.
     await expect(page.getByTestId('issues').getByRole('button', { name: /^Show in plan/ })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-draft.png`, fullPage: true });
@@ -607,4 +612,144 @@ test('desktop screenshots of each screen', async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `${SHOTS}/desktop-1280-planner.png`, fullPage: true });
   await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-viewport.png` });
+});
+
+test.describe('refinements: empty states, grouping, grade uncertainty', () => {
+  test('an empty planner offers two clear starts and keeps the engine outlook and warnings', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await toPlanner(page, 'selected');
+    const empty = page.getByTestId('empty-plan');
+    await expect(empty.getByRole('heading', { name: 'No courses planned yet' })).toBeVisible();
+    await expect(page.getByTestId('timeline')).toHaveCount(0);
+    // The engine outlook and its warnings stay visible above and beside the empty state.
+    await expect(page.getByTestId('outlook')).toBeVisible();
+    await expect(page.getByTestId('outlook-unknowns').or(page.getByTestId('outlook'))).toBeVisible();
+    const issues = page.getByTestId('issues');
+    await expect(issues.getByTestId('finding-group')).toContainText('3 required courses not planned');
+    await expect(issues.getByTestId('finding-group')).toContainText('SYN 101 · SYN 102 · SYN 201');
+    await issues.getByTestId('group-summary').click();
+    const each = issues.getByTestId('finding-group').getByTestId('finding');
+    await expect(each).toHaveCount(3);
+    await expect(each.first()).toHaveAttribute('data-tone', 'potential');
+    await each.first().getByTestId('finding-summary').click();
+    await expect(each.first().getByRole('list', { name: 'Sources' })).toContainText('Synthetic UI fixture');
+    await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-empty.png`, fullPage: true });
+    await empty.getByRole('button', { name: 'Add a course' }).click();
+    await expect(page.getByTestId('add-course').getByLabel('Course')).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Help me build a plan', exact: true })).toHaveCount(1);
+    await empty.getByRole('button', { name: 'Help me build a plan' }).click();
+    await expect(page.getByTestId('draft-panel')).toBeVisible();
+    await expect(page.getByTestId('empty-plan')).toHaveCount(0);
+    await expect(page.getByTestId('projected-placement')).toHaveCount(5);
+  });
+
+  test('known conflicts are never grouped', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addThreeConflicting(page);
+    await expect(page.getByTestId('issues').getByTestId('finding-group')).toHaveCount(0);
+    await expect(page.getByTestId('issues').locator('[data-testid="finding"][data-tone="conflict"]')).toHaveCount(2);
+  });
+
+  test('the empty record has one clear action, and "In catalog" is never presented as a grade or requirement', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    const empty = page.getByTestId('record-empty');
+    await expect(empty.getByRole('heading', { name: 'No courses entered' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add course attempt' })).toHaveCount(1);
+    expect(await page.getByRole('button', { name: 'Continue to planner' }).evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
+    await expect(page.getByTestId('record-summary')).toHaveText('Your record is empty.');
+    await expect(page.getByTestId('upload-unavailable')).toHaveText('Transcript import isn’t available yet. Add courses manually.');
+    await empty.getByRole('button', { name: 'Add course attempt' }).click();
+    await expect(page.getByLabel('Course code')).toBeFocused();
+    const row = page.getByTestId('record-row').first();
+    await row.getByLabel('Course code').fill('SYN 102');
+    await row.getByLabel('Status').selectOption({ label: 'Completed' });
+    await expect(row).toContainText('In catalog');
+    await expect(page.getByRole('button', { name: 'Add course attempt' })).toHaveCount(1);
+    await expect(page.getByTestId('manual-entry')).not.toContainText('Matched');
+    await expect(page.locator('.record-note')).toHaveText(/doesn’t confirm a passing grade, credit or degree requirement/);
+  });
+
+  test('an unreadable grade reported by normalization is flagged on the row and in the summary', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    const row = await fillAttempt(page, 'SYN 101');
+    await row.getByLabel('Grade (optional)').fill('ZZ');
+    await expect(page.getByTestId('record-summary')).toHaveText('1 course checked. All found in this catalog. 1 grade needs a look.');
+    await expect(row.locator('.grade-warn')).toContainText('ZZ');
+    await expect(row.locator('.grade-warn')).toContainText('Grade not recognized, so it isn’t used.');
+    await expect(row.getByRole('list', { name: 'Notes from matching' })).toContainText('Grade not recognized');
+    await row.getByLabel('Grade (optional)').fill('B');
+    await expect(page.getByTestId('record-summary')).toHaveText('1 course checked. All found in this catalog.');
+    await expect(row.locator('.grade-warn')).toHaveCount(0);
+  });
+});
+
+test.describe('Liquid Glass during real scrolling and interaction', () => {
+  test('toolbar, capsule, popover and preview stay usable while the planner scrolls', async ({ page }) => {
+    await open(page, 'long=1');
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addThreeConflicting(page);
+    await addCourse(page, /^SYN 102/, 'Fall 2028');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    // Sticky glass toolbar over scrolled content, still blurred and on top.
+    const header = page.locator('.app-header');
+    expect((await header.boundingBox())!.y).toBe(0);
+    expect(await header.evaluate(el => getComputedStyle(el).backdropFilter)).toContain('blur');
+    expect(await page.evaluate(() => document.elementFromPoint(window.innerWidth / 2, 20)?.closest('.app-header') !== null)).toBe(true);
+    // Floating capsule stays in the viewport, above content.
+    await expect(page.getByTestId('notice-status')).toBeInViewport();
+    // The popover of the last course opens upward when there is no room below, fully visible.
+    const last = page.getByTestId('placement').last();
+    const edit = last.getByLabel(/^Edit /);
+    await edit.evaluate(el => { const r = el.getBoundingClientRect(); window.scrollBy(0, r.bottom - window.innerHeight + 110); });
+    await edit.click();
+    await expect(last.locator('.row-menu')).toHaveClass(/opens-up/);
+    await expect(last.locator('.row-menu-panel')).toBeInViewport({ ratio: 1 });
+    // While a popover is open, the capsule steps aside (no glass on glass).
+    expect(await page.locator('.capsule').evaluate(el => getComputedStyle(el).visibility)).toBe('hidden');
+    await page.keyboard.press('Escape');
+    await expect(edit).toBeFocused();
+    // Preview: brought into view, stays visible while the plan scrolls.
+    await page.getByTestId('candidate').first().getByRole('button').click();
+    await expect(page.getByTestId('preview-panel').getByRole('button', { name: 'Apply' })).toBeInViewport({ ratio: 1 });
+    await page.mouse.move(400, 500);
+    await page.mouse.wheel(0, 2000);
+    await expect(page.getByTestId('preview-panel').getByRole('button', { name: 'Cancel' })).toBeInViewport({ ratio: 1 });
+  });
+
+  test('keyboard focus is never hidden under the sticky toolbar or the floating capsule', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addThreeConflicting(page);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollPaddingBottom)).toBe('96px');
+    const edit = page.getByTestId('placement').filter({ hasText: 'SYN 301' }).getByLabel('Edit SYN 301');
+    // Park the control under the capsule, then move focus to it: it must scroll clear.
+    await edit.evaluate(el => { const r = el.getBoundingClientRect(); window.scrollBy(0, r.bottom - window.innerHeight + 20); });
+    await edit.evaluate(el => (el as HTMLElement).focus());
+    const box = await edit.evaluate(el => el.getBoundingClientRect().bottom);
+    expect(box, 'focused control clears the capsule').toBeLessThanOrEqual(page.viewportSize()!.height - 80);
+  });
+
+  test('the record action bar stays in view over a long list and glass never covers the course list surface', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 640 });
+    await open(page);
+    await startGuest(page);
+    for (const code of ['SYN 101', 'SYN 102', 'SYN 201', 'SYN 202', 'SYN 301', 'SYN 310']) {
+      await fillAttempt(page, code);
+      await page.getByTestId('record-row').last().getByRole('button', { name: 'Done' }).click();
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByRole('region', { name: 'Record status' })).toBeInViewport({ ratio: 1 });
+    expect(await page.getByTestId('manual-entry').evaluate(el => [getComputedStyle(el).backdropFilter, getComputedStyle(el).backgroundColor])).toEqual(['none', 'rgb(255, 255, 255)']);
+    expect(await page.getByRole('region', { name: 'Record status' }).evaluate(el => getComputedStyle(el).backdropFilter)).toContain('blur');
+  });
 });

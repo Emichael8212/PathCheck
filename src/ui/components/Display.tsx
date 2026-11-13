@@ -4,8 +4,9 @@ import type { AnalysisResult, AvailabilityEvidence, CatalogModel, RuleFinding, T
 import {
   APPROVAL_LABEL, OUTLOOK_UI, REPORT_LABEL, REPORT_UI, RULESET_LABEL, SOURCE_KIND_LABEL, VERIFICATION_LABEL,
   assumptionText, catalogStatus, catalogYearLabel, constraintText, courseCode, courseTitle, findingMark, findingParams, findingScope, findingTitle,
-  formatTimestamp, humanizeCode, programLabel, sourceLookup, withTarget,
+  formatTimestamp, groupTitle, humanizeCode, programLabel, sourceLookup, withTarget,
 } from '../labels';
+import { groupFindings } from '../planView';
 import { termLabel } from '../terms';
 
 export type NoticeState = { tone: 'ok' | 'error' | 'info'; text: string } | null;
@@ -144,6 +145,43 @@ export function FindingCard({ finding, catalog, onViewInPlan, children }: { find
         </div>
       </details>
     </li>
+  );
+}
+
+/**
+ * Summary row for repeated same-kind findings. The course list stays visible; each finding,
+ * with its own severity, rationale and sources, stays one click away.
+ */
+export function FindingGroup({ code, findings, catalog }: { code: string; findings: RuleFinding[]; catalog: CatalogModel | null }) {
+  const mark = findingMark(findings[0]!);
+  const scopes = findings.map(f => findingScope(f, catalog)).filter(Boolean);
+  return (
+    <li className={`finding finding-group finding-${mark.tone}`} data-testid="finding-group" data-code={code}>
+      <div className="finding-head">
+        <span className={`mark mark-${mark.tone}`} aria-hidden="true">{mark.icon}</span>
+        <div className="finding-main">
+          <p className="finding-title"><span className="visually-hidden">{mark.word}: </span><strong>{groupTitle(code, findings.length)}</strong></p>
+          {scopes.length > 0 && <p className="finding-scope">{scopes.join(' · ')}</p>}
+        </div>
+      </div>
+      <details className="finding-details group-details">
+        <summary data-testid="group-summary">Show each ({findings.length})</summary>
+        <ul className="findings nested">{findings.map(f => <FindingCard key={f.findingId} finding={f} catalog={catalog} />)}</ul>
+      </details>
+    </li>
+  );
+}
+
+/** Findings in engine order, with repeated non-conflict findings grouped (see groupFindings). */
+export function FindingItems({ findings, catalog, extra, single }: { findings: RuleFinding[]; catalog: CatalogModel | null; extra?: (f: RuleFinding) => ReactNode | null; single?: (f: RuleFinding) => ReactNode }) {
+  // Known conflicts and findings carrying a suggested fix are never grouped.
+  const items = groupFindings(findings, f => findingMark(f).tone, f => findingMark(f).tone !== 'conflict' && !extra?.(f));
+  return (
+    <ul className="findings">
+      {items.map(it => it.kind === 'single'
+        ? (single ? single(it.finding) : <FindingCard key={it.finding.findingId} finding={it.finding} catalog={catalog}>{extra?.(it.finding)}</FindingCard>)
+        : <FindingGroup key={`g-${it.code}-${it.findings[0]!.findingId}`} code={it.code} findings={it.findings} catalog={catalog} />)}
+    </ul>
   );
 }
 

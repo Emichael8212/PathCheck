@@ -2,6 +2,7 @@ import type { AcademicRecord, CatalogModel, TermId, ValidatedExtractedRows } fro
 import { ManualRecordEditor } from '../ui/components/ManualRecordEditor';
 import type { CatalogOption, RowMatch } from '../ui/components/ManualRecordEditor';
 import { TranscriptPanel } from '../ui/components/TranscriptPanel';
+import { GRADE_NOTE_CODES } from '../ui/labels';
 import { validateRow } from '../ui/rows';
 import type { ManualRowDraft } from '../ui/rows';
 import type { TranscriptPorts } from '../ui/services';
@@ -39,7 +40,7 @@ const n = (count: number, word: string) => `${count} ${word}${count === 1 ? '' :
 function recordSummary(p: AcademicRecordProps): string {
   if (!p.dirty) {
     const accepted = p.record.courseAttempts.length;
-    if (accepted === 0) return 'No courses in your record. Starting fresh? Continue with an empty record.';
+    if (accepted === 0) return 'Your record is empty.';
     const unresolved = p.record.unresolvedItems.length;
     return `${n(accepted, 'course')} in your record.${unresolved ? ` ${n(unresolved, 'item')} unresolved and not counted.` : ''}`;
   }
@@ -49,7 +50,9 @@ function recordSummary(p: AcademicRecordProps): string {
   const total = p.proposed.record.courseAttempts.length;
   const unmatched = p.proposed.unmatched.length;
   if (total === 0) return 'Your record will be empty.';
-  return `${n(total, 'course')} checked. ${unmatched === 0 ? 'All match this catalog.' : `${unmatched} ${unmatched === 1 ? 'isn’t' : 'aren’t'} in this catalog and won’t count until resolved.`}`;
+  const gradeRows = new Set(p.proposed.warnings.filter(w => GRADE_NOTE_CODES.has(w.split(':')[0]!)).map(w => w.slice(w.indexOf(':') + 1))).size;
+  const grades = gradeRows > 0 ? ` ${n(gradeRows, 'grade')} need${gradeRows === 1 ? 's' : ''} a look.` : '';
+  return `${n(total, 'course')} checked. ${unmatched === 0 ? 'All found in this catalog.' : `${unmatched} ${unmatched === 1 ? 'isn’t' : 'aren’t'} in this catalog and won’t count until resolved.`}${grades}`;
 }
 
 export function AcademicRecordScreen(p: AcademicRecordProps) {
@@ -70,7 +73,7 @@ export function AcademicRecordScreen(p: AcademicRecordProps) {
               <button type="button" className="link" onClick={p.onBack}>Back</button>
               {p.dirty
                 ? <button type="button" disabled={p.busy} onClick={p.onAcceptAndContinue}>Accept and continue</button>
-                : <button type="button" disabled={p.busy} onClick={p.onContinue}>Continue to planner</button>}
+                : <button type="button" className={p.rows.length === 0 ? 'secondary' : undefined} disabled={p.busy} onClick={p.onContinue}>Continue to planner</button>}
             </div>
           </div>
         </div>

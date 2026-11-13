@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { TermId } from '../../contracts';
-import { humanizeCode } from '../labels';
+import { GRADE_NOTE_CODES, recordNote } from '../labels';
 import { ATTEMPT_STATUSES, STATUS_LABEL, validateRow } from '../rows';
 import type { ManualRowDraft } from '../rows';
 import { termFromIndex, termKey, termLabel } from '../terms';
+
+const gradeNotes = (m: RowMatch) => m.notes.filter(n => GRADE_NOTE_CODES.has(n));
 
 /** Per-row result of E's normalization, as shown in the Match column. */
 export type RowMatch = { state: 'matched' | 'unmatched' | 'pending' | 'incomplete'; notes: string[] };
@@ -49,7 +51,7 @@ function CourseCodeInput({ id, value, options, invalid, describedBy, onChange, o
 function MatchCell({ match, showErrors }: { match: RowMatch; showErrors: boolean }) {
   const notes = match.notes.length > 0 ? ` · ${match.notes.length} note${match.notes.length === 1 ? '' : 's'}` : '';
   switch (match.state) {
-    case 'matched': return <span className="match match-ok"><span aria-hidden="true">✓ </span>Matched{notes}</span>;
+    case 'matched': return <span className="match match-ok" title="The course code was found in this catalog. This doesn’t confirm a passing grade, credit or degree requirement."><span aria-hidden="true">✓ </span>In catalog{notes}</span>;
     case 'unmatched': return <span className="match match-warn"><span aria-hidden="true">⚠ </span>Not in this catalog{notes}</span>;
     case 'pending': return <span className="match match-pending">Checking…</span>;
     default: return <span className={`match ${showErrors ? 'match-error' : 'match-pending'}`}><span aria-hidden="true">◌ </span>{showErrors ? 'Needs a fix' : 'Incomplete'}</span>;
@@ -99,7 +101,7 @@ function RowEditor({ row, index, terms, options, showErrors, focusFirstError, ma
           <div className="field"><label htmlFor={`${base}-title`}>Title (optional)</label><input {...field('title')} value={row.title} onChange={e => set('title', e.target.value)} /></div>
         </div>
       </details>
-      {match.notes.length > 0 && <ul className="row-notes" aria-label="Notes from matching">{match.notes.map(n => <li key={n}>{humanizeCode(n)}</li>)}</ul>}
+      {match.notes.length > 0 && <ul className="row-notes" aria-label="Notes from matching">{match.notes.map(n => <li key={n}>{recordNote(n)}</li>)}</ul>}
       <div className="button-row">
         <button type="button" className="secondary" onClick={onDone}>Done</button>
         <button type="button" className="danger" aria-label={`Remove ${label}`} onClick={onRemove}>Remove</button>
@@ -140,13 +142,17 @@ export function ManualRecordEditor({ rows, terms, options, showErrors, errorSign
     <section aria-labelledby="manual-title" className="record-card" data-testid="manual-entry">
       <div className="card-head">
         <h2 id="manual-title">Your courses{rows.length > 0 && <span className="count"><span className="visually-hidden">: </span>{rows.length}</span>}</h2>
-        <button type="button" className="secondary" ref={addRef} onClick={onAdd}>Add course attempt</button>
+        {rows.length > 0 && <button type="button" className="secondary" ref={addRef} onClick={onAdd}>Add course attempt</button>}
       </div>
       {rows.length === 0 ? (
-        <p className="empty">No courses yet. Starting fresh? You can continue with an empty record.</p>
+        <div className="empty" data-testid="record-empty">
+          <h3>No courses entered</h3>
+          <p>Add each course you’ve taken, including repeats and transfers. Just starting? You can continue with an empty record.</p>
+          <button type="button" ref={addRef} onClick={onAdd}>Add course attempt</button>
+        </div>
       ) : (
         <>
-          <div className="record-cols" aria-hidden="true"><span>Course</span><span>Term</span><span>Status</span><span>Grade</span><span className="r">Credits</span><span>Match</span><span /></div>
+          <div className="record-cols" aria-hidden="true"><span>Course</span><span>Term</span><span>Status</span><span>Grade</span><span className="r">Credits</span><span>Catalog match</span><span /></div>
           <ul className="record-list">
             {rows.map((row, i) => {
               const open = openId === row.rowId;
@@ -160,7 +166,9 @@ export function ManualRecordEditor({ rows, terms, options, showErrors, errorSign
                     <span className="r-course"><span className="code" translate="no">{code || 'New course'}</span>{(row.title || option?.title) && <span className="muted"> {row.title || option?.title}</span>}{row.institution && <span className="small"> · Transfer · {row.institution}</span>}</span>
                     <span className="r-term">{row.termKey ? termLabel(termFromIndex(Number(row.termKey))) : 'Term unknown'}</span>
                     <span className="r-status">{row.status ? STATUS_LABEL[row.status] : '—'}</span>
-                    <span className="r-grade">{row.grade || '—'}</span>
+                    <span className="r-grade">{gradeNotes(match).length > 0
+                      ? <span className="grade-warn" title={gradeNotes(match).map(recordNote).join(' ')}><span aria-hidden="true">⚠ </span>{row.grade || '—'}<span className="visually-hidden">: {gradeNotes(match).map(recordNote).join(' ')}</span></span>
+                      : (row.grade || '—')}</span>
                     <span className="r-credits tabular">{row.attemptedCredits || '—'} / {row.earnedCredits || '—'}</span>
                     <span className="r-match"><MatchCell match={match} showErrors={showErrors} /></span>
                     <span className="r-edit">
@@ -177,6 +185,7 @@ export function ManualRecordEditor({ rows, terms, options, showErrors, errorSign
               );
             })}
           </ul>
+          <p className="record-note">“In catalog” means the course code was found in this catalog. It doesn’t confirm a passing grade, credit or degree requirement; the planner checks those.</p>
         </>
       )}
     </section>

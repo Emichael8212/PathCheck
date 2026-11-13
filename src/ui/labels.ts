@@ -240,3 +240,40 @@ export const REPORT_UI: Record<AvailabilityEvidence['report'], { icon: string; t
   not_listed: { icon: '✕', text: 'You reported: Not listed' },
   unknown: { icon: '?', text: 'You reported: Can’t check' },
 };
+
+/** Plain text for E's per-row normalization warnings (`code:rowId`); unknown codes are humanized. */
+const RECORD_NOTE: Record<string, string> = {
+  unrecognized_grade: 'Grade not recognized, so it isn’t used.',
+  status_grade_contradiction: 'Grade conflicts with the status.',
+  status_inferred_from_earned_credits: 'Status was inferred from earned credits.',
+  course_not_in_catalog: 'Course code isn’t in this catalog.',
+  unparseable_course_code: 'Course code couldn’t be read.',
+  transfer_equivalency_unverified: 'Transfer equivalency isn’t verified.',
+  equivalency_unresolved: 'Equivalency is unresolved.',
+  ambiguous_equivalency: 'More than one equivalency could apply.',
+  credit_mismatch_with_catalog: 'Credits differ from the catalog.',
+  earned_exceeds_attempted: 'Earned credits exceed attempted credits.',
+  completed_without_earned_credits: 'Completed, but earned credits are missing.',
+  status_credit_contradiction: 'Credits conflict with the status.',
+  missing_term: 'Term is missing.',
+  missing_status: 'Status is missing.',
+  status_reported_unknown: 'Status is unknown.',
+  institution_unknown: 'Institution is unknown.',
+};
+export function recordNote(code: string): string {
+  return RECORD_NOTE[code] ?? `${humanizeCode(code)}.`;
+}
+/** Warnings that make a row's grade uncertain for the analysis. */
+export const GRADE_NOTE_CODES = new Set(['unrecognized_grade', 'status_grade_contradiction', 'status_inferred_from_earned_credits']);
+
+/** Concise titles for a group of same-kind findings; others fall back to "Title (n)". */
+const GROUP_TITLE: Record<string, (n: number) => string> = {
+  required_course_unplaced: n => `${n} required courses not planned`,
+  offering_unknown: n => `${n} courses with availability not checked`,
+  prerequisite_unresolved: n => `${n} prerequisite rules unknown`,
+  prerequisite_policy_unresolved: n => `${n} prerequisite rules unknown`,
+  course_credits_unknown: n => `${n} courses with unknown credits`,
+};
+export function groupTitle(code: string, n: number): string {
+  return GROUP_TITLE[code]?.(n) ?? `${findingTitle(code)} (${n})`;
+}

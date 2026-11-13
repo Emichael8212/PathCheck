@@ -87,11 +87,11 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
   return (
     <section aria-labelledby="upload-title" className="side-card transcript" data-testid="transcript-panel">
       <h2 id="upload-title" className="insp-title">Import from a transcript</h2>
-      {!ports && <p className="small" data-testid="upload-unavailable">Transcript import isn’t available in this build. Add your courses manually. Nothing is uploaded.</p>}
+      {!ports && <p className="small" data-testid="upload-unavailable">Transcript import isn’t available yet. Add courses manually.</p>}
       {ports && phase === 'idle' && !availability && error && <div className="button-row"><button type="button" className="secondary" onClick={check}>Check again</button></div>}
       {phase === 'checking' && <p className="small" role="status">Checking availability…</p>}
       {availability?.status === 'disabled' && (
-        <p className="small" data-testid="upload-unavailable" title={humanizeCode(availability.reasonCode ?? 'not_approved')}>Transcript import isn’t available yet. Add your courses manually. Nothing is uploaded.</p>
+        <p className="small" data-testid="upload-unavailable" title={humanizeCode(availability.reasonCode ?? 'not_approved')}>Transcript import isn’t available yet. Add courses manually.</p>
       )}
       {availability?.status === 'approved' && phase !== 'done' && (
         <div className="disclosure" data-testid="disclosure">

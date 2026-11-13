@@ -82,3 +82,26 @@ export function previewApplyBlock(preview: Pick<CandidatePreview, 'validabilityS
 export function previewNeedsAcknowledgement(preview: Pick<CandidatePreview, 'assumptions' | 'validabilityStatus'>): boolean {
   return preview.assumptions.length > 0 || preview.validabilityStatus === 'conditional' || preview.validabilityStatus === 'unresolved';
 }
+
+export type FindingItem = { kind: 'single'; finding: RuleFinding } | { kind: 'group'; code: string; findings: RuleFinding[] };
+
+/**
+ * Collapses repeated findings that share a code and display tone into one summary item, at
+ * the position of the first one. Nothing is dropped or rescored: each finding stays in the
+ * group. `canGroup` keeps findings out of groups (e.g. known conflicts, which always show singly).
+ */
+export function groupFindings(findings: readonly RuleFinding[], tone: (f: RuleFinding) => string, canGroup: (f: RuleFinding) => boolean): FindingItem[] {
+  const key = (f: RuleFinding) => `${f.code}|${tone(f)}`;
+  const counts = new Map<string, number>();
+  for (const f of findings) if (canGroup(f)) counts.set(key(f), (counts.get(key(f)) ?? 0) + 1);
+  const out: FindingItem[] = [];
+  const groups = new Map<string, Extract<FindingItem, { kind: 'group' }>>();
+  for (const f of findings) {
+    const k = key(f);
+    if (!canGroup(f) || (counts.get(k) ?? 0) < 2) { out.push({ kind: 'single', finding: f }); continue; }
+    const g = groups.get(k);
+    if (g) g.findings.push(f);
+    else { const ng = { kind: 'group' as const, code: f.code, findings: [f] }; groups.set(k, ng); out.push(ng); }
+  }
+  return out;
+}

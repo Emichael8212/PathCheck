@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { AnalysisResult, CandidatePreview, CatalogModel, Plan, PlanPlacement, Result, RuleFinding, TermId } from '../contracts';
-import { AvailabilityControl, CatalogSummary, FindingCard, OutlookCard } from '../ui/components/Display';
+import { AvailabilityControl, CatalogSummary, FindingCard, FindingItems, OutlookCard } from '../ui/components/Display';
 import type { AvailabilityAnswer } from '../ui/components/Display';
 import { CandidateFix, DraftPanel, PreviewPanel } from '../ui/components/Proposals';
 import { useNarrowLayout } from '../ui/previewText';
@@ -219,9 +219,13 @@ export function PlannerScreen(p: PlannerProps) {
       </>
     );
   };
+  // A finding that owns or shares a suggested fix stays an individual row next to that fix.
+  const ownsFix = (f: RuleFinding) => (p.candidates.some(c => findingDelta(c).resolved.some(r => sameFinding(r, f))) ? true : null);
   const gaps = analysis ? [...analysis.evidenceGaps, ...analysis.bottlenecks] : [];
   const cat = catalogStatus(p.catalog.catalogRef, p.catalog.approval);
   const covered = Boolean(p.preview) && !narrow;
+  // Empty plan: one clear starting point instead of a list of empty semesters.
+  const emptyPlan = p.plan.activePlacements.length === 0 && !p.draft;
 
   return (
     <section className="screen planner" aria-labelledby="planner-title" data-testid="screen-planner">
@@ -251,9 +255,24 @@ export function PlannerScreen(p: PlannerProps) {
             <h2 id="timeline-title" tabIndex={-1}>Semester plan</h2>
             <AddCourse catalog={p.catalog} terms={p.terms} busy={p.busy} onAdd={p.onAdd} />
           </div>
-          <Timeline catalog={p.catalog} terms={p.terms} targetTerm={p.plan.targetTerm} active={p.plan.activePlacements} projected={projected} evidence={p.plan.availabilityEvidence}
-            capacity={p.capacity.maximum} highlightCourse={highlight} busy={p.busy} handlers={timeline} context={context} changes={changes} />
-          {!p.draft && <div className="button-row"><button type="button" className="secondary" disabled={p.busy} onClick={p.onGenerate}>Help me build a plan</button></div>}
+          {emptyPlan ? (
+            <section className="empty-plan" aria-labelledby="empty-plan-title" data-testid="empty-plan">
+              <h3 id="empty-plan-title">No courses planned yet</h3>
+              <p>Add the courses you’ve chosen, or let PathCheck draft one preliminary plan for you to review. Nothing is adopted until you choose.</p>
+              {p.terms.length > 0 && <p className="small">Planning {p.terms.length} semester{p.terms.length === 1 ? '' : 's'}: {termLabel(p.terms[0]!)} to {termLabel(p.terms.at(-1)!)}.</p>}
+              <div className="button-row">
+                <button type="button" disabled={p.busy} onClick={() => {
+                  const select = document.querySelector<HTMLElement>('[data-testid="add-course"] select');
+                  select?.scrollIntoView({ block: 'nearest' }); select?.focus();
+                }}>Add a course</button>
+                <button type="button" className="secondary" disabled={p.busy} onClick={p.onGenerate}>Help me build a plan</button>
+              </div>
+            </section>
+          ) : (
+            <Timeline catalog={p.catalog} terms={p.terms} targetTerm={p.plan.targetTerm} active={p.plan.activePlacements} projected={projected} evidence={p.plan.availabilityEvidence}
+              capacity={p.capacity.maximum} highlightCourse={highlight} busy={p.busy} handlers={timeline} context={context} changes={changes} />
+          )}
+          {!p.draft && !emptyPlan && <div className="button-row"><button type="button" className="secondary" disabled={p.busy} onClick={p.onGenerate}>Help me build a plan</button></div>}
         </div>
         <aside className={`planner-side${covered ? ' has-preview' : ''}`} aria-label="Issues, suggestions and availability">
           {p.preview && <PreviewPanel key={p.preview.previewId + p.preview.baseFingerprint} preview={p.preview} catalog={p.catalog} active={p.plan.activePlacements} stale={previewStale} busy={p.busy} onApply={p.onApply} onCancel={p.onReject} />}
@@ -263,14 +282,13 @@ export function PlannerScreen(p: PlannerProps) {
               <section className="insp-section" aria-labelledby="issues-title" data-testid="issues">
                 <h2 id="issues-title" className="insp-title" tabIndex={-1}>Needs attention{top.length > 0 && <span className="count"><span className="visually-hidden">: </span>{top.length}</span>}</h2>
                 {top.length === 0 ? <p className="muted small">No priority issues reported for this plan.</p> : (
-                  <ul className="findings">
-                    {top.map(f => (
+                  <FindingItems findings={top} catalog={p.catalog} extra={ownsFix}
+                    single={f => (
                       <FindingCard key={f.findingId} finding={f} catalog={p.catalog}
                         {...(f.courseIds[0] && p.plan.activePlacements.some(x => x.courseId === f.courseIds[0]) ? { onViewInPlan: viewInPlan } : {})}>
                         {fixesFor(f)}
                       </FindingCard>
-                    ))}
-                  </ul>
+                    )} />
                 )}
                 {unowned.length > 0 && (
                   <div className="other-fixes" data-testid="candidates">
@@ -285,7 +303,7 @@ export function PlannerScreen(p: PlannerProps) {
               {analysis && (
                 <details className="insp-disclosure" data-testid="evidence-gaps">
                   <summary>Unknowns and evidence gaps<span className="summary-meta">{gaps.length}</span></summary>
-                  {gaps.length === 0 ? <p className="muted small">No evidence gaps reported.</p> : <ul className="findings">{gaps.map(f => <FindingCard key={f.findingId} finding={f} catalog={p.catalog} />)}</ul>}
+                  {gaps.length === 0 ? <p className="muted small">No evidence gaps reported.</p> : <FindingItems findings={gaps} catalog={p.catalog} />}
                 </details>
               )}
               <Assumptions capacity={p.capacity} includeSummer={p.includeSummer} assumeFuturePass={p.assumeFuturePass} onCapacity={p.onCapacity} onIncludeSummer={p.onIncludeSummer} />

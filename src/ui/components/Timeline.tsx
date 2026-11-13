@@ -49,6 +49,7 @@ function RowMenu({ placement, code, terms, evidence, busy, handlers }: { placeme
   const moveId = useId();
   const ref = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
+  const [up, setUp] = useState(false);
   const others = terms.filter(t => t.sortIndex !== placement.termId.sortIndex);
   const [chosen, setTo] = useState(others[0] ? termKey(others[0]) : '');
   // If the horizon changes (e.g. summer toggled), a remembered choice can vanish from the
@@ -62,7 +63,15 @@ function RowMenu({ placement, code, terms, evidence, busy, handlers }: { placeme
     return () => document.removeEventListener('pointerdown', outside);
   }, [open]);
   return (
-    <details className="row-menu" ref={ref} onToggle={e => setOpen(e.currentTarget.open)}
+    <details className={`row-menu${up ? ' opens-up' : ''}`} ref={ref} onToggle={e => {
+      const el = e.currentTarget;
+      setOpen(el.open);
+      if (!el.open) return;
+      // Open upward when the panel would run under the floating capsule and there is room above.
+      const anchor = el.querySelector('summary')!.getBoundingClientRect();
+      const height = el.querySelector<HTMLElement>('.row-menu-panel')?.offsetHeight ?? 0;
+      setUp(anchor.bottom + height + 104 > window.innerHeight && anchor.top - height - 8 > 64);
+    }}
       onKeyDown={e => { if (e.key === 'Escape' && ref.current?.open) { e.stopPropagation(); ref.current.open = false; ref.current.querySelector('summary')?.focus(); } }}>
       <summary aria-label={`Edit ${code}`}>Edit</summary>
       <div className="row-menu-panel glass" role="group" aria-label={`Change ${code}`}>

@@ -34,7 +34,7 @@ export async function fillAttempt(page: Page, code: string, opts: { term?: strin
 /** Enters one completed synthetic attempt; automatic matching reports it before acceptance. */
 export async function enterCompletedAttempt(page: Page, code = 'SYN 101') {
   await fillAttempt(page, code);
-  await expect(page.getByTestId('record-summary')).toContainText('1 course checked. All match this catalog.');
+  await expect(page.getByTestId('record-summary')).toContainText('1 course checked. All found in this catalog.');
 }
 
 /** Accepts the record if it has unaccepted changes (one explicit step), else continues; then picks a path. */
