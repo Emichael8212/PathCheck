@@ -14,20 +14,19 @@ are recorded in the ledger/PR evidence, not represented as GitHub approvals.
 | 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
 | 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
 | 6 `29c387caef967990abd6db06ab7696c05c416f36` | Three screens, planner, PDF export and consent/upload UI; engine on main; full upload consumes PR8 through PR9 and PR7 | Final U review resolved revoke/summary/validation findings; CI43489146280 PASS. Human completed earlier manual/export workflows; upload NOT RUN | OPEN, non-draft despite title. BLOCKED by user's upload acceptance hold; later changes affect transcript paths, not prior manual/export implementation |
-| 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; PR4/3 already merged; independent of PR6/8/9 for database acceptance | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | READY TO MERGE for database scope; unchanged head/current CI verified after human cleanup |
+| 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; authoritative merged database baseline | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | MERGED `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`, verified 2026-11-13T22:09:33Z; local main synchronized |
 | 8 `75aa73ee912186670c4256189db48a4a238f7fcd` | Extraction client/validation, PDF handler, Gemini provider/retries and server runtime; PR7 durable admission via PR9 adapter; PR6 UI for browser acceptance | Final review resolved two handler findings; 557 unit (137 extraction), live synthetic corpus PASS; CI43502564822 PASS; human NOT RUN | OPEN draft; BLOCKED on live synthetic browser composition and human upload acceptance; public gateway/resource isolation and real-data privacy gates remain |
 | 9 `8fbd313e25603b410c70b46c3f89db6b9ed8cfb1` | Lead RPC adapter, resumable benchmark, integration harness; requires PR6/7/8 for actual composed workflow | Independent adapter/benchmark/harness findings resolved; 649 composed units,65 UI,11 planning,5 upload cases PASS; upload Google/bot transport simulated; CI43504268718 PASS; human NOT RUN | OPEN draft; BLOCKED on live browser integration and human acceptance. Documentation corrections after this inspected head do not change implementation b4573d4 |
 
-All open heads contain current main4f74a67 and GitHub reports MERGEABLE. That is
+At the preceding inspection, all open heads contained main4f74a67 and GitHub reported MERGEABLE. That is
 conflict compatibility, not permission to merge. PR9 directly imports PR8's handler,
 admission and provider in its upload harness. PR8 is a code dependency of PR9;
 its omission from the earlier sequence was incorrect.
 
 **Execution and acceptance order:**
 
-1. Human runs PR7's pinned database/retry procedure. This tests new admission
-   behavior, not a repeat of already accepted PR4. After PASS, current checks and
-   review reconciliation, human personally merges PR7.
+1. COMPLETE: human passed PR7's pinned database/retry procedure and merged it as
+   1c0b8d3. Preserve this evidence; refresh dependent branches from the new main.
 2. Lead finishes and verifies the live, local, synthetic-only browser composition
    using PR6+PR8+PR9 on an uncommitted temporary integration branch. PR8 need not
    merge before this test; waiting for mutually dependent acceptance would create
@@ -67,7 +66,8 @@ assertions PASS,12-worker quota/replay races and6 retry/revoke races PASS. S hea
 c394241 fixes the explicit newRPC static allowlist; CI43501794085 PASS. Earlier
 94cfeaa CI failed that missing test-list entry; no security assertion was removed.
 G review fixed processing approval expiry duringbackoff and stale body-read timestamps.
-Human transcript-upload/PR7 acceptance remain NOT RUN; full real-data processing
+Human transcript-upload acceptance remains NOT RUN; PR7 human security acceptance
+and cleanup PASS and PR7 is merged. Full real-data processing
 and deployment gates remain mandatory and are not satisfied by these tests.
 
 The historical matrix below retains its original inspected-source evidence.

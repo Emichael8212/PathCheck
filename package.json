@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "test:integration": "playwright test -c playwright.integration.config.ts",
     "test:transcript-benchmark": "node --test tests/e2e/transcript-benchmark/*.node.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run test:transcript-benchmark && npm run build && npm run test:e2e"
+    "test:upload-guards": "node --test tests/e2e/upload/*.node.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run test:transcript-benchmark && npm run test:upload-guards && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "@noble/hashes": "2.4.0",

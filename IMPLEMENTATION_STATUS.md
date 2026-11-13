@@ -1022,3 +1022,57 @@ foundation43501794085 SUCCESS, MERGEABLE against unchanged main4f74a67; independ
 static review has no blocking finding. PR7 READY TO MERGE for its database module;
 human alone performs merge. Updating stale PR title/body and draft status for review
 does not change accepted code. PR6/8/9 live upload remains separate and incomplete.
+
+### PR7 merged baseline — 2026-11-13
+
+Verified GitHub PR7 MERGED at 2026-11-13T22:09:33Z, actual merge commit
+1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc. Accepted feature head remains
+c394241922a7513b9101561426d2979a0f1c0a17; human isolation/SQL/concurrency/cleanup
+PASS retained. Fast-forwarded clean local main to that exact remote merge and
+merged origin/main into L's feature branch without conflicts. No agent created a
+main merge or pushed main. S admission implementation is now authoritative main.
+Continuing PR6/8/9 live synthetic composition; G owner notified of verified baseline.
+
+### Live synthetic upload implementation and verification — 2026-11-13
+
+U owner refreshed PR6 to52a72dac5844e471c2957305105f4f344402abec from main1c0b8d3;
+no U code changed. Owner488unit/65UI/10journey checks PASS; currentCI43517706821 PASS.
+G owner authored shared internal admission/handler cores with production paid-only
+factories unchanged and an explicit tests/fixtures local synthetic factory. Root
+applied owner's hash-verified files because its worktree permission calls stalled;
+no independently authored G edits. G independent review found quota-await consent
+race; final beforeEgress check now verifies same reservation/lease/consent/permit
+after quota on EVERY attempt. Fixed expiry regression isolates permit expiry from
+provider timeout. Final static review no blocker;157G tests PASS. Owner commit034ceea
+refreshed main to6e29425404a7a53bf7e7a6da19d477b49e89469a;578unit/fullcheck PASS,
+currentCI43521373169 initiallyrunning. Human upload NOT RUN.
+
+L live harness uses HTTPS127.0.0.1:5185, actual SQL RPCs and real fixed-model Google
+fetch. One generated PDF digest is allowlisted at ticket/admit/provider and final
+egress; no arbitrary document, remote file URI or redirect. Local one-use capability
+is explicitly NOT public Turnstile certification. Free-only confirmation,10attempt
+run cap, persistent shared benchmark RPM/TPM/RPD ledger/lock; no resetting Google
+usage. Private env only reaches server child, not browser child. Startup/shutdown,
+private path denial and post-authorization no-await egress independently reviewed;
+9guard tests PASS. Fixture native text independently verified, SHA256
+c078a421891a21be6b8391a7ddfbebafdcd3856fd5fe7c70dc8f0db4712d2dd9.
+
+Actual Chrome live workflow PASS1: browser consent→ticket→real PDF/SQL/Gemini→raw
+validation→E normalization→explicit academic acceptance→planner prerequisite
+conflict→preview→apply→undo, current fingerprints asserted. Exactly1/1 attempt,
+all labeled critical fields/title/null institution matched;1Google200,1admit,
+1dispatch,1finalconsentcheck,1settlement,0retry. Report (private, counts only):
+/private/tmp/pathcheck-live-upload/run-1794609673676.json. Human NOT RUN.
+Earlier attempts retained: private-path assertion failed before egress (SPA fallback,
+fixed explicitdeny); local429 before egress from old simulated test cost records
+(clean test DB prerequisite restored); successfulGoogle200/extraction/acceptance
+then test-only exact button locator timeout (fixed regex matching full accessible
+name). Across live-workflow development:2actualGooglecalls, both200, no503/retries;
+previous18-case benchmark not rerun. No fake provider response in live acceptance.
+
+Composed main1c + U52a72 + G6e294 executable source + Lpending: fullcheck PASS
+669unit/2live skips,43benchmark regressions,9uploadguards,lint/type/build,actualapp
+smoke1; UI65PASS and realE journeys11PASS. Initial sandbox socket denial corrected
+with permitted outside-sandbox rerun,157G PASS. SQL suite first failed4assertions
+because live-test rows violated its documented clean-DB prerequisite; reset and
+reverification in progress, not presented as PASS yet. No accepted human tests rerun.
