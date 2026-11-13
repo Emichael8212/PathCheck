@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { CatalogModel, Result, TranscriptExtraction, ValidatedExtractedRows } from '../../src/contracts';
 import type { TranscriptPorts } from '../../src/ui/services';
 import { startTranscriptSend, uncertainRows, unreadableRowCount } from '../../src/ui/transcriptFlow';
+import type { SendRun } from '../../src/ui/transcriptFlow';
 import { syntheticExtraction } from '../fixtures/ui/fakeServices';
 
 const PDF = '%PDF-1.4 synthetic test document';
@@ -170,6 +171,42 @@ describe('transcript send: withdrawal during an async step', () => {
     run.cancel();
     x.reject(new Error('network'));
     await expect(run.done).resolves.toEqual({ kind: 'cancelled', receipt: 'receipt-1' });
+  });
+
+  it('the issued receipt is exposed while extract is still pending, so it can be revoked before extract settles', async () => {
+    const x = deferred<Result<unknown>>();
+    const issued: string[] = [];
+    const { ports: p } = ports({ extract: () => x.promise });
+    const run = startTranscriptSend({ ports: p, file: syntheticFile().file, disclosureVersion: 'v1', catalog, onReceipt: id => issued.push(id) });
+    expect(run.receipt).toBeNull();
+    await tick();
+    expect(issued).toEqual(['receipt-1']);
+    run.cancel();
+    expect(run.receipt).toBe('receipt-1'); // known now, while extract is still held
+    x.resolve(ok(syntheticExtraction('accepted')));
+    await expect(run.done).resolves.toEqual({ kind: 'cancelled', receipt: 'receipt-1' });
+    expect(issued).toEqual(['receipt-1']);
+  });
+
+  it('a receipt issued after cancel is still announced via onReceipt and run.receipt', async () => {
+    const t = deferred<Result<unknown>>();
+    const announced: Array<{ id: string; cancelled: boolean }> = [];
+    const { ports: p, calls } = ports({ ticket: () => t.promise });
+    const run: SendRun = startTranscriptSend({ ports: p, file: syntheticFile().file, disclosureVersion: 'v1', catalog, onReceipt: id => announced.push({ id, cancelled: run.cancelled }) });
+    await tick();
+    run.cancel();
+    expect(run.receipt).toBeNull();
+    t.resolve(ok({ signedTicket: 's', consentReceiptId: 'late-receipt', expiresAt: '2026-11-12T15:05:00.000Z' }));
+    await expect(run.done).resolves.toEqual({ kind: 'cancelled', receipt: 'late-receipt' });
+    expect(announced).toEqual([{ id: 'late-receipt', cancelled: true }]);
+    expect(run.receipt).toBe('late-receipt');
+    expect(calls).not.toContain('extract');
+  });
+
+  it('a throwing onReceipt does not hide the receipt or break the run', async () => {
+    const { ports: p } = ports();
+    const run = startTranscriptSend({ ports: p, file: syntheticFile().file, disclosureVersion: 'v1', catalog, onReceipt: () => { throw new Error('caller bug'); } });
+    await expect(run.done).resolves.toMatchObject({ kind: 'validated', receipt: 'receipt-1' });
   });
 });
 

@@ -80,13 +80,26 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
     if (r.ok) { setRevoked(true); setReceipt(null); } else { setReceipt(id); setError(`Consent could not be withdrawn: ${failureText(r)}`); }
   }
 
-  /** Cancels the active send. A receipt issued before or after the cancel is revoked. */
+  /** Receipts whose automatic revocation has already been sent, so withdrawal is requested once per receipt. */
+  const autoRevoked = useRef(new Set<string>());
+  function revokeOnce(id: string) {
+    if (autoRevoked.current.has(id)) return;
+    autoRevoked.current.add(id);
+    void revokeReceipt(id);
+  }
+
+  /**
+   * Cancels the active send. A receipt already issued is revoked immediately, without waiting for a
+   * held extract to settle, so the server learns of the withdrawal before it could dispatch. A receipt
+   * issued only after the cancel is revoked as soon as it arrives.
+   */
   function stopRun() {
     const active = run.current;
     if (!active) return;
     run.current = null;
     active.cancel();
-    void active.done.then(o => { if (o.kind === 'cancelled' && o.receipt) void revokeReceipt(o.receipt); });
+    if (active.receipt) revokeOnce(active.receipt);
+    void active.done.then(o => { if (o.kind === 'cancelled' && o.receipt) revokeOnce(o.receipt); });
   }
 
   function withdrawInFlight() {
@@ -111,7 +124,8 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
   async function send() {
     if (!ports || !availability || availability.status !== 'approved' || !consent || !file || run.current) return;
     setPhase('sending'); setError(null); setStatus(null); setFileError(null); setReceipt(null); setRevoked(false); setRowView('none');
-    const active = startTranscriptSend({ ports, file, disclosureVersion: availability.disclosureVersion, catalog });
+    // A receipt issued after the student already withdrew is revoked the moment it is issued.
+    const active: SendRun = startTranscriptSend({ ports, file, disclosureVersion: availability.disclosureVersion, catalog, onReceipt: id => { if (active.cancelled) revokeOnce(id); } });
     run.current = active;
     setFile(null); // the selection is consumed; a new send needs a new, re-consented pick
     const outcome = await active.done;

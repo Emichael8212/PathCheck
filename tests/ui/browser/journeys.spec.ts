@@ -218,14 +218,37 @@ test.describe('academic record screen', () => {
     await page.getByRole('button', { name: 'Stop and withdraw consent' }).click();
     await expect(page.getByTestId('transcript-status')).toContainText('Nothing from this upload will be used');
     await expect(page.getByLabel(/I consent to sending this PDF/)).not.toBeChecked();
-    await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
+    // The receipt is already known, so withdrawal reaches the server while extract is still held.
     await expect.poll(() => calls(page)).toContain('revoke');
     await expect(page.getByTestId('consent-withdrawn')).toBeVisible();
+    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'extract', 'extract:held', 'revoke']);
+    await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
+    await expect.poll(() => calls(page)).toContain('extract:released');
+    await page.waitForTimeout(150); // let the late result settle before looking
     await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
     await expect(page.getByTestId('extraction-included')).toHaveCount(0);
-    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'extract', 'extract:held', 'revoke']);
+    await expect(page.getByTestId('record-summary')).toHaveText('Your record is empty.');
+    // Revoked once, never re-sent after the late settle.
+    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'extract', 'extract:held', 'revoke', 'extract:released']);
     // Manual entry is unaffected.
     await enterCompletedAttempt(page);
+  });
+
+  test('unchecking consent while extraction is held revokes before the extract settles', async ({ page }) => {
+    await open(page, 'transcript=approved&hold=extract');
+    await startGuest(page);
+    await sendSynthetic(page, false);
+    await expect.poll(() => calls(page)).toContain('extract:held');
+    await page.getByLabel(/I consent to sending this PDF/).uncheck();
+    await expect.poll(() => calls(page)).toContain('revoke');
+    expect(await calls(page)).not.toContain('extract:released');
+    await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
+    await expect.poll(() => calls(page)).toContain('extract:released');
+    await page.waitForTimeout(150);
+    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'extract', 'extract:held', 'revoke', 'extract:released']);
+    await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
+    await expect(page.getByTestId('extraction-included')).toHaveCount(0);
+    await expect(page.getByTestId('record-summary')).toHaveText('Your record is empty.');
   });
 
   test('unchecking consent while the ticket is pending stops before extract and revokes the late receipt', async ({ page }) => {
@@ -238,7 +261,7 @@ test.describe('academic record screen', () => {
     await page.evaluate(() => window.__pathcheckHarness!.release('ticket'));
     await expect.poll(() => calls(page)).toContain('revoke');
     await page.waitForTimeout(100);
-    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'ticket:held', 'revoke']);
+    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'ticket:held', 'ticket:released', 'revoke']);
     await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
   });
 
@@ -249,6 +272,9 @@ test.describe('academic record screen', () => {
     await expect.poll(() => calls(page)).toContain('extract:held');
     await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByTestId('screen-start')).toBeVisible();
+    // Unmount revokes the known receipt at once, before the held extract settles.
+    await expect.poll(() => calls(page)).toContain('revoke');
+    expect(await calls(page)).not.toContain('extract:released');
     await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
     await page.waitForTimeout(150); // let the late result settle before looking
     await page.getByRole('navigation', { name: 'PathCheck steps' }).getByRole('button', { name: 'Academic record' }).click();

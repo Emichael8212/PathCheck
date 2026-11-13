@@ -15,7 +15,9 @@ import { looksLikePdf } from './upload';
  *   On cancel it is zeroed immediately; a client still serializing it would send bytes whose digest
  *   no longer matches the ticket, so the server refuses them.
  * - The ports offer no abort signal, so a request already in flight cannot be recalled; its result
- *   is dropped. If a consent receipt was issued, `cancelled.receipt` lets the caller revoke it.
+ *   is dropped. The consent receipt is exposed as soon as the ticket is issued (`run.receipt` and
+ *   `onReceipt`), so a caller that cancels mid-extract can revoke it immediately, before the held
+ *   request settles. A receipt issued only after cancel is still reported in `cancelled.receipt`.
  */
 export type SendOutcome =
   | { kind: 'cancelled'; receipt: string | null }
@@ -31,12 +33,16 @@ export interface SendInput {
   file: Pick<Blob, 'arrayBuffer'>;
   disclosureVersion: string;
   catalog: CatalogModel;
+  /** Called once, synchronously, when the ticket's consent receipt is issued (also after cancel). */
+  onReceipt?: (consentReceiptId: string) => void;
 }
 
 export interface SendRun {
   readonly done: Promise<SendOutcome>;
   cancel(): void;
   readonly cancelled: boolean;
+  /** The issued consent receipt, known from ticket issue onwards (before extract settles); null before. */
+  readonly receipt: string | null;
 }
 
 export function startTranscriptSend(input: SendInput): SendRun {
@@ -65,7 +71,10 @@ export function startTranscriptSend(input: SendInput): SendRun {
 
     const ticket = await guardAsync(() => ports.client.requestTicket({ botAttestation: attestation.value, disclosureVersion: input.disclosureVersion, explicitConsent: true, documentDigest }), 'ticket_failed');
     // A receipt issued after cancel is still reported, so the caller can revoke it.
-    if (ticket.ok) receipt = ticket.value.consentReceiptId;
+    if (ticket.ok) {
+      receipt = ticket.value.consentReceiptId;
+      try { input.onReceipt?.(receipt); } catch { /* a caller error must not hide the receipt from `done` */ }
+    }
     if (cancelled) return stop();
     if (!ticket.ok) return { kind: 'failed', failure: ticket, receipt };
     const issued = ticket.value.consentReceiptId;
@@ -86,6 +95,7 @@ export function startTranscriptSend(input: SendInput): SendRun {
     done,
     cancel() { cancelled = true; wipe(); },
     get cancelled() { return cancelled; },
+    get receipt() { return receipt; },
   };
 }
 

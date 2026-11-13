@@ -301,7 +301,8 @@ export function syntheticExtraction(status: TranscriptExtraction['acceptanceStat
 
 /**
  * Holds named transcript calls until the test releases them, to exercise in-flight withdrawal,
- * discard and unmount. A held call records itself as `<name>:held` before waiting.
+ * discard and unmount. A held call records itself as `<name>:held` before waiting and
+ * `<name>:released` once the test lets it settle, so ordering against `revoke` can be asserted.
  */
 export interface TranscriptGate { hold: ReadonlySet<string>; release(name: string): void; wait(name: string): Promise<void> }
 export function transcriptGate(names: string[]): TranscriptGate {
@@ -316,7 +317,7 @@ export function transcriptGate(names: string[]): TranscriptGate {
 const gateWait = (gate: TranscriptGate | undefined, name: string, calls: string[]) => {
   if (!gate?.hold.has(name)) return Promise.resolve();
   calls.push(`${name}:held`);
-  return gate.wait(name);
+  return gate.wait(name).then(() => { calls.push(`${name}:released`); });
 };
 
 export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls: string[], gate?: TranscriptGate) {
