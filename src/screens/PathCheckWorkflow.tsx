@@ -172,7 +172,8 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   }
 
   function matchFor(row: ManualRowDraft): RowMatch {
-    if (Object.keys(validateRow(row)).length > 0) return { state: 'incomplete', notes: [] };
+    const errors = validateRow(row);
+    if (Object.keys(errors).length > 0) return { state: 'incomplete', notes: [], needs: Object.keys(errors).map(k => ({ courseCode: 'code', status: 'status', attemptedCredits: 'credits', earnedCredits: 'credits', grade: 'grade' } as Record<string, string>)[k] ?? k).filter((v, i, a) => a.indexOf(v) === i) };
     const source = proposed ?? (recordDirty ? null : lastNormalized);
     const notes = (source?.warnings ?? []).filter(w => w.endsWith(`:${row.rowId}`)).map(w => w.slice(0, -(row.rowId.length + 1)));
     if (source) return { state: source.unmatched.includes(row.rowId) ? 'unmatched' : 'matched', notes };

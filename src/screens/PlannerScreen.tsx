@@ -221,7 +221,15 @@ export function PlannerScreen(p: PlannerProps) {
   };
   // A finding that owns or shares a suggested fix stays an individual row next to that fix.
   const ownsFix = (f: RuleFinding) => (p.candidates.some(c => findingDelta(c).resolved.some(r => sameFinding(r, f))) ? true : null);
-  const gaps = analysis ? [...analysis.evidenceGaps, ...analysis.bottlenecks] : [];
+  const gaps = analysis ? analysis.evidenceGaps : [];
+  const risks = analysis ? analysis.bottlenecks : [];
+  const openDisclosure = (testId: string) => {
+    const d = document.querySelector<HTMLDetailsElement>(`[data-testid="${testId}"]`);
+    if (!d) return;
+    d.open = true;
+    const summary = d.querySelector<HTMLElement>(':scope > summary');
+    summary?.scrollIntoView({ block: 'nearest' }); summary?.focus();
+  };
   const cat = catalogStatus(p.catalog.catalogRef, p.catalog.approval);
   const covered = Boolean(p.preview) && !narrow;
   // Empty plan: one clear starting point instead of a list of empty semesters.
@@ -242,13 +250,9 @@ export function PlannerScreen(p: PlannerProps) {
       {p.scenarioError && <p className="notice notice-error" role="alert">{p.scenarioError}</p>}
       {p.horizonTruncated && <p className="notice notice-warn" role="note">Your target is beyond the modeled horizon of {p.terms.length} terms. Terms after {termLabel(p.terms.at(-1)!)} are not modeled, so no path through them is claimed.</p>}
       {p.analysis && !p.analysis.ok && <p className="notice notice-error" role="alert" data-testid="analysis-failure">No analysis is shown: {failureText(p.analysis)}</p>}
-      {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} catalog={p.catalog} capacity={p.capacity.maximum} onShowUnknowns={() => {
-        const d = document.querySelector<HTMLDetailsElement>('[data-testid="evidence-gaps"]');
-        if (!d) return;
-        d.open = true;
-        const s = d.querySelector<HTMLElement>('summary');
-        s?.scrollIntoView({ block: 'nearest' }); s?.focus();
-      }} />}
+      {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} catalog={p.catalog} capacity={p.capacity.maximum}
+        planState={p.plan.activePlacements.length > 0 ? 'active' : p.draft?.kind === 'draft' ? 'draft_only' : 'empty'}
+        onShowUnknowns={() => openDisclosure('evidence-gaps')} onShowRisks={() => openDisclosure('scheduling-risks')} />}
       <div className="planner-grid">
         <div className="planner-main">
           <div className="plan-head">
@@ -300,6 +304,12 @@ export function PlannerScreen(p: PlannerProps) {
             )}
             {analysis && <AvailabilityQuestions analysis={analysis} catalog={p.catalog} plan={p.plan} busy={p.busy} onReport={p.onReport} />}
             <div className="insp-section insp-more">
+              {analysis && risks.length > 0 && (
+                <details className="insp-disclosure" data-testid="scheduling-risks">
+                  <summary>Scheduling risks<span className="summary-meta is-warn">{risks.length}</span></summary>
+                  <FindingItems findings={risks} catalog={p.catalog} />
+                </details>
+              )}
               {analysis && (
                 <details className="insp-disclosure" data-testid="evidence-gaps">
                   <summary>Unknowns and evidence gaps<span className="summary-meta">{gaps.length}</span></summary>

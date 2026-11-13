@@ -106,7 +106,11 @@ export function fakeAcademic(catalogs: CatalogModel[] = [syntheticCatalog()], op
       const all = findingsFor(s);
       const errors = all.filter(f => f.severity === 'error');
       const blocked = s.catalog.catalogRef.catalogYearId === null || s.catalog.policyGaps.some(g => g.blocksConclusions);
-      const kind: AnalysisResult['outlook']['kind'] = blocked ? 'insufficient_evidence' : errors.length ? 'known_constraints_block_current_plan' : all.some(f => f.code === 'required_course_unplaced' || f.code === 'reported_not_listed') ? 'target_at_risk' : 'conditional_path_found';
+      // Mirrors E's order without its algorithms: unplaced requirements alone are not a risk (E
+      // runs a bounded completion search); the double's search "fails" only with draft=none.
+      const noCompletion = options.draft === 'none' && all.some(f => f.code === 'required_course_unplaced');
+      if (noCompletion) all.unshift(finding('no-completion', 'no_completion_found_under_search_bounds', 'warning', { status: 'unresolved', conditional: false }, [], [s.plan.targetTerm], 'adjust_plan_or_target'));
+      const kind: AnalysisResult['outlook']['kind'] = blocked ? 'insufficient_evidence' : errors.length ? 'known_constraints_block_current_plan' : noCompletion || all.some(f => f.code === 'reported_not_listed') ? 'target_at_risk' : 'conditional_path_found';
       const questions = s.plan.activePlacements.filter(p => !s.plan.availabilityEvidence.some(e => e.courseId === p.courseId && e.termId.sortIndex === p.termId.sortIndex)).slice(0, 3)
         .map(p => ({ questionId: `q-${p.placementId}`, courseId: p.courseId, termId: p.termId, findingIds: [] }));
       const gaps = questions.map(q => finding(`gap-${q.questionId}`, 'offering_unknown', 'info', { status: 'unresolved', conditional: true }, [q.courseId], [q.termId], 'report_offering'));

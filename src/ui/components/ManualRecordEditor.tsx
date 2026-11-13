@@ -9,7 +9,7 @@ import { termFromIndex, termKey, termLabel } from '../terms';
 const gradeNotes = (m: RowMatch) => m.notes.filter(n => GRADE_NOTE_CODES.has(n));
 
 /** Per-row result of E's normalization, as shown in the Match column. */
-export type RowMatch = { state: 'matched' | 'unmatched' | 'pending' | 'incomplete'; notes: string[] };
+export type RowMatch = { state: 'matched' | 'unmatched' | 'pending' | 'incomplete'; notes: string[]; needs?: string[] };
 export interface CatalogOption { code: string; title: string }
 
 /**
@@ -54,7 +54,7 @@ function MatchCell({ match, showErrors }: { match: RowMatch; showErrors: boolean
     case 'matched': return <span className="match match-ok" title="The course code was found in this catalog. This doesn’t confirm a passing grade, credit or degree requirement."><span aria-hidden="true">✓ </span>In catalog{notes}</span>;
     case 'unmatched': return <span className="match match-warn"><span aria-hidden="true">⚠ </span>Not in this catalog{notes}</span>;
     case 'pending': return <span className="match match-pending">Checking…</span>;
-    default: return <span className={`match ${showErrors ? 'match-error' : 'match-pending'}`}><span aria-hidden="true">◌ </span>{showErrors ? 'Needs a fix' : 'Incomplete'}</span>;
+    default: return <span className={`match ${showErrors ? 'match-error' : 'match-pending'}`}><span aria-hidden="true">◌ </span>{match.needs?.length ? `Needs ${match.needs.join(', ')}` : showErrors ? 'Needs a fix' : 'Incomplete'}</span>;
   }
 }
 

@@ -185,6 +185,13 @@ const FINDING_TITLE: Record<string, string> = {
   record_items_unresolved: 'Unresolved record items',
   catalog_applicability_unverified: 'Catalog year not confirmed',
   potential_bottleneck: 'Possible bottleneck',
+  no_feasible_term_in_horizon: 'No term fits within the planning horizon',
+  target_at_risk_chain: 'Prerequisite chain is too long for the target',
+  no_completion_found_under_search_bounds: 'No complete schedule found within search limits',
+  unselected_required_course: 'Required course not planned',
+  unselected_time_sensitive_course: 'Time-sensitive course not planned',
+  unselected_credit_requirement: 'Credit requirement not planned',
+  unselected_choice_requirement: 'Choice requirement not planned',
 };
 
 export function findingTitle(code: string): string {
@@ -269,6 +276,8 @@ export const GRADE_NOTE_CODES = new Set(['unrecognized_grade', 'status_grade_con
 /** Concise titles for a group of same-kind findings; others fall back to "Title (n)". */
 const GROUP_TITLE: Record<string, (n: number) => string> = {
   required_course_unplaced: n => `${n} required courses not planned`,
+  unselected_required_course: n => `${n} required courses not planned`,
+  unselected_time_sensitive_course: n => `${n} time-sensitive courses not planned`,
   offering_unknown: n => `${n} courses with availability not checked`,
   prerequisite_unresolved: n => `${n} prerequisite rules unknown`,
   prerequisite_policy_unresolved: n => `${n} prerequisite rules unknown`,

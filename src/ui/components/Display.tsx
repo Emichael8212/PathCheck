@@ -81,17 +81,25 @@ export function CatalogSummary({ catalog }: { catalog: CatalogModel }) {
 }
 
 /** Compact outlook: headline and one line; dependencies on demand; stale state stays an alert. */
-export function OutlookCard({ analysis, targetTerm, stale, catalog, capacity, onShowUnknowns }: { analysis: AnalysisResult; targetTerm: TermId; stale: boolean; catalog: CatalogModel; capacity: number; onShowUnknowns?: () => void }) {
+export function OutlookCard({ analysis, targetTerm, stale, catalog, capacity, onShowUnknowns, onShowRisks, planState }: { analysis: AnalysisResult; targetTerm: TermId; stale: boolean; catalog: CatalogModel; capacity: number; onShowUnknowns?: () => void; onShowRisks?: () => void; planState: 'active' | 'empty' | 'draft_only' }) {
   const o = OUTLOOK_UI[analysis.outlook.kind];
   const target = termLabel(targetTerm);
   const deps = analysis.outlook.assumptionRefs;
-  // Unknowns stay visible at the top: an outlook is only as good as the evidence behind it.
-  const unknowns = analysis.evidenceGaps.length + analysis.bottlenecks.length;
+  // Unknowns and engine-reported scheduling risks stay visible at the top, counted separately:
+  // a bottleneck is an established risk, not missing evidence.
+  const unknowns = analysis.evidenceGaps.length;
+  const risks = analysis.bottlenecks.length;
   return (
     <section className={`outlook outlook-${o.tone}`} aria-labelledby="outlook-title" data-testid="outlook" data-kind={analysis.outlook.kind}>
       <div className="outlook-text">
         <h2 id="outlook-title">{withTarget(o.title, target)}</h2>
         <p className="outlook-detail">{withTarget(o.detail, target)}</p>
+        {planState !== 'active' && (
+          <p className="outlook-context" data-testid="outlook-context">No courses are planned yet. This outlook reflects PathCheck’s check of your remaining requirements, not a schedule you chose.{planState === 'draft_only' ? ' Draft courses count only after you adopt them.' : ''}</p>
+        )}
+        {risks > 0 && (
+          <p className="outlook-unknowns outlook-risks" data-testid="outlook-risks"><span aria-hidden="true">⚠ </span>{risks} scheduling risk{risks === 1 ? '' : 's'} reported.{onShowRisks && <> <button type="button" className="link" onClick={onShowRisks}>Review risks</button></>}</p>
+        )}
         {unknowns > 0 && (
           <p className="outlook-unknowns" data-testid="outlook-unknowns"><span aria-hidden="true">? </span>{unknowns} unknown{unknowns === 1 ? '' : 's'} affect{unknowns === 1 ? 's' : ''} this result.{onShowUnknowns && <> <button type="button" className="link" onClick={onShowUnknowns}>Review unknowns</button></>}</p>
         )}

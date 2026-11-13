@@ -219,6 +219,8 @@ details[open] > summary::before { transform: rotate(45deg); }
 .action-bar { position: sticky; bottom: var(--s4); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s2) var(--s4); padding: var(--s2) var(--s2) var(--s2) var(--s5); border-radius: var(--r-panel); }
 .action-bar .button-row { margin: 0; }
 .action-summary { margin: 0; font-size: var(--fs-label); font-weight: 500; flex: 1 1 18rem; }
+.action-summary.is-blocked { color: var(--warning); }
+button.is-blocked, button.is-blocked:hover:not(:disabled) { background: var(--inset); border-color: var(--sep-strong); color: var(--text-3); cursor: not-allowed; }
 .record-side { display: grid; gap: var(--s3); min-width: 0; }
 .side-card { padding: var(--s4) var(--s5); }
 .side-card .insp-title { margin-bottom: var(--s2); }
@@ -254,6 +256,7 @@ details[open] > summary::before { transform: rotate(45deg); }
 .outlook h2 { font-size: 16px; margin: 0 0 2px; }
 .outlook-detail { margin: 0; font-size: var(--fs-label); color: var(--text-2); max-width: 90ch; }
 .outlook-unknowns { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s1); margin: var(--s1) 0 0; font-size: var(--fs-label); color: var(--warning); font-weight: 500; }
+.outlook-context { margin: var(--s1) 0 0; font-size: var(--fs-label); color: var(--text); }
 .outlook-deps { flex: 0 1 auto; font-size: var(--fs-label); }
 .outlook-deps[open] { flex-basis: 100%; }
 .outlook-deps ul { margin-bottom: var(--s1); }

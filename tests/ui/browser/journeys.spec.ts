@@ -91,8 +91,17 @@ test.describe('academic record screen', () => {
     await page.getByRole('button', { name: 'Add course attempt' }).click();
     // A new attempt opens with focus in the catalog search field.
     await expect(page.getByLabel('Course code')).toBeFocused();
-    await expect(page.getByTestId('record-summary')).toHaveText('Complete 1 course to continue.');
-    await page.getByRole('button', { name: 'Accept and continue' }).click();
+    await expect(page.getByTestId('record-summary')).toHaveText('⚠ Complete 1 course to continue: Course 1 needs a course code and a status.');
+    const accept = page.getByRole('button', { name: 'Accept and continue' });
+    // Blocked, and visibly so: announced as unavailable but still focusable to reveal the fields.
+    await expect(accept).toHaveAttribute('aria-disabled', 'true');
+    await expect(accept).toHaveAccessibleDescription(/Course 1 needs a course code and a status/);
+    await expect.poll(() => accept.evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(238, 240, 243)');
+    await expect(page.getByTestId('record-row').first()).toContainText('Needs code, status');
+    // Playwright refuses to click aria-disabled controls, so use a real pointer click at its position.
+    const at = (await accept.boundingBox())!;
+    await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2);
+    await expect(page.getByTestId('notice-status')).not.toContainText('Record accepted');
     await expect(page.getByTestId('notice-alert')).toContainText('need corrections');
     const code = page.getByLabel('Course code');
     await expect(code).toHaveAttribute('aria-invalid', 'true');
@@ -751,5 +760,47 @@ test.describe('Liquid Glass during real scrolling and interaction', () => {
     await expect(page.getByRole('region', { name: 'Record status' })).toBeInViewport({ ratio: 1 });
     expect(await page.getByTestId('manual-entry').evaluate(el => [getComputedStyle(el).backdropFilter, getComputedStyle(el).backgroundColor])).toEqual(['none', 'rgb(255, 255, 255)']);
     expect(await page.getByRole('region', { name: 'Record status' }).evaluate(el => getComputedStyle(el).backdropFilter)).toContain('blur');
+  });
+});
+
+test.describe('blocked acceptance and empty-plan outlook', () => {
+  test('grades and credits stay optional; only format problems block acceptance', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await page.getByRole('button', { name: 'Add course attempt' }).click();
+    const row = page.getByTestId('record-row').last();
+    await row.getByLabel('Course code').fill('SYN 101');
+    await expect(page.getByTestId('record-summary')).toContainText('SYN 101 needs a status');
+    await row.getByLabel('Status').selectOption({ label: 'In progress' });
+    // No grade, no credits: still acceptable; the engine keeps such details unresolved.
+    await expect(page.getByTestId('record-summary')).toHaveText('1 course checked. All found in this catalog.');
+    await expect(page.getByRole('button', { name: 'Accept and continue' })).not.toHaveAttribute('aria-disabled', 'true');
+    await row.getByLabel('Earned credits').fill('x');
+    await expect(page.getByTestId('record-summary')).toContainText('SYN 101 needs valid earned credits');
+    await row.getByLabel('Earned credits').fill('');
+    await page.getByRole('button', { name: 'Accept and continue' }).click();
+    await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
+  });
+
+  test('an empty plan says so plainly and shows the engine outlook unchanged', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await toPlanner(page, 'selected');
+    await expect(page.getByTestId('outlook')).toHaveAttribute('data-kind', 'conditional_path_found');
+    await expect(page.getByTestId('outlook-context')).toHaveText('No courses are planned yet. This outlook reflects PathCheck’s check of your remaining requirements, not a schedule you chose.');
+    await expect(page.getByTestId('empty-plan')).toBeVisible();
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    await expect(page.getByTestId('outlook-context')).toHaveCount(0);
+  });
+
+  test('an engine-reported risk on an empty plan is shown as a risk with its finding', async ({ page }) => {
+    await open(page, 'draft=none');
+    await startGuest(page);
+    await toPlanner(page, 'selected');
+    await expect(page.getByTestId('outlook')).toHaveAttribute('data-kind', 'target_at_risk');
+    await expect(page.getByTestId('outlook')).toContainText('Fall 2028 is at risk');
+    await expect(page.getByTestId('outlook-context')).toBeVisible();
+    await expect(page.getByTestId('issues')).toContainText('No complete schedule found within search limits');
+    await expect(page.getByTestId('empty-plan').getByRole('button', { name: 'Help me build a plan' })).toBeVisible();
   });
 });
