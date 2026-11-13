@@ -1,12 +1,14 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import type { AnalysisResult, CandidatePreview, CatalogModel, Plan, Result, TermId, UndoCheckpoint } from '../contracts';
-import { AvailabilityControl, FindingList, OutlookCard } from '../ui/components/Display';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { AnalysisResult, CandidatePreview, CatalogModel, Plan, PlanPlacement, Result, RuleFinding, TermId } from '../contracts';
+import { AvailabilityControl, CatalogSummary, FindingCard, OutlookCard } from '../ui/components/Display';
 import type { AvailabilityAnswer } from '../ui/components/Display';
-import { CandidateList, DraftPanel, PreviewPanel } from '../ui/components/Proposals';
+import { CandidateFix, DraftPanel, PreviewPanel } from '../ui/components/Proposals';
+import { useNarrowLayout } from '../ui/previewText';
 import type { DraftState } from '../ui/components/Proposals';
 import { Timeline } from '../ui/components/Timeline';
-import type { TimelineHandlers } from '../ui/components/Timeline';
-import { courseCode, failureText } from '../ui/labels';
+import type { RowContext, TimelineHandlers } from '../ui/components/Timeline';
+import { catalogStatus, courseCode, failureText } from '../ui/labels';
+import { describeChanges, findingDelta } from '../ui/planView';
 import type { CapacityAssumption } from '../ui/scenario';
 import { termKey, termLabel } from '../ui/terms';
 
@@ -23,7 +25,6 @@ export interface PlannerProps {
   draft: DraftState;
   preview: CandidatePreview | null;
   candidates: CandidatePreview[];
-  undo: UndoCheckpoint | null;
   capacity: CapacityAssumption;
   includeSummer: boolean;
   assumeFuturePass: boolean;
@@ -36,7 +37,6 @@ export interface PlannerProps {
   onApply(acks: string[]): void;
   /** Cancel dispatches L's existing rejectPreview command. */
   onReject(): void;
-  onUndo(): void;
   onGenerate(): void;
   onAdopt(acks: string[]): void;
   onDiscardDraft(): void;
@@ -45,6 +45,7 @@ export interface PlannerProps {
   onRefresh(): void;
   onExport(): void;
   onBack(): void;
+  onChangeTarget(): void;
 }
 
 function AddCourse({ catalog, terms, busy, onAdd }: { catalog: CatalogModel; terms: TermId[]; busy: boolean; onAdd: (courseId: string, term: TermId) => void }) {
@@ -57,7 +58,7 @@ function AddCourse({ catalog, terms, busy, onAdd }: { catalog: CatalogModel; ter
   const term = t ? termKey(t) : '';
   return (
     <form className="add-course" aria-label="Add a course to your plan" data-testid="add-course" onSubmit={e => { e.preventDefault(); if (course && t) { onAdd(course, t); setCourse(''); } }}>
-      <div className="field"><label htmlFor={courseId}>Course</label>
+      <div className="field field-course"><label htmlFor={courseId}>Course</label>
         <select id={courseId} value={course} onChange={e => setCourse(e.target.value)}>
           <option value="">Choose a course…</option>
           {courses.map(c => <option key={c.courseId} value={c.courseId}>{c.displayCode} {c.title}{c.status === 'pending' ? ' (pending)' : ''}</option>)}
@@ -76,19 +77,59 @@ function Assumptions({ capacity, includeSummer, assumeFuturePass, onCapacity, on
   const [value, setValue] = useState(String(capacity.maximum));
   const valid = /^\d{1,2}$/.test(value) && Number(value) > 0;
   return (
-    <details className="assumptions-panel" data-testid="assumptions">
-      <summary>Planning assumptions</summary>
+    <details className="insp-disclosure" data-testid="assumptions">
+      <summary>Planning assumptions<span className="summary-meta">{capacity.maximum} cr/term{capacity.source === 'student' ? ' (yours)' : ''}, {includeSummer ? 'with summer' : 'no summer'}</span></summary>
       <form onSubmit={e => { e.preventDefault(); if (valid) onCapacity({ maximum: Number(value), source: 'student' }); }}>
         <div className="field"><label htmlFor={capId}>Maximum credits per term</label>
-          <input id={capId} inputMode="numeric" autoComplete="off" value={value} aria-invalid={!valid || undefined} aria-describedby={valid ? undefined : errId} onChange={e => setValue(e.target.value)} />
+          <div className="inline-field">
+            <input id={capId} inputMode="numeric" autoComplete="off" value={value} aria-invalid={!valid || undefined} aria-describedby={valid ? undefined : errId} onChange={e => setValue(e.target.value)} />
+            <button type="submit" className="secondary" disabled={!valid}>Use this load</button>
+          </div>
           {!valid && <span className="field-error" id={errId}>Enter a whole number from 1 to 99.</span>}
         </div>
-        <button type="submit" className="secondary" disabled={!valid}>Use this load</button>
       </form>
-      <p className="meta">{capacity.source === 'student' ? `Modeled with up to ${capacity.maximum} credits per term (your value).` : `Modeled with up to ${capacity.maximum} credits per term. This is a planning assumption, not a university limit.`}</p>
+      <p className="small">{capacity.source === 'student' ? 'Your value.' : 'A planning assumption, not a university limit.'}</p>
       <label className="check" htmlFor={sumId}><input id={sumId} type="checkbox" checked={includeSummer} onChange={e => onIncludeSummer(e.target.checked)} /> <span>Model summer terms (summer offerings stay unknown unless reported)</span></label>
-      <p className="meta">Future planned courses {assumeFuturePass ? 'are assumed to be passed' : 'are not assumed to be passed'} by the engine configuration.</p>
+      <p className="small">Planned courses {assumeFuturePass ? 'are assumed to be passed' : 'are not assumed to be passed'}.</p>
     </details>
+  );
+}
+
+const sameFinding = (a: RuleFinding, b: RuleFinding) => a.findingId === b.findingId
+  || (a.code === b.code && a.courseIds.join() === b.courseIds.join() && a.termIds.map(t => t.sortIndex).join() === b.termIds.map(t => t.sortIndex).join());
+
+/** One engine availability question at a time; answers are recorded through L as student reports. */
+function AvailabilityQuestions({ analysis, catalog, plan, busy, onReport }: { analysis: AnalysisResult; catalog: CatalogModel; plan: Plan; busy: boolean; onReport: PlannerProps['onReport'] }) {
+  const questions = analysis.availabilityQuestions;
+  const [index, setIndex] = useState(0);
+  const pendingFocus = useRef(false);
+  const i = questions.length === 0 ? 0 : Math.min(index, questions.length - 1);
+  const q = questions[i];
+  useEffect(() => {
+    if (!pendingFocus.current) return;
+    pendingFocus.current = false;
+    (document.getElementById('avail-q') ?? document.getElementById('avail-title'))?.focus();
+  }, [analysis, index]);
+  if (!q) return null;
+  const answer = (a: AvailabilityAnswer, notes: string) => {
+    pendingFocus.current = true;
+    // Skip records nothing, so the same question would stay; move on to the next one.
+    if (a === 'skip' && questions.length > 1) setIndex((i + 1) % questions.length);
+    onReport(q.courseId, q.termId, a, notes);
+  };
+  return (
+    <section className="insp-section" aria-labelledby="avail-title" data-testid="availability-questions">
+      <h2 id="avail-title" className="insp-title" tabIndex={-1}>Confirm availability{questions.length > 1 && <span className="count">{i + 1} of {questions.length}</span>}</h2>
+      <AvailabilityControl key={q.questionId} compact hintInSection legendId="avail-q" courseLabel={courseCode(catalog, q.courseId)} term={q.termId} disabled={busy}
+        existing={plan.availabilityEvidence.find(e => e.courseId === q.courseId && e.termId.sortIndex === q.termId.sortIndex)} onAnswer={answer} />
+      {questions.length > 1 && (
+        <div className="stepper">
+          <button type="button" className="link" disabled={i === 0} onClick={() => setIndex(i - 1)}>Previous</button>
+          <button type="button" className="link" disabled={i === questions.length - 1} onClick={() => setIndex(i + 1)}>Next question</button>
+        </div>
+      )}
+      <p className="small">Saved as student-reported, with the date. Check the public class schedule; PathCheck never asks for portal passwords.</p>
+    </section>
   );
 }
 
@@ -96,10 +137,12 @@ export function PlannerScreen(p: PlannerProps) {
   const [highlight, setHighlight] = useState<string | null>(null);
   const returnTo = useRef<HTMLElement | null>(null);
   const hadPreview = useRef(false);
+  const narrow = useNarrowLayout();
   const analysis = p.analysis && p.analysis.ok ? p.analysis.value : null;
   const projected = p.draft?.kind === 'draft' ? p.draft.draft.placements : [];
   const draftStale = p.draft?.kind === 'draft' && p.draft.draft.baseFingerprint !== p.currentFingerprint;
   const previewStale = p.preview !== null && p.preview.baseFingerprint !== p.currentFingerprint;
+  const changes = useMemo(() => (p.preview ? describeChanges(p.preview, p.plan.activePlacements) : null), [p.preview, p.plan.activePlacements]);
 
   // Focus returns to the control that opened the preview, or to the nearest stable heading.
   useEffect(() => {
@@ -108,8 +151,13 @@ export function PlannerScreen(p: PlannerProps) {
     hadPreview.current = false;
     const back = returnTo.current;
     returnTo.current = null;
-    if (back?.isConnected) { back.focus(); return; }
-    document.querySelector<HTMLElement>('#cand-title, #timeline-title')?.focus();
+    if (back?.isConnected) {
+      // A row popover may have closed meanwhile; then its Edit control takes focus instead.
+      const menu = back.closest('details');
+      if (menu && !menu.open) menu.querySelector<HTMLElement>('summary')?.focus(); else back.focus();
+      return;
+    }
+    document.querySelector<HTMLElement>('#issues-title, #timeline-title')?.focus();
   }, [p.preview]);
   const remember = () => { returnTo.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; };
 
@@ -123,15 +171,24 @@ export function PlannerScreen(p: PlannerProps) {
     onRemove: (pl, mode) => { if (mode === 'preview') remember(); p.timeline.onRemove(pl, mode); },
     onReport: p.timeline.onReport,
   };
+  // Row markers come only from engine findings and evidence gaps; the UI adds no verdicts.
+  const context: RowContext = {
+    findingsFor: (pl: PlanPlacement) => (analysis?.topFindings ?? []).filter(f => f.courseIds[0] === pl.courseId && (f.termIds.length === 0 || f.termIds.some(t => t.sortIndex === pl.termId.sortIndex))),
+    offeringUnknown: (courseId, term) => Boolean(analysis?.evidenceGaps.some(f => f.code === 'offering_unknown' && f.courseIds.includes(courseId) && f.termIds.some(t => t.sortIndex === term.sortIndex))),
+    onShowIssue: id => {
+      const el = document.getElementById(`issue-${id}`);
+      if (el) { el.scrollIntoView({ block: 'nearest' }); el.focus(); }
+    },
+  };
 
   if (p.path === null) {
     return (
-      <section className="screen" aria-labelledby="planner-title" data-testid="screen-planner">
+      <section className="screen screen-choose" aria-labelledby="planner-title" data-testid="screen-planner">
         <h1 id="planner-title">Graduation planner</h1>
-        <p className="lede">Target {termLabel(p.plan.targetTerm)}. Choose how to start. You can switch later.</p>
+        <p className="lede">Target {termLabel(p.plan.targetTerm)}. Choose how to start; you can switch later.</p>
         <div className="entry-actions">
           <button type="button" className="entry" disabled={p.busy} onClick={() => p.onChoosePath('selected')}>
-            <strong>I already selected courses</strong><span>Enter the upcoming courses you chose. PathCheck checks them and the requirements you haven&apos;t selected.</span>
+            <strong>I already selected courses</strong><span>Enter the courses you chose. PathCheck checks them and the requirements you haven&apos;t selected.</span>
           </button>
           <button type="button" className="entry" disabled={p.busy} onClick={() => p.onChoosePath('generated')}>
             <strong>Help me build a plan</strong><span>Get one preliminary, conditional draft. Nothing is adopted until you choose.</span>
@@ -142,51 +199,96 @@ export function PlannerScreen(p: PlannerProps) {
     );
   }
 
+  // Each engine candidate is shown once: under the first priority issue it resolves, else after the issues.
+  const top = analysis?.topFindings ?? [];
+  const owner = new Map<string, string>();
+  for (const c of p.candidates) {
+    const resolved = findingDelta(c).resolved;
+    const hit = top.find(f => resolved.some(r => sameFinding(r, f)));
+    if (hit) owner.set(c.previewId, hit.findingId);
+  }
+  const unowned = p.candidates.filter(c => !owner.has(c.previewId));
+  const previewCandidate = (c: CandidatePreview) => { remember(); p.onPreviewCandidate(c); };
+  const fixesFor = (f: RuleFinding) => {
+    const own = p.candidates.filter(c => owner.get(c.previewId) === f.findingId);
+    const shared = own.length === 0 && p.candidates.some(c => owner.has(c.previewId) && owner.get(c.previewId) !== f.findingId && findingDelta(c).resolved.some(r => sameFinding(r, f)));
+    return (
+      <>
+        {own.map(c => <CandidateFix key={c.previewId} candidate={c} catalog={p.catalog} active={p.plan.activePlacements} busy={p.busy} onPreview={previewCandidate} />)}
+        {shared && <p className="small fix-shared">Also resolved by the suggested fix above.</p>}
+      </>
+    );
+  };
+  const gaps = analysis ? [...analysis.evidenceGaps, ...analysis.bottlenecks] : [];
+  const cat = catalogStatus(p.catalog.catalogRef, p.catalog.approval);
+  const covered = Boolean(p.preview) && !narrow;
+
   return (
     <section className="screen planner" aria-labelledby="planner-title" data-testid="screen-planner">
       <div className="planner-head">
         <div>
           <h1 id="planner-title">Graduation planner</h1>
-          <p className="meta">Target {termLabel(p.plan.targetTerm)}. Plan revision <span className="tabular">{p.plan.planRevision}</span>.</p>
+          <p className="target-line">Target <strong>{termLabel(p.plan.targetTerm)}</strong> <button type="button" className="link" onClick={p.onChangeTarget}>Change</button></p>
         </div>
-        <div className="button-row">
-          {/* Utility actions stay secondary; solid blue is reserved for plan workflow steps. */}
-          <button type="button" className="secondary" disabled={p.busy} onClick={p.onRefresh}>Re-run analysis</button>
+        <div className="button-row head-actions">
+          <button type="button" className="secondary" disabled={p.busy} onClick={p.onRefresh}>Recheck plan</button>
           <button type="button" className="secondary" disabled={p.busy || !analysis || p.stale} onClick={p.onExport}>Export PDF</button>
         </div>
       </div>
       {p.scenarioError && <p className="notice notice-error" role="alert">{p.scenarioError}</p>}
-      {p.horizonTruncated && <p className="notice warning" role="note">Your target is beyond the modeled horizon of {p.terms.length} terms. Terms after {termLabel(p.terms.at(-1)!)} are not modeled, so no path through them is claimed.</p>}
+      {p.horizonTruncated && <p className="notice notice-warn" role="note">Your target is beyond the modeled horizon of {p.terms.length} terms. Terms after {termLabel(p.terms.at(-1)!)} are not modeled, so no path through them is claimed.</p>}
       {p.analysis && !p.analysis.ok && <p className="notice notice-error" role="alert" data-testid="analysis-failure">No analysis is shown: {failureText(p.analysis)}</p>}
+      {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} catalog={p.catalog} capacity={p.capacity.maximum} />}
       <div className="planner-grid">
         <div className="planner-main">
-          {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} />}
-          {analysis && <FindingList title="Priority issues" testId="issues" findings={analysis.topFindings} catalog={p.catalog} empty="The engine reported no priority issues for this scenario." onViewInPlan={viewInPlan}
-            canLocate={id => p.plan.activePlacements.some(x => x.courseId === id)} />}
-          <div className="timeline-block">
-            {p.undo && <div className="undo-bar" role="region" aria-label="Undo"><span>Last change applied.</span> <button type="button" className="secondary" disabled={p.busy} onClick={p.onUndo}>Undo</button></div>}
-            <Timeline catalog={p.catalog} terms={p.terms} active={p.plan.activePlacements} projected={projected} evidence={p.plan.availabilityEvidence} capacity={p.capacity.maximum} highlightCourse={highlight} busy={p.busy} handlers={timeline} />
+          <div className="plan-head">
+            <h2 id="timeline-title" tabIndex={-1}>Semester plan</h2>
             <AddCourse catalog={p.catalog} terms={p.terms} busy={p.busy} onAdd={p.onAdd} />
-            {!p.draft && <div className="button-row"><button type="button" className="secondary" disabled={p.busy} onClick={p.onGenerate}>Help me build a plan</button></div>}
           </div>
+          <Timeline catalog={p.catalog} terms={p.terms} targetTerm={p.plan.targetTerm} active={p.plan.activePlacements} projected={projected} evidence={p.plan.availabilityEvidence}
+            capacity={p.capacity.maximum} highlightCourse={highlight} busy={p.busy} handlers={timeline} context={context} changes={changes} />
+          {!p.draft && <div className="button-row"><button type="button" className="secondary" disabled={p.busy} onClick={p.onGenerate}>Help me build a plan</button></div>}
         </div>
-        <aside className="planner-side" aria-label="Changes, offerings and unknowns">
+        <aside className={`planner-side${covered ? ' has-preview' : ''}`} aria-label="Issues, suggestions and availability">
           {p.preview && <PreviewPanel key={p.preview.previewId + p.preview.baseFingerprint} preview={p.preview} catalog={p.catalog} active={p.plan.activePlacements} stale={previewStale} busy={p.busy} onApply={p.onApply} onCancel={p.onReject} />}
-          {p.draft && <DraftPanel key={p.draft.kind === 'draft' ? p.draft.draft.draftId + p.draft.draft.baseFingerprint : p.draft.kind} state={p.draft} catalog={p.catalog} stale={draftStale} busy={p.busy} onAdopt={p.onAdopt} onDiscard={p.onDiscardDraft} onRegenerate={p.onGenerate} />}
-          {analysis && <CandidateList candidates={p.candidates} catalog={p.catalog} active={p.plan.activePlacements} busy={p.busy} onPreview={c => { remember(); p.onPreviewCandidate(c); }} />}
-          {analysis && analysis.availabilityQuestions.length > 0 && (
-            <section aria-labelledby="avail-title" data-testid="availability-questions">
-              <h2 id="avail-title">Check offerings</h2>
-              <p className="meta">Answers are student-reported, timestamped and unverified. Check the public schedule yourself; PathCheck never asks for portal passwords.</p>
-              {analysis.availabilityQuestions.map(q => (
-                <AvailabilityControl key={q.questionId} compact hintInSection courseLabel={courseCode(p.catalog, q.courseId)} term={q.termId} disabled={p.busy}
-                  existing={p.plan.availabilityEvidence.find(e => e.courseId === q.courseId && e.termId.sortIndex === q.termId.sortIndex)}
-                  onAnswer={(a, n) => p.onReport(q.courseId, q.termId, a, n)} />
-              ))}
-            </section>
-          )}
-          {analysis && <FindingList title="Evidence gaps and unknowns" testId="evidence-gaps" findings={[...analysis.evidenceGaps, ...analysis.bottlenecks]} catalog={p.catalog} empty="No evidence gaps reported." />}
-          <Assumptions capacity={p.capacity} includeSummer={p.includeSummer} assumeFuturePass={p.assumeFuturePass} onCapacity={p.onCapacity} onIncludeSummer={p.onIncludeSummer} />
+          <div className="inspector">
+            {p.draft && <DraftPanel key={p.draft.kind === 'draft' ? p.draft.draft.draftId + p.draft.draft.baseFingerprint : p.draft.kind} state={p.draft} catalog={p.catalog} stale={draftStale} busy={p.busy} onAdopt={p.onAdopt} onDiscard={p.onDiscardDraft} onRegenerate={p.onGenerate} />}
+            {analysis && (
+              <section className="insp-section" aria-labelledby="issues-title" data-testid="issues">
+                <h2 id="issues-title" className="insp-title" tabIndex={-1}>Needs attention{top.length > 0 && <span className="count"><span className="visually-hidden">: </span>{top.length}</span>}</h2>
+                {top.length === 0 ? <p className="muted small">No priority issues reported for this plan.</p> : (
+                  <ul className="findings">
+                    {top.map(f => (
+                      <FindingCard key={f.findingId} finding={f} catalog={p.catalog}
+                        {...(f.courseIds[0] && p.plan.activePlacements.some(x => x.courseId === f.courseIds[0]) ? { onViewInPlan: viewInPlan } : {})}>
+                        {fixesFor(f)}
+                      </FindingCard>
+                    ))}
+                  </ul>
+                )}
+                {unowned.length > 0 && (
+                  <div className="other-fixes" data-testid="candidates">
+                    <h3 className="insp-subtitle">{top.length > 0 ? 'Other suggestions' : 'Suggestions'}</h3>
+                    {unowned.map(c => <CandidateFix key={c.previewId} candidate={c} catalog={p.catalog} active={p.plan.activePlacements} busy={p.busy} onPreview={previewCandidate} />)}
+                  </div>
+                )}
+              </section>
+            )}
+            {analysis && <AvailabilityQuestions analysis={analysis} catalog={p.catalog} plan={p.plan} busy={p.busy} onReport={p.onReport} />}
+            <div className="insp-section insp-more">
+              {analysis && (
+                <details className="insp-disclosure" data-testid="evidence-gaps">
+                  <summary>Unknowns and evidence gaps<span className="summary-meta">{gaps.length}</span></summary>
+                  {gaps.length === 0 ? <p className="muted small">No evidence gaps reported.</p> : <ul className="findings">{gaps.map(f => <FindingCard key={f.findingId} finding={f} catalog={p.catalog} />)}</ul>}
+                </details>
+              )}
+              <Assumptions capacity={p.capacity} includeSummer={p.includeSummer} assumeFuturePass={p.assumeFuturePass} onCapacity={p.onCapacity} onIncludeSummer={p.onIncludeSummer} />
+              <details className="insp-disclosure">
+                <summary>Catalog<span className={`summary-meta${cat.tone === 'warn' ? ' is-warn' : ''}`}>{cat.short}</span></summary>
+                <CatalogSummary catalog={p.catalog} />
+              </details>
+            </div>
+          </div>
         </aside>
       </div>
     </section>

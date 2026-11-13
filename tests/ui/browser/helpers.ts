@@ -19,23 +19,33 @@ export async function startGuest(page: Page, target = 'Fall 2028') {
   await expect(page.getByRole('heading', { level: 1, name: 'Academic record' })).toBeFocused();
 }
 
-/** Enters one completed synthetic attempt, reviews and accepts it. */
-export async function enterCompletedAttempt(page: Page, code = 'SYN 101') {
+/** Fills one attempt row (the newly added, open row). */
+export async function fillAttempt(page: Page, code: string, opts: { term?: string; status?: string; attempted?: string; earned?: string } = {}) {
   await page.getByRole('button', { name: 'Add course attempt' }).click();
   const row = page.getByTestId('record-row').last();
   await row.getByLabel('Course code').fill(code);
-  await row.getByLabel('Term').selectOption({ label: 'Fall 2026' });
-  await row.getByLabel('Status').selectOption({ label: 'Completed' });
-  await row.getByLabel('Attempted credits').fill('3');
-  await row.getByLabel('Earned credits').fill('3');
-  await page.getByRole('button', { name: 'Review record' }).click();
-  await expect(page.getByTestId('proposed-record')).toBeVisible();
-  await page.getByRole('button', { name: 'Accept this record' }).click();
-  await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
+  if (opts.term !== null) await row.getByLabel('Term').selectOption({ label: opts.term ?? 'Fall 2026' });
+  await row.getByLabel('Status').selectOption({ label: opts.status ?? 'Completed' });
+  await row.getByLabel('Attempted credits').fill(opts.attempted ?? '3');
+  await row.getByLabel('Earned credits').fill(opts.earned ?? '3');
+  return row;
 }
 
+/** Enters one completed synthetic attempt; automatic matching reports it before acceptance. */
+export async function enterCompletedAttempt(page: Page, code = 'SYN 101') {
+  await fillAttempt(page, code);
+  await expect(page.getByTestId('record-summary')).toContainText('1 course checked. All match this catalog.');
+}
+
+/** Accepts the record if it has unaccepted changes (one explicit step), else continues; then picks a path. */
 export async function toPlanner(page: Page, path: 'selected' | 'generated') {
-  await page.getByRole('button', { name: 'Continue to planner' }).click();
+  const accept = page.getByRole('button', { name: 'Accept and continue' });
+  if (await accept.count()) {
+    await accept.click();
+    await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
+  } else {
+    await page.getByRole('button', { name: 'Continue to planner' }).click();
+  }
   await expect(page.getByRole('heading', { level: 1, name: 'Graduation planner' })).toBeFocused();
   await page.getByRole('button', { name: path === 'selected' ? /I already selected courses/ : /Help me build a plan/ }).click();
 }
@@ -73,12 +83,9 @@ export async function boxAtTop(page: Page, selector: string) {
   return box;
 }
 
+/** A semester section by its label, e.g. "Spring 2027". */
 export function termCard(page: Page, label: string) {
-  return page.getByTestId('term').filter({ has: page.locator(':scope > summary .term-name', { hasText: label }) });
-}
-
-export function termSummary(page: Page, label: string) {
-  return termCard(page, label).locator(':scope > summary');
+  return page.getByTestId('term').filter({ has: page.locator(':scope > .term-head .term-name', { hasText: label }) });
 }
 
 /** Asserts that nothing on the page scrolls horizontally. */
@@ -87,18 +94,18 @@ export async function expectNoHorizontalOverflow(page: Page) {
   expect(scroll, 'document must not overflow horizontally').toBeLessThanOrEqual(width);
 }
 
-/** Every visible interactive control meets the 44px minimum touch height. */
-export async function expectTouchTargets(page: Page) {
-  const small = await page.evaluate(() => {
+/** Every visible interactive control meets the minimum target height (40px desktop, 44px narrow). */
+export async function expectTouchTargets(page: Page, min = 44) {
+  const small = await page.evaluate(limit => {
     const out: string[] = [];
     for (const el of document.querySelectorAll<HTMLElement>('button, select, input:not([type="checkbox"]):not([type="file"]), summary, a[href]')) {
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0 || el.closest('[hidden]') || el.classList.contains('skip-link')) continue;
-      if (r.height < 43.5) out.push(`${el.tagName.toLowerCase()} "${(el.textContent ?? '').trim().slice(0, 40)}" ${Math.round(r.height)}px`);
+      if (r.width === 0 || r.height === 0 || el.closest('[hidden]') || el.classList.contains('skip-link') || getComputedStyle(el).visibility === 'hidden') continue;
+      if (r.height < limit - 0.5) out.push(`${el.tagName.toLowerCase()} "${(el.textContent ?? '').trim().slice(0, 40)}" ${Math.round(r.height)}px`);
     }
     return out;
-  });
-  expect(small, 'controls below 44px').toEqual([]);
+  }, min);
+  expect(small, `controls below ${min}px`).toEqual([]);
 }
 
 /** Every visible control has an accessible name (label, text or aria-label). */

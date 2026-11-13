@@ -6,25 +6,25 @@ import type {
 import { exportFileName } from '../export/pdfExportService';
 import { AccountPanel } from '../ui/components/AccountPanel';
 import type { SyncState } from '../ui/components/AccountPanel';
-import type { AvailabilityAnswer } from '../ui/components/Display';
-import { Notice } from '../ui/components/Display';
+import type { AvailabilityAnswer, NoticeState } from '../ui/components/Display';
+import { CatalogChip, NoticeAlert, NoticeCapsule } from '../ui/components/Display';
+import type { RowMatch } from '../ui/components/ManualRecordEditor';
 import type { DraftState } from '../ui/components/Proposals';
 import { failureText } from '../ui/labels';
 import { attemptToRow, emptyRow, toProposedRow, validateRow } from '../ui/rows';
 import type { ManualRowDraft } from '../ui/rows';
+import type { ProposedRecord } from './AcademicRecordScreen';
 import { EMPTY_RECORD, buildScenario, evaluateChecked, guard, guardAsync, makeAction, scenarioFingerprint } from '../ui/scenario';
 import type { CapacityAssumption } from '../ui/scenario';
 import type { WorkflowServices } from '../ui/services';
 import { planningHorizon, termFromIndex, termKey, termSequence, upcomingTerm } from '../ui/terms';
 import { downloadBlob } from '../ui/upload';
 import { AcademicRecordScreen } from './AcademicRecordScreen';
-import type { ProposedRecord } from './AcademicRecordScreen';
 import { GetStartedScreen } from './GetStartedScreen';
 import { PlannerScreen } from './PlannerScreen';
 import '../styles/pathcheck.css';
 
 type Screen = 'start' | 'record' | 'planner';
-type NoticeState = { tone: 'ok' | 'error' | 'info'; text: string } | null;
 const STEPS: Array<{ id: Screen; label: string }> = [{ id: 'start', label: 'Get started' }, { id: 'record', label: 'Academic record' }, { id: 'planner', label: 'Graduation planner' }];
 const DEFAULT_CAPACITY: CapacityAssumption = { maximum: 15, source: 'scenario_assumption' };
 
@@ -50,6 +50,9 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   const [showRowErrors, setShowRowErrors] = useState(false);
   const [recordDirty, setRecordDirty] = useState(false);
   const [proposed, setProposed] = useState<ProposedRecord | null>(null);
+  // Last successful normalization, kept after acceptance so accepted rows keep their Match status.
+  const [lastNormalized, setLastNormalized] = useState<ProposedRecord | null>(null);
+  const [errorSignal, setErrorSignal] = useState(0);
   const [extracted, setExtracted] = useState<ValidatedExtractedRows | null>(null);
   const [evaluatedAt, setEvaluatedAt] = useState(initialNow);
   const [path, setPath] = useState<'selected' | 'generated' | null>(null);
@@ -120,7 +123,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   }
 
   function startOver() {
-    setPlan(null); setRecord(EMPTY_RECORD); setRows([]); setProposed(null); setExtracted(null); setRecordDirty(false);
+    setPlan(null); setRecord(EMPTY_RECORD); setRows([]); setProposed(null); setLastNormalized(null); setExtracted(null); setRecordDirty(false);
     setCatalog(null); setSelectedVersion(''); setTargetKey(''); setCloud(null); setSync('local'); setCapacity(DEFAULT_CAPACITY);
     resetPlanning(); setScreen('start'); say('info', 'Started over. Nothing was saved.');
   }
@@ -128,27 +131,55 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   // ---- Screen 2 -------------------------------------------------------------
   function editRows(next: ManualRowDraft[]) { setRows(next); setRecordDirty(true); setProposed(null); }
 
-  function review() {
-    if (!catalog) return;
-    if (rows.some(r => Object.keys(validateRow(r)).length > 0)) {
-      setShowRowErrors(true);
-      // Move focus to the first invalid field once the inline errors have rendered.
-      setTimeout(() => mainRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 0);
-      return say('error', 'Some course attempts need corrections before review.');
-    }
+  const rowsInvalid = (list: ManualRowDraft[]) => list.some(r => Object.keys(validateRow(r)).length > 0);
+
+  /** E-owned normalization of the current raw rows (manual plus any validated extraction). */
+  function normalize(): Result<ProposedRecord> | null {
+    if (!catalog) return null;
     const manualRows = rows.map(toProposedRow);
     const input = extracted ? { kind: 'mixed_rows' as const, extracted, manualRows } : { kind: 'manual_rows' as const, rows: manualRows };
-    const r = guard(() => academic.normalizeAttempts(input, catalog), 'normalize_failed');
-    if (!r.ok) return failed(r);
-    setProposed(r.value); setNotice(null);
+    return guard(() => academic.normalizeAttempts(input, catalog), 'normalize_failed');
   }
 
-  function acceptRecord() {
-    if (!proposed || !scenario) return say('error', 'The record cannot be accepted because the plan inputs are invalid.');
-    const r = guard(() => commands.acceptRecord(scenario, proposed.record, makeAction(clock, 'accept_record')), 'accept_failed');
+  // Matching runs automatically shortly after edits to valid rows. It is pure, saves nothing
+  // and never accepts: the record changes only through the explicit Accept below.
+  useEffect(() => {
+    if (!catalog || !recordDirty || rowsInvalid(rows)) return;
+    const timer = setTimeout(() => {
+      const r = normalize();
+      if (r?.ok) { setProposed(r.value); setLastNormalized(r.value); }
+      else if (r) failed(r);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [rows, extracted, catalog, recordDirty]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** The one required explicit step: L's acceptRecord with an accept_record action, then the planner. */
+  function acceptAndContinue() {
+    if (rowsInvalid(rows)) {
+      setShowRowErrors(true); setErrorSignal(x => x + 1);
+      return say('error', 'Some courses need corrections before you can continue.');
+    }
+    const normalized = normalize();
+    if (!normalized) return;
+    if (!normalized.ok) return failed(normalized);
+    setProposed(normalized.value); setLastNormalized(normalized.value);
+    if (!scenario) return say('error', 'The record cannot be accepted because the plan inputs are invalid.');
+    const r = guard(() => commands.acceptRecord(scenario, normalized.value.record, makeAction(clock, 'accept_record')), 'accept_failed');
     if (!r.ok) return failed(r);
     setRecord(r.value.record); setProposed(null); setRecordDirty(false); setShowRowErrors(false); setUndo(null); touched();
-    say('ok', 'Record accepted. Any earlier analysis and previews are recalculated.');
+    say('ok', 'Record accepted. Your plan is checked against it.');
+    setScreen('planner');
+  }
+
+  function matchFor(row: ManualRowDraft): RowMatch {
+    if (Object.keys(validateRow(row)).length > 0) return { state: 'incomplete', notes: [] };
+    const source = proposed ?? (recordDirty ? null : lastNormalized);
+    const notes = (source?.warnings ?? []).filter(w => w.endsWith(`:${row.rowId}`)).map(w => w.slice(0, -(row.rowId.length + 1)));
+    if (source) return { state: source.unmatched.includes(row.rowId) ? 'unmatched' : 'matched', notes };
+    if (recordDirty) return { state: 'pending', notes: [] };
+    // Reopened saved work: rows were created from accepted attempts (rowId = attemptId).
+    const attempt = record.courseAttempts.find(a => a.attemptId === row.rowId);
+    return { state: attempt && attempt.normalizedCourseId === null ? 'unmatched' : 'matched', notes: [] };
   }
 
   // ---- Screen 3 -------------------------------------------------------------
@@ -252,12 +283,15 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     if (!loaded.ok) return failed(loaded);
     setCatalog(loaded.value); setSelectedVersion(input.plan.catalogRef.catalogVersion); setCatalogError(null);
     setPlan(input.plan); setRecord(input.record); setRows(input.record.courseAttempts.map(attemptToRow));
-    setTargetKey(termKey(input.plan.targetTerm)); setProposed(null); setExtracted(null); setRecordDirty(false);
+    setTargetKey(termKey(input.plan.targetTerm)); setProposed(null); setLastNormalized(null); setExtracted(null); setRecordDirty(false);
     setEvaluatedAt(clock.now()); resetPlanning(); setPath('selected'); setScreen('planner');
     setCloud(cloudRef); setSync(cloudRef ? 'saved' : 'local');
   }
 
   const work = plan ? { record, plan } : null;
+  // Undo is offered only on the planner while the scenario still matches the checkpoint
+  // (capacity, summer or re-evaluation changes would make L refuse it as stale_undo).
+  const undoAvailable = screen === 'planner' && path !== null && undo !== null && undo.afterFingerprint === currentFp;
   // A screen is reachable only when its inputs exist; the planner also needs an accepted,
   // unedited record so no unreviewed rows silently feed the analysis.
   const reachable: Record<Screen, boolean> = { start: true, record: plan !== null && catalog !== null, planner: plan !== null && catalog !== null && !recordDirty && proposed === null };
@@ -270,10 +304,11 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   return (
     <div className="pathcheck">
       <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>Skip to main content</a>
-      <header className="app-header">
+      <header className="app-header glass-bar">
         <div className="header-inner">
           <p className="brand" translate="no">PathCheck</p>
-          <nav aria-label="PathCheck steps">
+          {catalog && <CatalogChip catalog={catalog} />}
+          <nav aria-label="PathCheck steps" className="steps-nav">
             <ol className="steps">
               {STEPS.map(s => (
                 <li key={s.id}>
@@ -290,17 +325,17 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
         </div>
       </header>
       <main ref={mainRef} id="main-content" className="content" tabIndex={-1}>
-          <Notice notice={notice} />
+          <NoticeAlert notice={notice} />
           {screen === 'start' && (
             <GetStartedScreen catalogs={catalogs.ok ? catalogs.value : catalogs} selectedVersion={selectedVersion} catalog={catalog} catalogError={catalogError}
               locked={plan !== null} targetOptions={targetOptions} targetKey={targetKey} busy={busy}
               onSelectCatalog={selectCatalog} onTarget={setTargetKey} onContinue={continueFromStart} onStartOver={startOver} />
           )}
           {screen === 'record' && catalog && (
-            <AcademicRecordScreen catalog={catalog} record={record} rows={rows} recordTerms={recordTerms} showErrors={showRowErrors} dirty={recordDirty} proposed={proposed}
-              extracted={extracted} transcript={services.transcript} busy={busy}
-              onRows={editRows} onAddRow={() => editRows([...rows, emptyRow(clock.newId('row'))])} onReview={review} onAccept={acceptRecord}
-              onDiscardProposal={() => setProposed(null)} onExtracted={x => { setExtracted(x); setRecordDirty(true); setProposed(null); }}
+            <AcademicRecordScreen catalog={catalog} record={record} rows={rows} recordTerms={recordTerms} showErrors={showRowErrors} errorSignal={errorSignal} dirty={recordDirty} proposed={proposed}
+              matchFor={matchFor} extracted={extracted} transcript={services.transcript} busy={busy}
+              onRows={editRows} onAddRow={() => editRows([...rows, emptyRow(clock.newId('row'))])} onAcceptAndContinue={acceptAndContinue}
+              onExtracted={x => { setExtracted(x); setRecordDirty(true); setProposed(null); }}
               onDiscardExtraction={() => { setExtracted(null); setProposed(null); setRecordDirty(rows.length > 0 || record.courseAttempts.length > 0); }}
               onBack={() => setScreen('start')} onContinue={() => { setNotice(null); setScreen('planner'); }} />
           )}
@@ -308,9 +343,6 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
             <PlannerScreen catalog={catalog} plan={plan} terms={horizon.terms} horizonTruncated={horizon.truncated} path={path} analysis={analysis}
               scenarioError={scenarioResult && !scenarioResult.ok ? 'Current plan inputs are invalid for the modeled horizon (for example a course outside the modeled terms). No analysis is shown.' : null}
               stale={stale} currentFingerprint={currentFp} draft={draft} preview={preview} candidates={candidates}
-              // Undo is offered only while the scenario still matches the checkpoint (capacity,
-              // summer or re-evaluation changes would make L refuse it as stale_undo).
-              undo={undo && undo.afterFingerprint === currentFp ? undo : null}
               capacity={capacity} includeSummer={includeSummer} assumeFuturePass={config.assumeFuturePass} busy={busy}
               onChoosePath={choosePath} onAdd={addCourse}
               timeline={{
@@ -319,12 +351,14 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
                 onReport: report,
               }}
               onReport={report} onPreviewCandidate={c => { setPreview(c); say('info', 'Preview ready. Your active plan has not changed.'); }}
-              onApply={applyPreview} onReject={rejectPreview} onUndo={undoLast} onGenerate={generate} onAdopt={adopt} onDiscardDraft={() => { setDraft(null); say('info', 'Draft discarded. Your plan is unchanged.'); }}
+              onApply={applyPreview} onReject={rejectPreview} onGenerate={generate} onAdopt={adopt} onDiscardDraft={() => { setDraft(null); say('info', 'Draft discarded. Your plan is unchanged.'); }}
               onCapacity={c => { setCapacity(c); say('info', `Now modeled with up to ${c.maximum} credits per term. Earlier previews are stale.`); }} onIncludeSummer={v => setIncludeSummer(v)}
               onRefresh={() => { setEvaluatedAt(clock.now()); say('info', 'Analysis re-run with a new evaluation time. Earlier previews are now stale.'); }}
-              onExport={exportPdf} onBack={() => setScreen('record')} />
+              onExport={exportPdf} onBack={() => setScreen('record')} onChangeTarget={() => goTo('start')} />
           )}
       </main>
+      <NoticeCapsule notice={notice} onDismiss={() => setNotice(null)}
+        action={undoAvailable ? <button type="button" className="capsule-action" disabled={busy} onClick={undoLast}>Undo</button> : undefined} />
     </div>
   );
 }

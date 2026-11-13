@@ -1,36 +1,23 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import type { CandidatePreview, CatalogModel, GeneratedDraft, PlanPlacement, RuleFinding, TypedFailure } from '../../contracts';
-import { courseCode, courseCredits, failureText, findingClass, findingScope, humanizeCode } from '../labels';
+import { assumptionText, courseCode, courseCredits, failureText, findingMark, findingScope, findingTitle, humanizeCode } from '../labels';
 import { describeChanges, findingDelta, previewApplyBlock, previewNeedsAcknowledgement } from '../planView';
+import { affectedTerms, changeSummary, previewHeadline, previewValidity, useNarrowLayout } from '../previewText';
 import { termLabel } from '../terms';
 import { FindingCard } from './Display';
 
-// Direct renderings of the engine's benefitClass / validabilityStatus (ACADEMIC_ENGINE.md:
-// `improved` = demonstrated benefit and no new hard conflict; mixed effects = `tradeoff`).
-const BENEFIT: Record<CandidatePreview['benefitClass'], string> = { improved: 'Improvement with no new known conflicts', tradeoff: 'Tradeoff: fixes some issues, introduces or keeps others', no_valid_alternative: 'No validated alternative found in bounded search' };
-const VALIDITY: Record<CandidatePreview['validabilityStatus'], string> = { valid: 'Valid under modeled rules', conditional: 'Conditional on stated assumptions', invalid: 'Invalid under modeled rules', unresolved: 'Unresolved: depends on unknown policy' };
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-const NARROW = '(max-width: 1023px)';
-function subscribeNarrow(cb: () => void) {
-  const m = window.matchMedia(NARROW);
-  m.addEventListener('change', cb);
-  return () => m.removeEventListener('change', cb);
-}
-/** True below the two-column planner breakpoint, where previews open as a bottom sheet. */
-function useNarrowLayout(): boolean {
-  return useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW).matches, () => false);
-}
-
-function Acknowledgements({ ids, checked, onChange, prefix }: { ids: string[]; checked: Set<string>; onChange: (next: Set<string>) => void; prefix: string }) {
+function Acknowledgements({ ids, checked, onChange, prefix, catalog }: { ids: string[]; checked: Set<string>; onChange: (next: Set<string>) => void; prefix: string; catalog: CatalogModel }) {
   if (ids.length === 0) return null;
   return (
     <fieldset className="acks">
-      <legend>Confirm the assumptions this depends on</legend>
+      <legend>Confirm before applying</legend>
       {ids.map(a => (
         <label key={a} className="check">
           <input type="checkbox" checked={checked.has(a)} onChange={e => { const next = new Set(checked); if (e.target.checked) next.add(a); else next.delete(a); onChange(next); }} data-testid={`${prefix}-ack`} />
-          <span>{humanizeCode(a)}</span>
+          <span>{assumptionText(a, catalog)}</span>
         </label>
       ))}
     </fieldset>
@@ -44,39 +31,31 @@ function FocusHeading({ id, children }: { id: string; children: ReactNode }) {
   return <h2 id={id} ref={ref} tabIndex={-1}>{children}</h2>;
 }
 
-export function CandidateList({ candidates, catalog, active, onPreview, busy }: { candidates: CandidatePreview[]; catalog: CatalogModel; active: PlanPlacement[]; onPreview: (c: CandidatePreview) => void; busy: boolean }) {
-  if (candidates.length === 0) return null;
+/** One engine candidate as a suggested fix with a single Preview control. */
+export function CandidateFix({ candidate, catalog, active, onPreview, busy }: { candidate: CandidatePreview; catalog: CatalogModel; active: PlanPlacement[]; onPreview: (c: CandidatePreview) => void; busy: boolean }) {
+  const rows = describeChanges(candidate, active);
+  const summary = changeSummary(rows, catalog);
   return (
-    <section aria-labelledby="cand-title" data-testid="candidates">
-      <h2 id="cand-title" tabIndex={-1}>Suggested changes</h2>
-      <ul className="candidates">
-        {candidates.map(c => {
-          const rows = describeChanges(c, active);
-          const summary = rows.map(r => `${r.verb} ${courseCode(catalog, r.courseId)}${r.after ? ` to ${termLabel(r.after)}` : ''}`).join('; ');
-          return (
-            <li key={c.previewId} data-testid="candidate">
-              <span><strong>{summary}</strong><br /><span className="meta">{BENEFIT[c.benefitClass]}</span></span>
-              <button type="button" className="secondary" disabled={busy} aria-label={`Preview: ${summary}`} onClick={() => onPreview(c)}>Preview</button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+    <div className="fix" data-testid="candidate">
+      <p className="fix-label">Suggested fix</p>
+      <p className="fix-summary"><strong>{summary}</strong></p>
+      <p className="fix-effect">{previewHeadline(candidate, findingDelta(candidate))}</p>
+      <button type="button" className="secondary" disabled={busy} aria-label={`Preview: ${summary}`} onClick={() => onPreview(candidate)}>Preview</button>
+    </div>
   );
 }
 
-function ImpactList({ title, findings, catalog, testId }: { title: string; findings: RuleFinding[]; catalog: CatalogModel; testId: string }) {
+function ImpactList({ title, findings, catalog, testId, tone }: { title: string; findings: RuleFinding[]; catalog: CatalogModel; testId: string; tone: 'resolved' | 'introduced' }) {
   if (findings.length === 0) return null;
   return (
-    <div data-testid={testId}>
+    <div data-testid={testId} className={`impact-${tone}`}>
       <h3>{title}</h3>
       <ul>
         {findings.map(f => {
-          const cls = findingClass(f);
           const scope = findingScope(f, catalog);
           // Terms are part of the finding: a conflict that only moves term appears as
           // "resolved in Spring" and "introduced in Fall", never as two identical lines.
-          return <li key={f.findingId}><span className={`badge badge-${cls.tone}`}>{cls.label}</span> <span>{humanizeCode(f.code)}{scope ? `: ${scope}` : ''}</span></li>;
+          return <li key={f.findingId}><span aria-hidden="true">{tone === 'resolved' ? '✓ ' : `${findingMark(f).icon} `}</span>{findingTitle(f.code)}{scope ? `: ${scope}` : ''}</li>;
         })}
       </ul>
     </div>
@@ -84,7 +63,7 @@ function ImpactList({ title, findings, catalog, testId }: { title: string; findi
 }
 
 /**
- * Wide screens: a non-modal panel in the planner sidebar, so the timeline stays in view.
+ * Wide screens: a non-modal glass panel over the inspector, so the semester list stays in view.
  * Narrow screens: a modal bottom sheet (native dialog: focus contained, background inert,
  * Escape = Cancel). Either way Cancel dispatches the existing reject command.
  */
@@ -95,7 +74,7 @@ function PreviewFrame({ sheet, busy, onCancel, headingRef, children }: { sheet: 
     if (sheet && d && !d.open) d.showModal();
     headingRef.current?.focus();
   }, [sheet, headingRef]);
-  const common = { className: `preview${sheet ? ' preview-sheet' : ''}`, 'aria-labelledby': 'preview-title', 'data-testid': 'preview-panel' } as const;
+  const common = { className: `preview glass-panel${sheet ? ' preview-sheet' : ''}`, 'aria-labelledby': 'preview-title', 'data-testid': 'preview-panel' } as const;
   if (sheet) {
     return (
       <dialog ref={dialogRef} {...common}
@@ -110,9 +89,9 @@ function PreviewFrame({ sheet, busy, onCancel, headingRef, children }: { sheet: 
 }
 
 const BLOCK_TEXT = {
-  stale: 'Inputs changed after this preview was calculated, so it cannot be applied.',
-  invalid: 'The engine reports this change as invalid under modeled rules, so it cannot be applied. Cancel and try a different change.',
-  unresolved: 'This change depends on rules PathCheck cannot verify, so it cannot be applied from a preview. Cancel to keep your plan unchanged, or use Move/Remove directly; the analysis then shows what stays unresolved.',
+  stale: 'Inputs changed after this preview was calculated, so it can’t be applied.',
+  invalid: 'This change breaks a modeled rule, so it can’t be applied. Cancel and try a different change.',
+  unresolved: 'This change depends on rules PathCheck can’t verify, so it can’t be applied from a preview. Cancel to keep your plan, or use Move or Remove directly to see what stays unresolved.',
 } as const;
 
 export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, onCancel }: { preview: CandidatePreview; catalog: CatalogModel; active: PlanPlacement[]; stale: boolean; busy: boolean; onApply: (acks: string[]) => void; onCancel: () => void }) {
@@ -123,37 +102,44 @@ export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, o
   const ackReady = preview.assumptions.every(a => acks.has(a));
   const rows = describeChanges(preview, active);
   const block = previewApplyBlock(preview, stale);
+  const terms = affectedTerms(rows);
+  const applyHint = block ? 'preview-block' : !ackReady ? 'preview-ack-hint' : undefined;
   return (
     <PreviewFrame sheet={sheet} busy={busy} onCancel={onCancel} headingRef={headingRef}>
-      <div className="preview-head">
-        <h2 id="preview-title" ref={headingRef} tabIndex={-1}>Preview change</h2>
-        <span className="meta">Not applied. Your plan is unchanged.</span>
+      <div className="preview-body">
+        <p className="eyebrow">Preview · not applied</p>
+        <h2 id="preview-title" ref={headingRef} tabIndex={-1}>{changeSummary(rows, catalog)}</h2>
+        <p className="preview-terms" data-testid="preview-terms">{terms.length > 1 ? `Affects ${terms.slice(0, -1).join(', ')} and ${terms.at(-1)}` : terms.length === 1 ? `Affects ${terms[0]}` : 'Your plan is unchanged until you apply.'}</p>
+        <table className="change-table" data-testid="change-table">
+          <caption className="visually-hidden">Exact course and term changes</caption>
+          <thead><tr><th scope="col">Course</th><th scope="col">Now</th><th scope="col">After</th></tr></thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <th scope="row"><span className="code">{courseCode(catalog, r.courseId)}</span> <span className="course-name">{catalog.courses[r.courseId]?.title ?? ''}</span>{courseCredits(catalog, r.courseId) !== null && <span className="visually-hidden">, {courseCredits(catalog, r.courseId)} credits</span>}</th>
+                <td>{r.before ? termLabel(r.before) : 'Not planned'}</td>
+                <td className="after">{r.after ? termLabel(r.after) : 'Removed'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="preview-status" data-testid="preview-status">
+          <p className={`headline${preview.validabilityStatus === 'invalid' ? ' is-invalid' : ''}`}>{previewHeadline(preview, delta)}</p>
+          <p className={preview.validabilityStatus === 'invalid' ? 'status-invalid' : 'muted'}>{previewValidity(preview)}</p>
+        </div>
+        <div className="impact" data-testid="preview-impact">
+          <ImpactList title={`Resolves (${delta.resolved.length})`} findings={delta.resolved} catalog={catalog} testId="impact-resolved" tone="resolved" />
+          <ImpactList title={`Adds (${delta.introduced.length})`} findings={delta.introduced} catalog={catalog} testId="impact-introduced" tone="introduced" />
+          {delta.persisting.length > 0 && <p className="muted small">{plural(delta.persisting.length, 'issue')} unchanged.</p>}
+        </div>
+        {previewNeedsAcknowledgement(preview) && preview.assumptions.length === 0 && <p className="warning">This change is conditional on unverified evidence.</p>}
+        {block !== 'invalid' && block !== 'unresolved' && <Acknowledgements ids={preview.assumptions} checked={acks} onChange={setAcks} prefix="preview" catalog={catalog} />}
+        <p className="muted small">Your outlook updates after you apply.</p>
+        {block && <p className="stale" role="alert" id="preview-block" data-testid="preview-block">{BLOCK_TEXT[block]}</p>}
+        {!block && !ackReady && <p className="visually-hidden" id="preview-ack-hint">Confirm each assumption to enable Apply.</p>}
       </div>
-      <table className="change-table" data-testid="change-table">
-        <caption className="visually-hidden">Exact course and term changes</caption>
-        <thead><tr><th scope="col">Course</th><th scope="col">Now</th><th scope="col">After</th></tr></thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <th scope="row"><span className="code">{courseCode(catalog, r.courseId)}</span> <span className="course-name">{catalog.courses[r.courseId]?.title ?? ''}</span></th>
-              <td>{r.before ? termLabel(r.before) : 'Not planned'}</td>
-              <td className="after">{r.after ? termLabel(r.after) : 'Removed'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="preview-status" data-testid="preview-status"><strong>{BENEFIT[preview.benefitClass]}.</strong> <span className={preview.validabilityStatus === 'invalid' ? 'status-invalid' : 'muted'}>{VALIDITY[preview.validabilityStatus]}.</span></p>
-      <div className="impact" data-testid="preview-impact">
-        <ImpactList title={`Resolves (${delta.resolved.length})`} findings={delta.resolved} catalog={catalog} testId="impact-resolved" />
-        <ImpactList title={`Introduces (${delta.introduced.length})`} findings={delta.introduced} catalog={catalog} testId="impact-introduced" />
-        {delta.resolved.length === 0 && delta.introduced.length === 0 && <p className="muted">No change to reported issues.</p>}
-        {delta.persisting.length > 0 && <p className="meta">{delta.persisting.length} issue{delta.persisting.length === 1 ? '' : 's'} unchanged.</p>}
-      </div>
-      {previewNeedsAcknowledgement(preview) && preview.assumptions.length === 0 && <p className="warning">This change is conditional on unverified evidence.</p>}
-      {block !== 'invalid' && block !== 'unresolved' && <Acknowledgements ids={preview.assumptions} checked={acks} onChange={setAcks} prefix="preview" />}
-      {block && <p className="stale" role="alert" data-testid="preview-block">{BLOCK_TEXT[block]}</p>}
       <div className="button-row preview-actions">
-        <button type="button" disabled={busy || block !== null || !ackReady} onClick={() => onApply([...acks])}>Apply</button>
+        <button type="button" disabled={busy || block !== null || !ackReady} aria-describedby={applyHint} onClick={() => onApply([...acks])}>Apply</button>
         <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Cancel</button>
       </div>
     </PreviewFrame>
@@ -171,7 +157,7 @@ export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, on
   if (!state) return null;
   if (state.kind === 'failed') {
     return (
-      <section className="draft" aria-labelledby="draft-title" data-testid="draft-panel">
+      <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
         <FocusHeading id="draft-title">Draft plan not available</FocusHeading>
         <p role="alert">{failureText(state.failure)}</p>
         <div className="button-row"><button type="button" disabled={busy} onClick={onRegenerate}>Try again</button></div>
@@ -180,7 +166,7 @@ export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, on
   }
   if (state.kind === 'no_valid_draft') {
     return (
-      <section className="draft" aria-labelledby="draft-title" data-testid="draft-panel">
+      <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
         <FocusHeading id="draft-title">No draft found within search limits</FocusHeading>
         <p>The bounded search stopped after <span className="tabular">{state.expansions}</span> expansions without a validated draft. This does not mean no university-approved path exists.</p>
         <div className="button-row"><button type="button" disabled={busy} onClick={onRegenerate}>Search again</button></div>
@@ -194,22 +180,22 @@ export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, on
   const knownCredits = credits.reduce<number>((sum, c) => sum + (c ?? 0), 0);
   const unknownCredits = credits.filter(c => c === null).length;
   return (
-    <section className="draft" aria-labelledby="draft-title" data-testid="draft-panel">
-      <div className="preview-head">
-        <FocusHeading id="draft-title">Draft plan, not adopted</FocusHeading>
-        <span className="meta">Shown with dashed outlines in the timeline.</span>
-      </div>
-      <p data-testid="draft-summary"><span className="tabular">{draft.placements.length}</span> courses across <span className="tabular">{terms}</span> terms, <span className="tabular">{knownCredits}</span> credits{unknownCredits > 0 ? ` plus ${unknownCredits} with unknown credits` : ''}. One conditional draft from the bounded search; nothing changes until you adopt it.</p>
-      <p className="meta">Search: <span className="tabular">{draft.search.expansions}</span> expansions, stopped at {humanizeCode(draft.search.stopReason).toLowerCase()}.</p>
+    <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
+      <p className="eyebrow">Not adopted yet</p>
+      <FocusHeading id="draft-title">Draft plan</FocusHeading>
+      <p data-testid="draft-summary"><span className="tabular">{draft.placements.length}</span> courses across <span className="tabular">{terms}</span> terms, <span className="tabular">{knownCredits}</span> credits{unknownCredits > 0 ? ` plus ${unknownCredits} with unknown credits` : ''}. Shown as dashed <span className="tag tag-system_projection">Draft</span> rows. Nothing changes until you adopt it.</p>
       {draft.validation.length > 0 && <ul className="findings">{draft.validation.map(f => <FindingCard key={f.findingId} finding={f} catalog={catalog} />)}</ul>}
-      <Acknowledgements ids={draft.assumptions} checked={acks} onChange={setAcks} prefix="draft" />
+      <Acknowledgements ids={draft.assumptions} checked={acks} onChange={setAcks} prefix="draft" catalog={catalog} />
       {stale && <p className="stale" role="alert">Inputs changed after this draft was generated. Generate again before adopting.</p>}
       <div className="button-row">
         <button type="button" disabled={busy || stale || !ackReady} onClick={() => onAdopt([...acks])}>Adopt draft</button>
         <button type="button" className="secondary" disabled={busy} onClick={onDiscard}>Discard draft</button>
         {stale && <button type="button" className="secondary" disabled={busy} onClick={onRegenerate}>Generate again</button>}
       </div>
-      <p className="meta">Adopted courses are labeled as PathCheck suggestions so they stay distinct from your own selections.</p>
+      <details className="disclosure-row">
+        <summary>Search details</summary>
+        <p className="small">One conditional draft from the bounded search: <span className="tabular">{draft.search.expansions}</span> expansions, stopped at {humanizeCode(draft.search.stopReason).toLowerCase()}. Adopted courses are marked “Suggested” so they stay distinct from your own selections.</p>
+      </details>
     </section>
   );
 }

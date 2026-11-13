@@ -1,9 +1,19 @@
 import { useId } from 'react';
 import type { CatalogModel, CatalogRef, TermId, TypedFailure } from '../contracts';
 import { CatalogSummary } from '../ui/components/Display';
-import { catalogYearLabel, failureText, programLabel } from '../ui/labels';
+import { catalogStatus, failureText, programLabel } from '../ui/labels';
 import { termKey, termLabel } from '../ui/terms';
 
+/** Groups catalogs by institution so each option shows only the program and its catalog status. */
+function institutions(refs: CatalogRef[]): Array<[string, CatalogRef[]]> {
+  const groups = new Map<string, CatalogRef[]>();
+  for (const r of refs) {
+    const inst = programLabel(r).split(' — ')[0]!;
+    groups.set(inst, [...(groups.get(inst) ?? []), r]);
+  }
+  return [...groups.entries()];
+}
+const programName = (r: CatalogRef) => programLabel(r).split(' — ').slice(1).join(' — ') || programLabel(r);
 export interface GetStartedProps {
   catalogs: CatalogRef[] | TypedFailure;
   selectedVersion: string;
@@ -23,23 +33,37 @@ export function GetStartedScreen(p: GetStartedProps) {
   const programId = useId(), targetId = useId(), targetHint = useId();
   const refs = Array.isArray(p.catalogs) ? p.catalogs : [];
   return (
-    <section className="screen screen-narrow" aria-labelledby="start-title" data-testid="screen-start">
-      <h1 id="start-title">Plan your path to graduation</h1>
-      <p className="lede">PathCheck checks the courses you select or propose against the modeled degree rules and builds a conditional plan. It is not an official degree audit or registration system.</p>
-      {!Array.isArray(p.catalogs) && <p className="notice notice-error" role="alert">Programs could not be loaded. {failureText(p.catalogs)}</p>}
-      <form className="section" onSubmit={e => { e.preventDefault(); if (p.catalog && p.targetKey && !p.busy) p.onContinue(); }}>
+    <section className="screen start" aria-labelledby="start-title" data-testid="screen-start">
+      <div className="start-intro">
+        <p className="wordmark-large" translate="no">PathCheck</p>
+        <h1 id="start-title">Plan your path to graduation</h1>
+        <p className="lede">Check your courses against your degree requirements and build a semester plan you control.</p>
+        <ol className="steps-summary">
+          <li><span className="step-n" aria-hidden="true">1</span>Add the courses you’ve taken</li>
+          <li><span className="step-n" aria-hidden="true">2</span>Plan your remaining semesters</li>
+          <li><span className="step-n" aria-hidden="true">3</span>Review what’s unconfirmed before you register</li>
+        </ol>
+        <p className="small">Not an official degree audit or registration system.</p>
+      </div>
+      <form className="setup-card" aria-label="Plan setup" onSubmit={e => { e.preventDefault(); if (p.catalog && p.targetKey && !p.busy) p.onContinue(); }}>
+        {!Array.isArray(p.catalogs) && <p className="notice notice-error" role="alert">Programs couldn’t be loaded. {failureText(p.catalogs)}</p>}
         <div className="field">
           <label htmlFor={programId}>University and program</label>
+          {/* Option text names the program and its catalog status; the version stays in Catalog details. */}
           <select id={programId} value={p.selectedVersion} disabled={p.locked} onChange={e => p.onSelectCatalog(e.target.value)}>
             <option value="">Choose a supported program…</option>
-            {refs.map(r => <option key={r.catalogVersion} value={r.catalogVersion}>{programLabel(r)}, catalog {catalogYearLabel(r)} ({r.catalogVersion})</option>)}
+            {institutions(refs).map(([inst, list]) => (
+              <optgroup key={inst} label={inst}>
+                {list.map(r => <option key={r.catalogVersion} value={r.catalogVersion}>{programName(r)} · {catalogStatus(r, null).short}</option>)}
+              </optgroup>
+            ))}
           </select>
           {p.locked && <p className="hint">Program is fixed for this plan. <button type="button" className="link" onClick={p.onStartOver}>Start over</button> to change it.</p>}
         </div>
         {p.catalogError && (
           <div className="notice notice-error" role="alert" data-testid="unsupported-catalog">
-            <p>This catalog or program is not supported. {failureText(p.catalogError)}</p>
-            <p>PathCheck will not make degree claims for it. Choose a supported program.</p>
+            <p>This catalog or program isn’t supported. {failureText(p.catalogError)}</p>
+            <p>PathCheck makes no degree claims for it. Choose a supported program.</p>
           </div>
         )}
         {p.catalog && <CatalogSummary catalog={p.catalog} />}
@@ -49,12 +73,10 @@ export function GetStartedScreen(p: GetStartedProps) {
             <option value="">Choose a term…</option>
             {p.targetOptions.map(t => <option key={termKey(t)} value={termKey(t)}>{termLabel(t)}</option>)}
           </select>
-          <p className="hint" id={targetHint}>Changing the target changes every projection. A target is a goal, not a promise.</p>
+          <p className="hint" id={targetHint}>A goal, not a promise. Changing it rechecks your plan.</p>
         </div>
-        <div className="button-row">
-          <button type="submit" disabled={!p.catalog || !p.targetKey || p.busy}>Continue as guest</button>
-        </div>
-        <p className="hint">No account needed. You can sign in and save later.</p>
+        <button type="submit" className="block" disabled={!p.catalog || !p.targetKey || p.busy}>Continue as guest</button>
+        <p className="hint center">No account needed. Sign in later to save.</p>
       </form>
     </section>
   );

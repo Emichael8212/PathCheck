@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
 import { ADMISSION_LIMITS } from '../../contracts';
@@ -23,6 +23,15 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
   const [receipt, setReceipt] = useState<string | null>(null);
   const [revoked, setRevoked] = useState(false);
   const [showRows, setShowRows] = useState(false);
+
+  // Availability is checked once when the screen opens. The request carries no student data
+  // and starts no processing; StrictMode's double effect is absorbed by the ref.
+  const checked = useRef(false);
+  useEffect(() => {
+    if (checked.current || !ports) return;
+    checked.current = true;
+    void check();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fail = (f: TypedFailure) => { setError(failureText(f)); setPhase(availability ? 'ready' : 'idle'); };
 
@@ -76,14 +85,13 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
   function discard() { setExtraction(null); setShowRows(false); setPhase(availability ? 'ready' : 'idle'); setConsent(false); onDiscard(); }
 
   return (
-    <section aria-labelledby="upload-title" className="transcript" data-testid="transcript-panel">
-      <h2 id="upload-title">Optional: upload a transcript PDF</h2>
-      <p className="muted">Manual entry above always works. Upload is optional and only proposes rows for your review.</p>
-      {!ports && <p data-testid="upload-unavailable">Transcript upload is not available in this build. Enter courses manually.</p>}
-      {ports && phase === 'idle' && <div className="button-row"><button type="button" className="secondary" onClick={check}>Check upload availability</button></div>}
-      {phase === 'checking' && <p role="status">Checking…</p>}
+    <section aria-labelledby="upload-title" className="side-card transcript" data-testid="transcript-panel">
+      <h2 id="upload-title" className="insp-title">Import from a transcript</h2>
+      {!ports && <p className="small" data-testid="upload-unavailable">Transcript import isn’t available in this build. Add your courses manually. Nothing is uploaded.</p>}
+      {ports && phase === 'idle' && !availability && error && <div className="button-row"><button type="button" className="secondary" onClick={check}>Check again</button></div>}
+      {phase === 'checking' && <p className="small" role="status">Checking availability…</p>}
       {availability?.status === 'disabled' && (
-        <p data-testid="upload-unavailable">Transcript processing is currently disabled ({humanizeCode(availability.reasonCode ?? 'not_approved')}). Real transcripts are not sent anywhere. Enter courses manually.</p>
+        <p className="small" data-testid="upload-unavailable" title={humanizeCode(availability.reasonCode ?? 'not_approved')}>Transcript import isn’t available yet. Add your courses manually. Nothing is uploaded.</p>
       )}
       {availability?.status === 'approved' && phase !== 'done' && (
         <div className="disclosure" data-testid="disclosure">

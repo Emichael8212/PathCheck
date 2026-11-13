@@ -1,8 +1,9 @@
-// U mobile (375px) layout/interaction tests. REAL UI components + TEST DOUBLES; synthetic data.
-// Tagged @mobile so only the mobile-375 project runs them.
+// U small-screen (375px) layout/interaction tests. REAL UI components + TEST DOUBLES; synthetic data.
+// Tagged @mobile so only the mobile-375 project runs them. UX-006: desktop first; these keep
+// the existing basic responsive regressions.
 import { expect, test } from '@playwright/test';
 import { LONG_SYNTHETIC_TITLE } from '../../fixtures/ui/syntheticCatalog';
-import { SHOTS, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectNoHorizontalOverflow, expectTouchTargets, open, startGuest, termCard, termSummary, toPlanner } from './helpers';
+import { SHOTS, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectNoHorizontalOverflow, expectTouchTargets, open, startGuest, termCard, toPlanner } from './helpers';
 
 test('@mobile every screen fits 375px with long titles and 44px targets', async ({ page }) => {
   await open(page, 'long=1&transcript=approved');
@@ -14,7 +15,7 @@ test('@mobile every screen fits 375px with long titles and 44px targets', async 
   await page.screenshot({ path: `${SHOTS}/mobile-375-get-started.png`, fullPage: true });
 
   await page.getByRole('button', { name: 'Continue as guest' }).click();
-  await page.getByRole('button', { name: 'Check upload availability' }).click();
+  await expect(page.getByTestId('disclosure')).toBeVisible();
   await enterCompletedAttempt(page);
   await expectNoHorizontalOverflow(page);
   await expectTouchTargets(page);
@@ -36,19 +37,19 @@ test('@mobile every screen fits 375px with long titles and 44px targets', async 
   await page.screenshot({ path: `${SHOTS}/mobile-375-preview.png` });
 });
 
-test('@mobile with three issues the timeline and first course appear in the first 812px', async ({ page }) => {
+test('@mobile with three issues the semester list precedes the inspector', async ({ page }) => {
   await open(page);
   await startGuest(page);
   await enterCompletedAttempt(page);
   await toPlanner(page, 'selected');
   await addThreeConflicting(page);
-  const vh = page.viewportSize()!.height;
   const timeline = await boxAtTop(page, '#timeline-title');
-  const firstCourse = await boxAtTop(page, '[data-testid="placement"] .placement-title');
-  expect(timeline.top, 'timeline heading within first viewport').toBeLessThan(vh);
-  expect(firstCourse.bottom, 'first course code within first viewport').toBeLessThanOrEqual(vh);
-  // Contextual panels follow the timeline on narrow screens instead of preceding it.
+  const firstCourse = await boxAtTop(page, '[data-testid="placement"] .c-code');
+  expect(firstCourse.top, 'first course follows the semester heading').toBeGreaterThan(timeline.top);
+  // Contextual panels follow the semester list on narrow screens instead of preceding it.
+  const issues = await boxAtTop(page, '[data-testid="issues"]');
   const offerings = await boxAtTop(page, '[data-testid="availability-questions"]');
+  expect(issues.top).toBeGreaterThan(firstCourse.top);
   expect(offerings.top).toBeGreaterThan(timeline.top);
 });
 
@@ -60,12 +61,12 @@ test('@mobile preview opens as a modal sheet: focus, scroll, Escape and Cancel',
   await addThreeConflicting(page);
   // Triggered from the course itself, so the same control persists for focus-return checks.
   const card = page.getByTestId('placement').filter({ hasText: 'SYN 301' });
-  await card.getByText('Edit', { exact: true }).click();
+  await card.getByLabel('Edit SYN 301').click();
   await card.getByLabel('Move SYN 301 to').selectOption({ label: 'Fall 2027' });
   const trigger = card.getByRole('button', { name: 'Preview move' });
   await trigger.click();
   const sheet = page.getByTestId('preview-panel');
-  await expect(sheet.getByRole('heading', { name: 'Preview change' })).toBeFocused();
+  await expect(sheet.getByRole('heading', { name: 'Move SYN 301 to Fall 2027' })).toBeFocused();
   expect(await sheet.evaluate(el => el.tagName === 'DIALOG' && el.matches(':modal'))).toBe(true);
   const box = (await sheet.boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(0);
@@ -74,6 +75,7 @@ test('@mobile preview opens as a modal sheet: focus, scroll, Escape and Cancel',
   expect(box.height).toBeLessThanOrEqual(812 * 0.85 + 1);
   // Every detail is reachable inside the sheet, with Apply / Cancel pinned in view.
   await expect(sheet.getByTestId('change-table')).toContainText('Fall 2027');
+  await expect(sheet.getByTestId('preview-terms')).toHaveText('Affects Spring 2027 and Fall 2027');
   await expect(sheet.getByTestId('impact-resolved')).toContainText('SYN 301, SYN 202 in Spring 2027');
   await expect(sheet.getByTestId('preview-ack')).toHaveCount(1);
   await expect(sheet.getByRole('button', { name: 'Cancel' })).toBeInViewport();
@@ -89,10 +91,11 @@ test('@mobile preview opens as a modal sheet: focus, scroll, Escape and Cancel',
   await trigger.click();
   await page.getByTestId('preview-panel').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByTestId('preview-panel')).toHaveCount(0);
-  await expect(trigger).toBeFocused();
+  // Tapping Cancel is a click outside the row popover, which closes it; focus goes to its Edit control.
+  await expect(card.getByLabel('Edit SYN 301')).toBeFocused();
 });
 
-test('@mobile semesters are a vertical stack of keyboard-operable accordions', async ({ page }) => {
+test('@mobile semesters stack vertically and the term strip jumps to a semester', async ({ page }) => {
   await open(page);
   await startGuest(page);
   await enterCompletedAttempt(page);
@@ -101,14 +104,9 @@ test('@mobile semesters are a vertical stack of keyboard-operable accordions', a
   const boxes = await page.getByTestId('term').evaluateAll(els => els.slice(0, 3).map(e => e.getBoundingClientRect()));
   expect(boxes[1]!.top).toBeGreaterThan(boxes[0]!.bottom - 1);
   expect(Math.round(boxes[0]!.left)).toBe(Math.round(boxes[1]!.left));
-  const spring = termCard(page, 'Spring 2027');
-  await expect(spring).toHaveAttribute('open', '');
-  await termSummary(page, 'Spring 2027').focus();
-  await page.keyboard.press('Enter');
-  await expect(spring).not.toHaveAttribute('open', '');
-  await expect(spring.getByTestId('placement')).toBeHidden();
-  await page.keyboard.press('Enter');
-  await expect(spring.getByTestId('placement')).toBeVisible();
+  await page.getByRole('navigation', { name: 'Jump to semester' }).getByRole('button', { name: /Fall 2028/ }).click();
+  await expect(page.getByRole('heading', { level: 3, name: /Fall 2028/ })).toBeFocused();
+  await expectNoHorizontalOverflow(page);
 });
 
 test('@mobile account sheet stays inside the viewport', async ({ page }) => {

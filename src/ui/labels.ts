@@ -141,3 +141,102 @@ export function formatTimestamp(iso: string): string {
   if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(d);
 }
+
+// ---------------------------------------------------------------------------
+// On-screen wording (UX-006 amendment). Plain-language renderings of the same coded
+// values. The PDF export keeps the formal maps above, so these never change exported text.
+// Every claim-bearing string is selected only from engine data; nothing is generated.
+// ---------------------------------------------------------------------------
+
+/** Outlook headline and one-line detail; `{target}` is replaced with the target term label. */
+export const OUTLOOK_UI: Record<AnalysisResult['outlook']['kind'], { title: string; detail: string; tone: 'ok' | 'warn' | 'conflict' | 'neutral' }> = {
+  conditional_path_found: { title: 'Reachable under current assumptions', detail: 'Your plan meets the modeled requirements by {target} if the assumptions below hold. Not a guarantee of offerings, seats or grades.', tone: 'ok' },
+  target_at_risk: { title: '{target} is at risk', detail: 'The plan is tight or conflicts for this target. Another path may still exist.', tone: 'warn' },
+  insufficient_evidence: { title: 'Not enough information to judge {target} yet', detail: 'Missing or unresolved catalog, credit, transfer or availability details prevent a conclusion.', tone: 'warn' },
+  known_constraints_block_current_plan: { title: 'Conflicts in your current plan', detail: 'Some selected courses break modeled rules. This doesn’t mean {target} is out of reach.', tone: 'conflict' },
+  not_evaluated: { title: 'PathCheck couldn’t check this plan yet', detail: 'Required inputs are missing, the catalog is unsupported, or the check didn’t finish.', tone: 'neutral' },
+};
+
+export function withTarget(text: string, target: string): string {
+  return text.replaceAll('{target}', target);
+}
+
+/** Short issue titles for engine finding codes; unknown codes fall back to the humanized code. */
+const FINDING_TITLE: Record<string, string> = {
+  prerequisite_unsatisfied: 'Missing prerequisite',
+  prerequisite_not_met: 'Missing prerequisite',
+  prerequisite_unresolved: 'Prerequisite rule unknown',
+  prerequisite_policy_unresolved: 'Prerequisite rule unknown',
+  prerequisite_conditional: 'Prerequisite depends on a planned course',
+  prerequisite_cycle: 'Prerequisite rules form a loop',
+  offering_unknown: 'Availability not checked',
+  reported_not_listed: 'You reported: not listed',
+  reported_listed: 'You reported: listed',
+  required_course_unplaced: 'Required course not planned',
+  term_capacity_exceeded: 'Over the semester credit limit',
+  term_capacity_unresolved: 'Semester credit limit unknown',
+  capacity_is_assumption: 'Semester credit limit is assumed',
+  course_credits_unknown: 'Course credits unknown',
+  course_already_completed: 'Course already completed',
+  duplicate_placement: 'Course planned twice',
+  placement_after_target: 'Planned after your target term',
+  repeat_policy_unresolved: 'Repeat policy unknown',
+  attempt_status_unresolved: 'Course result unknown',
+  record_items_unresolved: 'Unresolved record items',
+  catalog_applicability_unverified: 'Catalog year not confirmed',
+  potential_bottleneck: 'Possible bottleneck',
+};
+
+export function findingTitle(code: string): string {
+  return FINDING_TITLE[code] ?? humanizeCode(code);
+}
+
+/** Display tone and word for a finding; same classification as findingClass, plainer words. */
+export function findingMark(f: RuleFinding): { word: string; icon: string; tone: 'conflict' | 'potential' | 'unresolved' | 'info' } {
+  const cls = findingClass(f);
+  if (cls.tone === 'conflict') return { word: 'Conflict', icon: '⛔', tone: 'conflict' };
+  if (cls.tone === 'unresolved') return { word: 'Unknown', icon: '?', tone: 'unresolved' };
+  if (cls.tone === 'info') return { word: 'Note', icon: 'i', tone: 'info' };
+  return { word: f.status.conditional ? 'Check (conditional)' : 'Check', icon: '⚠', tone: 'potential' };
+}
+
+/** Plain wording for engine and scenario assumption ids; unknown ids are humanized, never dropped. */
+export function assumptionText(id: string, catalog: CatalogModel | null, capacity?: number): string {
+  if (id === 'capacity:scenario_assumption' || id === 'capacity_scenario_assumption') return `Semester credit limit is assumed${capacity ? ` (${capacity} credits)` : ''}.`;
+  if (id === 'capacity:student') return `Uses your semester credit limit${capacity ? ` (${capacity} credits)` : ''}.`;
+  if (id.startsWith('availability:')) return 'Relies on availability you reported, which isn’t verified.';
+  if (id === 'future_offerings_unknown') return 'Assumes future course offerings, which aren’t confirmed.';
+  if (id === 'future_pass_assumed') return 'Assumes you pass the planned courses.';
+  const pass = /^future_pass:(.+)$/.exec(id);
+  if (pass) return `Assumes you pass ${courseCode(catalog, pass[1]!)}.`;
+  const offering = /^offering_unknown:(.+)@(-?\d+)$/.exec(id);
+  if (offering) {
+    const idx = Number(offering[2]);
+    const season = (['spring', 'summer', 'fall'] as const)[((idx % 3) + 3) % 3]!;
+    return `${courseCode(catalog, offering[1]!)} availability for ${termLabel({ academicYear: Math.floor(idx / 3), season, sortIndex: idx })} hasn’t been checked.`;
+  }
+  return `${humanizeCode(id)}.`;
+}
+
+export type CatalogStatus = { short: string; message: string; tone: 'warn' | 'ok' };
+
+/** Persistent catalog identification shown on every screen; derived only from the catalog's own status. */
+export function catalogStatus(ref: CatalogRef, approval: CatalogModel['approval'] | null): CatalogStatus {
+  if (ref.ruleSetStatus === 'synthetic' || approval === 'synthetic') return { short: 'Test catalog', message: 'Test catalog: synthetic data, not university policy.', tone: 'warn' };
+  if (ref.ruleSetStatus === 'disputed') return { short: 'Disputed rules', message: 'Some catalog rules are disputed. Conclusions may change.', tone: 'warn' };
+  if (ref.ruleSetStatus === 'awaiting_document') return { short: 'Catalog not confirmed', message: 'Waiting for the authoritative catalog document. Rules are not confirmed.', tone: 'warn' };
+  if (ref.ruleSetStatus === 'provisional' || approval === 'user_provisional' || approval === 'unreviewed') return { short: 'Provisional catalog', message: 'Provisional interpretation. Not formally verified by the university.', tone: 'warn' };
+  return { short: 'Verified catalog', message: 'Verified rule set.', tone: 'ok' };
+}
+
+export const ORIGIN_UI: Record<PlanPlacement['origin'], { tag: string | null; sr: string }> = {
+  student_selected: { tag: null, sr: 'Your selection' },
+  adopted_suggestion: { tag: 'Suggested', sr: 'Suggested by PathCheck, adopted' },
+  system_projection: { tag: 'Draft', sr: 'Draft, not adopted' },
+};
+
+export const REPORT_UI: Record<AvailabilityEvidence['report'], { icon: string; text: string }> = {
+  listed: { icon: '✓', text: 'You reported: Listed' },
+  not_listed: { icon: '✕', text: 'You reported: Not listed' },
+  unknown: { icon: '?', text: 'You reported: Can’t check' },
+};
