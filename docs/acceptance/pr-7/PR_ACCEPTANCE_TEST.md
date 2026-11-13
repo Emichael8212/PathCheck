@@ -4,7 +4,11 @@
 - Commit SHA:`c394241922a7513b9101561426d2979a0f1c0a17`
 - Test type:live local PostgreSQL security and concurrency.
 - Feature:one-use tickets, consent, quotas, cost/lease accounting and retry authorization without another admission.
-- Human status:**NOT RUN**. Agent SQL371/race results are not human acceptance.
+- Human status:**PASS**, including local service cleanup, at the pinned SHA.
+  Human reported SQL and concurrency `Result: PASS` after confirming local isolation.
+  Agent SQL371/race results remain separate evidence.
+- Merge eligibility:**READY TO MERGE**: unchanged head, current required CI PASS,
+  independent review without blocking findings, and human acceptance PASS.
 
 ## Before You Begin
 
@@ -35,15 +39,20 @@ not approval of this new admission/retry behavior.
 2. Start the dedicated VM and verify the existing network isolation:
 
    ```sh
-   colima start pathcheck-test --cpus 2 --memory 4 --disk 30 --activate=false --ssh-config=false --mount /private/tmp/pathcheck-pr7-human:w
    (
    set -eu
+   colima start pathcheck-test --cpus 2 --memory 4 --disk 30 --activate=false --ssh-config=false --mount /private/tmp/pathcheck-pr7-human:w
+   if ! docker context inspect colima-pathcheck-test >/dev/null 2>&1; then
+     docker context create colima-pathcheck-test --docker "host=unix://${HOME}/.colima/pathcheck-test/docker.sock"
+   fi
+   test "$(docker context inspect colima-pathcheck-test --format '{{.Endpoints.docker.Host}}')" = "unix://${HOME}/.colima/pathcheck-test/docker.sock"
+   docker --context colima-pathcheck-test info --format '{{.ServerVersion}}'
    if ! docker --context colima-pathcheck-test network inspect pathcheck-local-only >/dev/null 2>&1; then
      docker --context colima-pathcheck-test network create --driver bridge --opt com.docker.network.bridge.host_binding_ipv4=127.0.0.1 pathcheck-local-only
    fi
    test "$(docker --context colima-pathcheck-test network inspect pathcheck-local-only --format '{{.Driver}}')" = bridge
    test "$(docker --context colima-pathcheck-test network inspect pathcheck-local-only --format '{{index .Options "com.docker.network.bridge.host_binding_ipv4"}}')" = 127.0.0.1
-   printf 'Local network isolation PASS\n'
+   printf 'Stage 2 isolation setup PASS — security tests NOT RUN\n'
    )
    ```
 

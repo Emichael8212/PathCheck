@@ -976,3 +976,49 @@ PR8/9 human NOT RUN/eligibility blocked. Older PR-body claims (PR5 NOT RUN, PR6 
 PR7 CI pending, PR8 guide pending) are stale, not new acceptance evidence.
 Next human action is only PR7's new database/retry test; no PR4/5 or completed corpus
 repeat requested. This checkpoint changes documentation only, not application behavior.
+
+### PR7 human setup and live-upload continuation — 2026-11-13
+
+Human approved the corrected sequence. PR7 c394241 and current foundation PASS
+reverified; Stage1 target path/branch absent. Presenting pinned checkout setup only;
+human security status remains NOT RUN until actual results. Do not touch/reset the
+dedicated database while the human executes acceptance. PR4/5 accepted tests retained.
+Resumed existing Codex G owner to implement safe fixture-only live runtime composition
+without invented paid approval or changed public processing contracts. Existing
+benchmark/retry reviewer resumed read-only L harness/quota preparation. Both were
+actually invoked; no claim of new implementation or test PASS yet. No live API calls,
+model changes, billing, merges or deployment in this checkpoint.
+
+Human reported PR7 Stage1 setup PASS at c394241; security tests still NOT RUN.
+Before Stage2, read-only inspection found Docker context absent. Corrected the guide
+to create it only when absent and verify the exact dedicated Colima socket before
+checking loopback network isolation. Colima startup now sits inside the fail-fast
+subshell. CLI flags verified against installed help; no agent service startup or
+human acceptance execution performed.
+
+Human reported PR7 Stage2 isolation setup PASS. Dedicated Colima/Docker socket and
+loopback network checks passed; security tests remain NOT RUN. Next is Supabase
+startup with private logs and human inspection of published loopback ports.
+
+Human reported PR7 Stage3 startup and supplied container table: API55431,
+DB55432 and mail55434 bind127.0.0.1 only; REST running, other required services
+healthy. Stage3 PASS. Next human stage is local reset plus SQL371 assertions;
+security acceptance still NOT RUN. No agent reset or test executed on this stack.
+
+Human reported Result: PASS for PR7 Stage4's pinned SQL procedure. Record SQL stage
+as human PASS; detailed count was not repeated in the reply (procedure expects371).
+PR7 overall acceptance remains incomplete pending Stage5 concurrency and cleanup.
+
+Human reported Result: PASS for PR7 Stage5 concurrency at pinned c394241. Stages1–3
+setup/isolation and Stage4 SQL also human PASS. Human security assertions PASS;
+cleanup remains pending. Final reply did not reproduce race counts, so retain the
+reported PASS without inventing additional human output. Next: stop only the
+dedicated local Supabase/Colima stack, then verify current head/CI before personal
+merge recommendation. No PR merged by agents; PR6/8/9 live-upload gates remain open.
+
+Human reported PR7 cleanup PASS. All human acceptance stages are complete at
+c394241922a7513b9101561426d2979a0f1c0a17. GitHub reverified unchanged head,
+foundation43501794085 SUCCESS, MERGEABLE against unchanged main4f74a67; independent
+static review has no blocking finding. PR7 READY TO MERGE for its database module;
+human alone performs merge. Updating stale PR title/body and draft status for review
+does not change accepted code. PR6/8/9 live upload remains separate and incomplete.
