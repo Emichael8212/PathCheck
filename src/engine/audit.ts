@@ -51,12 +51,18 @@ export function buildUnits(input: AuditInput): Unit[] {
     const own = attempts.filter(a => a.normalizedCourseId === courseId);
     const planned = input.placements.filter(p => p.courseId === courseId && p.termId.sortIndex <= input.targetSort);
     const reasons: string[] = []; let quality: Quality | null = null, credits: number | null = null; const attemptIds: string[] = [];
-    const definite = own.filter(a => a.status === 'completed' && a.earnedCredits !== null && a.earnedCredits > 0 && a.confidence !== 'unresolved');
-    // Untrusted failed/withdrawn rows (e.g. status contradicting earned credit) stay possible
-    // evidence at unresolved quality, so the requirement is never reported as a definite gap.
-    const unresolvedDone = own.filter(a => (a.status === 'completed' && (a.earnedCredits === null || a.confidence === 'unresolved')) || a.status === 'incomplete' || a.status === 'unknown' || a.status === 'transfer_pending'
+    // Zero earned credit is a definite completion only for a catalog course listed at 0 credits;
+    // on a positive- or unknown-credit course it stays unresolved evidence.
+    const zeroCreditCourse = courseCredits(catalog, courseId) === 0;
+    const earnedOk = (a: CourseAttempt) => a.earnedCredits !== null && (a.earnedCredits > 0 || zeroCreditCourse);
+    const definite = own.filter(a => a.status === 'completed' && earnedOk(a) && a.confidence !== 'unresolved');
+    // Untrusted failed/withdrawn rows (e.g. status contradicting earned credit) and untrusted
+    // in-progress rows stay possible evidence at unresolved quality: never a definite gap, and
+    // never upgraded to a conditional future pass.
+    const unresolvedDone = own.filter(a => (a.status === 'completed' && (!earnedOk(a) || a.confidence === 'unresolved')) || a.status === 'incomplete' || a.status === 'unknown' || a.status === 'transfer_pending'
+      || (a.status === 'in_progress' && a.confidence === 'unresolved')
       || ((a.status === 'failed' || a.status === 'withdrawn') && !definitelyNotPassed(a)));
-    const inProgress = own.filter(a => a.status === 'in_progress');
+    const inProgress = own.filter(a => a.status === 'in_progress' && a.confidence !== 'unresolved');
     const pick = (list: CourseAttempt[]) => [...list].sort((a, b) => compareTuples([b.term?.sortIndex ?? -1, a.attemptId], [a.term?.sortIndex ?? -1, b.attemptId]))[0]!;
     if (definite.length) { const a = pick(definite); quality = 0; credits = a.earnedCredits; attemptIds.push(a.attemptId); }
     else if (inProgress.length) { const a = pick(inProgress); quality = 1; credits = courseCredits(catalog, courseId) ?? a.attemptedCredits; attemptIds.push(a.attemptId); reasons.push('in_progress_not_earned'); }

@@ -2,7 +2,7 @@
 // OR branches are never flattened into mandatory edges; unresolved nodes never pass through.
 import type { CatalogModel, CourseAttempt, PlanPlacement, PrerequisiteExpr } from '../contracts';
 import { canonicalCourseCode } from './normalize';
-import { compareStrings, definitelyNotPassed, definitelyNotPassedUnmapped, uniqueSorted } from './util';
+import { compareStrings, courseCredits, definitelyNotPassed, definitelyNotPassedUnmapped, uniqueSorted } from './util';
 
 export type Status = 'satisfied' | 'unsatisfied' | 'unresolved';
 export interface PrereqResult {
@@ -64,13 +64,18 @@ function attemptResult(ctx: PrereqContext, a: CourseAttempt, termSort: number, m
   if (notPassed) return unres(['prerequisite_attempt_unresolved']);
   const tag = verified ? [] : ['equivalency_unresolved'];
   if (a.status === 'in_progress') {
+    // Only a trusted in-progress row is a conditional future-pass dependency; an unresolved one
+    // keeps its uncertainty instead of becoming conditional.
+    if (a.confidence === 'unresolved') return unres(['prerequisite_attempt_unresolved', ...tag]);
     const r = sat(true, ['depends_on_in_progress_pass', ...tag], [`future_pass:${a.normalizedCourseId ?? a.attemptId}`]);
     return verified ? r : unres(r.reasons);
   }
   if (a.status !== 'completed') return unres([`prerequisite_attempt_${a.status}`]);
   if (a.earnedCredits === null) return unres(['prerequisite_earned_credit_unknown']);
   if (a.confidence === 'unresolved') return unres(['prerequisite_attempt_unresolved']);
-  if (a.earnedCredits === 0) return unsat(['prerequisite_no_credit_earned'], []);
+  // Zero earned credit is a completion only for a catalog course listed at 0 credits (grade
+  // checks still apply); on a positive- or unknown-credit course it is neither pass nor fail.
+  if (a.earnedCredits === 0 && (a.normalizedCourseId === null || courseCredits(ctx.catalog, a.normalizedCourseId) !== 0)) return unres(['prerequisite_zero_earned_credit_unresolved']);
   const g = gradeCheck(ctx, a.grade, minGrade);
   if (g === 'below') return unsat(['grade_below_minimum'], []);
   if (g === 'unknown') return unres(['minimum_grade_unverifiable']);
@@ -103,7 +108,7 @@ function coreqNode(ctx: PrereqContext, courseId: string, policy: { concurrencyAl
   for (const src of satisfyingSources(ctx.catalog, courseId)) {
     for (const a of ctx.attempts) if (a.normalizedCourseId === src.courseId) {
       if (policy.priorCompletionAllowed) { const r = attemptResult(ctx, a, termSort, null, src.verified, true); if (r && r.status !== 'unsatisfied') results.push(r); }
-      if (policy.concurrencyAllowed && a.status === 'in_progress' && a.term?.sortIndex === termSort) results.push(src.verified ? sat(true, ['concurrent_enrollment'], [`future_pass:${src.courseId}`]) : unres(['equivalency_unresolved']));
+      if (policy.concurrencyAllowed && a.status === 'in_progress' && a.term?.sortIndex === termSort) results.push(a.confidence === 'unresolved' ? unres(['prerequisite_attempt_unresolved']) : src.verified ? sat(true, ['concurrent_enrollment'], [`future_pass:${src.courseId}`]) : unres(['equivalency_unresolved']));
     }
     for (const p of ctx.placements) if (p.courseId === src.courseId) {
       const t = p.termId.sortIndex;

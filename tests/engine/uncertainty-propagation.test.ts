@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CatalogModel, CourseAttempt, ProposedRow } from '../../src/contracts';
 import { audit, evaluate, evaluatePrerequisite, normalizeAttempts } from '../../src/engine';
-import { catalog, coreq, course, horizon, place, pre, reqAll, reqCourse, scenario } from '../fixtures/engine/synthetic';
+import { SYN_GRADES, catalog, coreq, course, horizon, place, pre, reqAll, reqCourse, scenario } from '../fixtures/engine/synthetic';
 
 const ok = <V>(r: { ok: true; value: V } | { ok: false; reasonCode: string }): V => { if (!r.ok) throw new Error(r.reasonCode); return r.value; };
 const terms = horizon(4); // spring 2026 .. fall 2027
@@ -141,5 +141,80 @@ describe('completed rows with zero earned credit', () => {
     const c = cat();
     const atts = ok(normalizeAttempts({ kind: 'manual_rows', rows: [row({ rowId: 'z', rawEarnedCredits: '0', rawTerm: 'Fall 2024' }), row({ rowId: 'p', rawTerm: 'Fall 2025' })] }, c)).record.courseAttempts;
     expect(prereq(atts, 'SYN-201').status).toBe('satisfied');
+  });
+});
+
+// E final correction: zero-credit completions and unresolved in-progress rows downstream.
+describe('zero-credit catalog course completions', () => {
+  const zcat = (): CatalogModel => catalog([
+    course('SYN-101'), course('SYN-000', 0), course('SYN-005', 'unknown'),
+    course('SYN-210', 3, pre('SYN-000')), course('SYN-211', 3, pre('SYN-000', 'C')), course('SYN-215', 3, pre('SYN-005')), course('SYN-216', 3, pre('SYN-101')),
+  ], [reqAll('degree', ['r000', 'r005', 'r101']), reqCourse('r000', 'SYN-000'), reqCourse('r005', 'SYN-005'), reqCourse('r101', 'SYN-101')], { root: 'degree', gradeScale: SYN_GRADES });
+  const gi = (c: CatalogModel) => new Map(c.gradeScale!.ordered.map((g, i) => [g, i]));
+  const zprereq = (attempts: CourseAttempt[], courseId: string, c = zcat()) =>
+    evaluatePrerequisite(c.courses[courseId]!.prerequisite, terms[0]!.sortIndex, { catalog: c, attempts, placements: [], gradeIndex: gi(c) });
+  const zero = (o: Partial<ProposedRow>) => normalized({ rawCourseCode: 'SYN 000', rawAttemptedCredits: '0', rawEarnedCredits: '0', rawGrade: 'B', ...o }, zcat());
+
+  it('trusted completed / earned 0 on a 0-credit course is a completion for prerequisite and audit (0 credits)', () => {
+    const atts = zero({});
+    expect(atts[0]!.confidence).toBe('provisional');
+    expect(zprereq(atts, 'SYN-210')).toMatchObject({ status: 'satisfied', conditional: false });
+    const r = req(atts, 'r000', zcat());
+    expect(r).toMatchObject({ status: 'satisfied', conditional: false, applicableCredits: 0 });
+    expect(r.attemptIds).toEqual([atts[0]!.attemptId]);
+  });
+  it('minimum-grade checks still apply to a 0-credit completion', () => {
+    expect(zprereq(zero({ rawGrade: 'C' }), 'SYN-211').status).toBe('satisfied');
+    const below = zprereq(zero({ rawGrade: 'D' }), 'SYN-211');
+    expect(below.status).toBe('unsatisfied'); expect(below.reasons).toContain('grade_below_minimum');
+    const c = zcat();
+    expect(evaluatePrerequisite(c.courses['SYN-211']!.prerequisite, terms[0]!.sortIndex, { catalog: c, attempts: zero({}), placements: [], gradeIndex: null }).status).toBe('unresolved');
+  });
+  it('earned 0 on a positive-credit course stays unresolved even when the row is trusted', () => {
+    const atts = normalized({}, zcat()).map(a => ({ ...a, earnedCredits: 0 }));
+    expect(atts[0]!.confidence).toBe('provisional');
+    const p = zprereq(atts, 'SYN-216'); expect(p.status).toBe('unresolved'); expect(p.missing).toEqual([]);
+    expect(req(atts, 'r101', zcat()).status).toBe('unresolved');
+  });
+  it('earned 0 on an unknown-credit course is neither a completion nor a definite miss', () => {
+    const atts = normalized({ rawCourseCode: 'SYN 005', rawEarnedCredits: '0' }, zcat());
+    expect(atts[0]!.confidence).toBe('provisional');
+    expect(zprereq(atts, 'SYN-215').status).toBe('unresolved');
+    expect(req(atts, 'r005', zcat()).status).toBe('unresolved');
+  });
+});
+
+describe('unresolved in-progress rows are not conditional future passes', () => {
+  // Real normalization: extraction uncertainty on the row makes it unresolved.
+  const ip = (o: Partial<ProposedRow> = {}) => normalized({ rawStatus: 'in_progress', rawEarnedCredits: null, rawGrade: null, ...o });
+  const at = (attempts: CourseAttempt[], courseId: string, sort: number) =>
+    evaluatePrerequisite(cat().courses[courseId]!.prerequisite, sort, { catalog: cat(), attempts, placements: [], gradeIndex: null });
+
+  it('prerequisite: unresolved in-progress is unresolved (no future-pass assumption); provisional stays conditional', () => {
+    const bad = ip({ uncertainty: ['ocr-low-confidence'] });
+    expect([bad[0]!.status, bad[0]!.confidence]).toEqual(['in_progress', 'unresolved']);
+    const p = prereq(bad, 'SYN-201');
+    expect(p).toMatchObject({ status: 'unresolved', conditional: false, missing: [] });
+    expect(p.assumptions).toEqual([]);
+    const good = ip();
+    expect(good[0]!.confidence).toBe('provisional');
+    expect(prereq(good, 'SYN-201')).toMatchObject({ status: 'satisfied', conditional: true, assumptions: ['future_pass:SYN-101'] });
+  });
+  it('corequisite concurrent enrollment: unresolved in-progress is unresolved; provisional is conditional', () => {
+    const sort = terms[0]!.sortIndex;
+    expect(at(ip({ rawTerm: 'Spring 2026', uncertainty: ['ocr-low-confidence'] }), 'SYN-202', sort)).toMatchObject({ status: 'unresolved', conditional: false });
+    expect(at(ip({ rawTerm: 'Spring 2026' }), 'SYN-202', sort)).toMatchObject({ status: 'satisfied', conditional: true });
+  });
+  it('audit: unresolved in-progress leaves the requirement unresolved (not conditional); provisional is conditional', () => {
+    const bad = ip({ uncertainty: ['ocr-low-confidence'] });
+    const r = req(bad, 'r101');
+    expect(r).toMatchObject({ status: 'unresolved', conditional: false, applicableCredits: 0 });
+    expect(r.attemptIds).toEqual([bad[0]!.attemptId]);
+    expect(req(ip(), 'r101')).toMatchObject({ status: 'satisfied', conditional: true });
+  });
+  it('plan check: a course planned after an unresolved in-progress prerequisite reports unresolved, not unsatisfied', () => {
+    const findings = plannedFindings(ip({ uncertainty: ['ocr-low-confidence'] }), 'SYN-201');
+    expect(findings).toContain('prerequisite_unresolved');
+    expect(findings).not.toContain('prerequisite_unsatisfied');
   });
 });
