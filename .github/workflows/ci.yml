@@ -24,3 +24,9 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run check
+      - name: UI browser regressions when UI module is present
+        if: ${{ hashFiles('tests/ui/browser/playwright.ui.config.ts') != '' }}
+        run: node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts
+      - name: Real engine and UI journeys when both modules are present
+        if: ${{ hashFiles('src/engine/index.ts') != '' && hashFiles('src/screens/index.ts') != '' }}
+        run: npm run test:integration -- journey.spec.ts

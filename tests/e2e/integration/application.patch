@@ -1,0 +1,20 @@
+diff --git a/src/app/App.tsx b/src/app/App.tsx
+index a9859d2..b0632a8 100644
+--- a/src/app/App.tsx
++++ b/src/app/App.tsx
+@@ -1,7 +1,8 @@
+-export function App() {
+-  return <main>
+-    <h1>PathCheck</h1>
+-    <p>Academic planning is under development.</p>
+-    <p>No degree analysis has been performed. Transcript processing is unavailable.</p>
+-  </main>;
+-}
++// Temporary integration entry: feature modules require human merge before main adopts this wiring.
++import { academicService, ENGINE_VERSION } from '../engine';
++import { PathCheckWorkflow } from '../screens';
++import { createPdfExportService } from '../export';
++import { SEARCH_POLICY } from '../contracts';
++import { createGuestWorkflow } from './createGuestWorkflow';
++const services = createGuestWorkflow(academicService, createPdfExportService({ now: () => new Date().toISOString() }), { engineVersion: ENGINE_VERSION, evaluationPolicy: 'conservative-v1', assumeFuturePass: true, searchOptions: SEARCH_POLICY });
++export function App() { return <PathCheckWorkflow services={services} />; }

@@ -37,6 +37,12 @@ export const RequirementGroupSchema = z.discriminatedUnion('kind', [
 ]);
 export type RequirementGroup = z.infer<typeof RequirementGroupSchema>;
 export const PolicyGapSchema = z.strictObject({ policyId: IdSchema, description: z.string().min(1), sourceRefs: z.array(IdSchema), blocksConclusions: z.boolean() });
+// Credit allocation only; never implies GPA replacement, transfer equivalency or prerequisites.
+export const RepeatCreditPolicySchema = z.strictObject({
+  courseIds: z.array(CourseIdSchema).min(1),
+  creditCounting: z.literal('once_per_course'), selection: z.literal('latest_qualifying'),
+  qualifyingGrades: z.array(z.string().min(1)).min(1), sourceRefs: z.array(IdSchema).min(1),
+});
 export const CatalogModelSchema = z.strictObject({
   schemaVersion: z.literal(1), catalogRef: CatalogRefSchema,
   approval: z.enum(['reviewed', 'user_provisional', 'unreviewed', 'synthetic']),
@@ -44,6 +50,7 @@ export const CatalogModelSchema = z.strictObject({
   rootRequirementId: IdSchema,
   equivalencies: z.array(z.strictObject({ fromCourseId: CourseIdSchema, toCourseId: CourseIdSchema, status: z.enum(['verified', 'unresolved', 'disputed']), sourceRefs: z.array(IdSchema).min(1) })),
   gradeScale: z.strictObject({ ordered: z.array(z.string().min(1)).min(1), sourceRefs: z.array(IdSchema).min(1) }).nullable(),
+  repeatCreditPolicy: z.exactOptional(RepeatCreditPolicySchema.nullable()),
   policyGaps: z.array(PolicyGapSchema), validationResults: z.array(z.string()),
 }).superRefine((c, ctx) => {
   const issue = (message: string) => ctx.addIssue({ code: 'custom', message });
@@ -63,6 +70,21 @@ export const CatalogModelSchema = z.strictObject({
   }
   if (!groups.has(c.rootRequirementId)) issue('Unknown degree root');
   if (c.gradeScale) { sourcesExist(c.gradeScale.sourceRefs); if (!unique(c.gradeScale.ordered)) issue('Duplicate grade scale entry'); }
+  if (c.repeatCreditPolicy) {
+    const p = c.repeatCreditPolicy;
+    sourcesExist(p.sourceRefs);
+    if (!unique(p.courseIds) || p.courseIds.some(id => !courseIds.has(id))) issue('Invalid repeat policy course scope');
+    if (!['reviewed', 'synthetic'].includes(c.approval)) issue('Repeat policy requires reviewed applicability');
+    if (c.policyGaps.some(g => g.policyId === 'repeat-credit-policy')) issue('Conflicting repeat policy gap');
+    const grades = p.qualifyingGrades.map(g => g.toUpperCase());
+    if (!unique(grades) || !c.gradeScale || !unique(c.gradeScale.ordered.map(g => g.toUpperCase())) || grades.some(g => !c.gradeScale!.ordered.map(v => v.toUpperCase()).includes(g))) issue('Invalid repeat qualifying grades');
+    for (const id of p.sourceRefs) {
+      const source = c.catalogRef.sources.find(s => s.sourceId === id);
+      const verified = source?.verificationStatus === 'verified' && ['official_catalog', 'departmental_guide', 'department_confirmation'].includes(source.kind);
+      const synthetic = c.approval === 'synthetic' && source?.kind === 'synthetic' && source.verificationStatus === 'synthetic';
+      if (!verified && !synthetic) issue('Repeat policy requires verified evidence or a synthetic fixture');
+    }
+  }
   c.equivalencies.forEach(e => { sourcesExist(e.sourceRefs); if (!courseIds.has(e.toCourseId)) issue('Unknown equivalency destination'); });
   c.policyGaps.forEach(g => sourcesExist(g.sourceRefs));
   for (const g of c.requirementGroups) {

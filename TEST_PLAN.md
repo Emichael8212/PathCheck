@@ -239,3 +239,19 @@ Mandatory foundation commands: `npm ci`, `npm run lint`, `npm run typecheck`, `n
 | T-CAT applicability and policy reconciliation | E and human authoritative sources | Sufficient policy evidence; no inference from personal-record notation |
 
 All pending integration tests are NOT RUN until evidence exists; no independent executable check may be reclassified to avoid a failure. Detailed frozen boundaries: ARCHITECTURE.md §8.
+
+## Mandatory human PR acceptance
+
+The user requires independent hands-on verification for every PR in addition to all
+existing automated/independent-review gates. This explicitly authorizes repeating a
+focused agent-verified test for human evidence. Use `docs/acceptance/pr-N/PR_ACCEPTANCE_TEST.md`
+for the existing PRs; do not duplicate those documents in feature-owned directories.
+Each specifies immutable tested code/dependency SHAs, exact setup/interactions,
+expected results, screenshot checkpoints, cleanup and limitations. Lead owns the
+status in IMPLEMENTATION_STATUS.md; initial human status is NOT RUN. Only the human's
+reported outcome sets PASS or FAIL; unavailable prerequisites make eligibility
+BLOCKED. No screenshots are captured on the user's behalf. Screenshots supplement
+assertions/CI and never replace them. No merge recommendation until human PASS and
+all applicable automated/security/correctness/review gates pass. Acceptance of a
+subset does not clear a blocked whole-PR requirement. Revalidate changed behavior
+when the PR head changes; documentation-only changes retain the tested code baseline.

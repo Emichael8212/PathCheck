@@ -1,0 +1,46 @@
+# Local disposable security-test stack only; never linked to a hosted project.
+# Supabase CLI 3.1.0, PostgreSQL 17. No credentials belong in this file.
+project_id = "pathcheck-local-test"
+[api]
+enabled = true
+port = 55431
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+[db]
+port = 55432
+shadow_port = 55430
+major_version = 17
+[db.migrations]
+enabled = true
+schema_paths = []
+[db.seed]
+enabled = false
+sql_paths = []
+[db.pooler]
+enabled = false
+[studio]
+enabled = false
+[realtime]
+enabled = false
+[storage]
+enabled = false
+[edge_runtime]
+enabled = false
+[analytics]
+enabled = false
+[local_smtp]
+enabled = true
+port = 55434
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:5173"
+additional_redirect_urls = ["http://127.0.0.1:5173"]
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 12
+enable_refresh_token_rotation = true
+[auth.email]
+enabled = true
+# Local tests mint disposable principals; no real email delivery or production policy.
+enable_confirmations = false
