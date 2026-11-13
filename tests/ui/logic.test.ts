@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SEARCH_POLICY, fingerprint, term } from '../../src/contracts';
 import type { AnalysisResult, RuleFinding } from '../../src/contracts';
-import { findingClass, OUTLOOK_TEXT, catalogYearLabel } from '../../src/ui/labels';
+import { findingClass, findingParams, OUTLOOK_TEXT, catalogYearLabel } from '../../src/ui/labels';
 import { findingDelta, previewApplyBlock, previewNeedsAcknowledgement, timelineColumns } from '../../src/ui/planView';
 import { attemptToRow, emptyRow, toProposedRow, validateRow } from '../../src/ui/rows';
 import { buildScenario, evaluateChecked, guard, makeAction } from '../../src/ui/scenario';
@@ -103,12 +103,19 @@ describe('display helpers do not change meaning', () => {
     expect(previewNeedsAcknowledgement({ assumptions: [], validabilityStatus: 'valid' })).toBe(false);
     expect(previewNeedsAcknowledgement({ assumptions: [], validabilityStatus: 'conditional' })).toBe(true);
   });
-  it('never lets a stale or engine-invalid preview look applicable', () => {
+  it('never lets a stale, engine-invalid or unresolved preview look applicable (L refuses all three)', () => {
     expect(previewApplyBlock({ validabilityStatus: 'invalid' }, false)).toBe('invalid');
     expect(previewApplyBlock({ validabilityStatus: 'conditional' }, true)).toBe('stale');
     expect(previewApplyBlock({ validabilityStatus: 'conditional' }, false)).toBeNull();
-    expect(previewApplyBlock({ validabilityStatus: 'unresolved' }, false)).toBeNull();
+    expect(previewApplyBlock({ validabilityStatus: 'valid' }, false)).toBeNull();
+    expect(previewApplyBlock({ validabilityStatus: 'unresolved' }, false)).toBe('unresolved');
     expect(previewNeedsAcknowledgement({ assumptions: [], validabilityStatus: 'unresolved' })).toBe(true);
+  });
+  it('shows prerequisite finding parameters concisely without reinterpreting them', () => {
+    const catalog = syntheticCatalog();
+    const prereq = f({ code: 'prerequisite_unsatisfied', courseIds: ['SYN-201', 'SYN-101'], explanationParams: { placementId: 'p-internal', reasons: 'prerequisite_later_term', missing: 'SYN-101', size: 2, note: 'Free text, kept' } });
+    expect(findingParams(prereq, catalog)).toEqual([['Reasons', 'Prerequisite later term'], ['Missing', 'SYN 101'], ['Size', '2'], ['Note', 'Free text, kept']]);
+    expect(findingParams(f({ explanationParams: { missing: 'NOT-IN-CATALOG' } }), catalog)).toEqual([['Missing', 'NOT-IN-CATALOG']]);
   });
   it('test-double preview labels are internally coherent (fixture hygiene, not engine logic)', () => {
     const catalog = syntheticCatalog();

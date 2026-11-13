@@ -112,6 +112,7 @@ function PreviewFrame({ sheet, busy, onCancel, headingRef, children }: { sheet: 
 const BLOCK_TEXT = {
   stale: 'Inputs changed after this preview was calculated, so it cannot be applied.',
   invalid: 'The engine reports this change as invalid under modeled rules, so it cannot be applied. Cancel and try a different change.',
+  unresolved: 'This change depends on rules PathCheck cannot verify, so it cannot be applied from a preview. Cancel to keep your plan unchanged, or use Move/Remove directly; the analysis then shows what stays unresolved.',
 } as const;
 
 export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, onCancel }: { preview: CandidatePreview; catalog: CatalogModel; active: PlanPlacement[]; stale: boolean; busy: boolean; onApply: (acks: string[]) => void; onCancel: () => void }) {
@@ -149,7 +150,7 @@ export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, o
         {delta.persisting.length > 0 && <p className="meta">{delta.persisting.length} issue{delta.persisting.length === 1 ? '' : 's'} unchanged.</p>}
       </div>
       {previewNeedsAcknowledgement(preview) && preview.assumptions.length === 0 && <p className="warning">This change is conditional on unverified evidence.</p>}
-      {block !== 'invalid' && <Acknowledgements ids={preview.assumptions} checked={acks} onChange={setAcks} prefix="preview" />}
+      {block !== 'invalid' && block !== 'unresolved' && <Acknowledgements ids={preview.assumptions} checked={acks} onChange={setAcks} prefix="preview" />}
       {block && <p className="stale" role="alert" data-testid="preview-block">{BLOCK_TEXT[block]}</p>}
       <div className="button-row preview-actions">
         <button type="button" disabled={busy || block !== null || !ackReady} onClick={() => onApply([...acks])}>Apply</button>

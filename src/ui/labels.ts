@@ -104,6 +104,25 @@ export function courseCode(catalog: CatalogModel | null, courseId: string): stri
   return catalog?.courses[courseId]?.displayCode ?? courseId;
 }
 
+// Engine-internal references that mean nothing to a student; the summary already names the course/term.
+const HIDDEN_PARAMS = new Set(['placementId', 'attemptId']);
+
+/**
+ * Finding explanation parameters for display: internal IDs are omitted, comma-joined course
+ * IDs become display codes and coded values are humanized. Values are never reinterpreted.
+ */
+export function findingParams(finding: RuleFinding, catalog: CatalogModel | null): Array<[string, string]> {
+  return Object.entries(finding.explanationParams)
+    .filter(([k]) => !HIDDEN_PARAMS.has(k))
+    .map(([k, v]): [string, string] => {
+      if (typeof v !== 'string') return [humanizeCode(k), String(v)];
+      const parts = v.split(',').filter(Boolean);
+      if (parts.length > 0 && parts.every(id => catalog?.courses[id])) return [humanizeCode(k), parts.map(id => courseCode(catalog, id)).join(', ')];
+      if (parts.length > 0 && parts.every(p => /^[a-z][a-z0-9_]*$/.test(p))) return [humanizeCode(k), parts.map(humanizeCode).join(', ')];
+      return [humanizeCode(k), v];
+    });
+}
+
 /** Where a finding applies, e.g. "SYN 301, SYN 201 in Spring 2027". */
 export function findingScope(finding: RuleFinding, catalog: CatalogModel | null): string {
   const courses = finding.courseIds.map(id => courseCode(catalog, id)).join(', ');

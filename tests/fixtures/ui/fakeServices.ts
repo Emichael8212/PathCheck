@@ -216,6 +216,8 @@ export function fakeCommands(academic: AcademicService, clock: { newId(p: string
     applyPreview: (s, preview, action) => {
       if (action.kind !== 'apply') return fail('validation_error', 'wrong_action');
       if (preview.baseFingerprint !== fingerprint(s)) return fail('stale_preview', 'base_fingerprint_mismatch');
+      // Mirrors L: only valid/conditional previews are validatable.
+      if (preview.validabilityStatus !== 'valid' && preview.validabilityStatus !== 'conditional') return fail('unresolved', 'preview_not_validatable');
       if (preview.assumptions.some(a => !action.acknowledgedAssumptions.includes(a))) return fail('validation_error', 'assumptions_not_acknowledged');
       const v = academic.validateCandidate(s, preview);
       if (!v.ok) return v;

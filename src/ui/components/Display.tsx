@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import type { AnalysisResult, AvailabilityEvidence, CatalogModel, RuleFinding, TermId } from '../../contracts';
 import {
   APPROVAL_LABEL, OUTLOOK_TEXT, REPORT_LABEL, RULESET_LABEL, SOURCE_KIND_LABEL, VERIFICATION_LABEL,
-  catalogYearLabel, constraintText, courseCode, courseTitle, findingClass, findingScope, formatTimestamp, humanizeCode, programLabel, sourceLookup,
+  catalogYearLabel, constraintText, courseCode, courseTitle, findingClass, findingParams, findingScope, formatTimestamp, humanizeCode, programLabel, sourceLookup,
 } from '../labels';
 import { termLabel } from '../terms';
 
@@ -70,7 +70,7 @@ export function OutlookCard({ analysis, targetTerm, stale }: { analysis: Analysi
 export function FindingCard({ finding, catalog, onViewInPlan }: { finding: RuleFinding; catalog: CatalogModel | null; onViewInPlan?: (courseId: string) => void }) {
   const cls = findingClass(finding);
   const src = sourceLookup(catalog);
-  const params = Object.entries(finding.explanationParams);
+  const params = findingParams(finding, catalog);
   const scope = findingScope(finding, catalog);
   const first = finding.courseIds[0];
   return (
@@ -83,7 +83,7 @@ export function FindingCard({ finding, catalog, onViewInPlan }: { finding: RuleF
           {finding.nextAction && <p className="next-action">Suggested next step: {humanizeCode(finding.nextAction)}.</p>}
           <p>Rule status: {constraintText(finding)}.</p>
           {finding.courseIds.length > 0 && <p>{finding.courseIds.map(id => courseTitle(catalog, id)).join('; ')}</p>}
-          {params.length > 0 && <ul>{params.map(([k, v]) => <li key={k}>{humanizeCode(k)}: {String(v)}</li>)}</ul>}
+          {params.length > 0 && <ul>{params.map(([k, v]) => <li key={k}>{k}: {v}</li>)}</ul>}
           {finding.sourceRefs.length > 0 && <ul className="sources" aria-label="Sources">{finding.sourceRefs.map(r => <li key={r}>{src(r)}</li>)}</ul>}
           {finding.assumptions.length > 0 && <p>Assumptions: {finding.assumptions.map(humanizeCode).join('; ')}</p>}
           {finding.requirementIds.length > 0 && <p>Requirements: {finding.requirementIds.map(humanizeCode).join(', ')}</p>}

@@ -112,7 +112,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
       if (!scenario) return say('error', 'The current plan inputs are invalid, so the target cannot be changed.');
       const r = guard(() => commands.setTargetTerm(scenario, target, makeAction(clock, 'set_target')), 'set_target_failed');
       if (!r.ok) return failed(r);
-      setPlan(r.value.plan); touched();
+      setPlan(r.value.plan); setUndo(null); touched();
       say('info', 'Target changed. Projections and previews were recalculated.');
     }
     setNotice(null);
@@ -147,7 +147,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     if (!proposed || !scenario) return say('error', 'The record cannot be accepted because the plan inputs are invalid.');
     const r = guard(() => commands.acceptRecord(scenario, proposed.record, makeAction(clock, 'accept_record')), 'accept_failed');
     if (!r.ok) return failed(r);
-    setRecord(r.value.record); setProposed(null); setRecordDirty(false); setShowRowErrors(false); touched();
+    setRecord(r.value.record); setProposed(null); setRecordDirty(false); setShowRowErrors(false); setUndo(null); touched();
     say('ok', 'Record accepted. Any earlier analysis and previews are recalculated.');
   }
 
@@ -161,7 +161,8 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     if (!scenario || !cs) return say('error', 'The plan inputs are invalid; no change was made.');
     const r = guard(() => commands.recordStudentSelections(scenario, cs, makeAction(clock, 'student_edit')), 'student_edit_failed');
     if (!r.ok) return failed(r);
-    setPlan(r.value.plan); touched(); say('ok', done);
+    // L clears its single-use undo checkpoint on every other successful command.
+    setPlan(r.value.plan); setUndo(null); touched(); say('ok', done);
   }
 
   function previewChange(operations: ChangeSet['operations']) {
@@ -185,7 +186,8 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
       : { courseId, termId, report: answer, sourceKind: 'student_report' as const, sourceRef: clock.newId('student-report'), observedAt: action.occurredAt, notes: notes.trim() === '' ? null : notes.trim() };
     const r = guard(() => commands.recordAvailability(scenario, input, action), 'availability_failed');
     if (!r.ok) return failed(r);
-    if (r.value.plan !== scenario.plan) { setPlan(r.value.plan); touched(); }
+    // L returns a re-parsed (non-identical) plan for Skip; only a new revision is a change.
+    if (r.value.plan.planRevision !== scenario.plan.planRevision) { setPlan(r.value.plan); setUndo(null); touched(); }
     say('ok', answer === 'skip' ? 'Skipped. The offering stays unknown.' : 'Offering report saved as student-reported, unverified evidence.');
   }
 
@@ -305,7 +307,10 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
           {screen === 'planner' && catalog && plan && horizon && (
             <PlannerScreen catalog={catalog} plan={plan} terms={horizon.terms} horizonTruncated={horizon.truncated} path={path} analysis={analysis}
               scenarioError={scenarioResult && !scenarioResult.ok ? 'Current plan inputs are invalid for the modeled horizon (for example a course outside the modeled terms). No analysis is shown.' : null}
-              stale={stale} currentFingerprint={currentFp} draft={draft} preview={preview} candidates={candidates} undo={undo}
+              stale={stale} currentFingerprint={currentFp} draft={draft} preview={preview} candidates={candidates}
+              // Undo is offered only while the scenario still matches the checkpoint (capacity,
+              // summer or re-evaluation changes would make L refuse it as stale_undo).
+              undo={undo && undo.afterFingerprint === currentFp ? undo : null}
               capacity={capacity} includeSummer={includeSummer} assumeFuturePass={config.assumeFuturePass} busy={busy}
               onChoosePath={choosePath} onAdd={addCourse}
               timeline={{

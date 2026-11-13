@@ -134,6 +134,26 @@ test.describe('selected-courses journey', () => {
     await expect(page.getByText('Plan revision 5.')).toBeVisible();
   });
 
+  test('a later direct edit withdraws the single-use Undo', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addThreeConflicting(page);
+    await page.getByTestId('candidate').first().getByRole('button', { name: /Preview:/ }).click();
+    const panel = page.getByTestId('preview-panel');
+    await panel.getByTestId('preview-ack').check();
+    await panel.getByRole('button', { name: 'Apply' }).click();
+    const undo = page.getByRole('region', { name: 'Undo' });
+    await expect(undo).toBeVisible();
+    // Direct move of another course: L clears its checkpoint, so the UI must not offer Undo.
+    const card = termCard(page, 'Spring 2027').getByTestId('placement').first();
+    await card.getByLabel(/^Edit /).click();
+    await card.getByRole('button', { name: 'Move', exact: true }).click();
+    await expect(page.getByTestId('notice-status')).toContainText('Course moved');
+    await expect(undo).toHaveCount(0);
+  });
+
   test('Cancel (Escape) dispatches reject, leaves the plan unchanged and returns focus', async ({ page }) => {
     await open(page);
     await startGuest(page);
