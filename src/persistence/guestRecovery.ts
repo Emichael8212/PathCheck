@@ -20,7 +20,9 @@ const modeFor: Record<Slot, GuestDraft['mode']> = { session: 'session', local: '
  *  - `cross_tab_opt_in` mode: explicit opt-in (shared-device warning is U-owned) →
  *    same-origin localStorage only, lifetime ≤ 24h enforced by the contract schema.
  * One tab writes one copy at a time; a session-mode stash removes only its own (same
- * draftId) shared copy. Recover validates the supplied clock and deletes corrupt,
+ * draftId) shared copy. A cross-tab stash never replaces another draftId's well-formed
+ * shared draft: it returns typed `conflict` and writes nothing (explicit clear remains
+ * the user's way to discard it); an unreadable shared slot is never written blind. Recover validates the supplied clock and deletes corrupt,
  * wrong-version, expired or mode/slot-mismatched entries in BOTH slots (session wins when
  * both are valid). Otherwise-valid future-dated entries are kept and reported as typed
  * `unavailable` (caller clock behind the draft), never deleted; no TTL grace is added.
@@ -46,6 +48,40 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
 
   type SlotRead = Result<GuestDraft | null> | { ok: 'deferred' };
 
+  /** Schema-valid, correctly placed, persistable draft — independent of any clock. */
+  const wellFormedIn = (slot: Slot, parsed: unknown): GuestDraft | null => {
+    const shape = GuestDraftSchema.safeParse(parsed);
+    return shape.success && shape.data.mode === modeFor[slot] && checkPersistableProjection(shape.data.record, shape.data.plan).ok ? shape.data : null;
+  };
+
+  /**
+   * The shared slot holds one draft. Before a cross-tab write, refuse to replace another
+   * draftId's well-formed draft (another tab's opted-in work). stash() has no clock, so it
+   * does not judge expiry: an expired foreign draft is purged by recover(now) or an
+   * explicit clear, never inferred from the writer's possibly skewed createdAt.
+   * Corrupt / wrong-version / misplaced entries are not recoverable drafts and may be
+   * replaced (recover() would delete them). Unreadable slot → do not write blind.
+   */
+  const sharedSlotWritableBy = (draftId: string): Result<null> => {
+    const s = store('local');
+    if (!s) return unavailable;
+    let raw: string | null;
+    try {
+      raw = s.getItem(GUEST_DRAFT_KEY);
+    } catch {
+      return unavailable;
+    }
+    if (raw === null) return { ok: true, value: null };
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: true, value: null };
+    }
+    const existing = wellFormedIn('local', parsed);
+    return existing && existing.draftId !== draftId ? { ok: false, code: 'conflict', reasonCode: 'recovery_shared_draft_exists' } : { ok: true, value: null };
+  };
+
   /**
    * A structurally valid, correctly placed draft whose createdAt is after the caller's
    * clock is most likely a fresh write by another tab (stale/skewed `now`), not garbage:
@@ -67,10 +103,9 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     } catch {
       parsed = undefined;
     }
-    const shape = GuestDraftSchema.safeParse(parsed);
-    const wellFormed = shape.success && shape.data.mode === modeFor[slot] && checkPersistableProjection(shape.data.record, shape.data.plan).ok;
-    if (wellFormed && Date.parse(now) < Date.parse(shape.data.createdAt)) return { ok: 'deferred' };
-    const draft = wellFormed ? readGuestDraft(parsed, now) : null;
+    const shape = wellFormedIn(slot, parsed);
+    if (shape && Date.parse(now) < Date.parse(shape.createdAt)) return { ok: 'deferred' };
+    const draft = shape ? readGuestDraft(parsed, now) : null;
     if (!draft) {
       // corrupt / wrong version / expired / misplaced. Never report "nothing to recover"
       // while the unusable (possibly expired, shared-device) copy is still on disk: a
@@ -115,6 +150,10 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       const target: Slot = parsed.data.mode === 'session' ? 'session' : 'local';
       const s = store(target);
       if (!s) return unavailable;
+      if (target === 'local') {
+        const writable = sharedSlotWritableBy(parsed.data.draftId);
+        if (!writable.ok) return writable; // nothing written; this tab's session copy kept
+      }
       try {
         s.setItem(GUEST_DRAFT_KEY, JSON.stringify(parsed.data));
       } catch {
