@@ -290,11 +290,18 @@ export function computeAudit(input: AuditInput): AuditDetail {
       } else if (g.kind === 'total_degree_credits') {
         const allocated = [...allocation.keys()].map(k => unitMap.get(k)!);
         const by = (q: Quality) => allocated.filter(u => allocQ.get(u.unitId)! <= q && u.credits !== null).reduce((s, u) => s + u.credits!, 0);
-        const pool = units.filter(u => !allocation.has(u.unitId) && u.orphan).reduce((s, u) => s + (u.credits ?? 0), 0);
+        // Unallocated recorded/planned credit (unmapped work OR excess catalog courses) may count
+        // toward the total only under an unsourced applicability rule: it can make the total
+        // unresolved, never satisfied, and must never be silently dropped into a definite `unmet`.
+        const free = units.filter(u => !allocation.has(u.unitId));
+        const orphanPool = free.filter(u => u.orphan).reduce((s, u) => s + (u.credits ?? 0), 0);
+        const catalogPool = free.filter(u => !u.orphan).reduce((s, u) => s + (u.credits ?? 0), 0);
+        const pool = orphanPool + catalogPool;
         const unknownCredits = allocated.some(u => u.credits === null);
         const st: GroupStatus = by(0) >= g.minimum ? { status: 'satisfied', conditional: false } : by(1) >= g.minimum ? { status: 'satisfied', conditional: true }
           : by(2) + pool >= g.minimum || unknownCredits ? { status: 'unresolved', conditional: false } : { status: 'unmet', conditional: false };
-        out = { requirementId: id, active: active.has(id), ...st, unitIds: [], reasons: pool > 0 ? ['unmapped_credits_applicability_unknown'] : [], applicableCredits: by(0),
+        const reasons = [...(orphanPool > 0 ? ['unmapped_credits_applicability_unknown'] : []), ...(catalogPool > 0 ? ['unallocated_credits_applicability_unknown'] : [])];
+        out = { requirementId: id, active: active.has(id), ...st, unitIds: [], reasons, applicableCredits: by(0),
           need: st.status === 'unmet' ? { credits: g.minimum - by(2) - pool, courses: 0 } : null };
       } else out = leafOutcome(g);
       if (g.uncertainty !== 'documented' && out.status === 'satisfied') out = { ...out, status: 'unresolved', conditional: false, reasons: uniqueSorted([...out.reasons, `requirement_${g.uncertainty}`]) };

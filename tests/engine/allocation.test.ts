@@ -176,3 +176,23 @@ describe('deterministic allocation', () => {
     expect([...a.allocation.entries()].sort()).toEqual([...b.allocation.entries()].sort());
   });
 });
+
+describe('total degree credits never drops unallocated recorded credit', () => {
+  // Synthetic: root all(pick = choose 1 of [TEST-101, TEST-102], total >= 6). Both completed;
+  // only one is allocated to `pick`. Whether the other's 3 earned credits count toward the total
+  // is unsourced (no free-elective rule), so the total must not be a definite `unmet`.
+  const cat = catalog([course('TEST-101'), course('TEST-102')], [
+    reqAll('root', ['pick', 'total']), chooseCourses('pick', 1, ['TEST-101', 'TEST-102']), totalCredits('total', 6),
+  ], { root: 'root' });
+  it('excess catalog-course credit keeps the total unresolved, not unmet', () => {
+    const r = run(cat, [attempt('TEST-101'), attempt('TEST-102')]);
+    expect(statusOf(r, 'total')).toBe('unresolved');
+    expect(r.outcomes.get('total')!.reasons).toContain('unallocated_credits_applicability_unknown');
+    expect(r.audit.totalStatus).toBe('unresolved');
+  });
+  it('still unmet when even all recorded credit is insufficient', () => {
+    const r = run(cat, [attempt('TEST-101')]);
+    expect(statusOf(r, 'total')).toBe('unmet');
+    expect(r.outcomes.get('total')!.need).toEqual({ credits: 3, courses: 0 });
+  });
+});
