@@ -15,7 +15,7 @@ requirement/test/commit evidence is in docs/testing/requirements-coverage-audit.
 | F01 Three screens | Real E/L/U desktop journey PASS | Merge reviewed components, final application composition and human journey / L,U | No |
 | F02 Both planner paths | Manual + genuine generated draft PASS | Final composed baseline regression/human acceptance / L,E,U | No |
 | F03 Manual records | Normalize, edit, explicit acceptance, invalid input PASS | Final baseline record lifecycle acceptance / L,E,U | No |
-| F04 Transcript extraction | Parser/validator/client units; real G→L→E narrow case PASS | Actual endpoint/admission storage, authorized synthetic benchmark, consent/revoke/fallback/upload integration and privacy gates / existing team, L coordinates | No |
+| F04 Transcript extraction | Live synthetic Chrome→SQL admission→Gemini→E→record acceptance→planner PASS; 18-case benchmark PASS; error/consent/revoke regressions PASS | Combined pinned human upload acceptance; final application wiring, public gateway/resource isolation and real-transcript privacy gates / L,G,S,U | No |
 | F05 Normalized attempts | Engine normalization units and malicious-row composition PASS | Full extraction transfer/repeat/provenance and persistence projection integration / L,E | No |
 | F06 Degree audit | Engine tests; positive scoped-repeat human PASS | Final integration; unknown real rules remain explicitly unresolved / E,L | No |
 | F07 Prerequisites/corequisites | AND/OR, grade, timing, coreq and human engine PASS | Final integrated regression / E,L | No |
@@ -30,14 +30,16 @@ requirement/test/commit evidence is in docs/testing/requirements-coverage-audit.
 | F16 Authentication/cloud save | Live SQL/REST human PASS; S modules merged | Wire actual account service; real OTP/save UI journey / L,S,U | No |
 | F17 Safe guest migration | Scoped cleanup fix automated/human PASS | Actual OTP/save migration UI and simultaneous-tab conflict tests / L,S,U | No |
 | F18 Returning recovery/update | CAS/owner isolation and module recovery PASS | Actual list/open/recompute/update/delete/recent-auth and cross-tab journeys / L,S,U | No |
-| F19 PDF export | Maintained library, privacy tests and real-engine download PASS | Latest lazy renderer integrated/production regression and human Preview/Chrome acceptance / U,L | No |
-| F20 Accessible desktop web | Keyboard, computed contrast,53browser regressions PASS | Final integrated accessibility/errors and human usability; retain basic responsive tests / U,L | No |
+| F19 PDF export | Maintained library, privacy tests, real-engine download and human manual/export workflow PASS | Final merged application baseline regression / U,L | No |
+| F20 Accessible desktop web | Keyboard, computed contrast,65 UI browser regressions PASS | Final integrated accessibility/errors and human usability; retain basic responsive tests / U,L | No |
 
-**Engineering incompleteness:** missing account/endpoint composition, atomic admission
-storage/security, provider benchmark, simultaneous-tab safeguards, runtime cancellation,
-missing integration tests or failed assertions must be fixed. They are not acceptable
-final limitations. `createGuestWorkflow` currently supplies account:null and transcript:null;
-main UI composition still awaits feature integration. No complete-application claim.
+**Engineering incompleteness:** final application/account composition, public admission
+gateway/bot enforcement, resource-isolated PDF processing, simultaneous-tab safeguards
+and remaining integration gates must be completed. They are not acceptable final
+limitations. Atomic admission storage is now on main; the real provider benchmark and
+local synthetic upload composition pass. The ordinary production composition still
+has disabled services; the live fixture-only entry does not close those remaining
+engineering or real-data release gates. No complete-application claim.
 
 **Unavailable academic information:** formal catalog/cohort applicability; prerequisite
 and corequisite rules for replacement courses; minimum-grade/repeat-policy applicability;
@@ -1076,3 +1078,49 @@ smoke1; UI65PASS and realE journeys11PASS. Initial sandbox socket denial correct
 with permitted outside-sandbox rerun,157G PASS. SQL suite first failed4assertions
 because live-test rows violated its documented clean-DB prerequisite; reset and
 reverification in progress, not presented as PASS yet. No accepted human tests rerun.
+
+### Pinned live-upload human checkpoint — 2026-11-13
+
+PR7 remains human-merged at 1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc; local main
+is clean at that commit. Preserve accepted c394241 setup/isolation/SQL/concurrency/
+cleanup PASS. No accepted human #4/#5/#7 tests were repeated on the human's behalf.
+
+Pinned composition: L PR9 f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba;
+G PR8 6e29425404a7a53bf7e7a6da19d477b49e89469a;
+U PR6 52a72dac5844e471c2957305105f4f344402abec.
+Required foundation CI PASS respectively 43521594660, 43521373169, 43517706821.
+Independent Claude L review findings were fixed; final independent G/L safety review
+reports no blocker and ran 9 guard assertions PASS. G final source review and 157
+extraction tests PASS; U baseline refresh contains no U-owned implementation change.
+
+Final composed verification: 669 unit PASS / 2 explicitly skipped live DB guards,
+43 benchmark regressions, 9 upload guards, lint/type/build, production smoke 1,
+UI 65, real-engine journeys 11, simulated-provider/real-SQL upload cases 5 PASS.
+After restoring the documented empty synthetic DB prerequisite, SQL 371/5 files
+PASS. Concurrency PASS: 12-worker winners 1/1/3/5; dispatch/revoke 6 pairs (3/3);
+retry/revoke 6 pairs (2/4); 22 reservations, zero remaining after cleanup. These are
+agent regression results, distinct from the preserved human PR7 acceptance.
+
+Live Chrome success remains run-1794609673676.json: actual Google 200, 1/1 exact
+course attempt, real SQL admission, deterministic normalization, explicit acceptance,
+conflict/preview/apply/undo. No additional provider call was made for reproduction.
+Fresh /private/tmp/pathcheck-upload-reproduced reconstructed the pinned three heads
+on main1c with noncommitting merges; all 180 executable/config source files matched
+the tested candidate. npm ci --ignore-scripts passed. The human --serve command
+started successfully from that checkout and stopped cleanly without extraction.
+Temporary integration branches remain local and uncommitted. Private API env and
+shared quota ledger are unchanged. Original transcripts were never used.
+
+Single reproducible human procedure: docs/acceptance/pr-9/PR_ACCEPTANCE_TEST.md;
+PR6/8 guides reference it and preserve existing manual/export evidence. Human upload
+status for all three pins: NOT RUN; eligibility HUMAN ACCEPTANCE REQUIRED, not
+READY TO MERGE. This documentation update does not change tested implementation.
+After a reported combined PASS, review final heads/strict CI and recommend dependency
+order #8 → #6 → #9, refreshing and revalidating after each personal merge. No agent
+merge, deployment, billing change or claim of full application completion.
+
+Final documentation review found no blocker in pins, commands, expected labels or
+secret handling. All five human shell blocks passed zsh syntax validation. The
+rehearsal server exited cleanly, shared benchmark lock was released, and isolated
+Supabase/Colima services stopped successfully. PR6/8/9 descriptions now distinguish
+live Google evidence, simulated error tests, human NOT RUN and remaining gates.

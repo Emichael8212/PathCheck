@@ -13,12 +13,13 @@ are recorded in the ledger/PR evidence, not represented as GitHub approvals.
 |---|---|---|---|
 | 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
 | 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
-| 6 `29c387caef967990abd6db06ab7696c05c416f36` | Three screens, planner, PDF export and consent/upload UI; engine on main; full upload consumes PR8 through PR9 and PR7 | Final U review resolved revoke/summary/validation findings; CI43489146280 PASS. Human completed earlier manual/export workflows; upload NOT RUN | OPEN, non-draft despite title. BLOCKED by user's upload acceptance hold; later changes affect transcript paths, not prior manual/export implementation |
+| 6 `52a72dac5844e471c2957305105f4f344402abec` | Three screens, planner, PDF export and consent/upload UI; engine/main1c; upload uses PR8 through PR9 | U independent findings resolved; baseline-only refresh; CI43517706821 PASS; prior human manual/export retained, combined upload NOT RUN | HUMAN ACCEPTANCE REQUIRED; live composed upload agent PASS; human merge hold remains |
 | 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; authoritative merged database baseline | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | MERGED `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`, verified 2026-11-13T22:09:33Z; local main synchronized |
-| 8 `75aa73ee912186670c4256189db48a4a238f7fcd` | Extraction client/validation, PDF handler, Gemini provider/retries and server runtime; PR7 durable admission via PR9 adapter; PR6 UI for browser acceptance | Final review resolved two handler findings; 557 unit (137 extraction), live synthetic corpus PASS; CI43502564822 PASS; human NOT RUN | OPEN draft; BLOCKED on live synthetic browser composition and human upload acceptance; public gateway/resource isolation and real-data privacy gates remain |
-| 9 `8fbd313e25603b410c70b46c3f89db6b9ed8cfb1` | Lead RPC adapter, resumable benchmark, integration harness; requires PR6/7/8 for actual composed workflow | Independent adapter/benchmark/harness findings resolved; 649 composed units,65 UI,11 planning,5 upload cases PASS; upload Google/bot transport simulated; CI43504268718 PASS; human NOT RUN | OPEN draft; BLOCKED on live browser integration and human acceptance. Documentation corrections after this inspected head do not change implementation b4573d4 |
+| 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload PASS; human NOT RUN | HUMAN ACCEPTANCE REQUIRED; public runtime and real-data gates remain separately mandatory |
+| 9 implementation `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba` | Lead RPC adapter, benchmark, real local synthetic upload composition; requires PR6/8, merged PR7 | Independent L/G findings resolved; CI43521594660 PASS; composed 669 units,65 UI,11 journeys,5 simulated upload and1 live Google browser PASS; human NOT RUN | HUMAN ACCEPTANCE REQUIRED; later docs-only changes preserve tested implementation |
 
-At the preceding inspection, all open heads contained main4f74a67 and GitHub reported MERGEABLE. That is
+Current open implementation heads contain merged main1c0b8d3. Noncommitting
+reconstruction of all three heads is conflict-free. That is
 conflict compatibility, not permission to merge. PR9 directly imports PR8's handler,
 admission and provider in its upload harness. PR8 is a code dependency of PR9;
 its omission from the earlier sequence was incorrect.
@@ -27,12 +28,12 @@ its omission from the earlier sequence was incorrect.
 
 1. COMPLETE: human passed PR7's pinned database/retry procedure and merged it as
    1c0b8d3. Preserve this evidence; refresh dependent branches from the new main.
-2. Lead finishes and verifies the live, local, synthetic-only browser composition
+2. COMPLETE: lead verified the live, local, synthetic-only browser composition
    using PR6+PR8+PR9 on an uncommitted temporary integration branch. PR8 need not
    merge before this test; waiting for mutually dependent acceptance would create
    an unnecessary cycle. No fake paid approval, simulated Google acceptance or
    real student records. Existing benchmark cases are not rerun.
-3. Prepare one pinned human upload procedure with explicit PR6 UI, PR8 extraction
+3. READY: one pinned [human upload procedure](../acceptance/pr-9/PR_ACCEPTANCE_TEST.md) with explicit PR6 UI, PR8 extraction
    and PR9 integration assertions. A human result may cover all three only when
    each scope and exact source revisions are identified. Retain prior manual/PDF
    acceptance; request only changed/new behavior unless a regression justifies more.
@@ -47,8 +48,8 @@ its omission from the earlier sequence was incorrect.
    require repeating human acceptance. Resolve any new behavioral difference first.
 
 Public bot/gateway enforcement, PDF resource isolation and real-transcript privacy
-remain mandatory gates for their applicable runtime/release scope. Missing local
-live-upload wiring is engineering incompleteness, not a Google503 blocker. No PR
+remain mandatory gates for their applicable runtime/release scope. Local live-upload wiring is verified; public runtime/account composition remains
+engineering work, not a Google503 blocker. No PR
 merge or synthetic test establishes full application or deployment readiness.
 
 ## Current transcript checkpoint
@@ -576,3 +577,40 @@ implementation. Provider benchmark/credentials/runtime/privacy remain BLOCKED, n
 PASS from doubles. New L `tests/e2e/normalization.integration.mjs` actual validation
 → E matching → Sprojection assertions PASS for repeat/transfer/incomplete/quote/PDF
 cases in combined tree. This is raw-row integration, not real PDF extraction.
+
+## Superseding live synthetic integration evidence — 2026-11-13
+
+Pins: main/PR7 merge `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`;
+L `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba`;
+G `6e29425404a7a53bf7e7a6da19d477b49e89469a`;
+U `52a72dac5844e471c2957305105f4f344402abec`.
+All rows below use these exact executable pins. The fresh noncommitting reproduction
+matched 180 executable/config files and started the documented human server without
+another Google request. Documentation-only updates do not change these source pins.
+
+| Requirement / source | Owner | Exact test / type | Verified result | Gate and limitation |
+|---|---|---|---|---|
+| F04/ARCH guest admission and G→L→E normalization | L/G/S/E/U | `tests/e2e/upload/live.spec.ts` — `LIVE synthetic PDF through real Google, SQL, normalization, acceptance and planning`; live browser | PASS: real Google200, 1/1 independently labeled attempt, SQL issue/admit/dispatch/finish once; private report run-1794609673676.json | B local synthetic composition closes; human NOT RUN; does not certify public bot enforcement or real-data privacy |
+| F01/F03 explicit academic-record acceptance | L/U/E | Same live browser: zero accepted records before Accept and continue, one afterward, normalized SYN-101/current analysis | PASS | B scoped upload-to-record integration; human NOT RUN |
+| F07/F11/F13 real conflict, preview, atomic apply and undo | E/L/U | Same live browser: SYN201/SYN301 same-term conflict, fall move preview, apply, undo, revisions and fingerprints | PASS | B scoped upload-to-planner path; account/cloud conflict composition remains separate |
+| GEM-002 final consent/permit check on every egress | G/L/S | `tests/transcript/localRuntime.test.ts`, `local synthetic factory using real handler/admission/provider, simulated Google/store`; consent, expiry, retry/replay cases; live spec RPC retry/reservation/attempt equality | PASS: final check follows quota awaits; 20 factory cases within157 extraction tests; live one first-egress check, no live503 | A8/A9; simulated error tests do not claim real Google503 occurred |
+| Free-only synthetic privacy/egress | L | `liveEgress.node.mjs`: `pins model/destination/document and forces redirects to fail`; `refuses additional documents, remote files and malformed payloads`; unit | PASS2 | A9; exact digest/model URL, no redirects/remote or extra PDF; no real transcript approval |
+| Free-tier quota and replay coordination | L | `liveBudget.node.mjs`: six named tests for serialized reservations, benchmark lock, existing/exhausted ledger, run cap, Pacific midnight and shutdown bounds; unit | PASS6 | A9; counts every transport attempt; other clients' project usage cannot be observed |
+| Independent synthetic fixture labels | L | `liveFixture.node.mjs`: `produces a reproducible single-page synthetic fixture independent of provider output`; unit + independent native PDF text inspection | PASS1; digest c078a421891a21be6b8391a7ddfbebafdcd3856fd5fe7c70dc8f0db4712d2dd9 | A9/B; fixture is explicitly synthetic, not ASU policy |
+| Server key isolation and endpoint request boundaries | L/G | Same live browser: no egress before consent; private env/@fs/keys denied; forged Origin and Host rejected; provider result and safe evidence assertions | PASS | A9 local-only; deployment/public gateway remains mandatory C |
+| PR7 durable admission/RPC quotas/concurrency | S/L | `supabase/tests`5 SQL files, `supabase/tests/admission/concurrency.sh`; live SQL/races | PASS371; races12 workers,6 dispatch/revoke and6 retry/revoke pairs;22 reservations cleaned | A7 MERGED, human isolation/SQL/concurrency/cleanup PASS preserved at c394241; agent rerun after clean local reset is separate |
+| Malformed/503/cancel fallback regressions | L/G/U/S | `tests/e2e/upload/upload.spec.ts`; real HTTP/UI/SQL with explicitly simulated Google transport | PASS5 | A/B error handling; not live Google acceptance |
+| Cross-component regressions | All owners | `npm run check`; UI Playwright; `npm run test:integration` | PASS669 unit,43 benchmark,9 guards,lint/type/build,1smoke;65 UI;11 real-engine journeys;2 documented liveDB skips | Applicable A/B checks; real SQL passed separately; no hosted-production claim |
+| Combined mandatory human upload | Human, L prepares | `docs/acceptance/pr-9/PR_ACCEPTANCE_TEST.md`, Stages1–5 and cleanup | NOT RUN; ready for human verification at exact pins | A6/A8/A9 human gate; no merge recommendation until report and final-head review |
+
+Initial local SQL rerun failed four empty-database assertions because live test rows
+remained. Restoring its documented disposable clean-DB prerequisite yielded371 PASS;
+no policy assertion was weakened. Two actual new Google calls during browser development
+both returned200: the first then hit a test-only locator timeout, the second completed
+the whole scenario. The earlier private-path assertion and local-cost429 failures
+made zero provider calls. Those failures remain recorded; the18-case benchmark was
+not repeated. No remaining external Google blocker was observed in the final run.
+
+Still mandatory: public trusted gateway/bot enforcement, resource-isolated PDF
+processing, real-transcript privacy/processing approval, final account/cloud and
+other integrated F01–F20 closure. Local synthetic acceptance does not waive them.

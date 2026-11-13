@@ -1,5 +1,20 @@
 # PR Acceptance Test
 
+## Current upload checkpoint — 2026-11-13
+
+Current PR #6 head: `52a72dac5844e471c2957305105f4f344402abec`.
+Required CI `foundation` 43517706821 PASS. The refreshed baseline does not change
+U-owned code. Prior human manual-entry/PDF-export acceptance is retained.
+The combined live synthetic upload is now agent-verified with real Google and SQL;
+human upload status is **NOT RUN**, eligibility **READY for human verification**.
+Use the single [combined PR #6/#8/#9 procedure](../pr-9/PR_ACCEPTANCE_TEST.md).
+It pins all component heads and assigns the consent, file controls, extraction summary,
+explicit acceptance and planner controls to this PR. Do not repeat the already
+accepted manual/export procedure below. The historical blocked wording is superseded
+by this checkpoint; the PR remains on human merge hold.
+
+## Historical manual/export acceptance procedure
+
 ## PR Information
 - PR number: #6
 - Title: Frontend UX: three screens, planner timeline, previews, PDF export (draft)

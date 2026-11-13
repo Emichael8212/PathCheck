@@ -7,8 +7,9 @@
 - Human status:**PASS**, including local service cleanup, at the pinned SHA.
   Human reported SQL and concurrency `Result: PASS` after confirming local isolation.
   Agent SQL371/race results remain separate evidence.
-- Merge eligibility:**READY TO MERGE**: unchanged head, current required CI PASS,
-  independent review without blocking findings, and human acceptance PASS.
+- Status: **MERGED by the human** at `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`
+  on 2026-11-13. Required CI, independent review and human acceptance passed.
+  The procedure below is retained as evidence; do not repeat accepted stages.
 
 ## Before You Begin
 
