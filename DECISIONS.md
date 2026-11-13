@@ -80,3 +80,7 @@ When an external prerequisite is unavailable, agent must **record blocker and co
 - **DEP-001:** Gate 0 pins dependency versions/lockfile. `minimatch` override 11.0.7 addresses GHSA-g3hv-75wg-m249 in lint dependencies; verify compatibility through lint and full CI. Remove override when upstream ranges support a patched version. Evidence: https://github.com/advisories/GHSA-g3hv-75wg-m249 .
 
 These amendments supersede earlier statements that the curriculum interpretation has not yet been received. Official governing catalog verification remains unresolved; do not restart the completed departmental interpretation review.
+
+- **EXEC-004 (2026-11-12):** After personally merging PR #2, user authorized the next implementation phase, four isolated worktrees, routine development/testing/feature commits and draft PR preparation. Verified baseline merge: de28a31846688f1d1a1a29eb8b2708571bf16301. All five ownership roles, frozen contracts, academic uncertainties, mandatory checks and human-only merges remain unchanged; production deployment is not authorized.
+
+- **DEP-002 (lead implementation choice, pending PR merge):** Pin `pdf-lib` 1.17.1 for shared browser PDF generation and server PDF structural inspection requested by G. API reference: https://pdf-lib.js.org/docs/api/classes/pdfdocument . Parsing is not proof of transcript completeness or a security sandbox; real-data processing remains disabled. Feature agents consume the dependency only after human merge of the lead dependency change. `npm audit` reports zero vulnerabilities on the candidate lockfile.

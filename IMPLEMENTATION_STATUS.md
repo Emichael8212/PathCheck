@@ -1,6 +1,6 @@
 # PathCheck implementation status
 
-Owner: Codex Agent 1 (L). Updated: 2026-11-12. Gate 0 foundation acceptance PASS; overall Gate 0 BLOCKED at human approval/merge checkpoint; no F01–F20 feature is complete.
+Owner: Codex Agent 1 (L). Updated: 2026-11-12. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
 
 ## Execution-memory protocol
 
@@ -12,11 +12,11 @@ On resume: read AGENTS.md, role-relevant specifications, this ledger, and assign
 
 | Role | Branch / worktree | Status |
 |---|---|---|
-| L | feat/contracts-foundation / ../pathcheck-lead | IN PROGRESS from 38aa51da7b54e2554d8723959c0919636403eb12; draft PR https://github.com/Emichael8212/PathCheck/pull/2; reviewed implementation SHA d995f76c68daed3392bff8ea8f7ea1d5e90cc647 |
-| E | feat/academic-engine / ../pathcheck-engine | PLANNED after human baseline merge |
-| U | feat/frontend-ux / ../pathcheck-frontend | PLANNED after human baseline merge |
-| S | feat/supabase / ../pathcheck-supabase | PLANNED after human baseline merge |
-| G | feat/gemini-extraction / ../pathcheck-gemini | PLANNED after human baseline merge |
+| L | feat/integration-01 / ../pathcheck-lead | IN PROGRESS from de28a31846688f1d1a1a29eb8b2708571bf16301; foundation PR #2 MERGED |
+| E | feat/academic-engine / ../pathcheck-engine | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
+| U | feat/frontend-ux / ../pathcheck-frontend | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
+| S | feat/supabase / ../pathcheck-supabase | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
+| G | feat/gemini-extraction / ../pathcheck-gemini | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
 
 ## Verified context
 
@@ -40,9 +40,9 @@ Academic conclusions depending on missing policies: BLOCKED; synthetic independe
 
 ## Next actions
 
-Stop for human approval of the Gate 0 baseline and personal merge of PR #2. Do not merge, enable auto-merge, deploy, or start the next phase. Only after explicit approval and human merge may four implementation worktrees originate at that reviewed main commit. No code changed after the passing d995f76 reviews; subsequent commits record evidence only.
+Prioritize I1 manual entry → E normalization/audit → U planner, then I2 real bounded generation and L preview/apply/undo. E/U/S/G implement only owned paths. Lead reviews every feature PR; human alone merges. Live backend/provider checks remain blocked until permitted test services are available.
 
-## Resume checkpoint
+## Historical pre-merge checkpoint
 
 - No remaining observed test failures after corrections. Earlier inference error and G contract findings are fixed; E/U/S and G re-reviews PASS; review failures were corrected, not waived.
 - No main push/merge, auto-merge, production deployment or feature worktree creation performed. Only authorized non-destructive CI protection was added. Root checkout remains main; L work stays isolated.
@@ -84,9 +84,29 @@ Verified ca971ba363c4cf9e47bc068911021d5af1ee7f31 before this documentation-only
 | PR CI recognized as required on main | PASS | ruleset 27097753 active; context foundation, integration_id 15368; strict up-to-date; gh pr checks --required PASS at ca971ba |
 | Preserve protections / permission and plan support | PASS | before/after equality of original rules, conditions, enforcement and bypass actors; public repo ADMIN API update succeeded; no known plan limitation |
 | Foundation PR and acceptance evidence | PASS | PR #2 four-section description, tested SHA/run links, known integration dependencies |
-| Human baseline approval and personal merge | BLOCKED | intentionally awaiting human decision; agent must not merge |
-| Four feature worktrees from merged baseline / next phase | BLOCKED | intentionally prohibited until explicit human approval and baseline merge |
+| Human baseline approval and personal merge | PASS | GitHub verifies human merge of PR #2 at de28a31846688f1d1a1a29eb8b2708571bf16301, 2026-11-13T00:27:55Z |
+| Four feature worktrees from merged baseline / next phase | PASS | E/U/S/G created from de28a31846688f1d1a1a29eb8b2708571bf16301; user explicitly authorized next phase |
 
 No current foundation FAIL. Full F01–F20 release, catalog applicability, real transcripts and live Supabase authorization are separate later gates and remain NOT RUN/BLOCKED as specified in TEST_PLAN.md. They are not falsely accepted by this foundation report. GitHub's existing review count is zero and no GitHub submitted approval is claimed; only human executes every merge. Auto-merge is disabled, no deployment workflows added, and no production deployment authorized.
 
 Verification commands: `gh api repos/Emichael8212/PathCheck/rulesets/27097753`; `gh api repos/Emichael8212/PathCheck/rules/branches/main`; `gh pr checks 2 --required`; commit check-runs endpoint confirms app id 15368/context foundation; GraphQL reviewThreads/reviewDecision/mergeStateStatus confirms zero threads and CLEAN at ca971ba. Ruleset configuration added only required_status_checks and retained all previous rules. Current-head documentation-only CI evidence is linked in PR #2 after completion (avoids a self-referencing ledger commit loop).
+
+## Post-merge implementation checkpoint — 2026-11-12 America/Chicago
+
+- PASS: `gh pr view 2 --repo Emichael8212/PathCheck --json state,mergedAt,mergeCommit,headRefOid,url` returned MERGED, mergedAt 2026-11-13T00:27:55Z, merge SHA de28a31846688f1d1a1a29eb8b2708571bf16301, reviewed head 3e5aeaaa2672874697de39d09fbe3d7862d212df.
+- PASS: `git pull --ff-only origin main`; clean local main synchronized to actual merge. No agent merge or main push.
+- PASS: four `git worktree add` operations; `git worktree list` confirms every feature branch and the fresh lead integration branch start at the exact merge SHA.
+- User authorized routine next-phase implementation, tests, commits and draft PRs; human merge and deployment boundaries unchanged. Responsibilities/dependencies/review gates reconfirmed in PARALLEL_IMPLEMENTATION.md §§4–8.
+- External tooling inventory: Claude and Codex CLIs installed; Docker and Supabase CLI not found on PATH. Live RLS/provider tests are not assumed executable; independent development continues.
+- PASS post-merge `npm run check` at de28a31: lint, typecheck, 59 units / 4 files, build, 1 Chromium smoke. Feature command/engine/UI/security checks remain NOT RUN until implementations exist.
+
+### Wave 1 in progress
+
+- Claude E/U/S implementation processes launched in their assigned worktrees; Codex G resumed as extraction implementation role. All instructed to read permanent specs/contracts, restrict owned writes, preserve academic uncertainty, and run genuine tests. No feature completion claimed.
+- L implemented `src/app/plannerCommands.ts` with exact action kinds/fingerprints, fresh E validation, atomic edits/adoption, acknowledgement checks and single-use session-bound undo. First full `npm run check` PASS: 80 unit tests / 5 files (21 new command cases), lint/typecheck/build and 1 Chromium boot. This uses test doubles for command isolation, not academic claims. Further review/refinements ongoing.
+- I1/I2 real E/U integration NOT RUN until owned implementations are available; commands are not yet wired into the browser. No shared contract changes made.
+- G requested PDF parser dependency and private atomic admission RPC coordination with S. Proposed only; shared dependency/interface changes require reviewed lead PR and human merge before feature adoption.
+
+- PASS after reference guards/PDF dependency: `npm run check` (80 units/5 files, 1 Chromium, lint/typecheck/build) and `npm audit` (0 vulnerabilities). Dependency `pdf-lib` 1.17.1 is a candidate lead change, not yet available to feature branches. G/S private admission RPC and Edge module bundling remain integration design/verification dependencies; no endpoint deployed.
+
+- Latest L check PASS: `npm run check`, 83 unit tests / 5 files (24 command regression cases), lint/typecheck/build and 1 Chromium smoke. G independently reviewed L commands read-only: PASS, no blocking findings; reviewer ran no tests. Real E/U command integration still NOT RUN (trigger: E/U modules available). Preparing draft integration PR; no feature merge or deployment performed.
