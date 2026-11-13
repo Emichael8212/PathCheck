@@ -127,11 +127,18 @@ export function evaluate(input: PlanningScenario): Result<AnalysisResult> {
       const r = completionSearch(s, s.plan.activePlacements, 'outlook', 'system_projection', false);
       let outcome: SearchOutcome;
       for (;;) { const step = r.step(Number.MAX_SAFE_INTEGER); if (step.done) { outcome = step.outcome; break; } }
-      if (outcome.kind === 'found' && outcome.unplannable.length === 0) {
-        futurePassDeclined = !s.assumptions.assumeFuturePass;
-        kind = futurePassDeclined ? 'insufficient_evidence' : 'conditional_path_found';
+      if (outcome.kind === 'found') {
+        // The search's initial unplannable list predates its own proposals. Re-audit the complete
+        // proposal (student placements + proposed completions): a proposed retake of a failed or
+        // withdrawn course is a projected repeat whose credit needs a sourced repeat policy, so the
+        // proposal's root may be unresolved. Its record/catalog/repeat evidence gaps are disclosed.
+        const proposed = analyzePlacements(s, [...s.plan.activePlacements, ...outcome.placements]);
+        gaps.push(...proposed.gaps);
+        if (outcome.unplannable.length === 0 && proposed.audit.rootStatus.status === 'satisfied') {
+          futurePassDeclined = !s.assumptions.assumeFuturePass;
+          kind = futurePassDeclined ? 'insufficient_evidence' : 'conditional_path_found';
+        } else kind = 'insufficient_evidence';
       }
-      else if (outcome.kind === 'found') kind = 'insufficient_evidence';
       else {
         kind = 'target_at_risk';
         issues.push(finding({ code: 'no_completion_found_under_search_bounds', severity: 'warning', status: { status: 'unresolved', conditional: false }, termIds: [s.plan.targetTerm], explanationParams: { expansions: outcome.expansions, stopReason: outcome.stopReason, searchPolicy: s.searchOptions.version }, nextAction: 'adjust_plan_or_target' }));
@@ -140,15 +147,16 @@ export function evaluate(input: PlanningScenario): Result<AnalysisResult> {
     if (futurePassDeclined) {
       gaps.push(finding({ code: 'future_pass_not_assumed', severity: 'warning', status: { status: 'unresolved', conditional: false }, termIds: [s.plan.targetTerm], explanationParams: { assumeFuturePass: false }, nextAction: 'review_future_completion_assumption' }));
     }
-    const assumptionRefs = uniqueSorted([...a.planFindings.flatMap(f => f.assumptions), ...a.gaps.flatMap(f => f.assumptions)]);
+    const evidenceGaps = dedupeFindings(gaps);
+    const assumptionRefs = uniqueSorted([...a.planFindings.flatMap(f => f.assumptions), ...evidenceGaps.flatMap(f => f.assumptions)]);
     const topFindings = prioritize(issues).slice(0, 3);
     // Questions may cite only findings present in this result (L rejects dangling references).
-    const present = new Set([...topFindings, ...gaps, ...a.bottlenecks].map(f => f.findingId));
+    const present = new Set([...topFindings, ...evidenceGaps, ...a.bottlenecks].map(f => f.findingId));
     const questions = availabilityQuestions(s, a).map(q => ({ ...q, findingIds: q.findingIds.filter(id => present.has(id)) }));
     const analysis: AnalysisResult = {
       inputFingerprint: fp, degreeAudit: a.audit.audit,
-      outlook: { kind, targetTerm: s.plan.targetTerm, assumptionRefs, evidenceRefs: gaps.map(g => g.findingId) },
-      topFindings, evidenceGaps: gaps, bottlenecks: a.bottlenecks,
+      outlook: { kind, targetTerm: s.plan.targetTerm, assumptionRefs, evidenceRefs: evidenceGaps.map(g => g.findingId) },
+      topFindings, evidenceGaps, bottlenecks: a.bottlenecks,
       candidates: generateCandidates(s, fp, a), availabilityQuestions: questions,
     };
     const out = AnalysisResultSchema.safeParse(analysis);

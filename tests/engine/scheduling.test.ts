@@ -285,3 +285,27 @@ describe('retakes under unsourced repeat policy: planning unchanged, credit clai
     expect(a.outcomes.get('r101')).toMatchObject({ status: 'unresolved' });
   });
 });
+
+describe('completion-search outlook re-audits the found proposal (unsourced repeat policy)', () => {
+  // A failed/withdrawn-only course has no unit before search, so the initial unplannable list
+  // is empty; the found completion must still be audited with its proposed retake placements.
+  const terms8 = horizon(8);
+  const prior = (status: 'failed' | 'withdrawn') => attempt('TEST-101', { status, earnedCredits: 0, grade: status === 'failed' ? 'F' : 'W', term: T(2025, 'fall') });
+  it.each(['failed', 'withdrawn'] as const)('%s-only record with no planned retake is insufficient_evidence with the repeat gap', status => {
+    const s = scenario(chainCatalog(), { terms: terms8, attempts: [prior(status)] });
+    const r = ok(evaluate(s));
+    expect(r.outlook.kind).toBe('insufficient_evidence');
+    const gap = r.evidenceGaps.find(f => f.code === 'repeat_policy_unresolved');
+    expect(gap?.courseIds).toEqual(['TEST-101']);
+    expect(r.outlook.evidenceRefs).toContain(gap!.findingId);
+    expect(r.evidenceGaps.some(f => f.code === 'future_pass_not_assumed')).toBe(false);
+    expect(validateAnalysisForScenario(s, r).ok).toBe(true);
+  });
+  it('control: the same scenario without the prior attempt still yields conditional_path_found', () => {
+    const s = scenario(chainCatalog(), { terms: terms8 });
+    const r = ok(evaluate(s));
+    expect(r.outlook.kind).toBe('conditional_path_found');
+    expect(r.evidenceGaps.some(f => f.code === 'repeat_policy_unresolved')).toBe(false);
+    expect(validateAnalysisForScenario(s, r).ok).toBe(true);
+  });
+});
