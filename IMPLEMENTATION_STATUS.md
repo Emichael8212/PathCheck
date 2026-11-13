@@ -1,0 +1,92 @@
+# PathCheck implementation status
+
+Owner: Codex Agent 1 (L). Updated: 2026-11-12. Gate 0 foundation acceptance PASS; overall Gate 0 BLOCKED at human approval/merge checkpoint; no F01–F20 feature is complete.
+
+## Execution-memory protocol
+
+This is the single live status ledger. L alone updates it at meaningful integration checkpoints and before ending or handing off a session. Feature agents report via PRs, never concurrent ledger edits. Record exact commands, actual counts/results, tested SHAs, PR URLs, dependencies with owner/test/trigger, blockers and next actions. Planned or blocked work is never verified completion. Evidence statuses: PASS / FAIL / BLOCKED / NOT RUN.
+
+On resume: read AGENTS.md, role-relevant specifications, this ledger, and assigned PR evidence; verify worktree/branch/head before continuing. Product/academic/architecture decisions remain in the original authoritative documents. Link approved amendments here. Never store credentials, personal student data, original scans, or sensitive logs. No external memory service.
+
+## Branches and milestones
+
+| Role | Branch / worktree | Status |
+|---|---|---|
+| L | feat/contracts-foundation / ../pathcheck-lead | IN PROGRESS from 38aa51da7b54e2554d8723959c0919636403eb12; draft PR https://github.com/Emichael8212/PathCheck/pull/2; reviewed implementation SHA d995f76c68daed3392bff8ea8f7ea1d5e90cc647 |
+| E | feat/academic-engine / ../pathcheck-engine | PLANNED after human baseline merge |
+| U | feat/frontend-ux / ../pathcheck-frontend | PLANNED after human baseline merge |
+| S | feat/supabase / ../pathcheck-supabase | PLANNED after human baseline merge |
+| G | feat/gemini-extraction / ../pathcheck-gemini | PLANNED after human baseline merge |
+
+## Verified context
+
+- User authorized Gate 0 implementation and foundation PR; only human merges. No production deployment authorized.
+- User approved provisional departmental curriculum: guide structure / 121 credits, CIS 300 and CIS 351 replacing CIS 304 and CIS 415. Formal catalog applicability and historical equivalencies unresolved. Personal-record date excluded from rule/version data. See DECISIONS.md CAT-001–003.
+- GitHub effective main rules: PR required; deletion and non-fast-forward updates blocked. Required foundation CI now active and app-bound (GitHub Actions 15368), strict up-to-date policy. Original rules preserved; no bypass actors. Existing approving-review count stays zero; personal human approval/merge remains an explicit workflow checkpoint, not a GitHub submitted approval.
+
+## Tests and integration dependencies
+
+- PASS: `npm run check` — lint, strict TypeScript, 54 unit tests in 3 files, production build, 1 Chromium smoke test. Latest run 2026-11-12; implementation commit cf39602938e8ecf3a1b0e42d909d4a04085a21cf.
+- PASS: previous `npm audit` — zero vulnerabilities after patched minimatch override. `npm ci` also passed: 182 packages installed, zero vulnerabilities; subsequent full check passed.
+- FIXED: curriculum total reduction uses `reduce<number>` in schema and assertions; no TypeScript inference error remains.
+- G contract review: initial FAIL identified missing issuance/revocation and dropped extraction coverage/review status. Fixes implemented with adapter regression test; independent G re-review PASS: no remaining blocking contract findings; live endpoint security remains untested.
+- Authentication diagnosis: neither CLAUDE_CONFIG_DIR nor CLAUDE_SECURESTORAGE_CONFIG_DIR is set. Unsetting both still reports loggedIn=false inside sandbox. The exact same auth-status command outside sandbox exits 0 with loggedIn=true. Existing macOS login works; no new login or direct credential access/modification required. Run Claude reviews outside sandbox with scoped execution approval.
+- E/U/S initial Claude reviews executed outside sandbox: all returned FAIL with concrete contract gaps. L addressed E subgroup/overlap/elective/equivalency/grade-scale gaps; U command/analysis/record/consent/auth/export ports; S independent CAS revisions/new identities/recovery lifecycle. Added regression coverage; E, U and S independent Claude re-reviews all PASS (read-only, reviewers ran no tests). No feature implementation by reviewers.
+- PASS after review fixes: `npm run check` — lint, full TypeScript, 59 unit tests in 4 files, production build, 1 Chromium smoke test. Reviewed code commit d995f76c68daed3392bff8ea8f7ea1d5e90cc647; hosted run https://github.com/Emichael8212/PathCheck/actions/runs/43334552964 PASS. Previous 54-test evidence below remains historical.
+- PR CI: PASS also on ledger commit 6f4566196409321ee2d576b39ca6b2cbc41c2f89 (run 43330299935); earlier evidence: https://github.com/Emichael8212/PathCheck/actions/runs/43330066558 at implementation SHA cf39602938e8ecf3a1b0e42d909d4a04085a21cf. Current ca971ba CI PASS (run 43334868192), now recognized as required; user authorized protection configuration and existing protections are preserved. Auto-merge disabled.
+Full engine, UI, persistence and extraction checks: NOT RUN; assigned modules not implemented. Explicit owner/test/trigger matrix will be recorded with foundation evidence.
+Real-transcript processing: BLOCKED pending verified terms, consent, endpoint controls and authorized tests; remains disabled.
+Academic conclusions depending on missing policies: BLOCKED; synthetic independent development may proceed.
+
+## Next actions
+
+Stop for human approval of the Gate 0 baseline and personal merge of PR #2. Do not merge, enable auto-merge, deploy, or start the next phase. Only after explicit approval and human merge may four implementation worktrees originate at that reviewed main commit. No code changed after the passing d995f76 reviews; subsequent commits record evidence only.
+
+## Resume checkpoint
+
+- No remaining observed test failures after corrections. Earlier inference error and G contract findings are fixed; E/U/S and G re-reviews PASS; review failures were corrected, not waived.
+- No main push/merge, auto-merge, production deployment or feature worktree creation performed. Only authorized non-destructive CI protection was added. Root checkout remains main; L work stays isolated.
+- Privacy inventory: `git ls-files '*.pdf' '*.png' '.env'` returns no tracked files. Curriculum configs exclude personal records and the excluded personal-record date.
+- Full-MVP and live-service tests remain NOT RUN / BLOCKED as mapped in TEST_PLAN.md Gate 0 execution mapping. No feature completion or production readiness claimed.
+
+CI non-failing runner notices: pinned v4 actions target deprecated Node 20 and are forced to Node 24; ubuntu-latest migration notice. Full check passed on hosted runner.
+
+## Domain review resolution at d995f76
+
+| Reviewer | Initial findings | Final outcome |
+|---|---|---|
+| Claude E | Overlap/constraint reuse, subgroup alternatives, incomplete elective inventories, equivalencies, grade scale | PASS after explicit schemas, root/reference checks and regression tests |
+| Claude U | Missing mutations, candidates/questions, mixed rows, browser consent/session ports, auth/recovery, catalog listing and export context | PASS after interfaces and transaction/timestamp semantics |
+| Claude S | Local/cloud revision coupling, Save-as-new identity, recovery write/clear lifecycle | PASS after independent CAS token, server-generated identity and recovery service |
+| Codex G | Review/coverage loss, ticket/revocation and one-use proof lifecycle | PASS; affected browser/mixed-row interfaces re-reviewed after Claude corrections |
+
+Reviewers did not run tests. L executed all reported checks. No original PDF/credentials accessed by reviewers. Outside-sandbox Claude execution uses the existing login and read-only tool allowlist; do not repeat login requests based on sandbox-only false negatives.
+
+Nonblocking review follow-ups for owned feature implementation: E must enforce conditional planned allocations, equivalency uniqueness and scoped credit overlap; L must validate action kinds and analysis/candidate fingerprints; E/L must test structured question references and max-three output bounds; E/G/S must verify no raw extraction quotes enter cloud/recovery projections. These are tracked integration obligations, not claims of implemented behavior.
+
+## Final Gate 0 acceptance report — governance checkpoint
+
+Verified ca971ba363c4cf9e47bc068911021d5af1ee7f31 before this documentation-only update. `gh pr checks 2 --required` reports foundation PASS; current-head final documentation CI must also pass before relying on its head. PR https://github.com/Emichael8212/PathCheck/pull/2 remains draft until human approval. No unresolved GitHub review threads or change-request reviews exist; independent agent reviews were CLI reviews documented above, not GitHub submitted approvals.
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| Isolated lead branch and exclusive ownership | PASS | ../pathcheck-lead, feat/contracts-foundation; no feature implementation paths written |
+| React/TypeScript/Vite working build and harness | PASS | npm run check, local and hosted |
+| Strict contracts/runtime validation/fingerprints/one availability owner | PASS | 59 passing unit tests across 4 files; E/U/S/G reviews PASS |
+| Typed commands, deterministic work budgets and cancellation boundary | PASS | contracts-v1 and ARCHITECTURE section 8; algorithms remain E/L integration work |
+| Guest Gemini admission interface and security acceptance cases | PASS | G review; schema tests and I4 test obligations frozen; no live endpoint claim |
+| Guest draft recovery boundary | PASS | S/U reviews; expiry/version/consent tests; I3 implementation pending |
+| Raw extraction to E-only normalization boundary | PASS | G/E reviews; rejected rows and review-state regression tests |
+| Historical/provisional curriculum, 121 credits and explicit unknowns | PASS | user-approved CAT-001–003, validated source-only JSON; no personal PDF or excluded date |
+| Execution-memory protocol and evidence ledger | PASS | lead-owned ledger; resume instructions in AGENTS.md |
+| Independent E/U/S/G contract reviews and blocking findings | PASS | all re-reviews PASS at d995f76; no outstanding blocking findings |
+| Executable foundation checks | PASS | npm ci; npm run check: lint/typecheck/59 units/build/1 Chromium; git diff --check |
+| PR CI recognized as required on main | PASS | ruleset 27097753 active; context foundation, integration_id 15368; strict up-to-date; gh pr checks --required PASS at ca971ba |
+| Preserve protections / permission and plan support | PASS | before/after equality of original rules, conditions, enforcement and bypass actors; public repo ADMIN API update succeeded; no known plan limitation |
+| Foundation PR and acceptance evidence | PASS | PR #2 four-section description, tested SHA/run links, known integration dependencies |
+| Human baseline approval and personal merge | BLOCKED | intentionally awaiting human decision; agent must not merge |
+| Four feature worktrees from merged baseline / next phase | BLOCKED | intentionally prohibited until explicit human approval and baseline merge |
+
+No current foundation FAIL. Full F01–F20 release, catalog applicability, real transcripts and live Supabase authorization are separate later gates and remain NOT RUN/BLOCKED as specified in TEST_PLAN.md. They are not falsely accepted by this foundation report. GitHub's existing review count is zero and no GitHub submitted approval is claimed; only human executes every merge. Auto-merge is disabled, no deployment workflows added, and no production deployment authorized.
+
+Verification commands: `gh api repos/Emichael8212/PathCheck/rulesets/27097753`; `gh api repos/Emichael8212/PathCheck/rules/branches/main`; `gh pr checks 2 --required`; commit check-runs endpoint confirms app id 15368/context foundation; GraphQL reviewThreads/reviewDecision/mergeStateStatus confirms zero threads and CLEAN at ca971ba. Ruleset configuration added only required_status_checks and retained all previous rules. Current-head documentation-only CI evidence is linked in PR #2 after completion (avoids a self-referencing ledger commit loop).

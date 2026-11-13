@@ -224,3 +224,18 @@ Lead must track each feature ID independently. A row is PASS only when its actua
 - [ ] Human engineer explicitly approves production deployment/release **separately from PR merge approvals**; no agent may override a blocked gate to satisfy one-day goal.
 
 If deadline arrives and any gate fails, report **incomplete full MVP**, list remaining work and blocker, and preserve current code. A partial integrated demonstration can be shown honestly but is not the complete approved MVP.
+
+## Gate 0 execution mapping — 2026-11-12
+
+Mandatory foundation commands: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:e2e`; PR `foundation` GitHub check must run and pass. `npm run check` composes all but install. Run `npm audit` and address material findings. Unit suites in lead-owned `src/contracts/*.test.ts` and `src/app/*.test.ts`; browser boot test in `tests/e2e/` exercises the actual built foundation without external egress. Synthetic routing tests do not prove E normalization; parsed tickets do not prove admission. Curriculum configuration validation proves faithful transcription/credit arithmetic, not academic graduation eligibility.
+
+| Pending integration test | Modules / owners | Trigger |
+|---|---|---|
+| SCH-17/18 deterministic bounded/chunked search + cancellation | E engine, L/U worker integration | E2 implementation available |
+| SCH-19/20 stale apply/reject/atomic undo/adoption + evidence edits | E validation, L commands, U controls | E2 + L1 + U1 available |
+| T-AUTH recovery/Save-as-new, CAS, RLS/grants A/B/guest | S persistence/auth/SQL, U controls, L composition | S1 + U1 available in test Supabase |
+| T-GEM/T-SEC atomic ticket/replay/quota/budget/file/consent gates | G endpoint, S private admission tables, L configuration | G1 + S admission migration on local/test backend |
+| T-SEC malicious raw rows → unresolved actual academic record | G validation, L routing, E normalization | G1 + E1 available |
+| T-CAT applicability and policy reconciliation | E and human authoritative sources | Sufficient policy evidence; no inference from personal-record notation |
+
+All pending integration tests are NOT RUN until evidence exists; no independent executable check may be reclassified to avoid a failure. Detailed frozen boundaries: ARCHITECTURE.md §8.

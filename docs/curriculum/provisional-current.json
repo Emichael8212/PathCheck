@@ -1,0 +1,502 @@
+{
+  "schemaVersion": 1,
+  "version": "asu-cis-department-provisional-v1",
+  "variant": "user_approved_provisional",
+  "printedGuideLabel": "2019-2021",
+  "formalCatalogYear": null,
+  "degreeCredits": 121,
+  "sourceRefs": [
+    "departmental-guide",
+    "user-departmental-update"
+  ],
+  "sources": [
+    {
+      "id": "departmental-guide",
+      "kind": "departmental_guide",
+      "status": "documented",
+      "description": "Two-page ASU College of Business Administration CIS curriculum guide labeled 2019-2021; curriculum-only transcription reviewed by user. Original personal copy excluded."
+    },
+    {
+      "id": "user-departmental-update",
+      "kind": "user_attestation",
+      "status": "user_attested",
+      "description": "User-approved current undergraduate CIS departmental replacements and non-offering report; not independently verified university-wide policy."
+    }
+  ],
+  "blocks": [
+    {
+      "id": "orientation",
+      "credits": 1,
+      "required": [
+        {
+          "courseId": "ORI-100",
+          "title": "Freshman Orientation",
+          "credits": 1
+        }
+      ],
+      "choices": []
+    },
+    {
+      "id": "composition",
+      "credits": 6,
+      "required": [],
+      "choices": [
+        {
+          "choose": 1,
+          "courses": [
+            {
+              "courseId": "ENG-131",
+              "title": "English Composition I",
+              "credits": 3
+            },
+            {
+              "courseId": "ENG-140",
+              "title": "English Composition Honors I",
+              "credits": 3
+            }
+          ]
+        },
+        {
+          "choose": 1,
+          "courses": [
+            {
+              "courseId": "ENG-132",
+              "title": "English Composition II",
+              "credits": 3
+            },
+            {
+              "courseId": "ENG-141",
+              "title": "English Composition Honors II",
+              "credits": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "humanities",
+      "credits": 12,
+      "required": [
+        {
+          "courseId": "HUM-103",
+          "title": "Humanities Through the African-American Experience",
+          "credits": 3
+        },
+        {
+          "courseId": "ENG-209",
+          "title": "Introduction to Literature",
+          "credits": 3
+        }
+      ],
+      "choices": [
+        {
+          "choose": 1,
+          "courses": [
+            {
+              "courseId": "ART-131",
+              "title": "Art Appreciation",
+              "credits": 3
+            },
+            {
+              "courseId": "THE-111",
+              "title": "Introduction to Theatre Arts",
+              "credits": 3
+            },
+            {
+              "courseId": "MUS-121",
+              "title": "Music Appreciation",
+              "credits": 3
+            }
+          ]
+        },
+        {
+          "choose": 1,
+          "courses": [
+            {
+              "courseId": "ENG-210",
+              "title": "Introduction to Literature II",
+              "credits": 3
+            },
+            {
+              "courseId": "HUM-101",
+              "title": "Interdisciplinary Humanities",
+              "credits": 3
+            },
+            {
+              "courseId": "HUM-102",
+              "title": "Interdisciplinary Humanities",
+              "credits": 3
+            },
+            {
+              "courseId": "CMS-200",
+              "title": "Voice and Diction",
+              "credits": 3
+            },
+            {
+              "courseId": "CMS-205",
+              "title": "Public Speaking",
+              "credits": 3
+            },
+            {
+              "courseId": "PHL-201",
+              "title": "Logical Reasoning",
+              "credits": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "social-sciences",
+      "credits": 12,
+      "required": [
+        {
+          "courseId": "HIS-131",
+          "title": "World History",
+          "credits": 3
+        },
+        {
+          "courseId": "ECO-251",
+          "title": "Principles of Macroeconomics",
+          "credits": 3
+        },
+        {
+          "courseId": "ECO-252",
+          "title": "Principles of Microeconomics",
+          "credits": 3
+        }
+      ],
+      "choices": [
+        {
+          "choose": 1,
+          "courses": [
+            {
+              "courseId": "HIS-132",
+              "title": "World History",
+              "credits": 3
+            },
+            {
+              "courseId": "GEO-206",
+              "title": "World Geography",
+              "credits": 3
+            },
+            {
+              "courseId": "ANT-113",
+              "title": "Societies Around the World",
+              "credits": 3
+            },
+            {
+              "courseId": "POS-207",
+              "title": "American Government",
+              "credits": 3
+            },
+            {
+              "courseId": "PSY-251",
+              "title": "General Psychology",
+              "credits": 3
+            },
+            {
+              "courseId": "SOC-110",
+              "title": "Introduction to Sociology",
+              "credits": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "science-math",
+      "credits": 11,
+      "required": [
+        {
+          "courseId": "BIO-127",
+          "title": "General Biology",
+          "credits": 3
+        },
+        {
+          "courseId": "BIOL-127",
+          "title": "General Biology Lab",
+          "credits": 1
+        },
+        {
+          "courseId": "BIO-128",
+          "title": "General Biology",
+          "credits": 3
+        },
+        {
+          "courseId": "BIOL-128",
+          "title": "General Biology Lab",
+          "credits": 1
+        },
+        {
+          "courseId": "MAT-137",
+          "title": "Pre-Calculus Algebra",
+          "credits": 3
+        }
+      ],
+      "choices": []
+    },
+    {
+      "id": "pre-professional",
+      "credits": 19,
+      "required": [
+        {
+          "courseId": "CIS-205",
+          "title": "Introduction to CIS",
+          "credits": 3
+        },
+        {
+          "courseId": "ACT-214",
+          "title": "Principles of Financial Accounting",
+          "credits": 3
+        },
+        {
+          "courseId": "ACT-215",
+          "title": "Principles of Managerial Accounting",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-202",
+          "title": "Business Statistics I",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-252",
+          "title": "Business Statistics II",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-255",
+          "title": "Business Law/Legal",
+          "credits": 3
+        }
+      ],
+      "choices": [
+        {
+          "choose": 1,
+          "courses": [
+            {
+              "courseId": "PED-114",
+              "title": "Golf",
+              "credits": 1
+            },
+            {
+              "courseId": "PED-122",
+              "title": "Tennis",
+              "credits": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "business-core",
+      "credits": 27,
+      "required": [
+        {
+          "courseId": "MGT-201",
+          "title": "Business Orientation",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-206",
+          "title": "Business Programming Languages",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-204",
+          "title": "Business Communications",
+          "credits": 3
+        },
+        {
+          "courseId": "FIN-321",
+          "title": "Essentials of Managerial Finance",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-321",
+          "title": "Principles of Management",
+          "credits": 3
+        },
+        {
+          "courseId": "MKT-321",
+          "title": "Elements of Marketing",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-329",
+          "title": "Business Process Integration using SAP",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-422",
+          "title": "Production Management",
+          "credits": 3
+        },
+        {
+          "courseId": "MGT-462",
+          "title": "Business Policies",
+          "credits": 3
+        }
+      ],
+      "choices": []
+    },
+    {
+      "id": "major",
+      "credits": 24,
+      "required": [
+        {
+          "courseId": "CIS-302",
+          "title": "Internet Programming",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-300",
+          "title": "Programming in Python",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-310",
+          "title": "Networking Fundamentals",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-341",
+          "title": "Information Security",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-404",
+          "title": "Database Administration",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-410",
+          "title": "Systems Analysis",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-351",
+          "title": "Business Data Analytics",
+          "credits": 3
+        },
+        {
+          "courseId": "CIS-461",
+          "title": "Advanced Database Systems",
+          "credits": 3
+        }
+      ],
+      "choices": []
+    }
+  ],
+  "sequence": {
+    "choose": 1,
+    "alternatives": [
+      [
+        "HIS-131",
+        "HIS-132"
+      ],
+      [
+        "ENG-209",
+        "ENG-210"
+      ]
+    ],
+    "additionalCredits": 0,
+    "sourceRef": "departmental-guide"
+  },
+  "electives": {
+    "credits": 9,
+    "courseCount": 3,
+    "eligibleNamedCourses": [
+      "FIN-201"
+    ],
+    "eligibleCourseRule": "300/400-level COBA courses",
+    "legacyOnlyCourses": [
+      "PSY-251",
+      "FLS-161",
+      "MGT-220",
+      "MGT-203"
+    ],
+    "legacyEligibility": "unresolved",
+    "excludeRequiredCourses": true
+  },
+  "reportedPolicies": [
+    {
+      "id": "below-c-repeat",
+      "statement": "All grades below C must be repeated before graduation; labeled University Policy in guide.",
+      "printedStatus": "required",
+      "currentApplicability": "unverified"
+    },
+    {
+      "id": "reading-test",
+      "statement": "Minimum score of 13 on Nelson Denny Reading Test.",
+      "printedStatus": "suspended",
+      "currentApplicability": "unverified"
+    },
+    {
+      "id": "english-proficiency",
+      "statement": "English proficiency examination required to exit University College.",
+      "printedStatus": "suspended",
+      "currentApplicability": "unverified"
+    },
+    {
+      "id": "senior-comprehensive",
+      "statement": "Senior comprehensive examination required before graduation.",
+      "printedStatus": "suspended",
+      "currentApplicability": "unverified"
+    },
+    {
+      "id": "writing-competency",
+      "statement": "Baccalaureate writing competency test before senior status; passing required before degree application eligibility.",
+      "printedStatus": "suspended",
+      "currentApplicability": "unverified"
+    }
+  ],
+  "replacements": [
+    {
+      "oldCourseId": "CIS-304",
+      "newCourseId": "CIS-300",
+      "credits": 3,
+      "sourceRef": "user-departmental-update",
+      "formalEffectiveDate": null,
+      "historicalEquivalency": "unresolved"
+    },
+    {
+      "oldCourseId": "CIS-415",
+      "newCourseId": "CIS-351",
+      "credits": 3,
+      "sourceRef": "user-departmental-update",
+      "formalEffectiveDate": null,
+      "historicalEquivalency": "unresolved"
+    }
+  ],
+  "nonOfferingReports": [
+    {
+      "courseId": "CIS-304",
+      "sinceYear": 2023,
+      "scope": "undergraduate_cis_students",
+      "sourceRef": "user-departmental-update"
+    },
+    {
+      "courseId": "CIS-415",
+      "sinceYear": 2023,
+      "scope": "undergraduate_cis_students",
+      "sourceRef": "user-departmental-update"
+    }
+  ],
+  "unresolvedPolicies": [
+    "formal-catalog-applicability",
+    "historical-course-equivalency",
+    "substitution-authority",
+    "legacy-elective-eligibility",
+    "requirement-overlap-permissions",
+    "minimum-grade-current-applicability",
+    "suspended-requirements-current-applicability",
+    "repeat-credit-policy",
+    "transfer-policy",
+    "residency-and-gpa",
+    "prerequisite-corequisite-coverage",
+    "term-specific-offerings"
+  ],
+  "authoritativeGraduationConclusionsEnabled": false
+}

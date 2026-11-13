@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Private academic source material must stay outside the repository.
+/private-inputs/
+ASU_CIS_Curriculum_Guide.pdf
+playwright-report/
+test-results/
