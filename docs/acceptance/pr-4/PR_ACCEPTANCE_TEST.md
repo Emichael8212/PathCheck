@@ -7,8 +7,8 @@
 - Merged baseline: `2bb6b3f8e36039a243ea3af389380019256357b7` (human merge of PR #3)
 - Test type: real local PostgreSQL/REST security and persistence
 - Feature being verified: owner isolation, anonymous denial, revision conflicts, quota, recent-auth deletion and JSON integrity
-- Human acceptance status: **NOT RUN**. Agent passes do not satisfy this checkpoint.
-- Eligibility: local tools available; instructions ready after agent verification below.
+- Human acceptance status: **PASS (human-executed, 2026-11-13)** for the pinned baseline and PR head. SQL172 PASS; real REST1 PASS with1 expected configuration-guard skip.
+- Eligibility: human security acceptance complete; current-head CI, baseline freshness and required reviews remain separate merge gates.
 
 ## Before You Begin
 Git, Node24–26/npm, Python3, Colima, Docker CLI and Supabase CLI on macOS. Verified
@@ -184,3 +184,12 @@ networks must have the required loopback binding; mismatches stop instead of wea
 isolation. This preparation does not start services, reset databases, or execute
 SQL/REST acceptance. Prior agent SQL172/REST1 evidence remains historical; human
 acceptance remains NOT RUN until reported by the user.
+
+
+## Human result — 2026-11-13
+User completed setup, dedicated VM/network checks, localhost-only published-port
+inspection, local reset, SQL172/3files PASS and real REST owner-isolation/CAS/Save-as-new
+PASS (231ms;1passed/1configuration-guard skipped). These are human-supplied execution
+results, not an agent-run test. The test ran on main2bb6b3f plus PR4 head8d28602.
+Human manages screenshot evidence on GitHub. This does not certify production or
+pending OTP/browser/Gemini integration gates.

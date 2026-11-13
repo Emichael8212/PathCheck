@@ -424,3 +424,23 @@ shell syntax PASS. Independent merged lead `npm run check` PASS103units,lint/typ
 build and1foundation smoke (not a DB test). G static review caught a missing existing
 network validation assertion; corrected to require bridge+127.0.0.1 before startup.
 No human test outcome inferred. Preserved scratch and original branches/worktrees.
+
+
+### PR #4 human database-security acceptance PASS — 2026-11-13
+
+User personally ran all five stages on merged main2bb6b3f + S8d28602:
+checkout/dependency setup PASS; dedicated Colima/socket/network checks PASS;
+running containers expose only127.0.0.1:55431/55432/55434; reset followed by pgTAP
+**3files/172assertions PASS**; real REST **1PASS/1expected invalid-config guard skip**,
+owner isolation/CAS/Save-as-new case231ms. Docker server reported29.5.2 (host CLI29.9.3).
+Human acceptance for this exact candidate **PASS**. No agent test substituted for
+human execution; screenshots remain human-managed on GitHub. Local services may still
+be running; provide stop commands without deleting test worktrees or volumes.
+PR#4 merge readiness still requires current baseline/CI/review verification. No merge
+or deployment. Subsequent behavior changes require acceptance impact review.
+
+G independent development checkpoint: owner reports clean fbe9374 after incorporating
+main2bb6b3f, real pdf-lib inspector plus synthetic tests;115transcript tests and full
+218units/lint/typecheck/build/1smoke PASS reported. L static review pending before first
+draft PR. Runtime isolation/atomic store/gateway/provider benchmark/privacy gates remain
+blocked; no public processing or real-data authorization inferred.
