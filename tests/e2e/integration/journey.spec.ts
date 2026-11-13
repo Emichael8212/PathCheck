@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-async function start(page: Page, attempt = { status: 'Completed', grade: 'B', earned: '3' }) {
+async function start(page: Page, attempt = { status: 'Completed', grade: 'B', earned: '3' }, target = 'Fall 2027') {
   await page.goto('/tests/e2e/integration/index.html');
   await expect(page.getByTestId('screen-start')).toBeVisible();
   await page.keyboard.press('Tab');
@@ -10,7 +10,7 @@ async function start(page: Page, attempt = { status: 'Completed', grade: 'B', ea
   await expect(page.locator('#main-content')).toBeFocused();
   await page.getByLabel('University and program').selectOption({ index: 1 });
   await expect(page.getByTestId('catalog-summary')).toContainText('synthetic');
-  await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2027' });
+  await page.getByLabel('Target graduation term').selectOption({ label: target });
   await page.getByRole('button', { name: 'Continue as guest' }).click();
   await page.getByRole('button', { name: 'Add course attempt' }).click();
   const row = page.getByTestId('record-row').last();
@@ -169,5 +169,16 @@ for (const attempt of [{ status: 'Withdrawn', grade: 'W', earned: '3' }, { statu
   expect(current.analysis?.topFindings.some(f => f.code === 'prerequisite_unsatisfied')).toBe(false);
   expect(current.analysis?.evidenceGaps.some(f => f.courseIds.includes('SYN-201') && f.status.status === 'unresolved')).toBe(true);
   expect(current.analysis?.outlook.kind).not.toBe('conditional_path_found');
+  await expect(page.getByTestId('outlook')).toContainText(/unknown|insufficient|not enough/i);
+});
+
+for (const attempt of [{ status: 'Failed', grade: 'F', earned: '0' }, { status: 'Withdrawn', grade: 'W', earned: '0' }]) test(`completion search preserves unknown repeat credit after ${attempt.status}`, async ({ page }) => {
+  await start(page, attempt, 'Fall 2028');
+  const current = await page.evaluate(() => window.__integration);
+  expect(current.scenario?.plan.activePlacements).toEqual([]);
+  expect(current.scenario?.record.courseAttempts[0]?.confidence).not.toBe('unresolved');
+  expect(current.analysis?.outlook.kind).toBe('insufficient_evidence');
+  expect(JSON.stringify(current.analysis?.evidenceGaps)).toContain('repeat_policy_unresolved');
+  expect(current.analysis?.inputFingerprint).toBe(current.fingerprint);
   await expect(page.getByTestId('outlook')).toContainText(/unknown|insufficient|not enough/i);
 });
