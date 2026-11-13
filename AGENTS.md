@@ -144,3 +144,16 @@ If no material issue exists, proceed with implementation.
 ## Execution memory (implementation authorization 2026-11-12)
 
 Read IMPLEMENTATION_STATUS.md on session start/resume along with role specifications and verify assigned branch/head. L alone updates this single live ledger at integration checkpoints and before session end/handoff; feature agents report actual evidence through PRs. Authoritative decisions remain in original specs; reference approved changes from the ledger. Never commit credentials, original personal scans, student records or sensitive logs. User authorized Gate 0 implementation; see DECISIONS.md EXEC-003 and CAT-001–003 for the approved provisional curriculum and explicit uncertainties. This authorization supersedes historical planning-only wording for Gate 0; feature coding still awaits human baseline merge.
+
+## Human PR acceptance (authorized 2026-11-12)
+
+Every PR requires a reproducible `PR_ACCEPTANCE_TEST.md` (existing PRs are indexed
+under lead-owned `docs/acceptance/pr-N/`). Record exact implementation/dependency
+SHAs, prerequisites, commands, expected behavior, PASS/FAIL criteria, cleanup,
+limitations and human screenshot checkpoints. The lead verifies commands without
+capturing screenshots on the human's behalf. Human status starts NOT RUN; only the
+human's reported execution can establish PASS/FAIL. Blocked eligibility is recorded
+separately; agent tests never imply human PASS. Before recommending merge, require
+current automated checks, independent reviews, applicable security/correctness gates
+and human acceptance PASS. A behavior-changing commit invalidates prior acceptance
+pending impact review/retest. Human personally executes every GitHub merge.
