@@ -111,7 +111,7 @@ export function createPlannerCommands(academic: AcademicService, newId: () => st
       }
       const evidence = AvailabilityEvidenceSchema.parse(report);
       // This is the student intent port, not a catalog evidence ingestion channel.
-      if (evidence.sourceKind !== 'student_report' || evidence.observedAt !== action.occurredAt) return invalid('invalid_student_report_provenance');
+      if (evidence.sourceKind !== 'student_report') return invalid('invalid_student_report_provenance');
       const remaining = scenario.plan.availabilityEvidence.filter(e => e.courseId !== evidence.courseId || e.termId.sortIndex !== evidence.termId.sortIndex);
       return update(scenario, { ...scenario.plan, availabilityEvidence: [...remaining, evidence], availabilityRevision: scenario.plan.availabilityRevision + 1, planRevision: scenario.plan.planRevision + 1, updatedAt: action.occurredAt });
     }); },

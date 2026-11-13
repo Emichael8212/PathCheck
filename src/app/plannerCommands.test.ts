@@ -110,7 +110,8 @@ describe('explicit plan commands', () => {
     const skipped = commands.recordAvailability(s, { kind: 'skip', courseId: 'TEST-101', termId: s.plan.targetTerm }, action('availability'));
     expect(skipped).toMatchObject({ ok: true, value: { plan: s.plan } });
     const a = action('availability');
-    const report = { ...s.plan.availabilityEvidence[0]!, report: 'not_listed' as const, observedAt: a.occurredAt };
+    // Observation may precede the action that records it; preserve its actual provenance.
+    const report = { ...s.plan.availabilityEvidence[0]!, report: 'not_listed' as const };
     const result = commands.recordAvailability(s, report, a);
     expect(result).toMatchObject({ ok: true, value: { plan: { planRevision: 1, availabilityRevision: 1, availabilityEvidence: [report] } } });
     expect(commands.recordAvailability(s, { ...report, sourceKind: 'official_catalog' }, a)).toMatchObject({ ok: false });

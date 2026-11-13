@@ -12,7 +12,7 @@ On resume: read AGENTS.md, role-relevant specifications, this ledger, and assign
 
 | Role | Branch / worktree | Status |
 |---|---|---|
-| L | feat/integration-01 / ../pathcheck-lead | IN PROGRESS from de28a31846688f1d1a1a29eb8b2708571bf16301; foundation PR #2 MERGED |
+| L | feat/integration-01 / ../pathcheck-lead | IN PROGRESS from de28a31846688f1d1a1a29eb8b2708571bf16301; foundation PR #2 MERGED; draft PR https://github.com/Emichael8212/PathCheck/pull/3 |
 | E | feat/academic-engine / ../pathcheck-engine | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
 | U | feat/frontend-ux / ../pathcheck-frontend | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
 | S | feat/supabase / ../pathcheck-supabase | CREATED at de28a31846688f1d1a1a29eb8b2708571bf16301; implementation authorized |
@@ -110,3 +110,10 @@ Verification commands: `gh api repos/Emichael8212/PathCheck/rulesets/27097753`; 
 - PASS after reference guards/PDF dependency: `npm run check` (80 units/5 files, 1 Chromium, lint/typecheck/build) and `npm audit` (0 vulnerabilities). Dependency `pdf-lib` 1.17.1 is a candidate lead change, not yet available to feature branches. G/S private admission RPC and Edge module bundling remain integration design/verification dependencies; no endpoint deployed.
 
 - Latest L check PASS: `npm run check`, 83 unit tests / 5 files (24 command regression cases), lint/typecheck/build and 1 Chromium smoke. G independently reviewed L commands read-only: PASS, no blocking findings; reviewer ran no tests. Real E/U command integration still NOT RUN (trigger: E/U modules available). Preparing draft integration PR; no feature merge or deployment performed.
+
+### Lead draft PR checkpoint
+
+- Draft PR: https://github.com/Emichael8212/PathCheck/pull/3. Implementation SHA 5f4f8c8bff8d432b12d097b3475a1c18f208d284. Required foundation CI PASS: https://github.com/Emichael8212/PathCheck/actions/runs/43339875971 (83 units + 1 Chromium).
+- Follow-up: preserve a student report's observedAt independently of action.occurredAt; an earlier observation is valid. G reviewed the correction with no blocker. `npm run check` PASS again: 83 units / 5 files, lint/typecheck/build, 1 Chromium. Current follow-up CI is recorded in PR #3 after push.
+- E/U/S implementation sessions remain RUNNING in their assigned worktrees; code is incomplete/unreviewed and no test completion is inferred from files appearing. G is implementing and testing its independent module; parser/private RPC/live-provider integration remain pending. Resume by inspecting each worktree and active process before launching another writer.
+- Human approval/merge of the lead dependency PR is required before feature agents consume pdf-lib. Do not use main pushes or cross-branch dependency cherry-picks to bypass that checkpoint. Continue independent module work. No subsequent feature PR merged; no deployment.
