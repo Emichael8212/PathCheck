@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fingerprint, term } from '../../src/contracts';
 import type { AnalysisResult } from '../../src/contracts';
-import { buildPlanReport, createPdfExportService, exportFileName, exportPdfBytes, renderPdf } from '../../src/export';
+import { buildPlanReport, createPdfExportService, exportFileName, exportPdfBytes, renderPdf, reportConditions } from '../../src/export';
 import { encodeWinAnsi, wrap } from '../../src/export/pdfWriter';
 import { inspectPdf } from './pdfInspect';
 import { syntheticPlan, syntheticScenarioAndAnalysis } from '../fixtures/ui/scenarioFixtures';
@@ -54,10 +54,73 @@ describe('plan report contents', () => {
     expect(text).toContain('SYN 301 Synthetic Capstone (3 cr) — PathCheck suggestion (adopted)');
     expect(text).toContain('Listed — student-reported, unverified');
     expect(text).toContain('Not a seat or enrollment confirmation');
-    expect(text).toContain('XFR 100 (unmatched to catalog)');
+    expect(text).toContain('2 course attempts entered; 1 matched to the catalog.');
+    expect(text).toContain('1 not matched to the catalog; credit toward requirements is unresolved.');
+    expect(text).toContain('1 transfer or equivalency-pending; applicability is not assumed.');
+    expect(text).toContain('1 record item flagged for review in PathCheck.');
     expect(text).toContain('scenario assumption, not a university limit');
     expect(text).not.toContain('SECRET-GRADE-A');
     expect(text).not.toMatch(/guaranteed|graduation_guaranteed/i);
+  });
+
+  it('minimum-data policy: no transcript history, free text, identifiers or fingerprint in text, metadata or raw bytes', () => {
+    const base = syntheticPlan();
+    const plan = syntheticPlan({ availabilityEvidence: base.availabilityEvidence.map(e => ({ ...e, notes: 'SECRET-STUDENT-NOTE' })) });
+    const { scenario, analysis } = syntheticScenarioAndAnalysis({ plan });
+    const r = exportPdfBytes(scenario, analysis, AT);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const pdf = inspectPdf(r.value);
+    const text = flat(pdf.text);
+    const raw = new TextDecoder('latin1').decode(r.value);
+    const forbidden = [
+      'SECRET-GRADE-A', 'SECRET-STUDENT-NOTE', // grade and student free text
+      'XFR 100', 'Synthetic College', 'Spring 2026', // raw code, institution and term of attempts
+      'plan-1', 'draft-1', 'sr-1', 'unmatched-r2', 'Unmatched r2', // plan/draft/source/E-internal IDs
+      analysis.inputFingerprint, 'sha256', 'fingerprint',
+    ];
+    for (const value of forbidden) {
+      expect(text, value).not.toContain(value);
+      expect(raw, value).not.toContain(value);
+    }
+    expect(pdf.title).toBe('PathCheck conditional graduation plan');
+    expect(raw).not.toMatch(/\/(Author|Subject|Keywords)\b/);
+    expect(text).toContain('Grades, course-by-course history and transcript contents are intentionally omitted');
+  });
+
+  it('shows only the conditions that apply to the scenario', () => {
+    const { scenario, analysis } = syntheticScenarioAndAnalysis();
+    const synthetic = reportConditions(scenario, analysis).join('\n');
+    expect(synthetic).toContain('SYNTHETIC TEST DATA');
+    expect(synthetic).toContain('PathCheck suggestion (adopted)');
+    expect(synthetic).toContain('student-reported are unverified');
+    expect(synthetic).toContain('planning assumption, not a university limit');
+    expect(synthetic).toContain('assumed to be passed');
+    expect(synthetic).not.toContain('catalog year is unresolved');
+    expect(synthetic).not.toContain('after the last modeled term');
+
+    // Test-only variant (never exported through exportPdfBytes): a verified rule set, student load,
+    // only student selections, no offering reports and future passes not assumed -> no conditions.
+    const verified = {
+      ...scenario,
+      catalog: { ...scenario.catalog, approval: 'reviewed' as const, catalogRef: { ...scenario.catalog.catalogRef, ruleSetStatus: 'verified' as const } },
+      plan: { ...scenario.plan, acceptedDraft: null, availabilityEvidence: [], activePlacements: scenario.plan.activePlacements.map(p => ({ ...p, origin: 'student_selected' as const })) },
+      assumptions: { ...scenario.assumptions, assumeFuturePass: false, creditCapacity: scenario.assumptions.creditCapacity.map(c => ({ ...c, source: 'student' as const })) },
+    };
+    const plainAnalysis = { ...analysis, degreeAudit: { ...analysis.degreeAudit, requirements: analysis.degreeAudit.requirements.map(x => ({ ...x, conditional: false })) } };
+    expect(reportConditions(verified, plainAnalysis)).toEqual([]);
+    const blocks = buildPlanReport(verified, plainAnalysis, AT).blocks.map(b => b.text);
+    expect(blocks).not.toContain('Important conditions');
+
+    const beyond = { ...verified, plan: { ...verified.plan, targetTerm: term(2030, 'fall') } };
+    expect(reportConditions(beyond, plainAnalysis).join('\n')).toContain('after the last modeled term (Fall 2028)');
+  });
+
+  it('flags an unresolved catalog year and blocking policies as conditions', () => {
+    const { scenario, analysis } = syntheticScenarioAndAnalysis({ blockingGap: true });
+    const conditions = reportConditions(scenario, analysis).join('\n');
+    expect(conditions).toContain('governing catalog year is unresolved');
+    expect(conditions).toContain('1 unresolved academic policy blocks definitive conclusions');
   });
 
   it('labels an unconfirmed catalog year and blocking policy gaps', () => {

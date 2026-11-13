@@ -19,6 +19,7 @@ const harness = fakeServices({
   account: q.get('account') !== 'off',
   longTitles: q.get('long') === '1',
   blockingGap: q.get('gap') === '1',
+  clearFails: q.get('clear') === 'fail',
 });
 
 declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; savedPlanCount: () => number } } }

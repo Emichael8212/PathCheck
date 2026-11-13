@@ -58,6 +58,11 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
   }
 
   const say = (text: string) => setMessage(text);
+  // S reports failed device cleanup as a typed result; never claim a draft was removed when it was not.
+  const clearRecovery = (event: 'save' | 'sign_out' | 'cancel'): string => {
+    const r = guard(() => ports.recovery.clear(event), 'recovery_clear_failed');
+    return r.ok ? '' : ` The recovery draft on this device could not be removed: ${failureText(r)}`;
+  };
 
   async function requestOtp() {
     if (!ports) return;
@@ -86,8 +91,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     onSync('saving');
     const r = await guardAsync(() => ports.storage.createPlan(work.record, work.plan), 'save_failed');
     if (!r.ok) { onSync(r.code === 'conflict' ? 'conflict' : 'failed'); say(failureText(r)); return; }
-    guard(() => ports.recovery.clear('save'), 'recovery_clear_failed');
-    onSaved(r.value); say('Saved as a new plan.');
+    const cleanup = clearRecovery('save');
+    onSaved(r.value); say(`Saved as a new plan.${cleanup}`);
   }
 
   async function saveUpdate() {
@@ -95,8 +100,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     onSync('saving');
     const r = await guardAsync(() => ports.storage.savePlan(cloud.id, cloud.revision, work.record, work.plan), 'save_failed');
     if (!r.ok) { onSync(r.code === 'conflict' ? 'conflict' : 'failed'); say(failureText(r)); return; }
-    guard(() => ports.recovery.clear('save'), 'recovery_clear_failed');
-    onSaved(r.value); say('Changes saved.');
+    const cleanup = clearRecovery('save');
+    onSaved(r.value); say(`Changes saved.${cleanup}`);
   }
 
   async function listPlans() {
@@ -126,8 +131,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     if (!ports) return;
     const r = await guardAsync(() => ports.auth.signOut(), 'sign_out_failed');
     if (!r.ok) { say(failureText(r)); return; }
-    guard(() => ports.recovery.clear('sign_out'), 'recovery_clear_failed');
-    setUser(null); setPlans(null); onSignedOut(); say('Signed out. Recovery drafts were cleared.');
+    const cleanup = clearRecovery('sign_out');
+    setUser(null); setPlans(null); onSignedOut(); say(cleanup ? `Signed out.${cleanup}` : 'Signed out. Recovery drafts were cleared.');
   }
 
   async function deleteAccount() {
@@ -136,8 +141,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     setConfirm(null);
     const r = await guardAsync(() => ports.storage.deleteAccount(), 'delete_account_failed');
     if (!r.ok) { say(failureText(r)); return; }
-    guard(() => ports.recovery.clear('sign_out'), 'recovery_clear_failed');
-    setUser(null); setPlans(null); onSignedOut(); say('Account deletion requested.');
+    const cleanup = clearRecovery('sign_out');
+    setUser(null); setPlans(null); onSignedOut(); say(`Account deletion requested.${cleanup}`);
   }
 
   const menuLabel = user ? SYNC_SHORT[sync] : 'Guest, not saved';
@@ -169,7 +174,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
               </div>
               <div className="button-row">
                 <button type="submit" disabled={otp.trim().length === 0}>Verify code</button>
-                <button type="button" className="secondary" onClick={() => { setStage('idle'); guard(() => ports.recovery.clear('cancel'), 'recovery_clear_failed'); say('Sign-in cancelled. Your guest work is unchanged.'); }}>Cancel</button>
+                <button type="button" className="secondary" onClick={() => { setStage('idle'); say(`Sign-in cancelled. Your guest work is unchanged.${clearRecovery('cancel')}`); }}>Cancel</button>
               </div>
             </form>
           )}
@@ -215,7 +220,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
           <p>A guest draft from <time dateTime={recovered.createdAt}>{formatTimestamp(recovered.createdAt)}</time> was recovered on this device.</p>
           <div className="button-row">
             <button type="button" onClick={() => { onRestoreDraft(recovered); setRecovered(null); say('Draft restored.'); }}>Restore draft</button>
-            <button type="button" className="secondary" onClick={() => { guard(() => ports.recovery.clear('cancel'), 'recovery_clear_failed'); setRecovered(null); say('Recovered draft discarded.'); }}>Discard</button>
+            <button type="button" className="secondary" onClick={() => { const cleanup = clearRecovery('cancel'); setRecovered(null); say(cleanup ? `Recovered draft hidden.${cleanup}` : 'Recovered draft discarded.'); }}>Discard</button>
           </div>
         </div>
       )}

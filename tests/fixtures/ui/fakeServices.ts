@@ -243,7 +243,7 @@ export function fakeCommands(academic: AcademicService, clock: { newId(p: string
   return Object.freeze(commands);
 }
 
-export function fakeAccount(options: { conflictOnSave?: boolean } = {}) {
+export function fakeAccount(options: { conflictOnSave?: boolean; clearFails?: boolean } = {}) {
   let user: { userId: string } | null = null;
   const rows = new Map<string, SavedPlan>();
   let seq = 0;
@@ -279,7 +279,8 @@ export function fakeAccount(options: { conflictOnSave?: boolean } = {}) {
   const recovery: GuestRecoveryService = {
     stash: draft => { stashed = draft; return ok(null); },
     recover: now => (stashed && Date.parse(now) < Date.parse(stashed.expiresAt) ? ok(stashed) : ok(null)),
-    clear: event => { clears.push(event); stashed = null; return ok(null); },
+    // clearFails mirrors S's typed failure when device storage removal throws; the draft stays.
+    clear: event => { clears.push(event); if (options.clearFails) return fail('external_failure', 'recovery_remove_failed'); stashed = null; return ok(null); },
   };
   return { ports: Object.freeze({ auth, storage, recovery }), inspect: { rows, clears, stashed: () => stashed } };
 }
@@ -306,11 +307,11 @@ export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls
   });
 }
 
-export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; account?: boolean; conflictOnSave?: boolean } = {}) {
+export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean } = {}) {
   const clock = fakeClock();
   const academic = fakeAcademic([syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })], { draft: options.draft ?? 'ok' });
   const transcriptCalls: string[] = [];
-  const account = options.account === false ? null : fakeAccount({ conflictOnSave: options.conflictOnSave ?? false });
+  const account = options.account === false ? null : fakeAccount({ conflictOnSave: options.conflictOnSave ?? false, clearFails: options.clearFails ?? false });
   const services: WorkflowServices = Object.freeze({
     academic,
     commands: fakeCommands(academic, clock),

@@ -51,8 +51,10 @@ function AddCourse({ catalog, terms, busy, onAdd }: { catalog: CatalogModel; ter
   const courseId = useId(), termId = useId();
   const courses = Object.values(catalog.courses).sort((a, b) => a.courseId.localeCompare(b.courseId));
   const [course, setCourse] = useState('');
-  const [term, setTerm] = useState(terms[0] ? termKey(terms[0]) : '');
-  const t = terms.find(x => termKey(x) === term);
+  const [chosenTerm, setTerm] = useState(terms[0] ? termKey(terms[0]) : '');
+  // A remembered term can leave the modeled horizon; use the option the select displays.
+  const t = terms.find(x => termKey(x) === chosenTerm) ?? terms[0];
+  const term = t ? termKey(t) : '';
   return (
     <form className="add-course" aria-label="Add a course to your plan" data-testid="add-course" onSubmit={e => { e.preventDefault(); if (course && t) { onAdd(course, t); setCourse(''); } }}>
       <div className="field"><label htmlFor={courseId}>Course</label>

@@ -19,9 +19,12 @@ function CreditText({ credits }: { credits: number | null }) {
 function PlacementCard({ placement, catalog, terms, evidence, highlighted, busy, handlers }: { placement: PlanPlacement; catalog: CatalogModel; terms: TermId[]; evidence: AvailabilityEvidence | undefined; highlighted: boolean; busy: boolean; handlers: TimelineHandlers }) {
   const moveId = useId();
   const others = terms.filter(t => t.sortIndex !== placement.termId.sortIndex);
-  const [to, setTo] = useState(others[0] ? termKey(others[0]) : '');
+  const [chosen, setTo] = useState(others[0] ? termKey(others[0]) : '');
+  // If the horizon changes (e.g. summer toggled), a remembered choice can vanish from the
+  // options; fall back to what the select actually shows, never to the current term.
+  const target = others.find(t => termKey(t) === chosen) ?? others[0] ?? null;
+  const to = target ? termKey(target) : '';
   const course = catalog.courses[placement.courseId];
-  const target = terms.find(t => termKey(t) === to) ?? null;
   const code = courseCode(catalog, placement.courseId);
   return (
     <li className={`placement origin-${placement.origin}${highlighted ? ' highlighted' : ''}`} data-course={placement.courseId} data-origin={placement.origin} data-testid="placement" tabIndex={-1}>

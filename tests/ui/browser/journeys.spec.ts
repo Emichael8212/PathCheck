@@ -3,6 +3,7 @@
 // academic-correctness claim and are not the lead's integrated E2E with the real engine.
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { inspectPdf } from '../pdfInspect';
 import { SHOTS, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectTouchTargets, open, startGuest, termCard, toPlanner } from './helpers';
 
 test.describe('shell and keyboard basics', () => {
@@ -220,8 +221,44 @@ test.describe('selected-courses journey', () => {
     expect(download.suggestedFilename()).toMatch(/^pathcheck-plan-\d{4}-\d{2}-\d{2}\.pdf$/);
     const bytes = await readFile((await download.path())!);
     expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
-    expect(bytes.toString('latin1')).toContain('SYN 201 Synthetic Systems');
-    expect(bytes.toString('latin1')).toMatch(/%%EOF\s*$/);
+    // Independent structural check + text extraction of the actual downloaded bytes.
+    const pdf = inspectPdf(new Uint8Array(bytes));
+    const text = pdf.text.replace(/\s+/g, ' ');
+    expect(pdf.pageCount).toBeGreaterThanOrEqual(1);
+    expect(text).toContain('SYN 201 Synthetic Systems (3 cr) — Student-selected');
+    expect(text).toContain('Important conditions');
+    expect(text).toContain('SYNTHETIC TEST DATA');
+    expect(text).toContain('1 course attempt entered; 1 matched to the catalog.');
+    // Minimum data: the entered attempt's term and the scenario hash are not exported.
+    expect(text).not.toContain('Fall 2026');
+    expect(bytes.toString('latin1')).not.toContain('scenario-v1:sha256');
+    await expect(page.getByTestId('notice-status')).toContainText('PDF exported with your active plan only');
+  });
+
+  test('a horizon change never leaves Move or Add course pointing at a vanished term', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await page.getByTestId('assumptions').locator('summary').click();
+    await page.getByLabel(/Model summer terms/).check();
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    const card = termCard(page, 'Spring 2027').getByTestId('placement').filter({ hasText: 'SYN 201' });
+    await card.getByText('Edit', { exact: true }).click();
+    const moveTo = card.getByLabel('Move SYN 201 to');
+    await moveTo.selectOption({ label: 'Summer 2027' });
+    const addTerm = page.getByTestId('add-course').getByLabel('Term');
+    await addTerm.selectOption({ label: 'Summer 2027' });
+    await page.getByLabel(/Model summer terms/).uncheck();
+    // The selects fall back to their first remaining option, and the actions follow what is shown.
+    await expect(moveTo).toHaveValue(await moveTo.locator('option').first().getAttribute('value') ?? '');
+    await expect(addTerm).toHaveValue(await addTerm.locator('option').first().getAttribute('value') ?? '');
+    const shown = (await moveTo.locator('option:checked').textContent())!;
+    const move = card.getByRole('button', { name: 'Move', exact: true });
+    await expect(move).toBeEnabled();
+    await move.click();
+    await expect(page.getByTestId('notice-status')).toContainText('Course moved');
+    await expect(termCard(page, shown).getByTestId('placement')).toContainText('SYN 201');
   });
 
   test('account menu: Save as new after OTP, Escape closes and restores focus', async ({ page }) => {
@@ -243,6 +280,21 @@ test.describe('selected-courses journey', () => {
     await page.keyboard.press('Escape');
     await expect(summary).toBeFocused();
     await expect(page.locator('.account-menu')).not.toHaveAttribute('open', '');
+  });
+
+  test('a failed recovery-draft removal is reported, never claimed as cleared', async ({ page }) => {
+    await open(page, 'clear=fail');
+    await startGuest(page);
+    const summary = page.getByTestId('account-summary');
+    await summary.click();
+    await page.getByLabel('Email').fill('student@example.test');
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    await page.getByLabel('One-time code').fill('123456');
+    await page.getByRole('button', { name: 'Verify code' }).click();
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    const message = page.getByTestId('account-panel').locator('.account-message');
+    await expect(message).toContainText('Signed out. The recovery draft on this device could not be removed');
+    await expect(message).not.toContainText('were cleared');
   });
 });
 
