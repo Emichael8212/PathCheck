@@ -340,7 +340,7 @@ checkout are preserved.
 
 | Workstream | Current human state / dependency | Next owner action and trigger |
 | --- | --- | --- |
-| PR#3 L | NOT RUN renewed flow; historical PASS retained, screenshots not received | Updated pinned guide; human repeats acceptance and captures Apply/Undo. Human alone merges after checks. |
+| PR#3 L | PASS renewed flow (user-reported); screenshots not received | Collect human Apply/Undo evidence. Human alone merges after checks. |
 | PR#4 S | NOT RUN; previous live SQL172/REST1 PASS at unchanged8d28602, not rerun this session | Human local security acceptance; L/S/U I3 real OTP/recovery/cloud composition still pending. |
 | PR#5 E | NOT RUN; T-ENG-5 remains BLOCKED by human PR#3 merge | Consume scoped repeat contract only after main merge; implement positive sourced synthetic policy, regression/review. No invented ASU policy. |
 | PR#6 U | NOT RUN; new flow integrated, final PDF replacement BLOCKED by human PR#3 merge | Consume pdf-lib after merge, actual-byte/download gates and independent review; human acceptance guide repinned. |
@@ -362,3 +362,17 @@ including the exact documented manual journey. Both updated guides' shell blocks
 pass `zsh -n`. All five feature branches share main merge-base de28a31; E/U/S/G
 worktrees are clean. GitHub PR#3 has no review threads or change-request reviews;
 CLI independent review is tracked separately from GitHub reviews.
+
+
+### Renewed human PR #3 result — 2026-11-13
+
+User reported **PASS** for the assigned Accept and continue / prerequisite / Apply /
+Undo acceptance scenario, pinned L37c2f0a + E645111c/Uf413d18/S8d28602.
+Current PR head2bef30b differs only by acceptance documentation; required foundation
+CI PASS ([run43388215286](https://github.com/Emichael8212/PathCheck/actions/runs/43388215286)).
+Feature heads remain unchanged. Required user-captured Apply/Undo screenshots have
+not been supplied or linked; evidence collection remains pending. Do not infer merge
+authorization or a human result for PR#4/#5/#6. PR#4's unchanged local SQL/REST guide
+is the next eligible human test. This update is documentation-only; its own CI must
+pass before any merge recommendation. No code changes, merge, deployment or cleanup
+of the user's checkouts.
