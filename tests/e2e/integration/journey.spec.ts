@@ -20,11 +20,16 @@ async function start(page: Page, attempt = { status: 'Completed', grade: 'B', ea
   await row.getByLabel('Attempted credits').fill('3');
   await row.getByLabel('Earned credits').fill(attempt.earned);
   await row.getByLabel('Grade (optional)', { exact: true }).fill(attempt.grade);
-  await page.getByRole('button', { name: 'Review record' }).click();
-  await expect(page.getByTestId('proposed-record')).toBeVisible();
-  await page.getByRole('button', { name: 'Accept this record' }).click();
+  await expect(page.getByTestId('record-summary')).toContainText('1 course checked');
+  expect(await page.evaluate(() => window.__integration.acceptanceCalls)).toBe(0);
+  await page.getByRole('button', { name: 'Accept and continue' }).click();
   await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
-  await page.getByRole('button', { name: 'Continue to planner' }).click();
+  await expect(page.getByTestId('screen-planner')).toBeVisible();
+  const accepted = await page.evaluate(() => window.__integration.scenario?.record);
+  const acceptance = await page.evaluate(() => window.__integration);
+  expect(acceptance.acceptanceCalls).toBe(1);
+  expect(accepted?.recordRevision).toBe(acceptance.acceptedFromRevision! + 1);
+  expect(accepted?.courseAttempts).toHaveLength(1);
   await page.getByRole('button', { name: /I already selected courses/ }).click();
 }
 async function add(page: Page, code: string, term: string) {
@@ -38,7 +43,7 @@ test('real normalization, prerequisite recommendation, preview, apply and undo',
   await start(page);
   await add(page, 'SYN-201', 'Spring 2027');
   await add(page, 'SYN-301', 'Spring 2027');
-  await expect(page.getByTestId('issues')).toContainText('Prerequisite');
+  await expect(page.getByTestId('issues')).toContainText(/prerequisite/i);
   const initial = await page.evaluate(() => window.__integration);
   expect(initial.analysis?.topFindings.some(f => f.code === 'prerequisite_unsatisfied')).toBe(true);
   expect(initial.scenario?.record.courseAttempts[0]?.normalizedCourseId).toBe('SYN-101');
@@ -61,7 +66,7 @@ test('real normalization, prerequisite recommendation, preview, apply and undo',
   const undone = await page.evaluate(() => window.__integration);
   expect(undone.scenario?.plan.activePlacements).toEqual(initial.scenario?.plan.activePlacements);
   expect(undone.scenario?.plan.planRevision).toBe(applied.scenario!.plan.planRevision + 1);
-  await expect(page.getByTestId('issues')).toContainText('Prerequisite');
+  await expect(page.getByTestId('issues')).toContainText(/prerequisite/i);
   expect(undone.analysis?.inputFingerprint).toBe(undone.fingerprint);
 });
 
@@ -180,4 +185,35 @@ for (const attempt of [{ status: 'Failed', grade: 'F', earned: '0' }, { status: 
   expect(JSON.stringify(current.analysis?.evidenceGaps)).toContain('repeat_policy_unresolved');
   expect(current.analysis?.inputFingerprint).toBe(current.fingerprint);
   await expect(page.getByTestId('outlook')).toContainText(/unknown|insufficient|not enough/i);
+});
+
+
+test('incomplete record blocks acceptance, focuses the error and preserves the active record', async ({ page }) => {
+  await page.goto('/tests/e2e/integration/index.html');
+  await page.getByLabel('University and program').selectOption({ index: 1 });
+  await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2027' });
+  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Add course attempt' }).click();
+  await page.getByLabel('Course code').fill('SYN 101');
+  await expect(page.getByTestId('record-summary')).toContainText('needs a status');
+  const accept = page.getByRole('button', { name: 'Accept and continue' });
+  await expect(accept).toHaveAttribute('aria-disabled', 'true');
+  // aria-disabled remains focusable/clickable so the UI can reveal and focus the error.
+  await accept.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('notice-alert')).toContainText('need corrections');
+  await expect(page.getByLabel('Status', { exact: true })).toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Academic record', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.__integration.acceptanceCalls)).toBe(0);
+  await page.getByLabel('Status', { exact: true }).selectOption({ label: 'In progress' });
+  await expect(page.getByTestId('record-summary')).toContainText('1 course checked');
+  await accept.click();
+  await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
+  await page.getByRole('button', { name: /I already selected courses/ }).click();
+  const accepted = await page.evaluate(() => window.__integration);
+  expect(accepted.acceptanceCalls).toBe(1);
+  expect(accepted.scenario?.record.recordRevision).toBe(accepted.acceptedFromRevision! + 1);
+  expect(accepted.scenario?.record.courseAttempts[0]?.status).toBe('in_progress');
+  expect(accepted.analysis?.outlook.kind).not.toBe('conditional_path_found');
+  expect(accepted.analysis?.inputFingerprint).toBe(accepted.fingerprint);
 });

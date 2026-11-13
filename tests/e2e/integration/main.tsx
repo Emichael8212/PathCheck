@@ -20,18 +20,26 @@ const catalog = CatalogModelSchema.parse({
   requirementGroups: [{ ...base, requirementId: 'root', kind: 'all', requirementIds: ['intro', 'middle', 'advanced', 'total'] }, ...['intro', 'middle', 'advanced'].map((id, i) => ({ ...base, requirementId: id, kind: 'course', courseId: ['SYN-101', 'SYN-201', 'SYN-301'][i] })), { ...base, requirementId: 'total', kind: 'total_degree_credits', minimum: 9 }],
   rootRequirementId: 'root', equivalencies: [], gradeScale: { ordered: ['A', 'B', 'C', 'D', 'F'], sourceRefs: [source.sourceId] }, policyGaps: [], validationResults: [],
 });
-declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number } } }
-window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0 };
+declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number; acceptanceCalls: number; acceptedFromRevision: number | null } } }
+window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0, acceptanceCalls: 0, acceptedFromRevision: null };
 const realAcademic = engine.createAcademicService(engine.createCatalogRegistry([catalog]));
 const academic: AcademicService = {
   ...realAcademic,
   evaluate: scenario => {
     const result = realAcademic.evaluate(scenario);
-    window.__integration = { scenario, analysis: result.ok ? result.value : null, fingerprint: fingerprint(scenario), evaluations: window.__integration.evaluations + 1 };
+    window.__integration = { ...window.__integration, scenario, analysis: result.ok ? result.value : null, fingerprint: fingerprint(scenario), evaluations: window.__integration.evaluations + 1 };
     return result;
   },
 };
 let id = 0;
-const services = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
+const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
+const services = Object.freeze({ ...realServices, commands: Object.freeze({
+  ...realServices.commands,
+  acceptRecord: ((...args) => {
+    window.__integration.acceptanceCalls += 1;
+    window.__integration.acceptedFromRevision = args[0].record.recordRevision;
+    return realServices.commands.acceptRecord(...args);
+  }) as typeof realServices.commands.acceptRecord,
+}) });
 const ui = await load('/src/screens/index.ts') as { PathCheckWorkflow: ComponentType<{ services: typeof services }> };
 createRoot(document.getElementById('root')!).render(createElement(ui.PathCheckWorkflow, { services }));

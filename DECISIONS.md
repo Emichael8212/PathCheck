@@ -92,3 +92,19 @@ User directs Apple-inspired typographic hierarchy, whitespace and restrained sur
 Implementation direction: system-ui; body16px/course14–15px/secondary13px/title28–32px; semibold headings and tabular credits. Base colors: canvas #F7F8FA, surface #FFFFFF, text #18212B, secondary #52606D, divider #DCE1E7, action #2457C5. Validate contrast, with stronger control borders as needed. Spacing4/8/12/16/24/32/48px; 44px touch targets; modest radii and visible focus. Compact navigation → outlook/issues → dominant semester timeline; mobile expanded semester groups. Preview shows exact course/term changes, prerequisite effects and uncertainties. No academic records or tokens in URLs; use only clearly synthetic student data in screenshots and visual fixtures.
 
 **UX-006 implementation priority clarification:** The user explicitly prioritizes desktop/laptop React web usability and integration readiness. Retain basic responsive behavior and existing small-screen regressions; no native mobile framework, mobile architecture, or further mobile-specific feature scope.
+
+
+### UX-006 record-flow and workspace amendment — 2026-11-13
+
+The user-approved frontend handoff (`tests/ui/LEAD_CHANGE_REQUEST.md` at U
+f413d189f93b4cd9de4821b4b0118120b57d245b) records a macOS-inspired workspace:
+restrained glass only on functional controls, opaque academic content, accessibility
+fallbacks, system fonts, light theme, desktop 40px controls and 44px below 1024px.
+A full-width semester list and one inspector remain the primary planner layout.
+Automatic E normalization checks draft rows; one explicit **Accept and continue**
+invokes L's existing `acceptRecord` / `accept_record` command before navigation.
+Automatic matching never accepts the record. Catalog provenance stays visible.
+Previews show both affected semesters and finding changes; they do not invent a
+projected outlook absent from CandidatePreview. Plain wording maps engine codes
+without reproducing academic logic. No shared contracts, academic policies, or
+mutation ownership change. This records the approved U handoff, not a new redesign.
