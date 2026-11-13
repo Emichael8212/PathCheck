@@ -24,8 +24,12 @@ export type SendOutcome =
   | { kind: 'read_failed' }
   | { kind: 'not_pdf' }
   | { kind: 'failed'; failure: TypedFailure; receipt: string | null }
-  | { kind: 'rejected'; extraction: TranscriptExtraction; receipt: string }
-  | { kind: 'invalid'; extraction: TranscriptExtraction; failure: TypedFailure; receipt: string }
+  /**
+   * `rejected` and `invalid` deliberately carry no extraction: the raw provider envelope was not
+   * confirmed by G, so its rows, acceptance status and completeness claim must never reach the screen.
+   */
+  | { kind: 'rejected'; receipt: string }
+  | { kind: 'invalid'; failure: TypedFailure; receipt: string }
   /** `extraction` is `rows.extraction` (G's validated envelope), never the raw extract response. */
   | { kind: 'validated'; extraction: TranscriptExtraction; rows: ValidatedExtractedRows; receipt: string };
 
@@ -85,9 +89,11 @@ export function startTranscriptSend(input: SendInput): SendRun {
     wipe();
     if (cancelled) return stop();
     if (!extracted.ok) return { kind: 'failed', failure: extracted, receipt: issued };
-    if (extracted.value.acceptanceStatus === 'rejected') return { kind: 'rejected', extraction: extracted.value, receipt: issued };
+    if (extracted.value.acceptanceStatus === 'rejected') return { kind: 'rejected', receipt: issued };
     const validated = guard(() => ports.validate(extracted.value, input.catalog), 'validation_failed');
-    if (!validated.ok) return { kind: 'invalid', extraction: extracted.value, failure: validated, receipt: issued };
+    if (!validated.ok) return { kind: 'invalid', failure: validated, receipt: issued };
+    // G may itself reject the envelope; rejected rows are never handed on (normalization refuses them too).
+    if (validated.value.extraction.acceptanceStatus === 'rejected') return { kind: 'rejected', receipt: issued };
     // The summary must describe what G validated, not the raw provider envelope: G may downgrade
     // acceptance/completeness or add row uncertainty, and the raw optimistic values must not be shown.
     return { kind: 'validated', extraction: validated.value.extraction, rows: validated.value, receipt: issued };

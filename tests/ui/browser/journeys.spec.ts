@@ -226,6 +226,46 @@ test.describe('academic record screen', () => {
     await expect(summary.getByRole('table', { name: /Rows that need a look/ })).toContainText('Credits unverified');
   });
 
+  for (const [flags, alert] of [
+    // Raw extract claims accepted + completeness demonstrated; G refuses it with a validation error.
+    ['validate=fail', /could not be verified, so nothing from them is shown or added.*provenance_mismatch/],
+    // Raw extract says rejected; its rows are not shown either.
+    ['', /could not be read reliably, so nothing from it is shown or added/],
+  ] as const) {
+    const name = flags ? 'a G validation failure on an optimistic raw envelope' : 'a rejected raw envelope';
+    test(`${name} shows no summary or rows, adds nothing, and leaves retry and manual entry working`, async ({ page }) => {
+      await open(page, flags ? `transcript=approved&${flags}` : 'transcript=rejected');
+      await startGuest(page);
+      await sendSynthetic(page, false);
+      const panel = page.getByTestId('transcript-panel');
+      await expect(panel.getByRole('alert')).toHaveText(alert);
+      await expect(panel.getByRole('alert')).toContainText('Enter your courses manually, or choose the PDF again to retry.');
+      // No untrusted badge, completeness claim, count or row anywhere on the screen.
+      await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
+      await expect(page.getByTestId('extraction-next')).toHaveCount(0);
+      await expect(panel).not.toContainText(/Accepted|Rejected|demonstrated|proposed row|need a look|SYN 101|ZZZ 999/);
+      await expect(panel.getByRole('table')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /Show all proposed rows|Review \d+ uncertain/ })).toHaveCount(0);
+      // Nothing entered the record.
+      await expect(page.getByTestId('extraction-included')).toHaveCount(0);
+      await expect(page.getByTestId('record-row')).toHaveCount(0);
+      await expect(page.getByTestId('record-summary')).toHaveText('Your record is empty.');
+      // Retry path: the upload form is open again; a new file can be chosen and sent.
+      await expect(page.getByLabel(/Transcript PDF/)).toBeEnabled();
+      await expect(page.getByRole('button', { name: 'Send for extraction' })).toBeDisabled();
+      await page.getByLabel(/Transcript PDF/).setInputFiles({ name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic test document') });
+      await expect(page.getByRole('button', { name: 'Send for extraction' })).toBeEnabled();
+      // Consent for the failed upload can still be withdrawn.
+      await expect(page.getByRole('button', { name: 'Withdraw consent', exact: true })).toBeVisible();
+      // Manual entry still works and is the only content accepted.
+      await fillAttempt(page, 'SYN 202');
+      await expect(page.getByTestId('record-summary')).toContainText('1 course checked');
+      await page.getByRole('button', { name: 'Accept and continue' }).click();
+      await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
+      expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'extract']);
+    });
+  }
+
   for (const late of ['success', 'failure'] as const) {
     test(`a late revoke ${late} for upload A leaves the receipt of upload B untouched`, async ({ page }) => {
       await open(page, `transcript=approved&hold=revoke${late === 'failure' ? '&revokefail=receipt-1' : ''}`);

@@ -96,6 +96,22 @@ describe('transcript send: failures fall back to manual and always wipe the PDF 
     await expect(startTranscriptSend({ ports: invalid.ports, file: syntheticFile().file, disclosureVersion: 'v1', catalog }).done).resolves.toMatchObject({ kind: 'invalid', failure: { reasonCode: 'validation_failed' } });
   });
 
+  it('a validation failure on an optimistic raw envelope carries no rows, status or completeness to display', async () => {
+    const raw = optimisticRawExtraction();
+    expect([raw.acceptanceStatus, raw.completeness]).toEqual(['accepted', 'demonstrated']); // precondition
+    const { ports: p } = ports({ extract: async () => ok(raw), validate: () => ({ ok: false, code: 'validation_error', reasonCode: 'provenance_mismatch' }) });
+    const outcome = await startTranscriptSend({ ports: p, file: syntheticFile().file, disclosureVersion: 'v1', catalog }).done;
+    expect(outcome).toEqual({ kind: 'invalid', failure: { ok: false, code: 'validation_error', reasonCode: 'provenance_mismatch' }, receipt: 'receipt-1' });
+    expect(JSON.stringify(outcome)).not.toMatch(/accepted|demonstrated|SYN 101|rows/);
+  });
+
+  it('a raw rejected envelope, or one G itself marks rejected, is reported without its rows', async () => {
+    const raw = ports({ extract: async () => ok(syntheticExtraction('rejected')) });
+    await expect(startTranscriptSend({ ports: raw.ports, file: syntheticFile().file, disclosureVersion: 'v1', catalog }).done).resolves.toEqual({ kind: 'rejected', receipt: 'receipt-1' });
+    const byG = ports({ validate: e => ok({ kind: 'validated_proposed_rows', extraction: { ...e, acceptanceStatus: 'rejected' } } as unknown as ValidatedExtractedRows) });
+    await expect(startTranscriptSend({ ports: byG.ports, file: syntheticFile().file, disclosureVersion: 'v1', catalog }).done).resolves.toEqual({ kind: 'rejected', receipt: 'receipt-1' });
+  });
+
   it('success sends the real bytes once, binds the digest, validates, then zeroes', async () => {
     const f = syntheticFile();
     let ticketRequest: unknown = null;

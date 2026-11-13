@@ -115,7 +115,13 @@ These fixes were found in an independent review of `0f1f258`. Immediate revoke w
   - `npm run test:e2e` PASS 1.
   
   Screenshots were not captured. No human acceptance is claimed.
-- **Observation (not changed):** for an `invalid` outcome (G validation failed), the summary still renders the raw envelope next to the validation-failure alert. It never enters the record. It could, however, display a raw "Accepted"/"demonstrated" claim. A suggested follow-up is to hide those claims when validation fails.
+- **Observation (fixed in the next change, see section 8):** for an `invalid` outcome (G validation failed), the summary still rendered the raw envelope next to the validation-failure alert.
+
+## 8. Fail closed on validation failure (2026-11-13), U-owned fix
+
+- `SendOutcome` `invalid` and `rejected` no longer carry any extraction, so the panel cannot render an unconfirmed envelope. An envelope that G itself marks `rejected` is also reported as `rejected`, without rows.
+- In these cases the panel shows no summary, no status badge, no completeness claim, no counts and no row tables. It shows one alert: nothing is shown or added, enter courses manually or choose the PDF again to retry. The upload form stays open for a retry, and "Withdraw consent" is still offered. `onValidated` is not called, so the record is unchanged.
+- Regressions: 2 unit tests (an optimistic raw envelope plus a validation error; raw rejected or G-rejected) and 2 browser tests (`validate=fail` and `transcript=rejected`). Both browser tests assert that there is no summary, no Accepted/Rejected/demonstrated text, no rows or tables, an empty record, that retry re-enables Send, and that manual entry plus Accept and continue still work. All 4 fail against `866f291` source. The browser tests also fail on `extraction-summary` visible when the wording assertions are removed.
 
 ## Contract conflicts
 

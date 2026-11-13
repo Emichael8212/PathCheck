@@ -12,6 +12,7 @@ type Phase = 'idle' | 'checking' | 'ready' | 'sending' | 'done';
 type RowView = 'none' | 'uncertain' | 'all';
 
 const MANUAL = 'Please enter your courses manually.';
+const RETRY = 'Enter your courses manually, or choose the PDF again to retry.';
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
 function RowsTable({ rows, caption }: { rows: ProposedRow[]; caption: string }) {
@@ -124,8 +125,10 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
       case 'read_failed': setFileError('This file could not be read. Nothing was sent.'); setError('The transcript could not be read. Choose the file again or enter your courses manually.'); setPhase('ready'); return;
       case 'not_pdf': setFileError('This file is not a valid PDF. Nothing was sent.'); setPhase('ready'); return;
       case 'failed': setError(`${failureText(o.failure)} ${MANUAL}`); setPhase('ready'); return;
-      case 'rejected': setExtraction(o.extraction); setUsable(false); setPhase('done'); setError(`The extraction was rejected as unreliable. ${MANUAL}`); return;
-      case 'invalid': setExtraction(o.extraction); setUsable(false); setPhase('done'); setError(`${failureText(o.failure)} ${MANUAL}`); return;
+      // Fail closed: nothing from an unconfirmed envelope (rows, status, completeness) is shown or added.
+      // The upload form stays open for a retry with a new file, and manual entry is unaffected.
+      case 'rejected': setExtraction(null); setUsable(false); setPhase('ready'); setError(`The transcript could not be read reliably, so nothing from it is shown or added. ${RETRY}`); return;
+      case 'invalid': setExtraction(null); setUsable(false); setPhase('ready'); setError(`The extracted rows could not be verified, so nothing from them is shown or added. ${RETRY} (${o.failure.reasonCode})`); return;
       case 'validated': setExtraction(o.extraction); setUsable(true); setPhase('done'); onValidated(o.rows); return;
     }
   }

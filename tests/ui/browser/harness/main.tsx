@@ -11,7 +11,7 @@ const q = new URLSearchParams(window.location.search);
 // hold=ticket,extract,revoke keeps those transcript calls pending until the test releases them.
 const gate = transcriptGate((q.get('hold') ?? '').split(',').filter(n => n === 'ticket' || n === 'extract' || n === 'revoke'));
 // revokefail=receipt-1 makes revoking that synthetic receipt ID fail; validate=downgrade makes G's
-// validation downgrade an optimistic raw envelope.
+// validation downgrade an optimistic raw envelope; validate=fail makes G refuse that envelope.
 const revokeFails = new Set((q.get('revokefail') ?? '').split(',').filter(id => /^receipt-\d+$/.test(id)));
 const pick = <T extends string>(name: string, allowed: readonly T[], fallback: T): T => {
   const v = q.get(name);
@@ -22,7 +22,7 @@ const harness = fakeServices({
   draft: pick('draft', ['ok', 'none', 'interrupted'] as const, 'ok'),
   transcript: pick('transcript', ['disabled', 'approved', 'rejected', 'none'] as const, 'disabled'),
   transcriptGate: gate,
-  transcriptOptions: { revokeFails, validate: pick('validate', ['identity', 'downgrade'] as const, 'identity') },
+  transcriptOptions: { revokeFails, validate: pick('validate', ['identity', 'downgrade', 'fail'] as const, 'identity') },
   account: q.get('account') !== 'off',
   longTitles: q.get('long') === '1',
   blockingGap: q.get('gap') === '1',

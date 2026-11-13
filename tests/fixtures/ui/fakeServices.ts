@@ -336,8 +336,11 @@ export function downgradeExtraction(e: TranscriptExtraction): TranscriptExtracti
 export interface FakeTranscriptOptions {
   /** Receipt IDs whose revocation the double answers with a typed failure. */
   revokeFails?: ReadonlySet<string>;
-  /** 'downgrade': extract returns `optimisticRawExtraction` and validate returns `downgradeExtraction` of it. */
-  validate?: 'identity' | 'downgrade';
+  /**
+   * 'downgrade': extract returns `optimisticRawExtraction` and validate returns `downgradeExtraction` of it.
+   * 'fail': extract returns `optimisticRawExtraction` and validate refuses it with a typed validation failure.
+   */
+  validate?: 'identity' | 'downgrade' | 'fail';
 }
 
 /**
@@ -347,19 +350,20 @@ export interface FakeTranscriptOptions {
 export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls: string[], gate?: TranscriptGate, options: FakeTranscriptOptions & { revokedIds?: string[] } = {}) {
   let tickets = 0;
   const downgrade = options.validate === 'downgrade';
+  const optimistic = downgrade || options.validate === 'fail';
   return Object.freeze({
     client: Object.freeze({
       getAvailability: async () => { calls.push('availability'); return ok(mode === 'disabled' ? { status: 'disabled' as const, disclosureVersion: 'disc-v1', processingTier: 'none', reasonCode: 'processing_not_approved' } : { status: 'approved' as const, disclosureVersion: 'disc-v1', processingTier: 'synthetic-test-tier', reasonCode: null }); },
       establishGuestSession: async () => { calls.push('session'); return ok(null); },
       requestTicket: async () => { calls.push('ticket'); const id = `receipt-${++tickets}`; await gateWait(gate, 'ticket', calls); return ok({ signedTicket: 'signed', consentReceiptId: id, expiresAt: '2026-11-12T15:05:00.000Z' }); },
-      extract: async () => { calls.push('extract'); await gateWait(gate, 'extract', calls); return ok(downgrade ? optimisticRawExtraction() : syntheticExtraction(mode === 'rejected' ? 'rejected' : 'needs_review')); },
+      extract: async () => { calls.push('extract'); await gateWait(gate, 'extract', calls); return ok(optimistic ? optimisticRawExtraction() : syntheticExtraction(mode === 'rejected' ? 'rejected' : 'needs_review')); },
       revokeConsent: async ({ consentReceiptId }: { consentReceiptId: string }) => {
         calls.push('revoke'); options.revokedIds?.push(consentReceiptId);
         await gateWait(gate, 'revoke', calls);
         return options.revokeFails?.has(consentReceiptId) ? fail('external_failure', 'revoke_unavailable') : ok(null);
       },
     }),
-    validate: (extraction: TranscriptExtraction) => (extraction.acceptanceStatus === 'rejected' ? fail('validation_error', 'extraction_rejected') : ok({ kind: 'validated_proposed_rows', extraction: downgrade ? downgradeExtraction(extraction) : extraction } as unknown as ValidatedExtractedRows)),
+    validate: (extraction: TranscriptExtraction) => (options.validate === 'fail' ? fail('validation_error', 'provenance_mismatch') : extraction.acceptanceStatus === 'rejected' ? fail('validation_error', 'extraction_rejected') : ok({ kind: 'validated_proposed_rows', extraction: downgrade ? downgradeExtraction(extraction) : extraction } as unknown as ValidatedExtractedRows)),
     obtainBotAttestation: async () => ok('synthetic-attestation'),
   });
 }
