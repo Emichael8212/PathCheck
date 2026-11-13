@@ -92,7 +92,7 @@ describe('bounded provider503 transport retry, synthetic responses only', () => 
     expect(await createSyntheticGeminiProvider(synthetic, deniedSend).extract(new TextEncoder().encode('%PDF-not-allowlisted'), 1)).toMatchObject({ ok: false, code: 'forbidden' });
     expect(deniedSend).not.toHaveBeenCalled(); expect(authorizeAttempt).not.toHaveBeenCalled();
     const send = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response(null, { status: 503 })).mockResolvedValueOnce(success());
-    const result = await createSyntheticGeminiProvider(synthetic, send, timing().value).extract(bytes, 1, { beforeRetry: async () => ({ ok: true, value: null }) });
+    const result = await createSyntheticGeminiProvider(synthetic, send, timing().value).extract(bytes, 1, { beforeEgress: async () => ({ ok: true, value: null }) });
     expect(result).toMatchObject({ ok: true, value: { actualCostMicrousd: 0 } });
     expect(authorizeAttempt).toHaveBeenCalledTimes(2); expect(authorizeAttempt).toHaveBeenNthCalledWith(1, 24576); expect(send).toHaveBeenCalledTimes(2);
   });
@@ -101,6 +101,6 @@ describe('bounded provider503 transport retry, synthetic responses only', () => 
     const send = vi.fn<typeof fetch>(); const denied = { ok: false, code: 'rate_limited', reasonCode: 'project_daily_budget' } as const;
     const synthetic = { apiKey: 'synthetic-not-a-key', modelId: 'gemini-3.5-flash-lite' as const, freeTierConfirmed: true as const,
       fixtureDigests: [await sha256(bytes)], maxInputTokens: 16384, maxOutputTokens: 8192, authorizeAttempt: async () => denied };
-    expect(await createSyntheticGeminiProvider(synthetic, send).extract(bytes, 1)).toEqual(denied); expect(send).not.toHaveBeenCalled();
+    expect(await createSyntheticGeminiProvider(synthetic, send).extract(bytes, 1, { beforeEgress: async () => ({ ok: true, value: null }) })).toEqual(denied); expect(send).not.toHaveBeenCalled();
   });
 });

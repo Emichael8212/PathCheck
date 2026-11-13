@@ -80,6 +80,50 @@ records or provider calls. They are not the 15–20 labeled extraction benchmark
 
 ## Verification
 
+### Local synthetic acceptance composition — 2026-11-13
+
+`tests/fixtures/transcripts/localRuntime.ts` now provides
+`createLocalSyntheticTranscriptRuntime` for the lead's private Chrome acceptance
+server. It reuses the same handler, signing, consent, admission, PDF parser and
+provider mechanics through G-private `handlerCore`/`admissionCore` modules. Public
+`createTranscriptHandler`, `createGuestAdmission` and `createTranscriptRuntime`
+remain bound to the unchanged paid `ProcessingEligibility` contract; no public
+free flag or fabricated paid project/approval is introduced.
+
+The test factory requires an exact HTTPS loopback origin/port, explicit free-tier confirmation,
+fixed Gemini 3.5 Flash-Lite, an at-most-one-hour private permit, a copied immutable fixture SHA256
+allowlist, server secrets, bot/capability verification, actual store/network ports
+and project quota authorization. The listener must also bind only to 127.0.0.1.
+Unknown digests fail before bot/ticket storage; substituted PDF bytes fail before
+admission, parsing or dispatch. Provider verifies the allowlist again. Real PDFs
+cannot enter through a synthetic mode toggle. Positive SQL ledger units are explicit
+synthetic abuse-accounting units; successful API monetary settlement is zero and
+does not assert billing enabled. RPM/TPM/RPD enforcement belongs to the mandatory
+lead-provided project budget callback, called for every transport attempt.
+
+The synthetic provider now requires a final egress authorization after that quota
+callback, on the first attempt and each retry. It checks the same dispatched
+reservation's current consent/lease and the current private permit immediately
+before send. It does not issue another ticket, admit again or reset the lease.
+Any injected transport must avoid new asynchronous work between that final check
+and actual network dispatch; the lead's evidence writes belong before authorization
+or after dispatch. Production paid retry behavior and shared contracts are unchanged.
+
+The local factory's 20 new regressions cover consent/replay/session binding, unknown PDFs,
+immutable allowlist, model/free/origin/expiry/configuration gates and public paid-gate
+preservation. Deferred-quota tests revoke consent or expire a 20-second permit during
+first/retry authorization, then assert no additional egress and the precise failure
+reason while remaining below the 50-second provider timeout. Independent static
+review confirmed the post-quota race and the initially overly-long expiry test
+were corrected. These tests simulate Google/store responses; live SQL/API/browser
+and human acceptance remain separately evidenced by the lead.
+
+Actual G worktree `npm run check` PASS: lint, TypeScript, 577 unit tests in 30
+passing files with two explicit live-database skips, production build and one
+Chromium smoke test. The extraction suites contain 157 tests, including the 20
+new local-composition regressions. No live Google or database operation was run
+by these checks; those services and human acceptance are separate gates.
+
 Runtime/retry checkpoint (2026-11-13, pending owned change on fbe9374 baseline):
 
 After non-destructively refreshing this feature branch with human-merged main

@@ -27,6 +27,8 @@ export interface ProviderExecution {
   signal?: AbortSignal;
   /** Recheck this same dispatched reservation's live consent/lease; never re-admit. */
   beforeRetry?: () => Promise<Result<null>>;
+  /** Final consent/permit/lease check after project quota pacing, for EVERY egress. */
+  beforeEgress?: () => Promise<Result<null>>;
 }
 export interface PdfProvider { extract(bytes: Uint8Array, pages: number, execution?: ProviderExecution): Promise<Result<ProviderOutput>> }
 export interface ProviderTiming {
@@ -103,6 +105,7 @@ function createProvider(policy: ProviderPolicy, send: typeof fetch, timing: Prov
     if ((!syntheticDigests && maximumCost(policy) === null) || pages < 1 || pages > 20) return { ok: false, code: 'unavailable', reasonCode: 'provider_policy_unverified' };
     try {
       if (syntheticDigests && !syntheticDigests.has(await sha256(bytes))) return { ok: false, code: 'forbidden', reasonCode: 'synthetic_fixture_required' };
+      if (syntheticDigests && !execution.beforeEgress) return { ok: false, code: 'unavailable', reasonCode: 'synthetic_final_egress_check_required' };
       const maxAttempts = policy.retry?.maxAttempts ?? 1;
       const maxElapsedMs = policy.retry?.maxElapsedMs ?? 50_000;
       const start = timing.now();
@@ -113,7 +116,7 @@ function createProvider(policy: ProviderPolicy, send: typeof fetch, timing: Prov
       const unavailable = () => ({ ok: false, code: 'unavailable', reasonCode: 'provider_temporarily_unavailable_manual_entry' } as const);
       for (;;) {
         if (signal.aborted || timing.now() - start >= maxElapsedMs) return unavailable();
-        if (attempt > 0) {
+        if (attempt > 0 && !execution.beforeEgress) {
           if (!execution.beforeRetry) return unavailable();
           const permitted = await abortable(execution.beforeRetry(), signal);
           if (!permitted.ok) return permitted;
@@ -122,6 +125,11 @@ function createProvider(policy: ProviderPolicy, send: typeof fetch, timing: Prov
         if (authorizeAttempt) {
           const quota = await abortable(authorizeAttempt(policy.maxInputTokens + policy.maxOutputTokens), signal);
           if (!quota.ok) return quota;
+          if (signal.aborted || timing.now() - start >= maxElapsedMs) return unavailable();
+        }
+        if (execution.beforeEgress) {
+          const permitted = await abortable(execution.beforeEgress(), signal);
+          if (!permitted.ok) return permitted;
           if (signal.aborted || timing.now() - start >= maxElapsedMs) return unavailable();
         }
         attempt++;
@@ -133,7 +141,7 @@ function createProvider(policy: ProviderPolicy, send: typeof fetch, timing: Prov
       }), signal);
         if (response.status !== 503) break;
         if (response.body) await abortable(response.body.cancel(), signal);
-        if (attempt >= maxAttempts || !execution.beforeRetry) return unavailable();
+        if (attempt >= maxAttempts || (!execution.beforeRetry && !execution.beforeEgress)) return unavailable();
         const jitter = Math.max(0, Math.min(1, timing.random()));
         const wait = Math.max(retryAfterMs(response.headers.get('retry-after'), timing.now()),
           (policy.retry?.baseDelayMs ?? 6000) * 2 ** (attempt - 1) + Math.floor(jitter * 1000));
