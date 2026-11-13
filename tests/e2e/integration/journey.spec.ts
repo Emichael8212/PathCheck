@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
@@ -216,4 +217,31 @@ test('incomplete record blocks acceptance, focuses the error and preserves the a
   expect(accepted.scenario?.record.courseAttempts[0]?.status).toBe('in_progress');
   expect(accepted.analysis?.outlook.kind).not.toBe('conditional_path_found');
   expect(accepted.analysis?.inputFingerprint).toBe(accepted.fingerprint);
+});
+
+
+test('real engine outlook exports a readable conditional PDF without transcript details', async ({ page }) => {
+  await start(page);
+  await add(page, 'SYN-201', 'Spring 2027');
+  const current = await page.evaluate(() => window.__integration);
+  expect(current.analysis?.inputFingerprint).toBe(current.fingerprint);
+  const [download] = await Promise.all([
+    page.waitForEvent('download'), page.getByRole('button', { name: 'Export PDF', exact: true }).click(),
+  ]);
+  const bytes = new Uint8Array(await readFile((await download.path())!));
+  // The U-owned independent byte inspector is available only in an assembled checkout.
+  // Missing implementation fails this integration test rather than skipping it.
+  const inspectorPath = '../../ui/pdfInspect.ts';
+  const inspector = await import(inspectorPath) as {
+    inspectPdf(bytes: Uint8Array): { text: string; visible: string; pageCount: number; pageTexts: string[] };
+    libraryPageCount(bytes: Uint8Array): Promise<number>;
+  };
+  const pdf = inspector.inspectPdf(bytes);
+  expect(await inspector.libraryPageCount(bytes)).toBe(pdf.pageCount);
+  expect(pdf.text).toContain('SYN 201');
+  expect(pdf.text).toContain('Student-selected');
+  expect(pdf.text).toContain('Important conditions');
+  for (const privateValue of ['Fall 2026', 'Grade:', current.fingerprint!]) expect(pdf.visible).not.toContain(privateValue);
+  for (const [i, text] of pdf.pageTexts.entries()) expect(text).toContain(`Page ${i + 1} of ${pdf.pageCount}`);
+  expect(await page.evaluate(() => window.__integration.fingerprint)).toBe(current.fingerprint);
 });

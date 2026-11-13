@@ -543,3 +543,35 @@ No deployment authorization. Browser OTP/reopen/concurrent-tab and admission/pri
 gates remain pending integration/release work, not falsely marked PASS.
 E/U executions have not emitted final result JSON at this checkpoint; preserve their
 existing worktrees and inspect process/result state before any redispatch.
+
+
+### Human PR #4 merge verified — 2026-11-13
+
+GitHub confirms PR4 MERGED at2026-11-13T17:41:18Z, merge commit
+9f46d2323825ea6b222075c538d33701f3d19b4b (head aeaee0b). Human SQL172/REST1 and
+recovery70 acceptance PASS. Local main fast-forwarded; lead integration-02 merged
+origin/main non-destructively. No worktrees deleted. Lead npm run check PASS235units,
+2live skips,lint/typecheck/build/1smoke on merged baseline.
+
+E completed sourced repeat policy097ed76: owner303units/fullcheck/CI PASS; independent
+static reviewer no blocker. Refreshed main in5344bc24be2628e253376e2b279e834bf937337a,
+no engine-owned diff from reviewed097ed76. L unfiltered human command PASS106/3files
+(repeat-policy/rules/scheduling), guide updated; human NOT RUN; current CI pending.
+U completed pdf-lib9acad56: owner148units/53capture-free browser/CI PASS; independent
+static reviewer no blocker. U resumed for main refresh and B3 preload overhead issue;
+current local refresh3e75155, final result pending. Do not overwrite owner work.
+
+Reconstructed /private/tmp/pathcheck-after-pr4 from main9f46d23 + E097ed76 + U9acad56
++ L integration-02 + Gfbe9374, noncommitting/local-only. Fullcheck PASS595units/2live
+skips/lint/typecheck/build/foundation smoke; actual G→L→E runner PASS. Applied existing
+application.patch only in scratch. Added L real-engine PDF download/independent byte
+inspection/privacy regression: all12desktop journeys PASS. Full engine export now
+verified; human PDF visual still NOT RUN. No external API/SQL/REST rerun or deployment.
+Next: current ECI and human acceptance; U B3 resolution/CI/human; continue auth and
+extraction integration after approvals. Independent review of new L browser test pending.
+
+E refreshed head5344bc2 foundation CI43475690184 SUCCESS and GitHub CLEAN confirmed.
+Owner refreshed fullcheck PASS420units/2live skips and engine200. Human acceptance
+procedure uses L-verified unfiltered106tests/3files rather than owner's filtered command.
+PR5 HUMAN ACCEPTANCE REQUIRED. New L real-engine PDF regression independently
+reviewed: no blocker; synthetic scenario scope only, human PDF readability pending.

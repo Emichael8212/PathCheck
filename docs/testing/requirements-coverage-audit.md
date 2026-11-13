@@ -462,3 +462,15 @@ User reports expected70tests/2files PASS on S aeaee0b. Head unchanged; foundatio
 43473452035 SUCCESS; CLEAN against main2bb6b3f. A4 regression, review, CI and human
 gates PASS. **PR4 READY TO MERGE**; historical audit blocker resolved for deterministic
 A/B cleanup. Concurrent-tab integration and other B/C gates remain open.
+
+## Post-PR4 merge execution — 2026-11-13
+PR4 MERGED9f46d23, human security/recovery PASS. E T-ENG5 now implemented097ed76,
+positive/negative/ambiguous/prerequisite/determinism33new tests and updated rule5;
+independent static review no blocker. L unfiltered repeat/rules/scheduling PASS106
+at refreshed5344bc2; human NOT RUN. U maintained pdf-lib implementation9acad56 now
+exists with actual output tests,53browser cases including computed contrast; owner
+PASS and static review no blocker. B3 zero-main-growth criterion still under correction.
+L combined595units PASS/2live skips and12desktop journeys PASS including
+`tests/e2e/integration/journey.spec.ts` → `real engine outlook exports a readable conditional PDF without transcript details`.
+This closes real E/U PDF composition for that synthetic case; human visual/export
+acceptance and other cloud/upload integration gates remain pending.

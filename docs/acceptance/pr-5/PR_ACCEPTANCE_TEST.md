@@ -3,79 +3,61 @@
 ## PR Information
 - PR number: #5
 - Title: Academic engine: catalog, audit, rules, scheduling search
-- Commit SHA: `645111c43f65b21fc73b776a763360a8cbddb4a4`
+- Commit SHA: `5344bc24be2628e253376e2b279e834bf937337a`
+- Base: merged PR4 main `9f46d2323825ea6b222075c538d33701f3d19b4b`
 - Test type: deterministic terminal academic-engine assertions
-- Feature being verified: prerequisite-aware preview and uncertain-repeat completion search
-- Human acceptance status: **NOT RUN**.
-- Eligibility: **BLOCKED for final PR acceptance** by T-ENG-5 until #3 is merged and sourced-repeat support passes. The following current-behavior test is runnable; it does not waive that blocker.
+- Feature: scoped repeat credit, prerequisite correctness, bounded scheduling and uncertainty
+- Eligibility: **HUMAN ACCEPTANCE REQUIRED**; foundation CI43475690184 PASS, GitHub CLEAN.
+- Human acceptance: **NOT RUN**. Independent static review found no blocker in engine097ed76; baseline refresh5344bc2 changes no engine-owned implementation.
 
 ## Before You Begin
-Git, Node24–26/npm; no database, credentials or external AI. All TEST courses and
-rules below are synthetic. From the repository:
+Git, Node24–26/npm and existing engine worktree. No service, credentials or academic
+records needed. All TEST courses/policies are explicitly synthetic, not ASU rules.
+Do not switch branches or delete existing work.
 
 ```sh
 (
 set -eu
-cd /Users/_eman5michael/PathCheck
-git fetch origin
-test ! -e /private/tmp/pathcheck-engine-human
-git worktree add --detach /private/tmp/pathcheck-engine-human 645111c43f65b21fc73b776a763360a8cbddb4a4
-cd /private/tmp/pathcheck-engine-human
-npm ci
-git rev-parse HEAD
+cd /Users/_eman5michael/pathcheck-engine
+test "$(git rev-parse HEAD)" = 5344bc24be2628e253376e2b279e834bf937337a
+npm ci --ignore-scripts
+node node_modules/vitest/vitest.mjs run tests/engine/repeat-policy.test.ts tests/engine/rules.test.ts tests/engine/scheduling.test.ts --reporter=verbose
 )
 ```
-
-Expected: exact SHA above and successful lockfile install. Stop on errors.
 
 ## Step-by-Step Test
-1. Read this scenario: TEST101→TEST201 requires prior-term completion. No completed
-   attempts; both courses selected Fall2026, target Spring2027. Moving TEST201 to
-   Fall2027 removes the prerequisite conflict but misses the target: a **tradeoff**,
-   not an unqualified improvement.
-2. Run the real engine assertions:
-   ```sh
-   (
-   set -eu
-   cd /private/tmp/pathcheck-engine-human
-   node node_modules/vitest/vitest.mjs run tests/engine/scheduling.test.ts --reporter=verbose -t 'SCH-05 a change|completion-search outlook'
-   )
-   ```
-3. The other three assertions use the synthetic chain catalog and an eight-term
-   horizon: failed-only TEST101 (F,earned0,Fall2025), withdrawn-only TEST101
-   (W,earned0,Fall2025), and a no-prior-attempt control. No retake is initially selected.
-   Real completion search proposes courses. Unknown repeat credit must give
-   `insufficient_evidence` with `repeat_policy_unresolved`; the clean control gives
-   `conditional_path_found`.
+1. Run the exact command above; head mismatch or installation failure means stop.
+2. Inspect `5 repeat passed after fail, with sourced (synthetic) policy`: TEST101,
+   F Spring2024 then B Fall2024, explicitly in scope → one credited B attempt,
+   earned3/applicable3, satisfied without a future-completion condition.
+3. Inspect the no-policy, out-of-scope, ambiguous and historical-code cases:
+   credit remains unresolved; no invented ASU rule or automatic equivalency.
+4. Inspect the stricter-prerequisite-grade case: degree credit does not override
+   prerequisite eligibility. Count-once case must never allocate9 from6 credits.
+5. Inspect deterministic generation, unknown offerings, stale previews and SCH05:
+   moving a course beyond the target is a tradeoff, not an unconditional improvement.
 
 ## Expected Result
-**4 passed**; unrelated scheduling tests are filtered/skipped. Verbose output names
-SCH-05 and all three completion-search assertions. The tests call actual evaluate,
-preview and search implementations; no service double or canned result. A zero exit
-with zero matching tests is not acceptance.
+**3 test files passed;106 tests passed;0 failed;0 skipped.** These tests invoke the
+actual engine, including evaluation/search. No mocked scheduling responses.
+Lead verified this exact unfiltered command at the pinned head.
 
 ## Screenshot Checkpoint
-You capture the command, four green test names and `4 passed` summary. Include the
-SHA output in the terminal. Assertions in tests/engine/scheduling.test.ts verify the
-specific findings, tradeoff and evidence references; screenshot color alone is not proof.
+Capture the pinned SHA (use `git rev-parse HEAD`), the positive repeat and conservative
+negative assertions, and final106-passed summary. Synthetic data contain no secrets.
+Human attaches directly to GitHub; no screenshot path requested. Assertions, not
+screenshot appearance, establish the tested behavior.
 
 ## Pass/Fail Criteria
-Current scenario PASS requires all four assertions and exact SHA. Any failed
-assertion, crash or no tests is FAIL. Final PR remains BLOCKED by positive sourced
-T-ENG-5 even if this subset passes. Report your result separately from the agent run.
+PASS requires exact head and all106 assertions passing. Any failure, missing test,
+skip or unexpected result is FAIL/BLOCKED; report the summary and failing name.
+Agent success does not establish human PASS.
 
 ## Cleanup
-```sh
-(
-set -eu
-cd /Users/_eman5michael/PathCheck
-git worktree remove /private/tmp/pathcheck-engine-human
-)
-```
-If removal reports local changes, stop and inspect; never force-delete real work.
+No service or persistent test data is created; process exits automatically. Keep the
+existing worktree. No reset, removal or production operation is required.
 
 ## Known Limitations
-No official ASU repeat, transfer, grade-replacement or catalog rule is assumed.
-This subset does not prove the entire scheduling suite or final sourced-repeat
-allocation. After #3 adoption and the owner fix, refresh the exact SHA and acceptance
-coverage before a final human merge recommendation.
+No actual ASU repeat, grade-replacement, transfer or catalog applicability policy is
+established. Provisional ASU configuration remains unresolved. This terminal check
+does not replace full integrated browser, persistence or transcript security gates.
