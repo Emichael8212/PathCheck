@@ -22,6 +22,15 @@ const parsed = parsePublicSupabaseConfig({ url: env.PATHCHECK_LIVE_SUPABASE_URL,
 const host = parsed.ok ? new URL(parsed.value.url).hostname : '';
 const allowed = parsed.ok && (['127.0.0.1', 'localhost'].includes(host) || env.PATHCHECK_LIVE_ALLOW_REMOTE_TEST_PROJECT === '1');
 const fetchImpl: FetchLike = (url, init) => fetch(url, init);
+// Opted in (any live var set) but unusable config must FAIL, never silently skip.
+const requested = [env.PATHCHECK_LIVE_SUPABASE_URL, env.PATHCHECK_LIVE_SUPABASE_PUBLISHABLE_KEY].some(v => v !== undefined && v !== '');
+
+describe.runIf(requested && !allowed)('LIVE Supabase configuration', () => {
+  it('is valid, publishable-only, and local (or an explicitly allowed disposable test project)', () => {
+    // Report only the reason code / host class, never the key.
+    expect(parsed.ok ? (allowed ? 'ok' : 'remote_host_refused') : parsed.reasonCode).toBe('ok');
+  });
+});
 
 describe.skipIf(!allowed)('LIVE Supabase RLS/grants: User A, User B, anon', () => {
   const cfg = parsed.ok ? parsed.value : { url: '', publishableKey: '' };
