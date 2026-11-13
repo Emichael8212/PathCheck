@@ -41,8 +41,12 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
   const [revoked, setRevoked] = useState(false);
   const [rowView, setRowView] = useState<RowView>('none');
 
-  // The active send, if any. Cancelling it stops every later port call and drops any late result.
-  const run = useRef<SendRun | null>(null);
+  // The active send, if any, with the UI run that owns it. Cancelling it stops every later port call
+  // and drops any late result.
+  const run = useRef<{ send: SendRun; gen: number } | null>(null);
+  // Identifies the UI run whose receipt/withdrawal state is on screen. Each send starts a new run, and
+  // each run has at most one receipt, so a revoke response for an older run's receipt is recognisable.
+  const generation = useRef(0);
   const mounted = useRef(true);
 
   // Availability is checked once when the screen opens. The request carries no student data
@@ -72,20 +76,25 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
     setFile(f);
   }
 
-  /** Revokes a consent receipt. Runs even after unmount (privacy first) but only updates mounted UI. */
-  async function revokeReceipt(id: string) {
+  /**
+   * Revokes a consent receipt owned by UI run `gen`. The server request is always sent, even after
+   * unmount or a newer upload (privacy first). The response only updates the UI while that run is still
+   * the current one: a late answer for an older receipt must not clear, replace or mark withdrawn the
+   * receipt of a newer upload.
+   */
+  async function revokeReceipt(id: string, gen: number) {
     if (!ports) return;
     const r = await guardAsync(() => ports.client.revokeConsent({ consentReceiptId: id }), 'revoke_failed');
-    if (!mounted.current) return;
+    if (!mounted.current || gen !== generation.current) return;
     if (r.ok) { setRevoked(true); setReceipt(null); } else { setReceipt(id); setError(`Consent could not be withdrawn: ${failureText(r)}`); }
   }
 
   /** Receipts whose automatic revocation has already been sent, so withdrawal is requested once per receipt. */
   const autoRevoked = useRef(new Set<string>());
-  function revokeOnce(id: string) {
+  function revokeOnce(id: string, gen: number) {
     if (autoRevoked.current.has(id)) return;
     autoRevoked.current.add(id);
-    void revokeReceipt(id);
+    void revokeReceipt(id, gen);
   }
 
   /**
@@ -97,9 +106,9 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
     const active = run.current;
     if (!active) return;
     run.current = null;
-    active.cancel();
-    if (active.receipt) revokeOnce(active.receipt);
-    void active.done.then(o => { if (o.kind === 'cancelled' && o.receipt) revokeOnce(o.receipt); });
+    active.send.cancel();
+    if (active.send.receipt) revokeOnce(active.send.receipt, active.gen);
+    void active.send.done.then(o => { if (o.kind === 'cancelled' && o.receipt) revokeOnce(o.receipt, active.gen); });
   }
 
   function withdrawInFlight() {
@@ -124,12 +133,13 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
   async function send() {
     if (!ports || !availability || availability.status !== 'approved' || !consent || !file || run.current) return;
     setPhase('sending'); setError(null); setStatus(null); setFileError(null); setReceipt(null); setRevoked(false); setRowView('none');
+    const gen = ++generation.current;
     // A receipt issued after the student already withdrew is revoked the moment it is issued.
-    const active: SendRun = startTranscriptSend({ ports, file, disclosureVersion: availability.disclosureVersion, catalog, onReceipt: id => { if (active.cancelled) revokeOnce(id); } });
-    run.current = active;
+    const active: SendRun = startTranscriptSend({ ports, file, disclosureVersion: availability.disclosureVersion, catalog, onReceipt: id => { if (active.cancelled) revokeOnce(id, gen); } });
+    run.current = { send: active, gen };
     setFile(null); // the selection is consumed; a new send needs a new, re-consented pick
     const outcome = await active.done;
-    if (run.current !== active || active.cancelled || !mounted.current) return; // withdrawn, discarded or unmounted
+    if (run.current?.send !== active || active.cancelled || !mounted.current) return; // withdrawn, discarded or unmounted
     run.current = null;
     apply(outcome);
   }
@@ -217,7 +227,7 @@ export function TranscriptPanel({ ports, catalog, onValidated, onDiscard, hasExt
         </div>
       )}
       {receipt && !revoked && !sending && (
-        <div className="button-row"><button type="button" className="secondary" onClick={() => void revokeReceipt(receipt)}>Withdraw consent</button></div>
+        <div className="button-row"><button type="button" className="secondary" onClick={() => void revokeReceipt(receipt, generation.current)}>Withdraw consent</button></div>
       )}
       {revoked && <p className="small" role="status" data-testid="consent-withdrawn">Consent withdrawn. No further processing will be requested.</p>}
     </section>

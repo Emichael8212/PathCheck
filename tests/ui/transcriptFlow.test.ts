@@ -5,7 +5,7 @@ import type { CatalogModel, Result, TranscriptExtraction, ValidatedExtractedRows
 import type { TranscriptPorts } from '../../src/ui/services';
 import { startTranscriptSend, uncertainRows, unreadableRowCount } from '../../src/ui/transcriptFlow';
 import type { SendRun } from '../../src/ui/transcriptFlow';
-import { syntheticExtraction } from '../fixtures/ui/fakeServices';
+import { downgradeExtraction, optimisticRawExtraction, syntheticExtraction } from '../fixtures/ui/fakeServices';
 
 const PDF = '%PDF-1.4 synthetic test document';
 const catalog = {} as CatalogModel;
@@ -108,6 +108,20 @@ describe('transcript send: failures fall back to manual and always wipe the PDF 
     expect(seen.extractCopy).toBe(PDF);
     expect(ticketRequest).toMatchObject({ disclosureVersion: 'disc-v9', explicitConsent: true, botAttestation: 'attest', documentDigest: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(f.zeroed()).toBe(true);
+  });
+
+  it('success reports G\'s downgraded validated envelope, never the optimistic raw extract response', async () => {
+    const raw = optimisticRawExtraction();
+    const downgraded = downgradeExtraction(raw);
+    const { ports: p } = ports({ extract: async () => ok(raw), validate: () => ok({ kind: 'validated_proposed_rows', extraction: downgraded } as unknown as ValidatedExtractedRows) });
+    const outcome = await startTranscriptSend({ ports: p, file: syntheticFile().file, disclosureVersion: 'v1', catalog }).done;
+    if (outcome.kind !== 'validated') throw new Error(`expected validated, got ${outcome.kind}`);
+    // Precondition: the two envelopes really differ in what the summary displays.
+    expect([raw.acceptanceStatus, raw.completeness, uncertainRows(raw).length]).toEqual(['accepted', 'demonstrated', 1]);
+    expect(outcome.extraction).toBe(outcome.rows.extraction);
+    expect(outcome.extraction).toEqual(downgraded);
+    expect([outcome.extraction.acceptanceStatus, outcome.extraction.completeness]).toEqual(['needs_review', 'unknown']);
+    expect(uncertainRows(outcome.extraction).map(r => r.rowId)).toEqual(['x1', 'x2']);
   });
 });
 

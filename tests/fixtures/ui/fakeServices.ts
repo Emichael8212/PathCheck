@@ -320,21 +320,51 @@ const gateWait = (gate: TranscriptGate | undefined, name: string, calls: string[
   return gate.wait(name).then(() => { calls.push(`${name}:released`); });
 };
 
-export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls: string[], gate?: TranscriptGate) {
+/**
+ * A raw provider envelope that claims more than G will confirm: accepted, completeness demonstrated,
+ * no row uncertainty. Used with `downgradeExtraction` to prove the UI shows G's validated envelope.
+ */
+export function optimisticRawExtraction(): TranscriptExtraction {
+  const e = syntheticExtraction('accepted');
+  return { ...e, completeness: 'demonstrated', warnings: [], rows: e.rows.map(r => ({ ...r, uncertainty: [] })) };
+}
+/** What G's validation returns for the optimistic envelope: needs review, completeness unknown, every row flagged. */
+export function downgradeExtraction(e: TranscriptExtraction): TranscriptExtraction {
+  return { ...e, acceptanceStatus: 'needs_review', completeness: 'unknown', warnings: [...e.warnings, 'row_count_unverified'], rows: e.rows.map(r => ({ ...r, uncertainty: [...r.uncertainty, 'credits_unverified'] })) };
+}
+
+export interface FakeTranscriptOptions {
+  /** Receipt IDs whose revocation the double answers with a typed failure. */
+  revokeFails?: ReadonlySet<string>;
+  /** 'downgrade': extract returns `optimisticRawExtraction` and validate returns `downgradeExtraction` of it. */
+  validate?: 'identity' | 'downgrade';
+}
+
+/**
+ * Each ticket issues a distinct receipt (`receipt-1`, `receipt-2`, …). Every revoke pushes `revoke`
+ * to `calls` (and `revoke:held`/`revoke:released` when held) and the receipt ID to `revokedIds`.
+ */
+export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls: string[], gate?: TranscriptGate, options: FakeTranscriptOptions & { revokedIds?: string[] } = {}) {
+  let tickets = 0;
+  const downgrade = options.validate === 'downgrade';
   return Object.freeze({
     client: Object.freeze({
       getAvailability: async () => { calls.push('availability'); return ok(mode === 'disabled' ? { status: 'disabled' as const, disclosureVersion: 'disc-v1', processingTier: 'none', reasonCode: 'processing_not_approved' } : { status: 'approved' as const, disclosureVersion: 'disc-v1', processingTier: 'synthetic-test-tier', reasonCode: null }); },
       establishGuestSession: async () => { calls.push('session'); return ok(null); },
-      requestTicket: async () => { calls.push('ticket'); await gateWait(gate, 'ticket', calls); return ok({ signedTicket: 'signed', consentReceiptId: 'receipt-1', expiresAt: '2026-11-12T15:05:00.000Z' }); },
-      extract: async () => { calls.push('extract'); await gateWait(gate, 'extract', calls); return ok(syntheticExtraction(mode === 'rejected' ? 'rejected' : 'needs_review')); },
-      revokeConsent: async () => { calls.push('revoke'); return ok(null); },
+      requestTicket: async () => { calls.push('ticket'); const id = `receipt-${++tickets}`; await gateWait(gate, 'ticket', calls); return ok({ signedTicket: 'signed', consentReceiptId: id, expiresAt: '2026-11-12T15:05:00.000Z' }); },
+      extract: async () => { calls.push('extract'); await gateWait(gate, 'extract', calls); return ok(downgrade ? optimisticRawExtraction() : syntheticExtraction(mode === 'rejected' ? 'rejected' : 'needs_review')); },
+      revokeConsent: async ({ consentReceiptId }: { consentReceiptId: string }) => {
+        calls.push('revoke'); options.revokedIds?.push(consentReceiptId);
+        await gateWait(gate, 'revoke', calls);
+        return options.revokeFails?.has(consentReceiptId) ? fail('external_failure', 'revoke_unavailable') : ok(null);
+      },
     }),
-    validate: (extraction: TranscriptExtraction) => (extraction.acceptanceStatus === 'rejected' ? fail('validation_error', 'extraction_rejected') : ok({ kind: 'validated_proposed_rows', extraction } as unknown as ValidatedExtractedRows)),
+    validate: (extraction: TranscriptExtraction) => (extraction.acceptanceStatus === 'rejected' ? fail('validation_error', 'extraction_rejected') : ok({ kind: 'validated_proposed_rows', extraction: downgrade ? downgradeExtraction(extraction) : extraction } as unknown as ValidatedExtractedRows)),
     obtainBotAttestation: async () => ok('synthetic-attestation'),
   });
 }
 
-export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean } = {}) {
+export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; transcriptOptions?: FakeTranscriptOptions; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean } = {}) {
   const clock = fakeClock();
   const base = fakeAcademic([syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })], { draft: options.draft ?? 'ok' });
   // staleAnalysis: the double answers with an analysis for a different fingerprint, which the
@@ -343,6 +373,7 @@ export function fakeServices(options: { blockingGap?: boolean; longTitles?: bool
     ? Object.freeze({ ...base, evaluate: (s: PlanningScenario) => { const r = base.evaluate(s); if (!r.ok) return r; const fp = r.value.inputFingerprint; return ok({ ...r.value, inputFingerprint: `${fp.slice(0, -1)}${fp.endsWith('0') ? '1' : '0'}` as AnalysisResult['inputFingerprint'] }); } })
     : base;
   const transcriptCalls: string[] = [];
+  const revokedIds: string[] = [];
   const account = options.account === false ? null : fakeAccount({ conflictOnSave: options.conflictOnSave ?? false, clearFails: options.clearFails ?? false });
   const services: WorkflowServices = Object.freeze({
     academic,
@@ -353,8 +384,8 @@ export function fakeServices(options: { blockingGap?: boolean; longTitles?: bool
       : createPdfExportService({ now: clock.now }),
     clock,
     config: Object.freeze({ engineVersion: 'fake-engine-test-only', evaluationPolicy: 'fake-policy', assumeFuturePass: true, searchOptions: SEARCH_POLICY }),
-    transcript: options.transcript === 'none' ? null : fakeTranscript(options.transcript ?? 'disabled', transcriptCalls, options.transcriptGate),
+    transcript: options.transcript === 'none' ? null : fakeTranscript(options.transcript ?? 'disabled', transcriptCalls, options.transcriptGate, { ...options.transcriptOptions, revokedIds }),
     account: account?.ports ?? null,
   });
-  return { services, transcriptCalls, account, ref: SYNTHETIC_REF };
+  return { services, transcriptCalls, revokedIds, account, ref: SYNTHETIC_REF };
 }

@@ -209,6 +209,75 @@ test.describe('academic record screen', () => {
     await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
   });
 
+  test('the summary shows G\'s downgraded validation, not the optimistic raw envelope', async ({ page }) => {
+    // Raw extract claims accepted + completeness demonstrated with 1 flagged row; G downgrades to
+    // needs_review + unknown and flags both rows.
+    await open(page, 'transcript=approved&validate=downgrade');
+    await startGuest(page);
+    await sendSynthetic(page);
+    const summary = page.getByTestId('extraction-summary');
+    await expect(summary.getByRole('heading')).toHaveText('Extraction summary — Needs review');
+    await expect(summary).toContainText('Completeness not demonstrated');
+    await expect(summary).not.toContainText('Completeness demonstrated by row/page checks');
+    await expect(summary).not.toContainText('Accepted');
+    await expect(summary.getByTestId('uncertain-count')).toHaveText('2 rows need a look and won’t count until resolved');
+    await expect(summary).toContainText('Warning: Row count unverified');
+    await summary.getByRole('button', { name: 'Review 2 uncertain rows' }).click();
+    await expect(summary.getByRole('table', { name: /Rows that need a look/ })).toContainText('Credits unverified');
+  });
+
+  for (const late of ['success', 'failure'] as const) {
+    test(`a late revoke ${late} for upload A leaves the receipt of upload B untouched`, async ({ page }) => {
+      await open(page, `transcript=approved&hold=revoke${late === 'failure' ? '&revokefail=receipt-1' : ''}`);
+      await startGuest(page);
+      const ids = () => page.evaluate(() => [...window.__pathcheckHarness!.revokedIds]);
+      const withdraw = page.getByRole('button', { name: 'Withdraw consent', exact: true });
+      // Upload A, then withdraw its consent; the server answer is held.
+      await sendSynthetic(page);
+      await withdraw.click();
+      await expect.poll(() => calls(page)).toContain('revoke:held');
+      expect(await ids()).toEqual(['receipt-1']);
+      // Upload B while A's revoke is still pending.
+      await page.getByTestId('extraction-summary').getByRole('button', { name: 'Discard extraction' }).click();
+      await sendSynthetic(page);
+      await expect(withdraw).toBeVisible();
+      // A's answer arrives late. It must not mark B withdrawn, hide B's control, or swap in receipt A.
+      await page.evaluate(() => window.__pathcheckHarness!.release('revoke'));
+      await expect.poll(() => calls(page)).toContain('revoke:released');
+      await page.waitForTimeout(150);
+      await expect(page.getByTestId('consent-withdrawn')).toHaveCount(0);
+      await expect(page.getByText('Consent could not be withdrawn')).toHaveCount(0);
+      await expect(page.getByTestId('extraction-summary')).toBeVisible();
+      await expect(withdraw).toBeVisible();
+      // The visible control still withdraws B, and B's own answer does update the UI.
+      await withdraw.click();
+      await expect(page.getByTestId('consent-withdrawn')).toBeVisible();
+      expect(await ids()).toEqual(['receipt-1', 'receipt-2']);
+    });
+  }
+
+  test('a late revoke for a stopped upload A does not mark the later upload B withdrawn', async ({ page }) => {
+    await open(page, 'transcript=approved&hold=extract,revoke');
+    await startGuest(page);
+    const ids = () => page.evaluate(() => [...window.__pathcheckHarness!.revokedIds]);
+    await sendSynthetic(page, false);
+    await expect.poll(() => calls(page)).toContain('extract:held');
+    await page.getByRole('button', { name: 'Stop and withdraw consent' }).click();
+    // A's known receipt is revoked at once, before its held extract is released.
+    await expect.poll(() => calls(page)).toContain('revoke:held');
+    expect(await calls(page)).not.toContain('extract:released');
+    expect(await ids()).toEqual(['receipt-1']);
+    // Releasing extract lets A's late rows settle (dropped) and lets B's extract through.
+    await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
+    await sendSynthetic(page);
+    await page.evaluate(() => window.__pathcheckHarness!.release('revoke'));
+    await expect.poll(() => calls(page)).toContain('revoke:released');
+    await page.waitForTimeout(150);
+    await expect(page.getByTestId('consent-withdrawn')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Withdraw consent', exact: true })).toBeVisible();
+    expect(await ids()).toEqual(['receipt-1']);
+  });
+
   test('withdrawing consent while extraction is in flight drops late rows and revokes the receipt', async ({ page }) => {
     await open(page, 'transcript=approved&hold=extract');
     await startGuest(page);

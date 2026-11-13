@@ -26,6 +26,7 @@ export type SendOutcome =
   | { kind: 'failed'; failure: TypedFailure; receipt: string | null }
   | { kind: 'rejected'; extraction: TranscriptExtraction; receipt: string }
   | { kind: 'invalid'; extraction: TranscriptExtraction; failure: TypedFailure; receipt: string }
+  /** `extraction` is `rows.extraction` (G's validated envelope), never the raw extract response. */
   | { kind: 'validated'; extraction: TranscriptExtraction; rows: ValidatedExtractedRows; receipt: string };
 
 export interface SendInput {
@@ -87,7 +88,9 @@ export function startTranscriptSend(input: SendInput): SendRun {
     if (extracted.value.acceptanceStatus === 'rejected') return { kind: 'rejected', extraction: extracted.value, receipt: issued };
     const validated = guard(() => ports.validate(extracted.value, input.catalog), 'validation_failed');
     if (!validated.ok) return { kind: 'invalid', extraction: extracted.value, failure: validated, receipt: issued };
-    return { kind: 'validated', extraction: extracted.value, rows: validated.value, receipt: issued };
+    // The summary must describe what G validated, not the raw provider envelope: G may downgrade
+    // acceptance/completeness or add row uncertainty, and the raw optimistic values must not be shown.
+    return { kind: 'validated', extraction: validated.value.extraction, rows: validated.value, receipt: issued };
   }
 
   const done = run().finally(wipe);

@@ -94,6 +94,29 @@ Observations, none blocking U:
 2. **G:** `feat/gemini-extraction` (`b37f4c2`) exists only locally, with no remote branch or PR.
 3. The PR #6 acceptance guide and UX-006 entry remain lead actions (sections 2–3).
 
+## 7. Transcript review blockers after `0f1f258` (2026-11-13), U-owned fixes
+
+These fixes were found in an independent review of `0f1f258`. Immediate revoke was fixed first in `b8aafc8`, and this change builds on it.
+- **Revoke identity:** a revoke answer no longer updates global receipt/withdrawn state. Each send starts a UI run, and each run has at most one receipt. The answer applies only while its run is current. The server revoke for an older receipt is still always sent. A late success for upload A used to clear receipt B and show "Consent withdrawn". A late failure used to replace B with A.
+- **Validated summary:** the success outcome now carries `validated.value.extraction` (G's envelope), not the raw extract response. The summary heading, completeness line, flagged count and row tables all use it.
+- **Regressions:** 1 unit test and 4 browser tests, all using synthetic receipt IDs `receipt-1` and `receipt-2`:
+  - optimistic raw → downgraded validated envelope (unit and browser);
+  - late revoke success for A after B;
+  - late revoke failure for A after B;
+  - stopped A with held revoke, then B.
+  The stopped-A test also asserts that revoke is sent before the held extract is released.
+- **Against `b8aafc8` source with the new tests:** unit FAIL 1/20; browser FAIL 4/4.
+- **Actual results with the fix:**
+  - lint PASS;
+  - typecheck PASS;
+  - `npm test` PASS: 485 passed, 2 skipped, 25 files (1 skipped);
+  - build PASS;
+  - `npx playwright test -c tests/ui/browser/playwright.ui.config.ts` PASS 63/63;
+  - `npm run test:e2e` PASS 1.
+  
+  Screenshots were not captured. No human acceptance is claimed.
+- **Observation (not changed):** for an `invalid` outcome (G validation failed), the summary still renders the raw envelope next to the validation-failure alert. It never enters the record. It could, however, display a raw "Accepted"/"demonstrated" claim. A suggested follow-up is to hide those claims when validation fails.
+
 ## Contract conflicts
 
 None. No changes to `src/contracts/**`, the engine, persistence, Gemini or state ownership.
