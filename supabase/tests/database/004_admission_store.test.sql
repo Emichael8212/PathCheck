@@ -36,6 +36,18 @@ begin
   if r ->> 'status' = 'ok' then insert into pc_test.claims values (n, t, t + interval '300 seconds'); end if;
   return r;
 end $$;
+-- Raw issue for negative cases. ONE clock_timestamp() is captured and every timestamp argument
+-- (claims issued/expiry, caller clock) is an offset from it: separate clock_timestamp() calls advance
+-- on a real server and would make a 300 s lifetime look like >300 s (false invalid_ticket_lifetime).
+create function pc_test.issue_at(ticket uuid, sess uuid, receipt uuid, doc_digest text, att text, netkey text,
+                                 issued_off interval default '0', expires_off interval default '300 seconds',
+                                 client_off interval default '0', client_null boolean default false) returns jsonb
+language plpgsql as $$
+declare t timestamptz := clock_timestamp();
+begin
+  return public.admission_issue(ticket, sess, receipt, doc_digest, 'disclosure-v1', t + issued_off, t + expires_off,
+                                att, netkey, case when client_null then null else t + client_off end);
+end $$;
 -- Admit ticket n exactly as issued (overridable fields for binding tests). Records reservation id.
 create function pc_test.admit(n int, s int, nets int[], doc text default 'doc', ceil_usd bigint default 1000000,
                               reserve bigint default 1000, receipt uuid default null, expiry_shift interval default '0') returns jsonb
@@ -166,35 +178,30 @@ select throws_ok($$ update admission_private.reservations set state = 'released'
 
 -- ===== 3. Issue: single-use attestation/ticket/receipt, DB clock, lifetime, shape (12) =====
 select is(pc_test.issue(1, 1, 1) ->> 'status', 'ok', 'issue ticket 1');
-select is(public.admission_issue(pc_test.tid(900), pc_test.sid(1), pc_test.rid(900), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-1'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(900), pc_test.sid(1), pc_test.rid(900), pc_test.dig('doc'), pc_test.dig('att-1'), pc_test.net(1)) ->> 'reason',
           'attestation_replayed', 'bot attestation digest is single-use across tickets');
-select is(public.admission_issue(pc_test.tid(1), pc_test.sid(1), pc_test.rid(901), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-901'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(1), pc_test.sid(1), pc_test.rid(901), pc_test.dig('doc'), pc_test.dig('att-901'), pc_test.net(1)) ->> 'reason',
           'ticket_id_reused', 'ticket ID cannot be re-issued');
-select is(public.admission_issue(pc_test.tid(902), pc_test.sid(1), pc_test.rid(1), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-902'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(902), pc_test.sid(1), pc_test.rid(1), pc_test.dig('doc'), pc_test.dig('att-902'), pc_test.net(1)) ->> 'reason',
           'consent_receipt_reused', 'consent receipt ID cannot be re-bound');
-select is(public.admission_issue(pc_test.tid(903), pc_test.sid(1), pc_test.rid(903), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-903'), pc_test.net(1), clock_timestamp() + interval '5 minutes') ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(903), pc_test.sid(1), pc_test.rid(903), pc_test.dig('doc'), pc_test.dig('att-903'), pc_test.net(1),
+                           client_off => interval '5 minutes') ->> 'reason',
           'clock_mismatch', 'untrusted caller clock 5 min ahead of DB clock rejected');
-select is(public.admission_issue(pc_test.tid(904), pc_test.sid(1), pc_test.rid(904), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp() - interval '4 minutes', clock_timestamp() + interval '60 seconds', pc_test.dig('att-904'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(904), pc_test.sid(1), pc_test.rid(904), pc_test.dig('doc'), pc_test.dig('att-904'), pc_test.net(1),
+                           issued_off => interval '-4 minutes', expires_off => interval '60 seconds') ->> 'reason',
           'clock_mismatch', 'backdated claims.issuedAt rejected against DB clock');
-select is(public.admission_issue(pc_test.tid(905), pc_test.sid(1), pc_test.rid(905), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '301 seconds', pc_test.dig('att-905'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(905), pc_test.sid(1), pc_test.rid(905), pc_test.dig('doc'), pc_test.dig('att-905'), pc_test.net(1),
+                           expires_off => interval '301 seconds') ->> 'reason',
           'invalid_ticket_lifetime', 'ticket lifetime over 300 s rejected');
-select is(public.admission_issue(pc_test.tid(906), pc_test.sid(1), pc_test.rid(906), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() - interval '1 second', pc_test.dig('att-906'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(906), pc_test.sid(1), pc_test.rid(906), pc_test.dig('doc'), pc_test.dig('att-906'), pc_test.net(1),
+                           expires_off => interval '-1 second') ->> 'reason',
           'invalid_ticket_lifetime', 'expiry before issuance rejected');
-select is(public.admission_issue(pc_test.tid(907), pc_test.sid(1), pc_test.rid(907), upper(pc_test.dig('doc')), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-907'), pc_test.net(1), clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(907), pc_test.sid(1), pc_test.rid(907), upper(pc_test.dig('doc')), pc_test.dig('att-907'), pc_test.net(1)) ->> 'reason',
           'invalid_input', 'non-canonical document digest rejected');
-select is(public.admission_issue(pc_test.tid(908), pc_test.sid(1), pc_test.rid(908), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-908'), '203.0.113.7', clock_timestamp()) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(908), pc_test.sid(1), pc_test.rid(908), pc_test.dig('doc'), pc_test.dig('att-908'), '203.0.113.7') ->> 'reason',
           'invalid_input', 'raw IP literal refused as network key');
-select is(public.admission_issue(pc_test.tid(909), pc_test.sid(1), pc_test.rid(909), pc_test.dig('doc'), 'disclosure-v1',
-          clock_timestamp(), clock_timestamp() + interval '300 seconds', pc_test.dig('att-909'), pc_test.net(1), null) ->> 'reason',
+select is(pc_test.issue_at(pc_test.tid(909), pc_test.sid(1), pc_test.rid(909), pc_test.dig('doc'), pc_test.dig('att-909'), pc_test.net(1),
+                           client_null => true) ->> 'reason',
           'clock_mismatch', 'missing caller clock fails closed');
 reset role;
 select is((select count(*)::int from admission_private.tickets), 1, 'only the valid issuance stored a ticket (denials stored nothing)');

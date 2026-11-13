@@ -32,18 +32,39 @@ digests, keyed network key (shape rejects IP literals), times, integer micro-USD
 rows, bot token or raw IP.
 
 ```sh
-# same local stack as above (after lead coordination)
-supabase db reset && supabase test db        # adds 004_admission_store ok (1..137)
-bash supabase/tests/admission/concurrency.sh # live multi-backend races via docker exec, self-cleaning
+# dedicated Colima stack of docs/testing/local-security.md, only after lead coordination
+DOCKER_CONTEXT=colima-pathcheck-test supabase db reset --local --network-id pathcheck-local-only
+DOCKER_CONTEXT=colima-pathcheck-test supabase test db --network-id pathcheck-local-only   # 004 ok 1..137
+bash supabase/tests/admission/concurrency.sh   # live multi-backend races, self-cleaning
 ```
 
-Expected: `004_admission_store` 1..137 all ok; race script prints `PASS replay_same_ticket ok=1`,
-`PASS session_concurrency ok=1`, `PASS network_concurrency ok=3`, `PASS daily_cost_ceiling ok=5`,
-`PASS stored_reservations=10`, `Result: PASS` with `queued_at_barrier` > 0 (workers truly
-contended). Failure indicators: any `not ok`; a race `ok` count above the expected bound; a
-`42501` for service_role; `PA001` (non READ COMMITTED caller); `WARNING: cleanup ... failed`.
-The script defaults to container `supabase_db_pathcheck-local-test` (`PATHCHECK_DB_CONTAINER`),
-12 workers (`PATHCHECK_RACE_PARALLEL`, 6–64). It refuses non-`supabase_db_*` containers.
+**Pinned target (no overrides).** The race script uses only `docker --host
+unix://$HOME/.colima/pathcheck-test/docker.sock` and container `supabase_db_pathcheck-local-test`.
+Before its first write it verifies, read-only: no `DOCKER_HOST`/`DOCKER_TLS_VERIFY`/`DOCKER_CERT_PATH`;
+`DOCKER_CONTEXT` unset or `colima-pathcheck-test`; `PATHCHECK_DB_CONTAINER` unset or the exact name;
+socket is a real socket owned by the user; context `colima-pathcheck-test` endpoint equals that
+socket; daemon `Name|OSType` = `colima-pathcheck-test|linux`; container running, label
+`com.supabase.cli.project=pathcheck-local-test`, image `supabase/postgres:*`, no port on a non-loopback
+address; DB is a primary `postgres` with `admission_private` and 6 RPCs. Any mismatch prints
+`REFUSING:` and exits 2 with nothing written. psql runs as OS user `postgres` (`docker exec -u
+postgres`, local peer/trust auth); no key, URL or password is read.
+
+**Contention is proven, not assumed.** A barrier backend takes the store advisory lock; the script
+polls `pg_locks` (that exact key: `classid`/`objid` halves, `objsubid=1`) until **exactly** the N
+intended workers (by `application_name`) are waiting on it, then releases. Not observed within 20 s
+→ FAIL (zero contention fails). Every worker must exit 0 within 90 s; every loser must return the
+exact denial reason.
+
+Expected (N=12): `PASS s1: ... ok=1 ticket_replayed=11`, `PASS s2: ... ok=1 session_concurrency=11`,
+`PASS s3: ... ok=3 network_concurrency=9`, `PASS s4: ... ok=5 daily_cost_ceiling=7`,
+`PASS dispatch_vs_revoke: pairs=6 queued=12 dispatch_first=a revoke_first=b` (a+b=6; either
+serialization is valid per pair: revoke-first → `consent_revoked`, cost settlement refused, release
+reports `consent_revoked`; dispatch-first → `dispatched_at <= revoked_at`, cost settles,
+finish reports `consent_revoked=true` so the server must suppress the result),
+`PASS stored_reservations=16`, `cleanup: run … 0 left`, then `Result: PASS`. The verdict is printed
+only after cleanup is verified; a cleanup failure or any remaining run row exits non-zero.
+Failure indicators: any `not ok`, `FAIL`, `REFUSING`, `TIMEOUT`; a `42501` for service_role;
+`PA001`. Workers: `PATHCHECK_RACE_PARALLEL` 6–64 (default 12).
 
 pgTAP coverage: grants/ACL/RLS/definer/search_path and stored-column whitelist; live 42501 for
 anon/authenticated on all RPCs/tables and service_role on tables; issue single-use attestation/
