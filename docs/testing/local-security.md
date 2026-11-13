@@ -6,12 +6,16 @@ with Colima 0.10.3, Docker CLI 29.9.3, Supabase CLI 3.1.0 and PostgreSQL 17.
 The committed configuration is test-only: local email confirmation is disabled.
 Do not reuse these auth settings for deployment.
 
+For current pinned commits, context checks and redacted human-test output, use
+[the canonical PR#4 acceptance guide](../acceptance/pr-4/PR_ACCEPTANCE_TEST.md).
+Supabase3.1.0 targets local by default; never add `--remote` to this procedure.
+
 From a scratch integration worktree containing PR #4 migrations/tests and PR #3
 configuration, install the local tools if needed, then start a dedicated VM:
 
 ```sh
 brew install colima docker supabase/tap/supabase
-colima start pathcheck-test --cpu 2 --memory 4 --disk 30 --activate=false --ssh-config=false --mount /private/tmp/pathcheck-verification:w
+colima start pathcheck-test --cpus 2 --memory 4 --disk 30 --activate=false --ssh-config=false --mount /private/tmp/pathcheck-verification:w
 docker --context colima-pathcheck-test network create --driver bridge --opt com.docker.network.bridge.host_binding_ipv4=127.0.0.1 pathcheck-local-only
 ```
 
@@ -27,7 +31,7 @@ DOCKER_CONTEXT=colima-pathcheck-test supabase test db --network-id pathcheck-loc
 
 The explicit network flag is required on the test command too. First startup
 applies migrations. If migration SQL changes, reset **only this disposable local
-stack** with `DOCKER_CONTEXT=colima-pathcheck-test supabase db reset --local --network-id pathcheck-local-only`
+stack** with `DOCKER_CONTEXT=colima-pathcheck-test supabase db reset --network-id pathcheck-local-only`
 and rerun tests. Confirm published ports are localhost-only:
 
 ```sh

@@ -385,3 +385,42 @@ Do not request screenshots in chat or treat their absence here as a failed human
 test. Screenshot attachment remains the human's GitHub checkpoint; no claim that
 an attachment has already been verified. This supersedes earlier requests to send
 or link screenshots here. No merge authorization inferred; human alone merges.
+
+
+### PR #3 merged; PR #4 acceptance preparation — 2026-11-13
+
+GitHub verified PR#3 MERGED at 2026-11-13T16:34:00Z, head59d9253,
+actual merge **2bb6b3f8e36039a243ea3af389380019256357b7**. Human acceptance PASS;
+human manages screenshots directly on GitHub. Local main fast-forwarded to that exact
+merge. Lead worktree retained at its existing path and now on `feat/integration-02`
+from merged main. `feat/integration-01` retained at59d9253; no deletion. Existing
+human worktrees remain intact; follow-on composition and acceptance dependencies persist.
+
+PR#4 remains OPEN at8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd. Previous foundation CI
+PASS at that head; strict up-to-date merge readiness must be rechecked after its owner
+incorporates new main. Human security acceptance NOT RUN. No SQL/REST acceptance,
+VM start, database reset, or service mutation performed in this preparation.
+
+Updated PR#4 guide pins actual merged main + only PR#4 (no E/U/old application patch).
+Noncommitting scratch merge PASS. Mac tooling confirmed Colima0.10.3, Docker29.9.3,
+Supabase3.1.0, Node26.13.1/npm11.20.0/Python3.9.6. Colima VM stopped; dedicated Docker
+context absent. Guide now creates/verifies the local socket context, validates loopback
+network binding, uses documented `--cpus` and local-default reset, and refuses a linked
+project. REST remains loopback-only with remote override disabled; SQL uses synthetic
+transactional fixtures (68+51+53), REST uses disposable pathcheck.test identities.
+Expected SQL172 PASS / REST1 PASS+1configuration guard skipped are expectations, not
+new execution claims. Provide setup stage first; wait for human before next stage.
+
+Dependencies now unlocked: E can consume merged scoped repeat policy and implement
+T-ENG-5 with synthetic sourced fixtures; U can consume pdf-lib and complete actual-byte
+export/review; S must update baseline and retest module compatibility, preserving the
+pinned human security candidate until coordinated; G can consume parser dependency,
+while atomic admission/provider/privacy gates remain outstanding. No invented academic
+rules or weakened security gates. L owns follow-on auth/root composition on integration-02.
+
+Preparation evidence: isolated main+S merge and `npm ci` PASS; byte comparison of all
+S-owned source/migrations/tests against pinned8d28602 shows no differences. Guide
+shell syntax PASS. Independent merged lead `npm run check` PASS103units,lint/typecheck,
+build and1foundation smoke (not a DB test). G static review caught a missing existing
+network validation assertion; corrected to require bridge+127.0.0.1 before startup.
+No human test outcome inferred. Preserved scratch and original branches/worktrees.
