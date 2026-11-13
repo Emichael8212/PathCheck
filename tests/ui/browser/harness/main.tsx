@@ -5,9 +5,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PathCheckWorkflow } from '../../../../src/screens';
-import { fakeServices } from '../../../fixtures/ui/fakeServices';
+import { fakeServices, transcriptGate } from '../../../fixtures/ui/fakeServices';
 
 const q = new URLSearchParams(window.location.search);
+// hold=ticket,extract keeps those transcript calls pending until the test releases them.
+const gate = transcriptGate((q.get('hold') ?? '').split(',').filter(n => n === 'ticket' || n === 'extract'));
 const pick = <T extends string>(name: string, allowed: readonly T[], fallback: T): T => {
   const v = q.get(name);
   return (allowed as readonly string[]).includes(v ?? '') ? (v as T) : fallback;
@@ -16,6 +18,7 @@ const pick = <T extends string>(name: string, allowed: readonly T[], fallback: T
 const harness = fakeServices({
   draft: pick('draft', ['ok', 'none', 'interrupted'] as const, 'ok'),
   transcript: pick('transcript', ['disabled', 'approved', 'rejected', 'none'] as const, 'disabled'),
+  transcriptGate: gate,
   account: q.get('account') !== 'off',
   longTitles: q.get('long') === '1',
   blockingGap: q.get('gap') === '1',
@@ -24,7 +27,7 @@ const harness = fakeServices({
   staleAnalysis: q.get('analysis') === 'stale',
 });
 
-declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; savedPlanCount: () => number } } }
-window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0 };
+declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; savedPlanCount: () => number; release: (name: string) => void } } }
+window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0, release: name => gate.release(name) };
 
 createRoot(document.getElementById('root')!).render(<StrictMode><PathCheckWorkflow services={harness.services} /></StrictMode>);

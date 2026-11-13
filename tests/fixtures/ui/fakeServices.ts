@@ -299,13 +299,33 @@ export function syntheticExtraction(status: TranscriptExtraction['acceptanceStat
     ] };
 }
 
-export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls: string[]) {
+/**
+ * Holds named transcript calls until the test releases them, to exercise in-flight withdrawal,
+ * discard and unmount. A held call records itself as `<name>:held` before waiting.
+ */
+export interface TranscriptGate { hold: ReadonlySet<string>; release(name: string): void; wait(name: string): Promise<void> }
+export function transcriptGate(names: string[]): TranscriptGate {
+  const waiting = new Map<string, Array<() => void>>();
+  const released = new Set<string>();
+  return {
+    hold: new Set(names),
+    release(name) { released.add(name); for (const go of waiting.get(name) ?? []) go(); waiting.delete(name); },
+    wait: name => (released.has(name) ? Promise.resolve() : new Promise<void>(go => { waiting.set(name, [...(waiting.get(name) ?? []), go]); })),
+  };
+}
+const gateWait = (gate: TranscriptGate | undefined, name: string, calls: string[]) => {
+  if (!gate?.hold.has(name)) return Promise.resolve();
+  calls.push(`${name}:held`);
+  return gate.wait(name);
+};
+
+export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls: string[], gate?: TranscriptGate) {
   return Object.freeze({
     client: Object.freeze({
       getAvailability: async () => { calls.push('availability'); return ok(mode === 'disabled' ? { status: 'disabled' as const, disclosureVersion: 'disc-v1', processingTier: 'none', reasonCode: 'processing_not_approved' } : { status: 'approved' as const, disclosureVersion: 'disc-v1', processingTier: 'synthetic-test-tier', reasonCode: null }); },
       establishGuestSession: async () => { calls.push('session'); return ok(null); },
-      requestTicket: async () => { calls.push('ticket'); return ok({ signedTicket: 'signed', consentReceiptId: 'receipt-1', expiresAt: '2026-11-12T15:05:00.000Z' }); },
-      extract: async () => { calls.push('extract'); return ok(syntheticExtraction(mode === 'rejected' ? 'rejected' : 'needs_review')); },
+      requestTicket: async () => { calls.push('ticket'); await gateWait(gate, 'ticket', calls); return ok({ signedTicket: 'signed', consentReceiptId: 'receipt-1', expiresAt: '2026-11-12T15:05:00.000Z' }); },
+      extract: async () => { calls.push('extract'); await gateWait(gate, 'extract', calls); return ok(syntheticExtraction(mode === 'rejected' ? 'rejected' : 'needs_review')); },
       revokeConsent: async () => { calls.push('revoke'); return ok(null); },
     }),
     validate: (extraction: TranscriptExtraction) => (extraction.acceptanceStatus === 'rejected' ? fail('validation_error', 'extraction_rejected') : ok({ kind: 'validated_proposed_rows', extraction } as unknown as ValidatedExtractedRows)),
@@ -313,7 +333,7 @@ export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls
   });
 }
 
-export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean } = {}) {
+export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean } = {}) {
   const clock = fakeClock();
   const base = fakeAcademic([syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })], { draft: options.draft ?? 'ok' });
   // staleAnalysis: the double answers with an analysis for a different fingerprint, which the
@@ -332,7 +352,7 @@ export function fakeServices(options: { blockingGap?: boolean; longTitles?: bool
       : createPdfExportService({ now: clock.now }),
     clock,
     config: Object.freeze({ engineVersion: 'fake-engine-test-only', evaluationPolicy: 'fake-policy', assumeFuturePass: true, searchOptions: SEARCH_POLICY }),
-    transcript: options.transcript === 'none' ? null : fakeTranscript(options.transcript ?? 'disabled', transcriptCalls),
+    transcript: options.transcript === 'none' ? null : fakeTranscript(options.transcript ?? 'disabled', transcriptCalls, options.transcriptGate),
     account: account?.ports ?? null,
   });
   return { services, transcriptCalls, account, ref: SYNTHETIC_REF };

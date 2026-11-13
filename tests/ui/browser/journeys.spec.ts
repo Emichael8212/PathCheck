@@ -7,6 +7,16 @@ import type { Page } from '@playwright/test';
 import { inspectPdf, libraryPageCount } from '../pdfInspect';
 import { capture, textContrast, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectNoHorizontalOverflow, expectTouchTargets, fillAttempt, open, startGuest, termCard, toPlanner } from './helpers';
 
+const calls = (page: Page) => page.evaluate(() => [...window.__pathcheckHarness!.transcriptCalls]);
+
+/** Consents, picks a synthetic PDF and sends; optionally waits for the summary. */
+async function sendSynthetic(page: Page, waitForSummary = true) {
+  await page.getByLabel(/I consent to sending this PDF/).check();
+  await page.getByLabel(/Transcript PDF/).setInputFiles({ name: 'synthetic.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic test document') });
+  await page.getByRole('button', { name: 'Send for extraction' }).click();
+  if (waitForSummary) await expect(page.getByTestId('extraction-summary')).toBeVisible();
+}
+
 test.describe('shell and keyboard basics', () => {
   test('skip link is the first tab stop and moves focus to main content', async ({ page }) => {
     await open(page);
@@ -173,6 +183,92 @@ test.describe('academic record screen', () => {
     expect(await page.evaluate(() => window.__pathcheckHarness!.transcriptCalls)).toEqual(['availability', 'session', 'ticket', 'extract']);
     await expect(page.getByTestId('extraction-included')).toContainText('2 extracted rows');
     await expect(page.getByTestId('record-summary')).toContainText('2 courses checked');
+  });
+
+  test('extraction summary is actionable: uncertain-row review is optional and rows enter the record only on Accept', async ({ page }) => {
+    await open(page, 'transcript=approved');
+    await startGuest(page);
+    await sendSynthetic(page);
+    const summary = page.getByTestId('extraction-summary');
+    await expect(summary.getByTestId('uncertain-count')).toHaveText('1 row needs a look and won’t count until resolved');
+    await expect(summary.getByTestId('extraction-next')).toContainText('Nothing is added yet');
+    await expect(summary.getByRole('table')).toHaveCount(0);
+    const review = summary.getByRole('button', { name: 'Review 1 uncertain row' });
+    await expect(review).toHaveAttribute('aria-expanded', 'false');
+    await review.click();
+    const table = summary.getByRole('table', { name: /Rows that need a look/ });
+    await expect(table.getByRole('row')).toHaveCount(2);
+    await expect(table).toContainText('ZZZ 999');
+    await expect(table).not.toContainText('SYN 101');
+    await expect(table).toContainText('No catalog match');
+    await summary.getByRole('button', { name: 'Show all proposed rows' }).click();
+    await expect(summary.getByRole('table', { name: /Proposed rows/ }).getByRole('row')).toHaveCount(3);
+    // Proposals only: the action bar still requires the explicit acceptance step.
+    await expect(page.getByRole('button', { name: 'Accept and continue' })).toBeVisible();
+    await page.getByRole('button', { name: 'Accept and continue' }).click();
+    await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
+  });
+
+  test('withdrawing consent while extraction is in flight drops late rows and revokes the receipt', async ({ page }) => {
+    await open(page, 'transcript=approved&hold=extract');
+    await startGuest(page);
+    await sendSynthetic(page, false);
+    await expect.poll(() => calls(page)).toContain('extract:held');
+    await expect(page.getByLabel(/Transcript PDF/)).toBeDisabled();
+    await page.getByRole('button', { name: 'Stop and withdraw consent' }).click();
+    await expect(page.getByTestId('transcript-status')).toContainText('Nothing from this upload will be used');
+    await expect(page.getByLabel(/I consent to sending this PDF/)).not.toBeChecked();
+    await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
+    await expect.poll(() => calls(page)).toContain('revoke');
+    await expect(page.getByTestId('consent-withdrawn')).toBeVisible();
+    await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
+    await expect(page.getByTestId('extraction-included')).toHaveCount(0);
+    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'extract', 'extract:held', 'revoke']);
+    // Manual entry is unaffected.
+    await enterCompletedAttempt(page);
+  });
+
+  test('unchecking consent while the ticket is pending stops before extract and revokes the late receipt', async ({ page }) => {
+    await open(page, 'transcript=approved&hold=ticket');
+    await startGuest(page);
+    await sendSynthetic(page, false);
+    await expect.poll(() => calls(page)).toContain('ticket:held');
+    await page.getByLabel(/I consent to sending this PDF/).uncheck();
+    await expect(page.getByRole('button', { name: 'Send for extraction' })).toBeDisabled();
+    await page.evaluate(() => window.__pathcheckHarness!.release('ticket'));
+    await expect.poll(() => calls(page)).toContain('revoke');
+    await page.waitForTimeout(100);
+    expect(await calls(page)).toEqual(['availability', 'session', 'ticket', 'ticket:held', 'revoke']);
+    await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
+  });
+
+  test('leaving the record screen mid-extraction never applies the late rows', async ({ page }) => {
+    await open(page, 'transcript=approved&hold=extract');
+    await startGuest(page);
+    await sendSynthetic(page, false);
+    await expect.poll(() => calls(page)).toContain('extract:held');
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(page.getByTestId('screen-start')).toBeVisible();
+    await page.evaluate(() => window.__pathcheckHarness!.release('extract'));
+    await page.waitForTimeout(150); // let the late result settle before looking
+    await page.getByRole('navigation', { name: 'PathCheck steps' }).getByRole('button', { name: 'Academic record' }).click();
+    await expect(page.getByTestId('screen-record')).toBeVisible();
+    await expect(page.getByTestId('extraction-included')).toHaveCount(0);
+    await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
+    await expect(page.getByTestId('record-summary')).toHaveText('Your record is empty.');
+    await expect.poll(() => calls(page)).toContain('revoke');
+  });
+
+  test('an unreadable file (arrayBuffer rejects) falls back to manual entry and sends nothing', async ({ page }) => {
+    await page.addInitScript(() => { File.prototype.arrayBuffer = () => Promise.reject(new DOMException('synthetic read failure', 'NotReadableError')); });
+    await open(page, 'transcript=approved');
+    await startGuest(page);
+    await sendSynthetic(page, false);
+    await expect(page.getByRole('alert').filter({ hasText: 'could not be read' }).first()).toBeVisible();
+    await expect(page.getByText('Choose the file again or enter your courses manually.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Send for extraction' })).toBeDisabled();
+    expect(await calls(page)).toEqual(['availability']);
+    await enterCompletedAttempt(page);
   });
 
   test('a disabled transcript service shows a concise message and no upload control', async ({ page }) => {
