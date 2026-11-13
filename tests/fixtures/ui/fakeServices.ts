@@ -96,8 +96,10 @@ export function fakeAcademic(catalogs: CatalogModel[] = [syntheticCatalog()], op
         return { attemptId: r.rowId, rawCourseCode: r.rawCourseCode, normalizedCourseId: known, institution: r.rawInstitution, origin: r.rawInstitution ? 'transfer' : origin, term: parseTerm(r.rawTerm), attemptedCredits: num(r.rawAttemptedCredits), earnedCredits: num(r.rawEarnedCredits), grade: r.rawGrade, status, evidence: [], confidence: known ? 'provisional' : 'unresolved' };
       };
       const courseAttempts = [...extracted.map(r => attempt(r, 'transcript_proposal')), ...manual.map(r => attempt(r, 'manual'))];
+      // Mirrors E's per-row warning shape (`code:rowId`) for grades it cannot read. Test double only.
+      const gradeWarnings = [...extracted, ...manual].filter(r => r.rawGrade !== null && !/^([A-DF][+-]?|W|P|I)$/i.test(r.rawGrade.trim())).map(r => `unrecognized_grade:${r.rowId}`);
       const record: AcademicRecord = { schemaVersion: 1, recordRevision: 0, courseAttempts, unresolvedItems: unmatched.map(id => `unmatched-${id}`) };
-      return ok({ record, unmatched, warnings: unmatched.length ? ['unmatched_rows_retained'] : [] });
+      return ok({ record, unmatched, warnings: [...(unmatched.length ? ['unmatched_rows_retained'] : []), ...gradeWarnings] });
     },
     audit: s => ok(self.evaluate(s).ok ? (self.evaluate(s) as { ok: true; value: AnalysisResult }).value.degreeAudit : { requirements: [], earnedCredits: null, applicableCredits: null, disputedRules: [], totalStatus: 'unresolved' }),
     evaluate: s => {
