@@ -153,3 +153,7 @@ vite.config.ts.timestamp-*
 ASU_CIS_Curriculum_Guide.pdf
 playwright-report/
 test-results/
+
+# Disposable local Supabase state
+supabase/.branches/
+supabase/.temp/

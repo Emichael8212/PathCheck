@@ -1,0 +1,45 @@
+// Test entry only: actual E/U/L modules; only catalog and time are synthetic.
+// No canned evaluation, normalization, recommendation or command responses.
+import { createElement } from 'react';
+import type { ComponentType } from 'react';
+import { createRoot } from 'react-dom/client';
+import { CatalogModelSchema, SEARCH_POLICY, fingerprint } from '../../../src/contracts';
+import type { AcademicService, AnalysisResult, CatalogModel, ExportService, PlanningScenario } from '../../../src/contracts';
+import { createGuestWorkflow } from '../../../src/app/createGuestWorkflow';
+
+const load = (path: string) => import(/* @vite-ignore */ path);
+type CatalogPorts = Pick<AcademicService, 'listCatalogs' | 'loadValidatedCatalog'>;
+const engine = await load('/src/engine/index.ts') as { createAcademicService(registry: CatalogPorts): AcademicService; createCatalogRegistry(models: CatalogModel[]): CatalogPorts; ENGINE_VERSION: string };
+const exporter = await load('/src/export/index.ts') as { createPdfExportService(options: { now: () => string }): ExportService };
+const source = { sourceId: 'integration-synthetic', kind: 'synthetic', urlOrRef: null, observedAt: null, description: 'Invented academic graph for integration testing; not university policy', verificationStatus: 'synthetic' };
+const course = (id: string, prerequisite: string | null) => ({ courseId: id, displayCode: id.replace('-', ' '), title: `Synthetic ${id}`, credits: 3, prerequisite: prerequisite ? { kind: 'course', courseId: prerequisite, minGrade: null, timing: 'prior_term' } : { kind: 'all', children: [] }, sourceRefs: [source.sourceId], status: 'supported' });
+const base = { sourceRefs: [source.sourceId], uncertainty: 'documented', overlap: { mode: 'forbidden' }, consumesCredits: true };
+const catalog = CatalogModelSchema.parse({
+  schemaVersion: 1, catalogRef: { institutionId: 'asu', programId: 'bs-cis', catalogYearId: 'synthetic-only', catalogVersion: 'integration-synthetic-v1', ruleSetStatus: 'synthetic', sources: [source] }, approval: 'synthetic',
+  courses: Object.fromEntries([course('SYN-101', null), course('SYN-201', 'SYN-101'), course('SYN-301', 'SYN-201')].map(c => [c.courseId, c])),
+  requirementGroups: [{ ...base, requirementId: 'root', kind: 'all', requirementIds: ['intro', 'middle', 'advanced', 'total'] }, ...['intro', 'middle', 'advanced'].map((id, i) => ({ ...base, requirementId: id, kind: 'course', courseId: ['SYN-101', 'SYN-201', 'SYN-301'][i] })), { ...base, requirementId: 'total', kind: 'total_degree_credits', minimum: 9 }],
+  rootRequirementId: 'root', equivalencies: [], gradeScale: { ordered: ['A', 'B', 'C', 'D', 'F'], sourceRefs: [source.sourceId] }, policyGaps: [], validationResults: [],
+});
+declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number; acceptanceCalls: number; acceptedFromRevision: number | null } } }
+window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0, acceptanceCalls: 0, acceptedFromRevision: null };
+const realAcademic = engine.createAcademicService(engine.createCatalogRegistry([catalog]));
+const academic: AcademicService = {
+  ...realAcademic,
+  evaluate: scenario => {
+    const result = realAcademic.evaluate(scenario);
+    window.__integration = { ...window.__integration, scenario, analysis: result.ok ? result.value : null, fingerprint: fingerprint(scenario), evaluations: window.__integration.evaluations + 1 };
+    return result;
+  },
+};
+let id = 0;
+const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
+const services = Object.freeze({ ...realServices, commands: Object.freeze({
+  ...realServices.commands,
+  acceptRecord: ((...args) => {
+    window.__integration.acceptanceCalls += 1;
+    window.__integration.acceptedFromRevision = args[0].record.recordRevision;
+    return realServices.commands.acceptRecord(...args);
+  }) as typeof realServices.commands.acceptRecord,
+}) });
+const ui = await load('/src/screens/index.ts') as { PathCheckWorkflow: ComponentType<{ services: typeof services }> };
+createRoot(document.getElementById('root')!).render(createElement(ui.PathCheckWorkflow, { services }));
