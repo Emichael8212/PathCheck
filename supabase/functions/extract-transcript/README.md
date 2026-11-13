@@ -82,6 +82,13 @@ records or provider calls. They are not the 15–20 labeled extraction benchmark
 
 Runtime/retry checkpoint (2026-11-13, pending owned change on fbe9374 baseline):
 
+After non-destructively refreshing this feature branch with human-merged main
+`4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`, `npm run check` again PASS:
+557unit tests/29files with2explicit live-database skips, lint/typecheck/build and
+Chromium smoke1. Extraction-owned tests remain137. Independent final static review
+confirmed both reported handler findings resolved, with no remaining blocker in
+the reviewed retry/runtime scope. This does not waive integration/human gates.
+
 - `npm run check` — PASS: lint, TypeScript,240unit tests/14files (137G), build,
   Chromium foundation smoke1. No live Google requests or real transcripts used.
 - `tests/transcript/runtime.test.ts` binds an actual loopback HTTP server, exercises
