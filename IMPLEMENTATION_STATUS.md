@@ -949,3 +949,30 @@ testedcandidate exactly. Scratchpreserved,no commit/push. No completed PDF rerun
 S/GcurrentCI PASS as above. PR7human instructions ready; PR8/9 guides explicitly
 record blocked livebrowsereligibility and NOT RUN rather than offering simulated
 success as human acceptance. Colima shutdown confirmed successful. All agents idle.
+
+### Corrected all-PR dependency checkpoint — 2026-11-13
+
+Inspected GitHub PR4/5/6/7/8/9 and fetched current refs. PR4/5 remain MERGED at
+9f46d23/4f74a67 with human PASS. Open heads: U29c387c, Sc394241, G75aa73e,
+L8fbd313; all contain main4f74a67, are MERGEABLE, and required foundation CI PASS
+(L43504268718 now verified). Active ruleset27097753 enforces strict foundation,
+PR-only changes and force-push/deletion restrictions; classic protection404 does
+not mean the ruleset is absent. No GitHub reviews submitted; independent static
+review evidence is recorded separately. No tests rerun in this read-only audit.
+
+Corrected sequence includes PR8: PR7 human database acceptance → finish combined
+PR6/8/9 live synthetic upload and obtain scoped human acceptance → personal merges
+PR7, PR8, PR6, PR9, with current-head checks after each baseline change. PR7 can merge
+once its own gate passes while combined work continues. PR8 supplies the extraction
+implementation PR9 consumes; include it before live testing and merge it before PR9,
+but it need not merge before a temporary combined test. PR6/8 relative merge order
+is flexible after acceptance; both precede final PR9 integration. No circular demand
+to merge incomplete code just to test its dependencies.
+
+Full per-PR evidence and blockers are in docs/testing/requirements-coverage-audit.md
+under Corrected acceptance and merge sequence. PR6 previous manual/export completion
+retained; upload NOT RUN and human merge hold retained. PR7 human NOT RUN/guide ready;
+PR8/9 human NOT RUN/eligibility blocked. Older PR-body claims (PR5 NOT RUN, PR6 draft,
+PR7 CI pending, PR8 guide pending) are stale, not new acceptance evidence.
+Next human action is only PR7's new database/retry test; no PR4/5 or completed corpus
+repeat requested. This checkpoint changes documentation only, not application behavior.

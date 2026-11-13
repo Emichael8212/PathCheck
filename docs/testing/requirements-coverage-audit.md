@@ -1,5 +1,57 @@
 # PathCheck requirements-to-test audit — 2026-11-13
 
+## Corrected acceptance and merge sequence — includes PR8
+
+GitHub inspected on 2026-11-13. All six PR heads below have successful `foundation`
+checks. Active ruleset27097753 requires that check with strict up-to-date status,
+PR-only changes and no force-push/deletion. It requires zero GitHub approving
+reviews; the project's independent-review and human-acceptance gates still apply.
+There are no submitted GitHub reviews on these PRs. Independent static reviews
+are recorded in the ledger/PR evidence, not represented as GitHub approvals.
+
+| PR / exact inspected head | Scope and dependencies | Review and human evidence | Current gate |
+|---|---|---|---|
+| 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
+| 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
+| 6 `29c387caef967990abd6db06ab7696c05c416f36` | Three screens, planner, PDF export and consent/upload UI; engine on main; full upload consumes PR8 through PR9 and PR7 | Final U review resolved revoke/summary/validation findings; CI43489146280 PASS. Human completed earlier manual/export workflows; upload NOT RUN | OPEN, non-draft despite title. BLOCKED by user's upload acceptance hold; later changes affect transcript paths, not prior manual/export implementation |
+| 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; PR4/3 already merged; independent of PR6/8/9 for database acceptance | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human NOT RUN | OPEN draft; HUMAN ACCEPTANCE REQUIRED using pr-7 guide |
+| 8 `75aa73ee912186670c4256189db48a4a238f7fcd` | Extraction client/validation, PDF handler, Gemini provider/retries and server runtime; PR7 durable admission via PR9 adapter; PR6 UI for browser acceptance | Final review resolved two handler findings; 557 unit (137 extraction), live synthetic corpus PASS; CI43502564822 PASS; human NOT RUN | OPEN draft; BLOCKED on live synthetic browser composition and human upload acceptance; public gateway/resource isolation and real-data privacy gates remain |
+| 9 `8fbd313e25603b410c70b46c3f89db6b9ed8cfb1` | Lead RPC adapter, resumable benchmark, integration harness; requires PR6/7/8 for actual composed workflow | Independent adapter/benchmark/harness findings resolved; 649 composed units,65 UI,11 planning,5 upload cases PASS; upload Google/bot transport simulated; CI43504268718 PASS; human NOT RUN | OPEN draft; BLOCKED on live browser integration and human acceptance. Documentation corrections after this inspected head do not change implementation b4573d4 |
+
+All open heads contain current main4f74a67 and GitHub reports MERGEABLE. That is
+conflict compatibility, not permission to merge. PR9 directly imports PR8's handler,
+admission and provider in its upload harness. PR8 is a code dependency of PR9;
+its omission from the earlier sequence was incorrect.
+
+**Execution and acceptance order:**
+
+1. Human runs PR7's pinned database/retry procedure. This tests new admission
+   behavior, not a repeat of already accepted PR4. After PASS, current checks and
+   review reconciliation, human personally merges PR7.
+2. Lead finishes and verifies the live, local, synthetic-only browser composition
+   using PR6+PR8+PR9 on an uncommitted temporary integration branch. PR8 need not
+   merge before this test; waiting for mutually dependent acceptance would create
+   an unnecessary cycle. No fake paid approval, simulated Google acceptance or
+   real student records. Existing benchmark cases are not rerun.
+3. Prepare one pinned human upload procedure with explicit PR6 UI, PR8 extraction
+   and PR9 integration assertions. A human result may cover all three only when
+   each scope and exact source revisions are identified. Retain prior manual/PDF
+   acceptance; request only changed/new behavior unless a regression justifies more.
+4. Once applicable gates pass, proposed merge order is **PR7 → PR8 → PR6 → PR9**.
+   PR6 and PR8 have no strict code merge order relative to each other; this ordering
+   lands the extraction module before its UI integration. Both must precede PR9's
+   completed application integration. This is a conditional sequence, not a current
+   merge recommendation for PR6/8/9.
+5. After each human merge, refresh dependent feature branches non-destructively,
+   rerun affected automated checks/strict CI, and assess acceptance impact. A
+   documentation-only or behavior-preserving baseline refresh does not itself
+   require repeating human acceptance. Resolve any new behavioral difference first.
+
+Public bot/gateway enforcement, PDF resource isolation and real-transcript privacy
+remain mandatory gates for their applicable runtime/release scope. Missing local
+live-upload wiring is engineering incompleteness, not a Google503 blocker. No PR
+merge or synthetic test establishes full application or deployment readiness.
+
 ## Current transcript checkpoint
 
 **Synthetic benchmark PASS:**18/18 cases (16 real Gemini PDF responses;2 preflight
