@@ -487,3 +487,10 @@ U7c17d49 renderer delta: independent review no blocker; currentCI43476512604 PAS
 combined lint/typecheck595units,12desktop journeys and production smoke PASS. Initial
 scratch omitted matching Utest imports; corrected reconstruction and rerun resolved
 those failures. Human PDF readability/PR6 acceptance remain NOT RUN.
+
+### PR5 merged / frontend acceptance candidate
+PR5 human-merged4f74a67; engine106test human PASS retained. Post-merge L435units
+PASS/2live skips/fullcheck. PR6 Uimplementation7c17d49 refreshed to bbea54d without
+Usource changes. Prepared main4f74a67+U7c17d49+L3a734d2 candidate passes480units,
+12desktop journeys including actual engine export and1production smoke. Live checks
+skipped, not claimed rerun. PR6 human NOT RUN; currentCI43478299682 pending.

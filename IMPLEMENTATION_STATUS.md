@@ -646,3 +646,22 @@ patch omitted updated test imports and caused typecheck/3unit failures; correcte
 scratch to include complete Utest delta (no production fix needed). Final lint/typecheck
 PASS,595units PASS/2live skipped,12desktop journeys PASS, production-built smoke1PASS.
 Human PDF visual and PR6 acceptance remain NOT RUN. No merge or deployment.
+
+
+### PR #5 merge verified and PR #6 candidate — 2026-11-13
+GitHub confirms PR5 MERGED at2026-11-13T17:56:31Z, merge commit
+4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39. Human106test acceptance PASS retained.
+Local main fast-forwarded; lead branch merged main at3a734d2. Post-merge lead fullcheck
+PASS435units/2live skips/lint/typecheck/build/1smoke. All worktrees preserved.
+U owner resumed to refresh PR6: bbea54d9645d284f4b3dcff71320387441eb1011 includes
+main4f74a67; no U-owned source/test diff from reviewed7c17d49. CI43478299682 running.
+
+Prepared /private/tmp/pathcheck-pr6-human (local-only branch integration/pr6-human)
+HEAD4f74a67 + noncommitting U7c17d49/L3a734d2 with application.patch applied.
+Exact merge-state file lists both heads (git rev-parse MERGE_HEAD prints only first,
+so guide checks the actual file). Dependencies installed; lint/typecheck PASS,
+480units PASS/2live skips,12real-engine desktop journeys PASS,production smoke1PASS.
+No screenshot captured. PR6 guide repinned to bbea54d and documents source-equivalent
+prepared candidate. Human acceptance NOT RUN; await currentCI then present startup.
+These are frontend component gates, not full-app completion. Account/transcript
+composition and runtime/security integration remain required engineering work.
