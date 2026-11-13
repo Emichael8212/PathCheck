@@ -30,6 +30,8 @@ export const totalCredits = (id: string, minimum: number, o?: Base): Requirement
 export interface CatalogOptions {
   equivalencies?: CatalogModel['equivalencies']; gradeScale?: CatalogModel['gradeScale'];
   policyGaps?: CatalogModel['policyGaps']; root?: string;
+  /** Omitted = legacy (no field); null = explicit unknown. Synthetic source only. */
+  repeatCreditPolicy?: CatalogModel['repeatCreditPolicy'];
 }
 export function catalog(courses: CourseDefinition[], groups: RequirementGroup[], o: CatalogOptions = {}): CatalogModel {
   return CatalogModelSchema.parse({
@@ -37,8 +39,12 @@ export function catalog(courses: CourseDefinition[], groups: RequirementGroup[],
     courses: Object.fromEntries(courses.map(c => [c.courseId, c])), requirementGroups: groups,
     rootRequirementId: o.root ?? groups[0]!.requirementId, equivalencies: o.equivalencies ?? [], gradeScale: o.gradeScale ?? null,
     policyGaps: o.policyGaps ?? [], validationResults: [],
+    ...(o.repeatCreditPolicy !== undefined ? { repeatCreditPolicy: o.repeatCreditPolicy } : {}),
   });
 }
+/** SYNTHETIC repeat-credit rule for algorithm tests only; not an ASU policy. */
+export const synRepeatPolicy = (courseIds: string[], qualifyingGrades = ['A', 'B', 'C']): NonNullable<CatalogModel['repeatCreditPolicy']> =>
+  ({ courseIds, creditCounting: 'once_per_course', selection: 'latest_qualifying', qualifyingGrades, sourceRefs: [SYN] });
 export const SYN_GRADES = { ordered: ['A', 'B', 'C', 'D', 'F'], sourceRefs: [SYN] };
 
 let seq = 0;

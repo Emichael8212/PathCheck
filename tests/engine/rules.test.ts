@@ -5,7 +5,7 @@ import { evaluatePrerequisite, evaluate } from '../../src/engine';
 import { computeAudit } from '../../src/engine/audit';
 import { impossibleCycles } from '../../src/engine/prerequisites';
 import type { CatalogModel, CourseAttempt, PlanPlacement, PrerequisiteExpr } from '../../src/contracts';
-import { SYN, SYN_GRADES, T, all, any, attempt, catalog, chooseCourses, coreq, course, minCredits, place, pre, reqAll, reqCourse, scenario, totalCredits, unresolvedRule } from '../fixtures/engine/synthetic';
+import { SYN, SYN_GRADES, T, all, any, attempt, catalog, chooseCourses, coreq, course, minCredits, place, pre, reqAll, reqCourse, scenario, synRepeatPolicy, totalCredits, unresolvedRule } from '../fixtures/engine/synthetic';
 
 const baseCat = (o: Parameters<typeof catalog>[2] = {}) => catalog(['TEST-101', 'TEST-102', 'TEST-103', 'TEST-201'].map(c => course(c)), [reqCourse('req', 'TEST-101')], o);
 const auditOf = (cat: CatalogModel, attempts: CourseAttempt[], placements: PlanPlacement[] = []) => computeAudit({ catalog: cat, attempts, placements, targetSort: 99999 });
@@ -25,8 +25,13 @@ describe('T-ENG degree requirement cases', () => {
     expect(r.audit.totalStatus).toBe('unmet'); expect(r.audit.applicableCredits).toBe(0); expect(r.audit.earnedCredits).toBe(0);
   });
   it('4 failed attempt does not satisfy', () => expect(req(baseCat(), [attempt('TEST-101', { status: 'failed', earnedCredits: 0, grade: 'F' })]).status).toBe('unmet'));
-  it('5 repeat passed after fail: BLOCKED for a sourced policy (contract gap) -> fail closed unresolved', () => {
-    // contracts-v1 cannot carry a sourced repeat rule; even with no policy gap the engine must not invent one.
+  it('5 repeat passed after fail, with sourced (synthetic) policy: latest qualifying attempt counts once', () => {
+    const fail = attempt('TEST-101', { status: 'failed', earnedCredits: 0, grade: 'F', term: T(2024, 'spring') }), pass = attempt('TEST-101', { term: T(2024, 'fall') });
+    const r = auditOf(baseCat({ gradeScale: SYN_GRADES, repeatCreditPolicy: synRepeatPolicy(['TEST-101']) }), [fail, pass]);
+    expect(r.audit.requirements[0]).toMatchObject({ status: 'satisfied', conditional: false, attemptIds: [pass.attemptId], applicableCredits: 3 });
+    expect(r.audit).toMatchObject({ totalStatus: 'satisfied', earnedCredits: 3, applicableCredits: 3 });
+  });
+  it('5-neg repeat passed after fail with NO sourced policy: absence of a gap is not a policy -> unresolved', () => {
     const r = auditOf(baseCat(), [attempt('TEST-101', { status: 'failed', earnedCredits: 0, grade: 'F', term: T(2024, 'spring') }), attempt('TEST-101', { term: T(2024, 'fall') })]);
     expect(r.audit.requirements[0]!.status).toBe('unresolved');
     expect(r.audit.totalStatus).toBe('unresolved');

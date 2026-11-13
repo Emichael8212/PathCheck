@@ -2,12 +2,14 @@ import type { CatalogModel } from '../contracts';
 
 // Engine-recognized policy-gap identifiers (match docs/curriculum `unresolvedPolicies`).
 // A gap listed in `CatalogModel.policyGaps` makes the corresponding policy explicitly
-// unresolved. The ABSENCE of a gap is NOT evidence that a policy was sourced: contracts-v1
-// has no field that can carry a sourced repeat-credit rule or a requirement-level minimum
-// grade, so the engine never infers either one from silence. It fails closed instead:
-//  - any repeated attempt of one course leaves that course's credit/satisfaction unresolved;
-//  - for any non-synthetic catalog, requirement-level grade/repeat rules are treated as
-//    unmodeled, so the degree total can never be reported `satisfied`.
+// unresolved. The ABSENCE of a gap is NOT evidence that a policy was sourced; the engine never
+// infers a rule from silence and fails closed instead:
+//  - a repeated attempt of one course leaves that course's credit unresolved unless the
+//    catalog's sourced, explicitly course-scoped `repeatCreditPolicy` resolves it (repeatPolicy.ts);
+//  - requirement-level minimum-grade rules cannot be carried by the contract, so for any
+//    non-synthetic catalog requirement-level grade/repeat rules are treated as unmodeled and the
+//    degree total can never be reported `satisfied` (a scoped repeat policy covers only its
+//    listed courses; catalog-wide repeat treatment stays unmodeled).
 // Synthetic fixtures are exempt from the second rule only because their (invented) rules
 // are defined to be exactly what the fixture encodes; they make no ASU claim.
 export const POLICY = Object.freeze({
@@ -21,7 +23,7 @@ export const POLICY = Object.freeze({
   legacyElectives: 'legacy-elective-eligibility',
 });
 
-/** Policies contracts-v1 cannot represent as sourced rules (requested contract gap). */
+/** Requirement-level policies the contract cannot represent as complete sourced rules. */
 export const UNMODELED_REQUIREMENT_POLICIES = Object.freeze(['requirement-minimum-grade', 'repeat-credit-rule'] as const);
 
 /** True when requirement-level grade/repeat policy cannot be sourced through the contract. */

@@ -6,6 +6,7 @@
 import type { CatalogModel, CourseAttempt, DegreeAudit, PlanPlacement, RequirementGroup } from '../contracts';
 import { canonicalCourseCode } from './normalize';
 import { requirementPoliciesUnmodeled } from './policy';
+import { equivalentCourseActivity, resolveRepeat } from './repeatPolicy';
 import { catalogBlocksConclusions, compareStrings, definitelyNotPassed, compareTuples, courseCredits, courseLevel, coursePrefix, uniqueSorted } from './util';
 
 /** 0 = definite earned, 1 = conditional (in progress / planned), 2 = unresolved. */
@@ -81,13 +82,22 @@ export function buildUnits(input: AuditInput): Unit[] {
     // Scheduling evidence ignores repeat-credit policy: a recorded pass is still taken and a
     // planned retake is still scheduled for prerequisite timing and planning purposes.
     const schedulingQuality: Quality | null = (quality === null || quality === 2) && planned.length ? 1 : quality;
-    // contracts-v1 cannot express a SOURCED repeat-credit rule, and absence of a policy gap is
-    // not evidence of one. Any projected repeat (recorded, in-progress or planned retake) stays
-    // unresolved and is never upgraded to a conditional future pass by a planned placement.
+    // A projected repeat (recorded, in-progress or planned retake) counts credit only under the
+    // catalog's explicitly scoped, sourced repeatCreditPolicy. Absent/null policy, out-of-scope
+    // courses, equivalency-linked attempts and unclassifiable attempts stay unresolved and are
+    // never upgraded to a conditional future pass by a planned placement.
     const repeat = isRepeat(own, planned.length);
-    if (repeat && (quality !== null || planned.length)) {
-      if (quality === null) credits = courseCredits(catalog, courseId);
-      quality = 2; reasons.push('repeat_policy_unresolved'); attemptIds.splice(0, attemptIds.length, ...own.map(a => a.attemptId).sort(compareStrings));
+    if (repeat) {
+      const linked = equivalentCourseActivity(catalog, courseId, id => attempts.some(a => a.normalizedCourseId === id) || input.placements.some(p => p.courseId === id && p.termId.sortIndex <= input.targetSort));
+      const r = linked ? { kind: 'unresolved' as const, reasons: ['repeat_policy_equivalency_unresolved'] } : resolveRepeat(catalog, courseId, own, planned.length);
+      if (r.kind === 'resolved') {
+        quality = r.quality; credits = r.credits;
+        reasons.splice(0, reasons.length, ...r.reasons); attemptIds.splice(0, attemptIds.length, ...r.attemptIds);
+      } else if (r.kind === 'none') { quality = null; }
+      else if (quality !== null || planned.length) {
+        if (quality === null) credits = courseCredits(catalog, courseId);
+        quality = 2; reasons.push('repeat_policy_unresolved', ...r.reasons); attemptIds.splice(0, attemptIds.length, ...own.map(a => a.attemptId).sort(compareStrings));
+      }
     }
     const placementIds = planned.map(p => p.placementId).sort(compareStrings);
     if (!repeat && (quality === null || quality === 2)) {
@@ -406,7 +416,18 @@ export function computeAudit(input: AuditInput): AuditDetail {
   const applicable = [...pass.allocation.entries()].filter(([u, req]) => credLeafIds.has(req) && pass.allocQ.get(u) === 0).map(([u]) => unitMap.get(u)!);
   const completed = input.attempts.filter(a => a.status === 'completed');
   const completedKeys = completed.map(a => a.normalizedCourseId ?? canonicalCourseCode(a.rawCourseCode) ?? a.attemptId);
-  const repeatedCompleted = new Set(completedKeys).size !== completedKeys.length;
+  // Raw earned credit sums each completed attempt, except that a repeated course counts once:
+  // only under a sourced policy that definitely selected one counted attempt. Any other
+  // repeated completion (unknown/out-of-scope/unresolved policy) makes the total unknown.
+  const byKey = new Map<string, CourseAttempt[]>();
+  completed.forEach((a, i) => byKey.set(completedKeys[i]!, [...(byKey.get(completedKeys[i]!) ?? []), a]));
+  let repeatedCompleted = false; let earnedSum = 0;
+  for (const [key, list] of byKey) {
+    if (list.length === 1) { earnedSum += list[0]!.earnedCredits ?? 0; continue; }
+    const u = unitMap.get(`unit:${key}`);
+    const counted = u && u.quality === 0 && u.reasons.includes('repeat_policy_applied') && list.every(a => a.normalizedCourseId === key) ? list.find(a => u.attemptIds.includes(a.attemptId)) : undefined;
+    if (counted) earnedSum += counted.earnedCredits ?? 0; else repeatedCompleted = true;
+  }
   const audit: DegreeAudit = {
     requirements: catalog.requirementGroups.map(g => {
       const o = pass.outcomes.get(g.requirementId)!; const us = unitsOf(o);
@@ -414,7 +435,7 @@ export function computeAudit(input: AuditInput): AuditDetail {
         conditional: o.conditional, applicableCredits: o.applicableCredits, sourceRefs: [...g.sourceRefs] };
     }),
     // Raw earned credit; null when unknown or when repeats could double count without a sourced policy.
-    earnedCredits: completed.some(a => a.earnedCredits === null) || repeatedCompleted ? null : completed.reduce((s, a) => s + (a.earnedCredits ?? 0), 0),
+    earnedCredits: completed.some(a => a.earnedCredits === null) || repeatedCompleted ? null : earnedSum,
     applicableCredits: applicable.some(u => u.credits === null) ? null : applicable.reduce((s, u) => s + (u.credits ?? 0), 0),
     disputedRules: uniqueSorted([...catalog.requirementGroups.filter(g => g.uncertainty === 'disputed').map(g => g.requirementId), ...catalog.policyGaps.filter(g => g.blocksConclusions).map(g => g.policyId)]),
     // Satisfied only for definite, non-conditional completion under an unblocked catalog.

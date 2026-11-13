@@ -4,6 +4,7 @@ import type { AvailabilityEvidence, PlanPlacement, PlanningScenario, RuleFinding
 import type { AuditDetail } from './audit';
 import { POLICY, UNMODELED_REQUIREMENT_POLICIES, requirementPoliciesUnmodeled } from './policy';
 import { evaluatePrerequisite, gradeIndexOf, impossibleCycles } from './prerequisites';
+import { repeatPolicyScope } from './repeatPolicy';
 import { compareTuples, courseCredits, definitelyNotPassed, finding, hasPolicyGap } from './util';
 
 /** Codes that represent known (sourced or student-reported-scenario) hard constraint violations. */
@@ -78,7 +79,13 @@ export function recordAndCatalogGaps(scenario: PlanningScenario, audit: AuditDet
     else if (a.normalizedCourseId !== null && (a.status === 'unknown' || a.status === 'incomplete' || a.status === 'transfer_pending' || (a.status === 'completed' && a.earnedCredits === null) || a.confidence === 'unresolved')) out.push(finding({ code: 'attempt_status_unresolved', severity: 'warning', status: { status: 'unresolved', conditional: false }, courseIds: [a.normalizedCourseId], explanationParams: { ...params, status: a.status }, idParts: [a.attemptId], nextAction: 'confirm_attempt_details' }));
     if (a.status === 'in_progress') out.push(finding({ code: 'in_progress_not_earned', severity: 'info', status: { status: 'unresolved', conditional: true }, courseIds: a.normalizedCourseId ? [a.normalizedCourseId] : [], explanationParams: params, idParts: [a.attemptId], assumptions: [`future_pass:${a.normalizedCourseId ?? a.attemptId}`], nextAction: null }));
   }
-  for (const u of audit.units.values()) if (u.reasons.includes('repeat_policy_unresolved') && u.courseId) out.push(finding({ code: 'repeat_policy_unresolved', severity: 'warning', status: { status: 'unresolved', conditional: false }, courseIds: [u.courseId], explanationParams: { attempts: u.attemptIds.length }, sourceRefs: catalog.policyGaps.filter(g => g.policyId === POLICY.repeatCredit).flatMap(g => g.sourceRefs), nextAction: 'confirm_repeat_policy' }));
+  for (const u of audit.units.values()) if (u.reasons.includes('repeat_policy_unresolved') && u.courseId) {
+    const scope = repeatPolicyScope(catalog, u.courseId);
+    const detail = u.reasons.filter(r => r.startsWith('repeat_') && r !== 'repeat_policy_unresolved');
+    out.push(finding({ code: 'repeat_policy_unresolved', severity: 'warning', status: { status: 'unresolved', conditional: false }, courseIds: [u.courseId],
+      explanationParams: { attempts: u.attemptIds.length, policyScope: scope, ...(detail.length ? { reasons: detail.join(',') } : {}) },
+      sourceRefs: [...catalog.policyGaps.filter(g => g.policyId === POLICY.repeatCredit).flatMap(g => g.sourceRefs), ...(scope === 'in_scope' ? catalog.repeatCreditPolicy!.sourceRefs : [])], nextAction: 'confirm_repeat_policy' }));
+  }
   for (const g of catalog.requirementGroups) {
     const o = audit.outcomes.get(g.requirementId)!;
     if (!o.active || o.status !== 'unresolved' || g.kind === 'all' || (g.kind === 'choose_n' && g.requirementIds.length > 0)) continue;
