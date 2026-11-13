@@ -47,7 +47,7 @@ function PlacementCard({ placement, catalog, terms, evidence, highlighted, busy,
           <button type="button" className="danger" disabled={busy} onClick={() => handlers.onRemove(placement, 'apply')}>Remove {code}</button>
           <button type="button" className="secondary" disabled={busy} onClick={() => handlers.onRemove(placement, 'preview')}>Preview removal</button>
         </div>
-        <AvailabilityControl courseLabel={code} term={placement.termId} existing={evidence} disabled={busy} onAnswer={(a, n) => handlers.onReport(placement.courseId, placement.termId, a, n)} />
+        <AvailabilityControl compact courseLabel={code} term={placement.termId} existing={evidence} disabled={busy} onAnswer={(a, n) => handlers.onReport(placement.courseId, placement.termId, a, n)} />
       </details>
     </li>
   );
@@ -60,11 +60,7 @@ export function Timeline({ catalog, terms, active, projected, evidence, capacity
     <section className="timeline" aria-labelledby="timeline-title" data-testid="timeline">
       <div className="timeline-head">
         <h2 id="timeline-title" tabIndex={-1}>Semester plan</h2>
-        <ul className="legend" aria-label="Course origin">
-          <li><span className="badge badge-origin-student_selected">{ORIGIN_LABEL.student_selected}</span></li>
-          <li><span className="badge badge-origin-adopted_suggestion">{ORIGIN_LABEL.adopted_suggestion}</span></li>
-          <li><span className="badge badge-origin-system_projection">{ORIGIN_LABEL.system_projection}</span></li>
-        </ul>
+        <p className="meta" data-testid="timeline-total"><span className="tabular">{active.length}</span> planned course{active.length === 1 ? '' : 's'}{projected.length ? `, ${projected.length} unadopted projection${projected.length === 1 ? '' : 's'}` : ''}</p>
       </div>
       <div className="terms">
         {columns.map(col => {
@@ -99,6 +95,11 @@ export function Timeline({ catalog, terms, active, projected, evidence, capacity
           );
         })}
       </div>
+      <ul className="legend" aria-label="Course origin key">
+        <li><span className="badge badge-origin-student_selected">{ORIGIN_LABEL.student_selected}</span> solid blue edge</li>
+        <li><span className="badge badge-origin-adopted_suggestion">{ORIGIN_LABEL.adopted_suggestion}</span> solid green edge</li>
+        <li><span className="badge badge-origin-system_projection">{ORIGIN_LABEL.system_projection}</span> dashed outline</li>
+      </ul>
     </section>
   );
 }

@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import type { AnalysisResult, AvailabilityEvidence, CatalogModel, RuleFinding, TermId } from '../../contracts';
 import {
   APPROVAL_LABEL, OUTLOOK_TEXT, REPORT_LABEL, RULESET_LABEL, SOURCE_KIND_LABEL, VERIFICATION_LABEL,
-  catalogYearLabel, constraintText, courseCode, courseTitle, findingClass, formatTimestamp, humanizeCode, programLabel, sourceLookup,
+  catalogYearLabel, constraintText, courseCode, courseTitle, findingClass, findingScope, formatTimestamp, humanizeCode, programLabel, sourceLookup,
 } from '../labels';
 import { termLabel } from '../terms';
 
@@ -50,52 +50,59 @@ export function CatalogSummary({ catalog }: { catalog: CatalogModel }) {
   );
 }
 
+/** Compact outlook strip: verdict line, the engine's caveat and dependencies stay visible. */
 export function OutlookCard({ analysis, targetTerm, stale }: { analysis: AnalysisResult; targetTerm: TermId; stale: boolean }) {
   const o = OUTLOOK_TEXT[analysis.outlook.kind];
   return (
     <section className={`outlook outlook-${analysis.outlook.kind}`} aria-labelledby="outlook-title" data-testid="outlook">
       <h2 id="outlook-title">{o.title} for {termLabel(targetTerm)}</h2>
-      <p className="muted">{o.detail}</p>
-      {analysis.outlook.assumptionRefs.length > 0 && <p className="meta">Depends on: {analysis.outlook.assumptionRefs.map(humanizeCode).join('; ')}</p>}
+      <p className="outlook-detail">{o.detail}{analysis.outlook.assumptionRefs.length > 0 && <> <span className="outlook-deps">Depends on: {analysis.outlook.assumptionRefs.map(humanizeCode).join('; ')}.</span></>}</p>
       {stale && <p className="stale" role="alert">This analysis is out of date for the current inputs.</p>}
     </section>
   );
 }
 
+/**
+ * One compact row per engine finding. The summary line names the class, the rule and where
+ * it applies; the sourced rationale, next step, assumptions and requirements sit in the
+ * expandable details so they stay available without repeating on every row.
+ */
 export function FindingCard({ finding, catalog, onViewInPlan }: { finding: RuleFinding; catalog: CatalogModel | null; onViewInPlan?: (courseId: string) => void }) {
   const cls = findingClass(finding);
   const src = sourceLookup(catalog);
   const params = Object.entries(finding.explanationParams);
-  const courses = finding.courseIds.map(id => courseCode(catalog, id)).join(', ');
-  const terms = finding.termIds.map(termLabel).join(', ');
+  const scope = findingScope(finding, catalog);
+  const first = finding.courseIds[0];
   return (
     <li className={`finding finding-${cls.tone}`} data-testid="finding" data-tone={cls.tone}>
-      <p className="finding-head"><span className={`badge badge-${cls.tone}`}>{cls.label}</span> <strong>{humanizeCode(finding.code)}</strong></p>
-      {(courses || terms) && <p>{courses}{courses && terms ? ' in ' : ''}{terms}</p>}
-      {finding.nextAction && <p className="next-action">Next: {humanizeCode(finding.nextAction)}</p>}
-      <div className="finding-tools">
-        <details>
-          <summary>Why?</summary>
+      <details className="finding-details">
+        <summary data-testid="finding-summary">
+          <span className="finding-text"><span className={`badge badge-${cls.tone}`}>{cls.label}</span> <strong>{humanizeCode(finding.code)}</strong>{scope && <span className="finding-scope"> {scope}</span>}</span>
+        </summary>
+        <div className="finding-why" data-testid="finding-why">
+          {finding.nextAction && <p className="next-action">Suggested next step: {humanizeCode(finding.nextAction)}.</p>}
           <p>Rule status: {constraintText(finding)}.</p>
           {finding.courseIds.length > 0 && <p>{finding.courseIds.map(id => courseTitle(catalog, id)).join('; ')}</p>}
           {params.length > 0 && <ul>{params.map(([k, v]) => <li key={k}>{humanizeCode(k)}: {String(v)}</li>)}</ul>}
-          {finding.sourceRefs.length > 0 && <ul className="sources">{finding.sourceRefs.map(r => <li key={r}>{src(r)}</li>)}</ul>}
+          {finding.sourceRefs.length > 0 && <ul className="sources" aria-label="Sources">{finding.sourceRefs.map(r => <li key={r}>{src(r)}</li>)}</ul>}
           {finding.assumptions.length > 0 && <p>Assumptions: {finding.assumptions.map(humanizeCode).join('; ')}</p>}
           {finding.requirementIds.length > 0 && <p>Requirements: {finding.requirementIds.map(humanizeCode).join(', ')}</p>}
-        </details>
-        {onViewInPlan && finding.courseIds[0] && <button type="button" className="link" onClick={() => onViewInPlan(finding.courseIds[0]!)}>View {courseCode(catalog, finding.courseIds[0])} in plan</button>}
-      </div>
+        </div>
+      </details>
+      {onViewInPlan && first && <button type="button" className="link finding-locate" aria-label={`Show in plan: ${courseCode(catalog, first)}`} onClick={() => onViewInPlan(first)}>Show in plan</button>}
     </li>
   );
 }
 
-export function FindingList({ title, findings, catalog, empty, onViewInPlan, testId }: { title: string; findings: RuleFinding[]; catalog: CatalogModel | null; empty: string; onViewInPlan?: (courseId: string) => void; testId: string }) {
+export function FindingList({ title, findings, catalog, empty, onViewInPlan, canLocate, testId }: { title: string; findings: RuleFinding[]; catalog: CatalogModel | null; empty: string; onViewInPlan?: (courseId: string) => void; canLocate?: (courseId: string) => boolean; testId: string }) {
   const id = useId();
+  // "Show in plan" only where the course is actually placed, so the control never does nothing.
+  const locatable = (f: RuleFinding) => Boolean(onViewInPlan && f.courseIds[0] && (!canLocate || canLocate(f.courseIds[0])));
   return (
     <section aria-labelledby={id} data-testid={testId} className="section-block">
       <h2 id={id}>{title}</h2>
       {findings.length === 0 ? <p className="muted">{empty}</p> : (
-        <ul className="findings">{findings.map(f => <FindingCard key={f.findingId} finding={f} catalog={catalog} {...(onViewInPlan ? { onViewInPlan } : {})} />)}</ul>
+        <ul className="findings">{findings.map(f => <FindingCard key={f.findingId} finding={f} catalog={catalog} {...(onViewInPlan && locatable(f) ? { onViewInPlan } : {})} />)}</ul>
       )}
     </section>
   );
@@ -103,11 +110,21 @@ export function FindingList({ title, findings, catalog, empty, onViewInPlan, tes
 
 export type AvailabilityAnswer = AvailabilityEvidence['report'] | 'skip';
 
-export function AvailabilityControl({ courseLabel, term, existing, onAnswer, disabled }: { courseLabel: string; term: TermId; existing: AvailabilityEvidence | undefined; onAnswer: (answer: AvailabilityAnswer, notes: string) => void; disabled: boolean }) {
+/**
+ * Student offering report. `compact` tucks the optional note behind a disclosure;
+ * `hintInSection` leaves the "check it yourself" hint to a surrounding section that shows it once.
+ */
+export function AvailabilityControl({ courseLabel, term, existing, onAnswer, disabled, compact = false, hintInSection = false }: { courseLabel: string; term: TermId; existing: AvailabilityEvidence | undefined; onAnswer: (answer: AvailabilityAnswer, notes: string) => void; disabled: boolean; compact?: boolean; hintInSection?: boolean }) {
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const notesId = useId();
+  const note = (
+    <div className="field">
+      <label htmlFor={notesId}>Note (optional)</label>
+      <input id={notesId} value={notes} maxLength={200} autoComplete="off" onChange={e => setNotes(e.target.value)} />
+    </div>
+  );
   return (
-    <fieldset className="availability" data-testid="availability-control">
+    <fieldset className={`availability${compact ? ' availability-compact' : ''}`} data-testid="availability-control">
       <legend>Is {courseLabel} listed for {termLabel(term)}?</legend>
       {existing ? (
         <p className="evidence" data-testid="availability-evidence"><span className="badge badge-student">{REPORT_LABEL[existing.report]}</span> {existing.sourceKind === 'student_report' ? 'Student-reported, unverified' : SOURCE_KIND_LABEL[existing.sourceKind]}, observed <time dateTime={existing.observedAt}>{formatTimestamp(existing.observedAt)}</time>. Not a seat or enrollment confirmation.</p>
@@ -118,11 +135,8 @@ export function AvailabilityControl({ courseLabel, term, existing, onAnswer, dis
         ))}
         <button type="button" className="link" disabled={disabled} onClick={() => onAnswer('skip', notes)}>Skip</button>
       </div>
-      <div className="field">
-        <label htmlFor={notesId}>Note (optional)</label>
-        <input id={notesId} value={notes} maxLength={200} autoComplete="off" onChange={e => setNotes(e.target.value)} />
-      </div>
-      <p className="hint">Check the public schedule yourself. PathCheck never asks for portal passwords.</p>
+      {compact ? <details className="note-toggle"><summary>Add a note</summary>{note}</details> : note}
+      {!hintInSection && <p className="hint">Check the public schedule yourself. PathCheck never asks for portal passwords.</p>}
     </fieldset>
   );
 }

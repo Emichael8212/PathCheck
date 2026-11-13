@@ -116,7 +116,8 @@ export function fakeAcademic(catalogs: CatalogModel[] = [syntheticCatalog()], op
         const target = pre ? s.assumptions.terms.find(t => t.sortIndex > pre.termId.sortIndex) : undefined;
         if (!p || !target || candidates.length >= 3 || p.termId.sortIndex >= target.sortIndex || candidates.some(c => c.previewId === `cand-${p.placementId}`)) continue;
         const r = self.preview(s, { baseFingerprint: fp, operations: [{ kind: 'move', placementId: p.placementId, termId: target }] });
-        if (r.ok) candidates.push({ ...r.value, previewId: `cand-${p.placementId}` });
+        // Like the bounded search, never suggest a known-hard-invalid state.
+        if (r.ok && r.value.validabilityStatus !== 'invalid') candidates.push({ ...r.value, previewId: `cand-${p.placementId}` });
       }
       const done = new Set(s.record.courseAttempts.filter(a => a.status === 'completed').map(a => a.normalizedCourseId));
       const requirements = s.catalog.requirementGroups.filter(g => g.kind === 'course').map(g => {
@@ -136,11 +137,19 @@ export function fakeAcademic(catalogs: CatalogModel[] = [syntheticCatalog()], op
       const next = applyOps(s.plan.activePlacements, changes);
       if (!next) return fail('validation_error', 'unknown_placement');
       const before = findingsFor(s), after = findingsFor(withPlacements(s, next));
-      const errs = (fs: RuleFinding[]) => fs.filter(f => f.severity === 'error').length;
+      // Labels follow ACADEMIC_ENGINE.md semantics so fixtures never show a contradictory
+      // state: `improved` only with fewer hard conflicts AND none newly introduced (keyed by
+      // code, courses and terms, as the UI delta is); any remaining known hard conflict makes
+      // the preview `invalid` (L refuses to apply it).
+      const hard = (fs: RuleFinding[]) => fs.filter(f => f.severity === 'error' && f.status.status === 'unsatisfied' && !f.status.conditional);
+      const key = (f: RuleFinding) => `${f.code}|${f.courseIds.join(',')}|${f.termIds.map(t => t.sortIndex).join(',')}`;
+      const beforeKeys = new Set(hard(before).map(key));
+      const introducedHard = hard(after).filter(f => !beforeKeys.has(key(f))).length;
+      const benefitClass = hard(after).length < hard(before).length && introducedHard === 0 ? 'improved' : 'tradeoff';
       return ok({ previewId: `preview-${changes.operations.length}-${next.length}`, baseFingerprint: changes.baseFingerprint, changeSet: changes, proposedPlacements: next, before, after,
-        assumptions: ['future_offerings_unknown'], benefitClass: errs(after) < errs(before) ? 'improved' : 'tradeoff', validabilityStatus: 'conditional' });
+        assumptions: ['future_offerings_unknown'], benefitClass, validabilityStatus: hard(after).length > 0 ? 'invalid' : 'conditional' });
     },
-    validateCandidate: (s, preview) => (preview.baseFingerprint === fingerprint(s) ? ok({ baseFingerprint: preview.baseFingerprint, placements: preview.proposedPlacements, findings: preview.after, assumptions: preview.assumptions }) : fail('stale_preview', 'base_fingerprint_mismatch')),
+    validateCandidate: (s, preview) => (preview.validabilityStatus === 'invalid' ? fail('known_hard_conflict', 'preview_invalid') : preview.baseFingerprint === fingerprint(s) ? ok({ baseFingerprint: preview.baseFingerprint, placements: preview.proposedPlacements, findings: preview.after, assumptions: preview.assumptions }) : fail('stale_preview', 'base_fingerprint_mismatch')),
     generateDraft: s => {
       if (options.draft === 'interrupted') return fail('search_interrupted', 'watchdog_cancelled');
       if (options.draft === 'none') return ok({ kind: 'no_valid_draft_under_search_bounds', expansions: 1000 });

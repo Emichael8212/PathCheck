@@ -1,4 +1,5 @@
 import type { AnalysisResult, AvailabilityEvidence, CatalogModel, CatalogRef, PlanPlacement, RuleFinding, SourceEvidence, TypedFailure } from '../contracts';
+import { termLabel } from './terms';
 
 // Deterministic, coded wording only. No generated prose and no academic conclusions:
 // every label below renders a value that the engine or commands already produced.
@@ -101,6 +102,13 @@ export function courseTitle(catalog: CatalogModel | null, courseId: string): str
 /** Short code used where space is tight; the full title stays available nearby. */
 export function courseCode(catalog: CatalogModel | null, courseId: string): string {
   return catalog?.courses[courseId]?.displayCode ?? courseId;
+}
+
+/** Where a finding applies, e.g. "SYN 301, SYN 201 in Spring 2027". */
+export function findingScope(finding: RuleFinding, catalog: CatalogModel | null): string {
+  const courses = finding.courseIds.map(id => courseCode(catalog, id)).join(', ');
+  const terms = finding.termIds.map(termLabel).join(', ');
+  return `${courses}${courses && terms ? ' in ' : ''}${terms}`;
 }
 
 export function courseCredits(catalog: CatalogModel | null, courseId: string): number | null {

@@ -148,34 +148,36 @@ export function PlannerScreen(p: PlannerProps) {
           <p className="meta">Target {termLabel(p.plan.targetTerm)}. Plan revision <span className="tabular">{p.plan.planRevision}</span>.</p>
         </div>
         <div className="button-row">
+          {/* Utility actions stay secondary; solid blue is reserved for plan workflow steps. */}
           <button type="button" className="secondary" disabled={p.busy} onClick={p.onRefresh}>Re-run analysis</button>
-          <button type="button" disabled={p.busy || !analysis || p.stale} onClick={p.onExport}>Export PDF</button>
+          <button type="button" className="secondary" disabled={p.busy || !analysis || p.stale} onClick={p.onExport}>Export PDF</button>
         </div>
       </div>
       {p.scenarioError && <p className="notice notice-error" role="alert">{p.scenarioError}</p>}
       {p.horizonTruncated && <p className="notice warning" role="note">Your target is beyond the modeled horizon of {p.terms.length} terms. Terms after {termLabel(p.terms.at(-1)!)} are not modeled, so no path through them is claimed.</p>}
       {p.analysis && !p.analysis.ok && <p className="notice notice-error" role="alert" data-testid="analysis-failure">No analysis is shown: {failureText(p.analysis)}</p>}
-      {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} />}
       <div className="planner-grid">
         <div className="planner-main">
-          {analysis && <FindingList title="Priority issues" testId="issues" findings={analysis.topFindings} catalog={p.catalog} empty="The engine reported no priority issues for this scenario." onViewInPlan={viewInPlan} />}
-          <div className="section">
+          {analysis && <OutlookCard analysis={analysis} targetTerm={p.plan.targetTerm} stale={p.stale} />}
+          {analysis && <FindingList title="Priority issues" testId="issues" findings={analysis.topFindings} catalog={p.catalog} empty="The engine reported no priority issues for this scenario." onViewInPlan={viewInPlan}
+            canLocate={id => p.plan.activePlacements.some(x => x.courseId === id)} />}
+          <div className="timeline-block">
             {p.undo && <div className="undo-bar" role="region" aria-label="Undo"><span>Last change applied.</span> <button type="button" className="secondary" disabled={p.busy} onClick={p.onUndo}>Undo</button></div>}
-            {p.preview && <PreviewPanel key={p.preview.previewId + p.preview.baseFingerprint} preview={p.preview} catalog={p.catalog} active={p.plan.activePlacements} stale={previewStale} busy={p.busy} onApply={p.onApply} onCancel={p.onReject} />}
-            {p.draft && <DraftPanel key={p.draft.kind === 'draft' ? p.draft.draft.draftId + p.draft.draft.baseFingerprint : p.draft.kind} state={p.draft} catalog={p.catalog} stale={draftStale} busy={p.busy} onAdopt={p.onAdopt} onDiscard={p.onDiscardDraft} onRegenerate={p.onGenerate} />}
-            <AddCourse catalog={p.catalog} terms={p.terms} busy={p.busy} onAdd={p.onAdd} />
             <Timeline catalog={p.catalog} terms={p.terms} active={p.plan.activePlacements} projected={projected} evidence={p.plan.availabilityEvidence} capacity={p.capacity.maximum} highlightCourse={highlight} busy={p.busy} handlers={timeline} />
+            <AddCourse catalog={p.catalog} terms={p.terms} busy={p.busy} onAdd={p.onAdd} />
             {!p.draft && <div className="button-row"><button type="button" className="secondary" disabled={p.busy} onClick={p.onGenerate}>Help me build a plan</button></div>}
           </div>
         </div>
-        <div className="planner-side">
+        <aside className="planner-side" aria-label="Changes, offerings and unknowns">
+          {p.preview && <PreviewPanel key={p.preview.previewId + p.preview.baseFingerprint} preview={p.preview} catalog={p.catalog} active={p.plan.activePlacements} stale={previewStale} busy={p.busy} onApply={p.onApply} onCancel={p.onReject} />}
+          {p.draft && <DraftPanel key={p.draft.kind === 'draft' ? p.draft.draft.draftId + p.draft.draft.baseFingerprint : p.draft.kind} state={p.draft} catalog={p.catalog} stale={draftStale} busy={p.busy} onAdopt={p.onAdopt} onDiscard={p.onDiscardDraft} onRegenerate={p.onGenerate} />}
           {analysis && <CandidateList candidates={p.candidates} catalog={p.catalog} active={p.plan.activePlacements} busy={p.busy} onPreview={c => { remember(); p.onPreviewCandidate(c); }} />}
           {analysis && analysis.availabilityQuestions.length > 0 && (
             <section aria-labelledby="avail-title" data-testid="availability-questions">
               <h2 id="avail-title">Check offerings</h2>
-              <p className="meta">Up to three course and term checks that matter most. Answers are student-reported, timestamped and unverified.</p>
+              <p className="meta">Answers are student-reported, timestamped and unverified. Check the public schedule yourself; PathCheck never asks for portal passwords.</p>
               {analysis.availabilityQuestions.map(q => (
-                <AvailabilityControl key={q.questionId} courseLabel={courseCode(p.catalog, q.courseId)} term={q.termId} disabled={p.busy}
+                <AvailabilityControl key={q.questionId} compact hintInSection courseLabel={courseCode(p.catalog, q.courseId)} term={q.termId} disabled={p.busy}
                   existing={p.plan.availabilityEvidence.find(e => e.courseId === q.courseId && e.termId.sortIndex === q.termId.sortIndex)}
                   onAnswer={(a, n) => p.onReport(q.courseId, q.termId, a, n)} />
               ))}
@@ -183,7 +185,7 @@ export function PlannerScreen(p: PlannerProps) {
           )}
           {analysis && <FindingList title="Evidence gaps and unknowns" testId="evidence-gaps" findings={[...analysis.evidenceGaps, ...analysis.bottlenecks]} catalog={p.catalog} empty="No evidence gaps reported." />}
           <Assumptions capacity={p.capacity} includeSummer={p.includeSummer} assumeFuturePass={p.assumeFuturePass} onCapacity={p.onCapacity} onIncludeSummer={p.onIncludeSummer} />
-        </div>
+        </aside>
       </div>
     </section>
   );

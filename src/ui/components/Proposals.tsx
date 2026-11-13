@@ -1,13 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import type { CandidatePreview, CatalogModel, GeneratedDraft, PlanPlacement, RuleFinding, TypedFailure } from '../../contracts';
-import { courseCode, courseCredits, failureText, findingClass, humanizeCode } from '../labels';
-import { describeChanges, findingDelta, previewNeedsAcknowledgement } from '../planView';
+import { courseCode, courseCredits, failureText, findingClass, findingScope, humanizeCode } from '../labels';
+import { describeChanges, findingDelta, previewApplyBlock, previewNeedsAcknowledgement } from '../planView';
 import { termLabel } from '../terms';
 import { FindingCard } from './Display';
 
-const BENEFIT: Record<CandidatePreview['benefitClass'], string> = { improved: 'Resolves known issues', tradeoff: 'Tradeoff: fixes some issues and may introduce others', no_valid_alternative: 'No validated alternative found in bounded search' };
+// Direct renderings of the engine's benefitClass / validabilityStatus (ACADEMIC_ENGINE.md:
+// `improved` = demonstrated benefit and no new hard conflict; mixed effects = `tradeoff`).
+const BENEFIT: Record<CandidatePreview['benefitClass'], string> = { improved: 'Improvement with no new known conflicts', tradeoff: 'Tradeoff: fixes some issues, introduces or keeps others', no_valid_alternative: 'No validated alternative found in bounded search' };
 const VALIDITY: Record<CandidatePreview['validabilityStatus'], string> = { valid: 'Valid under modeled rules', conditional: 'Conditional on stated assumptions', invalid: 'Invalid under modeled rules', unresolved: 'Unresolved: depends on unknown policy' };
+
+const NARROW = '(max-width: 1023px)';
+function subscribeNarrow(cb: () => void) {
+  const m = window.matchMedia(NARROW);
+  m.addEventListener('change', cb);
+  return () => m.removeEventListener('change', cb);
+}
+/** True below the two-column planner breakpoint, where previews open as a bottom sheet. */
+function useNarrowLayout(): boolean {
+  return useSyncExternalStore(subscribeNarrow, () => window.matchMedia(NARROW).matches, () => false);
+}
 
 function Acknowledgements({ ids, checked, onChange, prefix }: { ids: string[]; checked: Set<string>; onChange: (next: Set<string>) => void; prefix: string }) {
   if (ids.length === 0) return null;
@@ -60,23 +73,59 @@ function ImpactList({ title, findings, catalog, testId }: { title: string; findi
       <ul>
         {findings.map(f => {
           const cls = findingClass(f);
-          return <li key={f.findingId}><span className={`badge badge-${cls.tone}`}>{cls.label}</span> {humanizeCode(f.code)}{f.courseIds.length > 0 ? `: ${f.courseIds.map(id => courseCode(catalog, id)).join(', ')}` : ''}</li>;
+          const scope = findingScope(f, catalog);
+          // Terms are part of the finding: a conflict that only moves term appears as
+          // "resolved in Spring" and "introduced in Fall", never as two identical lines.
+          return <li key={f.findingId}><span className={`badge badge-${cls.tone}`}>{cls.label}</span> <span>{humanizeCode(f.code)}{scope ? `: ${scope}` : ''}</span></li>;
         })}
       </ul>
     </div>
   );
 }
 
+/**
+ * Wide screens: a non-modal panel in the planner sidebar, so the timeline stays in view.
+ * Narrow screens: a modal bottom sheet (native dialog: focus contained, background inert,
+ * Escape = Cancel). Either way Cancel dispatches the existing reject command.
+ */
+function PreviewFrame({ sheet, busy, onCancel, headingRef, children }: { sheet: boolean; busy: boolean; onCancel: () => void; headingRef: RefObject<HTMLHeadingElement | null>; children: ReactNode }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = dialogRef.current;
+    if (sheet && d && !d.open) d.showModal();
+    headingRef.current?.focus();
+  }, [sheet, headingRef]);
+  const common = { className: `preview${sheet ? ' preview-sheet' : ''}`, 'aria-labelledby': 'preview-title', 'data-testid': 'preview-panel' } as const;
+  if (sheet) {
+    return (
+      <dialog ref={dialogRef} {...common}
+        onCancel={e => { e.preventDefault(); if (!busy) onCancel(); }}
+        // Chromium may close without a cancel event on a repeated Escape; treat it as Cancel.
+        onClose={() => { if (!busy) onCancel(); }}>
+        {children}
+      </dialog>
+    );
+  }
+  return <section {...common} onKeyDown={e => { if (e.key === 'Escape' && !busy) { e.stopPropagation(); onCancel(); } }}>{children}</section>;
+}
+
+const BLOCK_TEXT = {
+  stale: 'Inputs changed after this preview was calculated, so it cannot be applied.',
+  invalid: 'The engine reports this change as invalid under modeled rules, so it cannot be applied. Cancel and try a different change.',
+} as const;
+
 export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, onCancel }: { preview: CandidatePreview; catalog: CatalogModel; active: PlanPlacement[]; stale: boolean; busy: boolean; onApply: (acks: string[]) => void; onCancel: () => void }) {
   const [acks, setAcks] = useState<Set<string>>(new Set());
+  const sheet = useNarrowLayout();
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const delta = findingDelta(preview);
   const ackReady = preview.assumptions.every(a => acks.has(a));
   const rows = describeChanges(preview, active);
+  const block = previewApplyBlock(preview, stale);
   return (
-    <section className="preview" aria-labelledby="preview-title" data-testid="preview-panel"
-      onKeyDown={e => { if (e.key === 'Escape' && !busy) { e.stopPropagation(); onCancel(); } }}>
+    <PreviewFrame sheet={sheet} busy={busy} onCancel={onCancel} headingRef={headingRef}>
       <div className="preview-head">
-        <FocusHeading id="preview-title">Preview change</FocusHeading>
+        <h2 id="preview-title" ref={headingRef} tabIndex={-1}>Preview change</h2>
         <span className="meta">Not applied. Your plan is unchanged.</span>
       </div>
       <table className="change-table" data-testid="change-table">
@@ -92,7 +141,7 @@ export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, o
           ))}
         </tbody>
       </table>
-      <p><strong>{BENEFIT[preview.benefitClass]}.</strong> <span className="muted">{VALIDITY[preview.validabilityStatus]}.</span></p>
+      <p className="preview-status" data-testid="preview-status"><strong>{BENEFIT[preview.benefitClass]}.</strong> <span className={preview.validabilityStatus === 'invalid' ? 'status-invalid' : 'muted'}>{VALIDITY[preview.validabilityStatus]}.</span></p>
       <div className="impact" data-testid="preview-impact">
         <ImpactList title={`Resolves (${delta.resolved.length})`} findings={delta.resolved} catalog={catalog} testId="impact-resolved" />
         <ImpactList title={`Introduces (${delta.introduced.length})`} findings={delta.introduced} catalog={catalog} testId="impact-introduced" />
@@ -100,13 +149,13 @@ export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, o
         {delta.persisting.length > 0 && <p className="meta">{delta.persisting.length} issue{delta.persisting.length === 1 ? '' : 's'} unchanged.</p>}
       </div>
       {previewNeedsAcknowledgement(preview) && preview.assumptions.length === 0 && <p className="warning">This change is conditional on unverified evidence.</p>}
-      <Acknowledgements ids={preview.assumptions} checked={acks} onChange={setAcks} prefix="preview" />
-      {stale && <p className="stale" role="alert">Inputs changed after this preview was calculated, so it cannot be applied.</p>}
-      <div className="button-row">
-        <button type="button" disabled={busy || stale || !ackReady} onClick={() => onApply([...acks])}>Apply</button>
+      {block !== 'invalid' && <Acknowledgements ids={preview.assumptions} checked={acks} onChange={setAcks} prefix="preview" />}
+      {block && <p className="stale" role="alert" data-testid="preview-block">{BLOCK_TEXT[block]}</p>}
+      <div className="button-row preview-actions">
+        <button type="button" disabled={busy || block !== null || !ackReady} onClick={() => onApply([...acks])}>Apply</button>
         <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Cancel</button>
       </div>
-    </section>
+    </PreviewFrame>
   );
 }
 

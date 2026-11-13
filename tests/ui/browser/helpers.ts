@@ -55,6 +55,24 @@ async function optionLabel(_page: Page, select: ReturnType<Page['getByLabel']>, 
   return hit;
 }
 
+/**
+ * Synthetic "normal" planner state: SYN 201, 202 and 301 all in Spring 2027, giving the
+ * test double's three priority issues (two prerequisite conflicts, one unplaced course).
+ */
+export async function addThreeConflicting(page: Page) {
+  await addCourse(page, /^SYN 201/, 'Spring 2027');
+  await addCourse(page, /^SYN 202/, 'Spring 2027');
+  await addCourse(page, /^SYN 301/, 'Spring 2027');
+  await expect(page.getByTestId('issues').getByTestId('finding')).toHaveCount(3);
+}
+
+/** Viewport-relative box at the top of the page (scroll position reset first). */
+export async function boxAtTop(page: Page, selector: string) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const box = await page.locator(selector).first().evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; });
+  return box;
+}
+
 export function termCard(page: Page, label: string) {
   return page.getByTestId('term').filter({ has: page.locator(':scope > summary .term-name', { hasText: label }) });
 }

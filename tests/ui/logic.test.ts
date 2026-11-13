@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SEARCH_POLICY, term } from '../../src/contracts';
+import { SEARCH_POLICY, fingerprint, term } from '../../src/contracts';
 import type { AnalysisResult, RuleFinding } from '../../src/contracts';
 import { findingClass, OUTLOOK_TEXT, catalogYearLabel } from '../../src/ui/labels';
-import { findingDelta, previewNeedsAcknowledgement, timelineColumns } from '../../src/ui/planView';
+import { findingDelta, previewApplyBlock, previewNeedsAcknowledgement, timelineColumns } from '../../src/ui/planView';
 import { attemptToRow, emptyRow, toProposedRow, validateRow } from '../../src/ui/rows';
 import { buildScenario, evaluateChecked, guard, makeAction } from '../../src/ui/scenario';
 import { planningHorizon, termSequence, upcomingTerm, termLabel } from '../../src/ui/terms';
@@ -102,6 +102,43 @@ describe('display helpers do not change meaning', () => {
     expect(d.persisting.map(x => x.code)).toEqual(['y']);
     expect(previewNeedsAcknowledgement({ assumptions: [], validabilityStatus: 'valid' })).toBe(false);
     expect(previewNeedsAcknowledgement({ assumptions: [], validabilityStatus: 'conditional' })).toBe(true);
+  });
+  it('never lets a stale or engine-invalid preview look applicable', () => {
+    expect(previewApplyBlock({ validabilityStatus: 'invalid' }, false)).toBe('invalid');
+    expect(previewApplyBlock({ validabilityStatus: 'conditional' }, true)).toBe('stale');
+    expect(previewApplyBlock({ validabilityStatus: 'conditional' }, false)).toBeNull();
+    expect(previewApplyBlock({ validabilityStatus: 'unresolved' }, false)).toBeNull();
+    expect(previewNeedsAcknowledgement({ assumptions: [], validabilityStatus: 'unresolved' })).toBe(true);
+  });
+  it('test-double preview labels are internally coherent (fixture hygiene, not engine logic)', () => {
+    const catalog = syntheticCatalog();
+    const academic = fakeAcademic([catalog]);
+    const at = (id: string, courseId: string, t = TERMS[0]!) => ({ placementId: id, courseId, termId: t, origin: 'student_selected' as const, active: true });
+    const scenarioWith = (placements: ReturnType<typeof at>[]) => {
+      const built = buildScenario({ catalog, record: syntheticRecord(), plan: syntheticPlan({ activePlacements: placements, availabilityEvidence: [] }), terms: TERMS, capacity: { maximum: 15, source: 'scenario_assumption' }, config: CONFIG, evaluatedAt: '2026-11-12T15:00:00.000Z' });
+      if (!built.ok) throw new Error('fixture scenario invalid');
+      return built.value;
+    };
+    const move = (s: ReturnType<typeof scenarioWith>) => {
+      const r = academic.preview(s, { baseFingerprint: fingerprint(s), operations: [{ kind: 'move', placementId: 'p301', termId: TERMS[1]! }] });
+      if (!r.ok) throw new Error('preview failed');
+      return r.value;
+    };
+    // Both prerequisites earlier after the move: improvement, nothing introduced, applicable.
+    const good = move(scenarioWith([at('p201', 'SYN-201'), at('p202', 'SYN-202'), at('p301', 'SYN-301')]));
+    expect(good.benefitClass).toBe('improved');
+    expect(findingDelta(good).introduced).toHaveLength(0);
+    expect(previewApplyBlock(good, false)).toBeNull();
+    // SYN 202 never planned: the conflict follows SYN 301 into Fall, so it is a tradeoff that stays invalid.
+    const mixed = move(scenarioWith([at('p201', 'SYN-201'), at('p301', 'SYN-301')]));
+    expect(mixed.benefitClass).toBe('tradeoff');
+    expect(mixed.validabilityStatus).toBe('invalid');
+    expect(findingDelta(mixed).introduced.map(x => x.termIds.map(termLabel))).toEqual([['Fall 2027']]);
+    expect(previewApplyBlock(mixed, false)).toBe('invalid');
+    expect(academic.validateCandidate(scenarioWith([at('p201', 'SYN-201'), at('p301', 'SYN-301')]), mixed).ok).toBe(false);
+    // Such a state is never offered as a suggestion.
+    const analysis = academic.evaluate(scenarioWith([at('p201', 'SYN-201'), at('p301', 'SYN-301')]));
+    expect(analysis.ok && analysis.value.candidates).toEqual([]);
   });
   it('keeps projections separate from active placements in the timeline', () => {
     const plan = syntheticPlan();

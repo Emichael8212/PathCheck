@@ -65,6 +65,18 @@ export function termLoad(placements: readonly PlanPlacement[], creditsOf: (cours
   return { known, unknown };
 }
 
+/**
+ * Why Apply must stay unavailable for a preview, if at all. Reads only the engine's own
+ * validabilityStatus and the fingerprint comparison; the UI adds no academic verdict.
+ * L's applyPreview independently refuses stale/invalid previews; this keeps the UI from
+ * ever presenting a hard-invalid preview as safe to apply.
+ */
+export function previewApplyBlock(preview: Pick<CandidatePreview, 'validabilityStatus'>, stale: boolean): 'stale' | 'invalid' | null {
+  if (stale) return 'stale';
+  if (preview.validabilityStatus === 'invalid') return 'invalid';
+  return null;
+}
+
 export function previewNeedsAcknowledgement(preview: Pick<CandidatePreview, 'assumptions' | 'validabilityStatus'>): boolean {
   return preview.assumptions.length > 0 || preview.validabilityStatus === 'conditional' || preview.validabilityStatus === 'unresolved';
 }

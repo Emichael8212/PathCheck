@@ -3,7 +3,7 @@
 // academic-correctness claim and are not the lead's integrated E2E with the real engine.
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
-import { SHOTS, addCourse, enterCompletedAttempt, expectAccessibleNames, open, startGuest, termCard, toPlanner } from './helpers';
+import { SHOTS, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectTouchTargets, open, startGuest, termCard, toPlanner } from './helpers';
 
 test.describe('shell and keyboard basics', () => {
   test('skip link is the first tab stop and moves focus to main content', async ({ page }) => {
@@ -91,11 +91,10 @@ test.describe('selected-courses journey', () => {
     await startGuest(page);
     await enterCompletedAttempt(page);
     await toPlanner(page, 'selected');
-    await addCourse(page, /^SYN 201/, 'Spring 2027');
-    await addCourse(page, /^SYN 301/, 'Spring 2027');
+    await addThreeConflicting(page);
     await expect(page.getByTestId('outlook')).toContainText('Current plan conflicts with known rules');
     await expect(page.getByTestId('issues').getByTestId('finding').first()).toContainText('Known conflict');
-    await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('6 of 15 cr');
+    await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('9 of 15 cr');
 
     const candidate = page.getByTestId('candidate').first();
     await expect(candidate).toContainText('Move SYN 301 to Fall 2027');
@@ -108,10 +107,15 @@ test.describe('selected-courses journey', () => {
     await expect(row.locator('th')).toContainText('SYN 301');
     await expect(row.locator('td').nth(0)).toHaveText('Spring 2027');
     await expect(row.locator('td').nth(1)).toHaveText('Fall 2027');
-    await expect(panel.getByTestId('impact-resolved')).toContainText('Prerequisite not met');
+    await expect(panel.getByTestId('impact-resolved')).toContainText('Prerequisite not met: SYN 301, SYN 201 in Spring 2027');
+    await expect(panel.getByTestId('impact-resolved')).toContainText('Prerequisite not met: SYN 301, SYN 202 in Spring 2027');
+    await expect(panel.getByTestId('impact-introduced')).toHaveCount(0);
+    await expect(panel.getByTestId('preview-status')).toHaveText('Improvement with no new known conflicts. Conditional on stated assumptions.');
     // Preview never mutates the active plan.
-    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(3);
     await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-preview.png`, fullPage: true });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-preview-viewport.png` });
 
     const apply = panel.getByRole('button', { name: 'Apply' });
     await expect(apply).toBeDisabled();
@@ -121,13 +125,13 @@ test.describe('selected-courses journey', () => {
     await apply.click();
     await expect(page.getByTestId('notice-status')).toContainText('Change applied');
     await expect(termCard(page, 'Fall 2027').getByTestId('placement')).toContainText('SYN 301');
-    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(1);
-    await expect(page.getByText('Plan revision 3.')).toBeVisible();
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await expect(page.getByText('Plan revision 4.')).toBeVisible();
 
     await page.getByRole('region', { name: 'Undo' }).getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByTestId('notice-status')).toContainText('Undone');
-    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
-    await expect(page.getByText('Plan revision 4.')).toBeVisible();
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(3);
+    await expect(page.getByText('Plan revision 5.')).toBeVisible();
   });
 
   test('Cancel (Escape) dispatches reject, leaves the plan unchanged and returns focus', async ({ page }) => {
@@ -156,8 +160,7 @@ test.describe('selected-courses journey', () => {
     await startGuest(page);
     await enterCompletedAttempt(page);
     await toPlanner(page, 'selected');
-    await addCourse(page, /^SYN 201/, 'Spring 2027');
-    await addCourse(page, /^SYN 301/, 'Spring 2027');
+    await addThreeConflicting(page);
     await page.getByTestId('candidate').first().getByRole('button').click();
     await page.getByTestId('assumptions').locator('summary').click();
     await page.getByLabel('Maximum credits per term').fill('12');
@@ -166,7 +169,7 @@ test.describe('selected-courses journey', () => {
     await expect(panel.getByRole('alert')).toContainText('cannot be applied');
     await panel.getByTestId('preview-ack').check();
     await expect(panel.getByRole('button', { name: 'Apply' })).toBeDisabled();
-    await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('6 of 12 cr');
+    await expect(termCard(page, 'Spring 2027').getByTestId('term-load')).toHaveText('9 of 12 cr');
   });
 
   test('student-reported availability is labeled unverified and timestamped', async ({ page }) => {
@@ -223,6 +226,92 @@ test.describe('selected-courses journey', () => {
   });
 });
 
+test.describe('planner layout and tradeoff previews (1280x900)', () => {
+  test('with three issues and an open preview, the timeline and first course are in the first 900px', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addThreeConflicting(page);
+    await page.getByTestId('candidate').first().getByRole('button', { name: /^Preview:/ }).click();
+    await expect(page.getByTestId('preview-panel')).toBeVisible();
+    const viewport = page.viewportSize()!;
+    const timelineHead = await boxAtTop(page, '#timeline-title');
+    const firstCourse = await boxAtTop(page, '[data-testid="placement"]');
+    const preview = await boxAtTop(page, '[data-testid="preview-panel"]');
+    const issues = await boxAtTop(page, '[data-testid="issues"]');
+    expect(timelineHead.top, 'timeline heading within first viewport').toBeLessThan(viewport.height);
+    expect(firstCourse.bottom, 'first course card fully within first viewport').toBeLessThanOrEqual(viewport.height);
+    // The preview is beside the timeline (sidebar), not stacked above it.
+    expect(preview.left).toBeGreaterThanOrEqual(timelineHead.right);
+    expect(issues.bottom - issues.top, 'three issue rows stay compact').toBeLessThan(220);
+    // Sticky contextual panel: still on screen after scrolling down the plan.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect(page.getByTestId('preview-panel').getByRole('button', { name: 'Apply' })).toBeInViewport();
+  });
+
+  test('issue rows expand to the sourced rationale by keyboard and locate the course', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addThreeConflicting(page);
+    const row = page.getByTestId('issues').getByTestId('finding').first();
+    const why = row.getByTestId('finding-why');
+    await expect(why).toBeHidden();
+    await row.getByTestId('finding-summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(why).toBeVisible();
+    await expect(why).toContainText('Suggested next step: Move after prerequisite.');
+    await expect(why).toContainText('Rule status: unsatisfied.');
+    await expect(why.getByRole('list', { name: 'Sources' })).toContainText('Synthetic UI fixture; not ASU policy (synthetic, not ASU policy)');
+    await row.getByRole('button', { name: 'Show in plan: SYN 301' }).click();
+    await expect(page.locator('[data-testid="placement"][data-course="SYN-301"]')).toBeFocused();
+    await expectTouchTargets(page);
+  });
+
+  test('a tradeoff that leaves a known conflict is labeled coherently and cannot be applied', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    await addCourse(page, /^SYN 301/, 'Spring 2027');
+    // The double never suggests a hard-invalid state; the student previews the move themselves.
+    await expect(page.getByTestId('candidates')).toHaveCount(0);
+    const card = page.getByTestId('placement').filter({ hasText: 'SYN 301' });
+    await card.getByText('Edit', { exact: true }).click();
+    await card.getByLabel('Move SYN 301 to').selectOption({ label: 'Fall 2027' });
+    await card.getByRole('button', { name: 'Preview move' }).click();
+    const panel = page.getByTestId('preview-panel');
+    await expect(panel.getByTestId('preview-status')).toHaveText('Tradeoff: fixes some issues, introduces or keeps others. Invalid under modeled rules.');
+    await expect(panel).not.toContainText('Improvement');
+    await expect(panel.getByTestId('impact-resolved')).toContainText('SYN 301, SYN 202 in Spring 2027');
+    await expect(panel.getByTestId('impact-introduced')).toContainText('SYN 301, SYN 202 in Fall 2027');
+    await expect(panel.getByTestId('preview-block')).toContainText('cannot be applied');
+    await expect(panel.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    await expect(panel.getByTestId('preview-ack')).toHaveCount(0);
+    await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-tradeoff.png`, fullPage: true });
+    await panel.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByTestId('preview-panel')).toHaveCount(0);
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+  });
+
+  test('Export PDF is a secondary action; solid blue is reserved for workflow steps', async ({ page }) => {
+    await open(page);
+    await startGuest(page);
+    await enterCompletedAttempt(page);
+    await toPlanner(page, 'selected');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    const bg = (name: string) => page.getByRole('button', { name, exact: true }).evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(await bg('Export PDF')).toBe('rgb(255, 255, 255)');
+    expect(await bg('Re-run analysis')).toBe('rgb(255, 255, 255)');
+    await page.getByTestId('add-course').getByLabel('Course').selectOption({ index: 1 });
+    // Enabling the button runs a 120ms colour transition; wait for the settled value.
+    await expect.poll(() => bg('Add course')).toBe('rgb(36, 87, 197)');
+  });
+});
+
 test.describe('generated-draft journey', () => {
   test('one unadopted draft is shown as projections, adoption needs acknowledgement and keeps provenance', async ({ page }) => {
     await open(page);
@@ -233,6 +322,8 @@ test.describe('generated-draft journey', () => {
     await expect(page.getByTestId('projected-placement')).toHaveCount(5);
     await expect(page.getByTestId('placement')).toHaveCount(0);
     await expect(page.getByTestId('projected-placement').first()).toContainText('Unadopted projection');
+    // Unplaced-course issues offer no "Show in plan" control that would do nothing.
+    await expect(page.getByTestId('issues').getByRole('button', { name: /^Show in plan/ })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-draft.png`, fullPage: true });
     const adopt = panel.getByRole('button', { name: 'Adopt draft' });
     await expect(adopt).toBeDisabled();
@@ -271,8 +362,8 @@ test('desktop screenshots of each screen', async ({ page }) => {
   await enterCompletedAttempt(page);
   await page.screenshot({ path: `${SHOTS}/desktop-1280-record.png`, fullPage: true });
   await toPlanner(page, 'selected');
-  await addCourse(page, /^SYN 201/, 'Spring 2027');
-  await addCourse(page, /^SYN 301/, 'Spring 2027');
-  await addCourse(page, /^SYN 202/, 'Fall 2027');
+  await addThreeConflicting(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `${SHOTS}/desktop-1280-planner.png`, fullPage: true });
+  await page.screenshot({ path: `${SHOTS}/desktop-1280-planner-viewport.png` });
 });
