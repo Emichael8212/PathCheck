@@ -26,7 +26,9 @@ const modeFor: Record<Slot, GuestDraft['mode']> = { session: 'session', local: '
  * wrong-version, expired or mode/slot-mismatched entries in BOTH slots (session wins when
  * both are valid). Otherwise-valid future-dated entries are kept and reported as typed
  * `unavailable` (caller clock behind the draft), never deleted; no TTL grace is added.
- * Clear (save/cancel/expiry/sign_out) removes both slots. Never creates cloud records.
+ * The generic clear(event) port removes both slots (user-directed cancel/sign_out/expiry).
+ * Save-as-new must NOT use it: saveGuestDraftAsNew uses clearSavedGuestDraft, which removes
+ * only the saved draft's identical copies. Never creates cloud records.
  */
 export function createGuestRecoveryService(stores: { session: StorageLike | null; local: StorageLike | null }): GuestRecoveryService {
   const store = (slot: Slot) => (slot === 'session' ? stores.session : stores.local);
@@ -141,7 +143,55 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     return id === draftId ? remove('local') : true;
   };
 
-  return {
+  /**
+   * Save-triggered cleanup (A4). The frozen `clear('save')` port has no draft argument and
+   * removes both slots, which would destroy another tab's unsaved opted-in draft. After a
+   * successful Save-as-new only stored copies byte-identical (canonical JSON) to the saved
+   * draft are removed. Per slot:
+   *  - identical and not ahead of `now` → removed (expired identical copies too);
+   *  - corrupt / wrong-version / misplaced / expired → purged exactly as recover() would;
+   *  - valid but different (newer same-draftId edit, another tab's draft, future-dated) → kept.
+   * Returns true only when every removal succeeded, both slots were readable, and nothing
+   * remains that belongs to this save: no same-draftId copy and no draft in this tab's own
+   * session slot. Another tab's draft (other draftId) in the shared slot is preserved and
+   * does not make the result false. Never throws.
+   */
+  const clearSaved = (saved: GuestDraft, now: string): boolean => {
+    const savedJson = JSON.stringify(saved);
+    let clean = true;
+    for (const slot of ['session', 'local'] as const) {
+      const s = store(slot);
+      if (!s) continue;
+      let raw: string | null;
+      try {
+        raw = s.getItem(GUEST_DRAFT_KEY);
+      } catch {
+        clean = false; // cannot verify this slot; never write or delete blind
+        continue;
+      }
+      if (raw === null) continue;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = undefined;
+      }
+      const shape = wellFormedIn(slot, parsed);
+      const future = shape !== null && Date.parse(now) < Date.parse(shape.createdAt);
+      if (shape && !future && JSON.stringify(shape) === savedJson) {
+        if (!remove(slot)) clean = false;
+        continue;
+      }
+      if (!shape || (!future && !readGuestDraft(parsed, now))) {
+        if (!remove(slot)) clean = false; // unusable entry: same purge rule as recover()
+        continue;
+      }
+      if (slot === 'session' || shape.draftId === saved.draftId) clean = false; // kept, unsaved work
+    }
+    return clean;
+  };
+
+  const service: GuestRecoveryService = {
     stash(draft) {
       const parsed = GuestDraftSchema.safeParse(draft);
       if (!parsed.success) return { ok: false, code: 'validation_error', reasonCode: 'invalid_guest_draft' };
@@ -190,4 +240,29 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       return a && b ? { ok: true, value: null } : cleanupFailed;
     },
   };
+  scopedSaveCleanup.set(service, clearSaved);
+  return service;
+}
+
+/** S-internal capability registry; keeps the frozen GuestRecoveryService port unchanged. */
+const scopedSaveCleanup = new WeakMap<GuestRecoveryService, (saved: GuestDraft, now: string) => boolean>();
+
+/**
+ * Removes only the stored copies of `saved` from a service created by
+ * createGuestRecoveryService (see clearSaved). Returns `undefined` for any other
+ * GuestRecoveryService implementation, which cannot be cleaned up safely through the
+ * generic both-slot `clear('save')` port; callers must then leave recovery untouched.
+ * An invalid clock removes nothing and returns false.
+ */
+export function clearSavedGuestDraft(recovery: GuestRecoveryService, saved: GuestDraft, now: string): boolean | undefined {
+  const scoped = scopedSaveCleanup.get(recovery);
+  if (!scoped) return undefined;
+  if (!TimestampSchema.safeParse(now).success) return false;
+  const parsed = GuestDraftSchema.safeParse(saved);
+  if (!parsed.success) return false;
+  try {
+    return scoped(parsed.data, now);
+  } catch {
+    return false;
+  }
 }
