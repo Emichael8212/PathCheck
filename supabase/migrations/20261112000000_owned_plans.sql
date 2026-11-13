@@ -34,21 +34,27 @@ create table public.plans (
   updated_at timestamptz not null default now(),
   constraint plans_schema_version check (schema_version = 1),
   constraint plans_revision_nonnegative check (revision >= 0),
-  constraint plans_record_shape check (
+  -- CHECK constraints accept NULL (unknown), and JSON extraction of a missing key yields
+  -- NULL. Every predicate over extracted JSON is therefore wrapped in `(...) is true` so a
+  -- missing or JSON-null required key fails the constraint instead of passing as unknown.
+  constraint plans_record_shape check ((
     jsonb_typeof(record_json) = 'object'
     and record_json -> 'schemaVersion' = '1'::jsonb
     and jsonb_typeof(record_json -> 'courseAttempts') = 'array'
-  ),
-  constraint plans_plan_shape check (
+  ) is true),
+  constraint plans_plan_shape check ((
     jsonb_typeof(plan_json) = 'object'
     and plan_json -> 'schemaVersion' = '1'::jsonb
     and jsonb_typeof(plan_json -> 'catalogRef') = 'object'
     and jsonb_typeof(plan_json -> 'availabilityEvidence') = 'array'
-  ),
-  constraint plans_identity check (plan_json ->> 'planId' = id::text),
-  constraint plans_no_shadow_availability check (
+  ) is true),
+  constraint plans_identity check ((
+    jsonb_typeof(plan_json -> 'planId') = 'string'
+    and plan_json ->> 'planId' = id::text
+  ) is true),
+  constraint plans_no_shadow_availability check ((
     not (plan_json ? 'availability_json') and not (record_json ? 'availabilityEvidence')
-  ),
+  ) is true),
   constraint plans_size check (octet_length(record_json::text) + octet_length(plan_json::text) <= 2097152)
 );
 
@@ -175,7 +181,10 @@ begin
   if auth.uid() is null then
     return jsonb_build_object('status', 'not_authenticated');
   end if;
-  if p_plan ->> 'planId' is distinct from p_id::text then
+  -- Null-safe: a NULL p_id, or a missing / non-string planId, is an identity mismatch.
+  if p_id is null
+     or jsonb_typeof(p_plan -> 'planId') is distinct from 'string'
+     or p_plan ->> 'planId' is distinct from p_id::text then
     return jsonb_build_object('status', 'identity_mismatch');
   end if;
   update public.plans p
