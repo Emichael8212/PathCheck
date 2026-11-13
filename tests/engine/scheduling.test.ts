@@ -6,6 +6,8 @@ import type { CandidatePreview, ChangeSet, GeneratedDraft, PlanningScenario } fr
 import { evaluate, generateDraft, preview, startDraftGeneration, validateCandidate } from '../../src/engine';
 import { computeAudit } from '../../src/engine/audit';
 import { dependencyInfo } from '../../src/engine/dependency';
+import { validatePlacements } from '../../src/engine/planCheck';
+import { createSearch } from '../../src/engine/search';
 import { T, any, attempt, catalog, chooseCourses, course, horizon, place, pre, reqAll, reqCourse, report, scenario, unresolvedRule } from '../fixtures/engine/synthetic';
 
 // Chain 101 -> 201 -> 301 -> 401; 202 requires 101 OR 102; one-of elective {310, 311}.
@@ -249,5 +251,37 @@ describe('analysis contract conformance', () => {
     const s = scenario(chainCatalog(), { terms: terms4 });
     expect(evaluate({ ...s, engineVersion: 'other' })).toMatchObject({ ok: false, reasonCode: 'unsupported_engine_version' });
     expect(evaluate({ ...s, schemaVersion: 2 } as unknown as PlanningScenario)).toMatchObject({ ok: false, code: 'validation_error' });
+  });
+});
+
+describe('retakes under unsourced repeat policy: planning unchanged, credit claims withheld', () => {
+  const F = { status: 'failed' as const, earnedCredits: 0, grade: 'F', term: T(2025, 'fall') };
+  it('a failed required course is still scheduled before its dependents; the draft does not claim the requirement', () => {
+    const s = scenario(chainCatalog(), { terms: horizon(8), attempts: [attempt('TEST-101', F)] });
+    const d = draftOf(s);
+    const at = (c: string) => d.placements.find(p => p.courseId === c)?.termId.sortIndex ?? Infinity;
+    expect(d.placements.filter(p => p.courseId === 'TEST-101')).toHaveLength(1);
+    expect(at('TEST-101')).toBeLessThan(at('TEST-201'));
+    const withDraft = computeAudit({ catalog: s.catalog, attempts: s.record.courseAttempts, placements: d.placements, targetSort: s.plan.targetTerm.sortIndex });
+    expect(withDraft.outcomes.get('r101')).toMatchObject({ status: 'unresolved', conditional: false });
+    expect(withDraft.units.get('unit:TEST-101')!.reasons).toContain('repeat_policy_unresolved');
+  });
+  it('a planned retake is taken for scheduling: no second retake demand, dependents keep their earliest term', () => {
+    const t = horizon(8);
+    const s = scenario(chainCatalog(), { terms: t, attempts: [attempt('TEST-101', F)], placements: [place('TEST-101', t[0]!)] });
+    const info = dependencyInfo(s, computeAudit({ catalog: s.catalog, attempts: s.record.courseAttempts, placements: s.plan.activePlacements, targetSort: s.plan.targetTerm.sortIndex }), s.plan.activePlacements);
+    expect(info.demands.some(d => d.options.includes('TEST-101'))).toBe(false);
+    expect(info.pressure.get('TEST-201')?.earliest).toBe(1);
+    const search = createSearch({ scenario: s, fixed: s.plan.activePlacements, placementPrefix: 'syn', origin: 'system_projection', active: false });
+    let step = search.step(5000); while (!step.done) step = search.step(5000);
+    expect(step.outcome.kind).toBe('found');
+    // `placements` are only the search's additions: no second retake on top of the planned one.
+    if (step.outcome.kind === 'found') expect(step.outcome.placements.filter(p => p.courseId === 'TEST-101')).toEqual([]);
+  });
+  it('a planned duplicate of a passed course still warns course_already_completed', () => {
+    const s = scenario(chainCatalog(), { terms: terms4, attempts: [attempt('TEST-101')], placements: [place('TEST-101', terms4[0]!)] });
+    const a = computeAudit({ catalog: s.catalog, attempts: s.record.courseAttempts, placements: s.plan.activePlacements, targetSort: s.plan.targetTerm.sortIndex });
+    expect(validatePlacements(s, s.plan.activePlacements, a).map(f => f.code)).toContain('course_already_completed');
+    expect(a.outcomes.get('r101')).toMatchObject({ status: 'unresolved' });
   });
 });

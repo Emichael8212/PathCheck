@@ -11,7 +11,12 @@ import { catalogBlocksConclusions, compareStrings, definitelyNotPassed, compareT
 /** 0 = definite earned, 1 = conditional (in progress / planned), 2 = unresolved. */
 export type Quality = 0 | 1 | 2;
 export interface Unit {
-  unitId: string; courseId: string | null; rawCode: string | null; quality: Quality; credits: number | null;
+  unitId: string; courseId: string | null; rawCode: string | null;
+  /** Credit/requirement-allocation quality (repeat-credit policy applied). */
+  quality: Quality;
+  /** Taken/scheduled evidence for prerequisite timing and planning; never used for credit. */
+  schedulingQuality: Quality;
+  credits: number | null;
   attemptIds: string[]; placementIds: string[]; reasons: string[]; orphan: boolean;
 }
 export type GroupStatus = { status: 'satisfied' | 'unmet' | 'unresolved'; conditional: boolean };
@@ -40,13 +45,14 @@ const maxQ = (a: Quality, b: Quality): Quality => (a > b ? a : b);
 export const MAX_ALTERNATIVE_SELECTIONS = 256;
 
 /**
- * Repeat of one catalog course: more than one finished/recorded attempt, or more than one
- * attempt that is not a definite non-pass (e.g. a pass plus an in-progress retake, whose
- * outcome may change what the earlier credit counts for under an unsourced repeat policy).
- * A single in-progress retake after a definite failure is not flagged here.
+ * Repeat of one catalog course, judged on the PROJECTED history at the audit target: every
+ * recorded attempt (any status) plus every planned placement up to the target. A conditional
+ * conclusion assumes in-progress/planned work passes; if that projection holds two or more
+ * attempts, the same rows once completed (e.g. fail then pass) are a repeat whose credit
+ * counting needs a sourced repeat policy, so the conditional form must not claim more.
  */
-export function isRepeat(own: readonly CourseAttempt[]): boolean {
-  return own.filter(a => a.status !== 'in_progress').length > 1 || own.filter(a => !definitelyNotPassed(a)).length > 1;
+export function isRepeat(own: readonly CourseAttempt[], plannedCount = 0): boolean {
+  return own.length + plannedCount > 1;
 }
 
 export function buildUnits(input: AuditInput): Unit[] {
@@ -72,22 +78,28 @@ export function buildUnits(input: AuditInput): Unit[] {
     if (definite.length) { const a = pick(definite); quality = 0; credits = a.earnedCredits; attemptIds.push(a.attemptId); }
     else if (inProgress.length) { const a = pick(inProgress); quality = 1; credits = courseCredits(catalog, courseId) ?? a.attemptedCredits; attemptIds.push(a.attemptId); reasons.push('in_progress_not_earned'); }
     else if (unresolvedDone.length) { const a = pick(unresolvedDone); quality = 2; credits = a.earnedCredits ?? courseCredits(catalog, courseId); attemptIds.push(a.attemptId); reasons.push(`attempt_${a.status}_unresolved`); }
+    // Scheduling evidence ignores repeat-credit policy: a recorded pass is still taken and a
+    // planned retake is still scheduled for prerequisite timing and planning purposes.
+    const schedulingQuality: Quality | null = (quality === null || quality === 2) && planned.length ? 1 : quality;
     // contracts-v1 cannot express a SOURCED repeat-credit rule, and absence of a policy gap is
-    // not evidence of one. Any repeated (non-in-progress) attempt therefore stays unresolved.
-    if (quality !== null && isRepeat(own)) {
+    // not evidence of one. Any projected repeat (recorded, in-progress or planned retake) stays
+    // unresolved and is never upgraded to a conditional future pass by a planned placement.
+    const repeat = isRepeat(own, planned.length);
+    if (repeat && (quality !== null || planned.length)) {
+      if (quality === null) credits = courseCredits(catalog, courseId);
       quality = 2; reasons.push('repeat_policy_unresolved'); attemptIds.splice(0, attemptIds.length, ...own.map(a => a.attemptId).sort(compareStrings));
     }
     const placementIds = planned.map(p => p.placementId).sort(compareStrings);
-    if (quality === null || quality === 2) {
+    if (!repeat && (quality === null || quality === 2)) {
       if (planned.length) { quality = 1; credits = courseCredits(catalog, courseId); reasons.push('planned_future_completion'); }
     }
     if (quality === null) continue;
     if (credits === null) reasons.push('credits_unknown');
-    units.push({ unitId: `unit:${courseId}`, courseId, rawCode: null, quality, credits, attemptIds, placementIds: quality === 0 ? [] : placementIds, reasons: uniqueSorted(reasons), orphan: false });
+    units.push({ unitId: `unit:${courseId}`, courseId, rawCode: null, quality, schedulingQuality: schedulingQuality ?? quality, credits, attemptIds, placementIds: quality === 0 ? [] : placementIds, reasons: uniqueSorted(reasons), orphan: false });
   }
   for (const a of [...attempts].sort((x, y) => compareStrings(x.attemptId, y.attemptId))) {
     if (a.normalizedCourseId !== null || definitelyNotPassed(a)) continue;
-    units.push({ unitId: `orphan:${a.attemptId}`, courseId: null, rawCode: canonicalCourseCode(a.rawCourseCode), quality: 2, credits: a.earnedCredits ?? a.attemptedCredits, attemptIds: [a.attemptId], placementIds: [], reasons: [a.origin === 'transfer' ? 'transfer_equivalency_unverified' : 'unmapped_attempt'], orphan: true });
+    units.push({ unitId: `orphan:${a.attemptId}`, courseId: null, rawCode: canonicalCourseCode(a.rawCourseCode), quality: 2, schedulingQuality: 2, credits: a.earnedCredits ?? a.attemptedCredits, attemptIds: [a.attemptId], placementIds: [], reasons: [a.origin === 'transfer' ? 'transfer_equivalency_unverified' : 'unmapped_attempt'], orphan: true });
   }
   return units;
 }

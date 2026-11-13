@@ -40,7 +40,7 @@ export function createSearch(setup: SearchSetup): DraftSearch {
   const lastIndex = Math.min(info.targetInHorizon ? info.targetIndex : terms.length - 1, opts.horizonTerms - 1, terms.length - 1);
   const gradeIndex = gradeIndexOf(catalog);
   const satisfied = new Set<string>();
-  for (const u of baseAudit.units.values()) if (u.courseId && u.quality <= 1) satisfied.add(u.courseId);
+  for (const u of baseAudit.units.values()) if (u.courseId && u.schedulingQuality <= 1) satisfied.add(u.courseId);
   const fixedCourses = new Set(fixed.map(p => p.courseId));
   const demandCount = new Map<string, number>();
   for (const d of demands) for (const c of d.options) demandCount.set(c, (demandCount.get(c) ?? 0) + 1);

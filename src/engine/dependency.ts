@@ -25,7 +25,7 @@ export function outstandingDemands(scenario: PlanningScenario, audit: AuditDetai
   const groups = new Map(catalog.requirementGroups.map(g => [g.requirementId, g]));
   const used = new Set<string>();
   for (const u of audit.allocation.keys()) { const unit = audit.units.get(u); if (unit?.courseId) used.add(unit.courseId); }
-  for (const u of audit.units.values()) if (u.courseId && u.quality <= 1) used.add(u.courseId);
+  for (const u of audit.units.values()) if (u.courseId && u.schedulingQuality <= 1) used.add(u.courseId);
   const knownCredits = (c: string) => courseCredits(catalog, c) !== null;
   const out: Demand[] = [];
   for (const g of catalog.requirementGroups) {
@@ -38,7 +38,7 @@ export function outstandingDemands(scenario: PlanningScenario, audit: AuditDetai
       const options = g.courseIds.filter(c => !used.has(c) && knownCredits(c));
       out.push({ ...base, kind: 'choose', options, needCourses: o.need.courses, needCredits: 0, plannable: documented && options.length >= o.need.courses, reason: documented ? (options.length >= o.need.courses ? null : 'insufficient_alternatives') : `requirement_${g.uncertainty}` });
     } else if (g.kind === 'min_credits') {
-      const options = g.courseIds.filter(c => !used.has(c) && knownCredits(c) && minCreditsEligibility(catalog, groups, g, { unitId: c, courseId: c, rawCode: null, quality: 0, credits: courseCredits(catalog, c), attemptIds: [], placementIds: [], reasons: [], orphan: false }) === 0);
+      const options = g.courseIds.filter(c => !used.has(c) && knownCredits(c) && minCreditsEligibility(catalog, groups, g, { unitId: c, courseId: c, rawCode: null, quality: 0, schedulingQuality: 0, credits: courseCredits(catalog, c), attemptIds: [], placementIds: [], reasons: [], orphan: false }) === 0);
       const capacity = options.reduce((s, c) => s + (courseCredits(catalog, c) ?? 0), 0);
       const plannable = documented && options.length >= o.need.courses && capacity >= o.need.credits;
       out.push({ ...base, kind: 'credits', options, needCourses: o.need.courses, needCredits: o.need.credits, plannable, reason: !documented ? `requirement_${g.uncertainty}` : plannable ? null : g.eligibility?.inventoryStatus === 'unresolved' ? 'elective_inventory_unresolved' : 'insufficient_named_options' });
@@ -51,7 +51,7 @@ function earliestTerms(scenario: PlanningScenario, audit: AuditDetail, fixed: re
   const { catalog, plan, record } = scenario;
   const terms = scenario.assumptions.terms; const n = terms.length;
   const done = new Map<string, number>();
-  for (const u of audit.units.values()) if (u.courseId && u.quality === 0) done.set(u.courseId, -1);
+  for (const u of audit.units.values()) if (u.courseId && u.schedulingQuality === 0) done.set(u.courseId, -1);
   for (const a of record.courseAttempts) if (a.status === 'in_progress' && a.normalizedCourseId) {
     const idx = a.term ? terms.findIndex(t => t.sortIndex === a.term!.sortIndex) : -1;
     if (!done.has(a.normalizedCourseId)) done.set(a.normalizedCourseId, idx);
@@ -91,7 +91,7 @@ export function dependencyInfo(scenario: PlanningScenario, audit: AuditDetail, f
   const targetInHorizon = plan.targetTerm.sortIndex <= terms[terms.length - 1]!.sortIndex;
   const demands = outstandingDemands(scenario, audit);
   const satisfiedCourses = new Set<string>();
-  for (const u of audit.units.values()) if (u.courseId && u.quality <= 1) satisfiedCourses.add(u.courseId);
+  for (const u of audit.units.values()) if (u.courseId && u.schedulingQuality <= 1) satisfiedCourses.add(u.courseId);
   // Mandatory = required-course demands plus their outstanding necessary prerequisites (transitive).
   const mandatory = new Set<string>();
   const addMandatory = (c: string) => {
