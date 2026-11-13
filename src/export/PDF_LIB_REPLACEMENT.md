@@ -1,8 +1,8 @@
 # pdf-lib replacement plan (U, F19)
 
-**Status:** NOT STARTED, by design. `pdf-lib` 1.17.1 (DEP-002) is in lead PR #3, which only a human may merge. Until that merge, U does not consume it: no cherry-pick, no local install, no vendored copy. The current dependency-free writer (`pdfWriter.ts`) is interim and is **not** final F19 acceptance.
+**Status:** IMPLEMENTED on `feat/frontend-ux` after the human merged PR #3 (main `2bb6b3f`). The handwritten writer is removed. U1–U12 and B1–B3 have been run by the author (evidence in PR #6). L integration and human visual check below remain open.
 
-**Trigger:** the human merges PR #3 into `main`. Execute right away, on `feat/frontend-ux` only.
+**Deviation from step 2 (determinism):** `page.drawText` names font resources with `Math.random` suffixes, so output was not byte-identical (U10). The renderer registers fixed `/F1` `/F2` resources once per page and emits text through pdf-lib's public operator API (`beginText`, `setFontAndSize`, `moveText`, `showText(font.encodeText(..))`, `endText`). The sanitizer asks the embedded font whether a character is encodable instead of keeping a private WinAnsi table, and NFC-normalizes first.
 
 ## What stays (frozen or already reviewed)
 

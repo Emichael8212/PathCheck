@@ -3,7 +3,7 @@
 // the existing basic responsive regressions.
 import { expect, test } from '@playwright/test';
 import { LONG_SYNTHETIC_TITLE } from '../../fixtures/ui/syntheticCatalog';
-import { SHOTS, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectNoHorizontalOverflow, expectTouchTargets, open, startGuest, termCard, toPlanner } from './helpers';
+import { capture, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectNoHorizontalOverflow, expectTouchTargets, open, startGuest, termCard, toPlanner } from './helpers';
 
 test('@mobile every screen fits 375px with long titles and 44px targets', async ({ page }) => {
   await open(page, 'long=1&transcript=approved');
@@ -12,14 +12,14 @@ test('@mobile every screen fits 375px with long titles and 44px targets', async 
   await expectNoHorizontalOverflow(page);
   await expectTouchTargets(page);
   await expectAccessibleNames(page);
-  await page.screenshot({ path: `${SHOTS}/mobile-375-get-started.png`, fullPage: true });
+  await capture(page, 'mobile-375-get-started', { fullPage: true });
 
   await page.getByRole('button', { name: 'Continue as guest' }).click();
   await expect(page.getByTestId('disclosure')).toBeVisible();
   await enterCompletedAttempt(page);
   await expectNoHorizontalOverflow(page);
   await expectTouchTargets(page);
-  await page.screenshot({ path: `${SHOTS}/mobile-375-record.png`, fullPage: true });
+  await capture(page, 'mobile-375-record', { fullPage: true });
 
   await toPlanner(page, 'selected');
   await addThreeConflicting(page);
@@ -28,13 +28,13 @@ test('@mobile every screen fits 375px with long titles and 44px targets', async 
   await expectTouchTargets(page);
   await expectAccessibleNames(page);
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: `${SHOTS}/mobile-375-planner.png`, fullPage: true });
-  await page.screenshot({ path: `${SHOTS}/mobile-375-planner-viewport.png` });
+  await capture(page, 'mobile-375-planner', { fullPage: true });
+  await capture(page, 'mobile-375-planner-viewport');
 
   await page.getByTestId('candidate').first().getByRole('button').click();
   await expect(page.getByTestId('preview-panel')).toBeVisible();
   await expectNoHorizontalOverflow(page);
-  await page.screenshot({ path: `${SHOTS}/mobile-375-preview.png` });
+  await capture(page, 'mobile-375-preview');
 });
 
 test('@mobile with three issues the semester list precedes the inspector', async ({ page }) => {

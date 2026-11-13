@@ -273,7 +273,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     setBusy(true);
     const r = await guardAsync(() => exporter.exportPdf(scenario, analysis.value), 'export_failed');
     setBusy(false);
-    if (!r.ok) return failed(r);
+    if (!r.ok) return say('error', `The PDF was not created and nothing was downloaded. ${failureText(r)}`);
     downloadBlob(r.value, exportFileName(clock.now()));
     say('ok', 'PDF exported with your active plan only.');
   }

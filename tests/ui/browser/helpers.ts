@@ -5,6 +5,15 @@ import type { Page } from '@playwright/test';
 export const HARNESS = '/tests/ui/browser/harness/index.html';
 export const SHOTS = 'test-results/ui-screenshots';
 
+/**
+ * Screenshot capture is opt-in (PATHCHECK_UI_SCREENSHOTS=1). By default nothing is
+ * captured; the surrounding assertions still run, so tests stay behavioral.
+ */
+export async function capture(page: Page, name: string, opts: { fullPage?: boolean } = {}) {
+  if (process.env.PATHCHECK_UI_SCREENSHOTS !== '1') return;
+  await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: opts.fullPage ?? false });
+}
+
 export async function open(page: Page, flags = '') {
   await page.goto(`${HARNESS}${flags ? `?${flags}` : ''}`);
   await expect(page.getByTestId('screen-start')).toBeVisible();
@@ -106,6 +115,68 @@ export async function expectTouchTargets(page: Page, min = 44) {
     return out;
   }, min);
   expect(small, `controls below ${min}px`).toEqual([]);
+}
+
+export interface ContrastFailure { text: string; ratio: number; required: number; fg: string; bg: string }
+
+/**
+ * WCAG 2.x text contrast for every visible, enabled element that directly contains text.
+ * Background = the element's ancestors' background colors composited from the root down
+ * (opacity included). Translucent glass (backdrop-filter) is additionally composited over
+ * GLASS_BACKDROP, a conservative stand-in for blurred, text-dense content scrolling beneath.
+ * Disabled controls are exempt per WCAG 1.4.3; visually hidden text is skipped.
+ * Returns the number of text elements checked and the failures.
+ */
+export const GLASS_BACKDROP = [200, 204, 210] as const;
+export async function textContrast(page: Page): Promise<{ checked: number; glassChecked: number; failures: ContrastFailure[] }> {
+  return page.evaluate(glassBackdrop => {
+    type RGBA = [number, number, number, number];
+    const parse = (c: string): RGBA => {
+      const m = c.match(/rgba?\(([^)]+)\)/);
+      if (!m) return [0, 0, 0, 0];
+      const p = m[1]!.split(/[\s,/]+/).filter(Boolean).map(Number);
+      return [p[0]!, p[1]!, p[2]!, p[3] ?? 1];
+    };
+    const over = (top: RGBA, under: [number, number, number]): [number, number, number] =>
+      [0, 1, 2].map(i => top[i]! * top[3] + under[i]! * (1 - top[3])) as [number, number, number];
+    const lum = (rgb: readonly number[]) => {
+      const [r, g, b] = rgb.map(v => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const ratio = (a: readonly number[], b: readonly number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x! + 0.05) / (y! + 0.05); };
+    const failures: { text: string; ratio: number; required: number; fg: string; bg: string }[] = [];
+    let checked = 0, glassChecked = 0;
+    for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+      const own = [...el.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent ?? '').join('').trim();
+      if (!own) continue;
+      const rect = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      if (rect.width <= 1 || rect.height <= 1 || cs.visibility === 'hidden' || el.closest('[hidden], [aria-hidden="true"], .visually-hidden, script, style')) continue;
+      if (el.closest(':disabled, [aria-disabled="true"]') || el.matches('option')) continue;
+      const chain: HTMLElement[] = [];
+      for (let a: HTMLElement | null = el; a; a = a.parentElement) chain.unshift(a);
+      let opacity = 1, glass = false;
+      for (const a of chain) {
+        const s = getComputedStyle(a);
+        opacity *= Number(s.opacity);
+        if ((s.backdropFilter && s.backdropFilter !== 'none') || ((s as unknown as Record<string, string>).webkitBackdropFilter ?? 'none') !== 'none') glass = true;
+      }
+      const backdrops: [number, number, number][] = [[255, 255, 255]];
+      if (glass) { backdrops.push([...glassBackdrop] as [number, number, number]); glassChecked++; }
+      const fgColor = parse(cs.color);
+      const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
+      const required = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
+      for (const start of backdrops) {
+        let bg = start;
+        for (const a of chain) bg = over(parse(getComputedStyle(a).backgroundColor), bg);
+        const fg = over([fgColor[0], fgColor[1], fgColor[2], fgColor[3] * opacity], bg);
+        const r = ratio(fg, bg);
+        if (r < required) failures.push({ text: own.slice(0, 50), ratio: Math.round(r * 100) / 100, required, fg: `rgb(${fg.map(Math.round).join(',')})`, bg: `rgb(${bg.map(Math.round).join(',')})` });
+      }
+      checked++;
+    }
+    return { checked, glassChecked, failures };
+  }, GLASS_BACKDROP);
 }
 
 /** Every visible control has an accessible name (label, text or aria-label). */

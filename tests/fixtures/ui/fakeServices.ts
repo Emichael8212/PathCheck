@@ -313,15 +313,23 @@ export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls
   });
 }
 
-export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean } = {}) {
+export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean } = {}) {
   const clock = fakeClock();
-  const academic = fakeAcademic([syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })], { draft: options.draft ?? 'ok' });
+  const base = fakeAcademic([syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })], { draft: options.draft ?? 'ok' });
+  // staleAnalysis: the double answers with an analysis for a different fingerprint, which the
+  // UI's validation must refuse (no outlook, no export).
+  const academic: AcademicService = options.staleAnalysis
+    ? Object.freeze({ ...base, evaluate: (s: PlanningScenario) => { const r = base.evaluate(s); if (!r.ok) return r; const fp = r.value.inputFingerprint; return ok({ ...r.value, inputFingerprint: `${fp.slice(0, -1)}${fp.endsWith('0') ? '1' : '0'}` as AnalysisResult['inputFingerprint'] }); } })
+    : base;
   const transcriptCalls: string[] = [];
   const account = options.account === false ? null : fakeAccount({ conflictOnSave: options.conflictOnSave ?? false, clearFails: options.clearFails ?? false });
   const services: WorkflowServices = Object.freeze({
     academic,
     commands: fakeCommands(academic, clock),
-    exporter: createPdfExportService({ now: clock.now }),
+    // exportFails mirrors the real service's typed renderer failure; no Blob is produced.
+    exporter: options.exportFails
+      ? Object.freeze({ exportPdf: async () => ({ ok: false as const, code: 'validation_error' as const, reasonCode: 'pdf_render_failed' }) })
+      : createPdfExportService({ now: clock.now }),
     clock,
     config: Object.freeze({ engineVersion: 'fake-engine-test-only', evaluationPolicy: 'fake-policy', assumeFuturePass: true, searchOptions: SEARCH_POLICY }),
     transcript: options.transcript === 'none' ? null : fakeTranscript(options.transcript ?? 'disabled', transcriptCalls),
