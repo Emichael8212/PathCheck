@@ -1,9 +1,12 @@
 # Synthetic transcript benchmark and secure local configuration
 
-Status: live extraction **BLOCKED**. Human created the private key file; read-only
-model metadata requests reached Google but returned HTTP400 INVALID_ARGUMENT /
-API_KEY_INVALID. No generation/PDF upload has run. Free-project confirmation remains0
-and was not overridden. No human upload acceptance is claimed.
+Status: live extraction **BLOCKED** on free-project verification. After the human
+corrected the private key, authenticated model metadata for gemini-3.5-flash-lite
+returned PASS and lists generateContent (input1,048,576/output65,536). The previous
+API_KEY_INVALID failure is resolved. Metadata does not expose project association
+or billing tier. Free-project confirmation remains0; Computer Use access was denied.
+No generation/PDF upload has run and no local gate was overridden. No human upload
+acceptance is claimed.
 
 ## Actual runtime and secret location
 

@@ -820,3 +820,16 @@ credential response is the authoritative blocker. No generation, token-count req
 PDF upload or billing change occurred. Actual model access and18PDFbenchmark BLOCKED
 pending a valid server key and free-project confirmation; do not retry invalid key
 or override the local0flag. Human must replace/correct the credential privately.
+
+### Updated key succeeds; billing verification pending — 2026-11-13
+
+Human corrected the existing private key. Retried actual Google read-only model GET:
+PASS, exact gemini-3.5-flash-lite name and generateContent capability confirmed;
+input1,048,576/output65,536. Earlier API_KEY_INVALID is resolved. Env loading,0600
+regular file/current ownership and Git exclusion verified without showing key.
+Metadata does not establish the key's project association/billing tier. Local
+PATHCHECK_GEMINI_FREE_TIER_CONFIRMED remains0, unchanged. No browser connector;
+native Computer Use initially pending then denied. Required action requested:
+read-only browser access or human verification that this exact key's project is Free
+and update the local attestation flag. No generation/PDF/token-count calls, billing
+change, alternative model or gate override. Benchmark stays BLOCKED on this evidence.

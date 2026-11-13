@@ -2,6 +2,11 @@
 
 ## Current transcript checkpoint
 
+Latest retry supersedes invalid-key blocker: actual authenticated model metadata
+PASS for exact gemini-3.5-flash-lite with generateContent supported. Free-project
+association/tier remains unverified (local flag0, Computer Use denied). No generation
+or PDF call; full benchmark remains BLOCKED, not FAIL and not PASS.
+
 Latest access check: secure local env loading PASS (0600, owned, Git-ignored), but
 actual Google model-metadata GET returns400 API_KEY_INVALID. Extraction benchmark
 BLOCKED on invalid credential; no model-generation or PDF call attempted. Local
