@@ -7,8 +7,8 @@
 - Base: merged PR4 main `9f46d2323825ea6b222075c538d33701f3d19b4b`
 - Test type: deterministic terminal academic-engine assertions
 - Feature: scoped repeat credit, prerequisite correctness, bounded scheduling and uncertainty
-- Eligibility: **HUMAN ACCEPTANCE REQUIRED**; foundation CI43475690184 PASS, GitHub CLEAN.
-- Human acceptance: **NOT RUN**. Independent static review found no blocker in engine097ed76; baseline refresh5344bc2 changes no engine-owned implementation.
+- Eligibility: **READY TO MERGE**; foundation CI43475690184 PASS, GitHub CLEAN.
+- Human acceptance: **PASS**, human reported3files/106tests passing on2026-11-13. Independent static review found no blocker in engine097ed76; baseline refresh5344bc2 changes no engine-owned implementation.
 
 ## Before You Begin
 Git, Node24–26/npm and existing engine worktree. No service, credentials or academic
@@ -61,3 +61,9 @@ existing worktree. No reset, removal or production operation is required.
 No actual ASU repeat, grade-replacement, transfer or catalog applicability policy is
 established. Provisional ASU configuration remains unresolved. This terminal check
 does not replace full integrated browser, persistence or transcript security gates.
+
+## Human execution result — 2026-11-13
+Human reported3files/106tests PASS, duration296ms, start11:47:07. Accepted head
+5344bc24be2628e253376e2b279e834bf937337a remains unchanged. Required foundation
+CI43475690184 SUCCESS and GitHub CLEAN verified after report; main9f46d23.
+Independent review no blocker; human alone performs merge. Screenshots human-managed.

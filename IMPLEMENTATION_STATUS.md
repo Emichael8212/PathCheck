@@ -575,3 +575,12 @@ Owner refreshed fullcheck PASS420units/2live skips and engine200. Human acceptan
 procedure uses L-verified unfiltered106tests/3files rather than owner's filtered command.
 PR5 HUMAN ACCEPTANCE REQUIRED. New L real-engine PDF regression independently
 reviewed: no blocker; synthetic scenario scope only, human PDF readability pending.
+
+
+### PR #5 human acceptance PASS — 2026-11-13
+User executed pinned5344bc24be2628e253376e2b279e834bf937337a procedure and reported
+3files/106tests PASS, duration296ms, start11:47:07. GitHub head unchanged; required
+foundation43475690184 SUCCESS, CLEAN against main9f46d23. Independent review no
+blocking findings; engine-owned implementation unchanged from reviewed097ed76.
+**PR5 READY TO MERGE**; human alone merges. No screenshot requested, no deployment.
+Unknown real ASU policies remain unresolved; acceptance does not certify those rules.

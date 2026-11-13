@@ -474,3 +474,8 @@ L combined595units PASS/2live skips and12desktop journeys PASS including
 `tests/e2e/integration/journey.spec.ts` → `real engine outlook exports a readable conditional PDF without transcript details`.
 This closes real E/U PDF composition for that synthetic case; human visual/export
 acceptance and other cloud/upload integration gates remain pending.
+
+### PR5 human gate — 2026-11-13
+Human PASS106tests/3files at5344bc2; unchanged head, requiredCI43475690184 PASS,
+GitHub CLEAN and independent review no blocker. PR5 READY TO MERGE. Actual ASU
+policy uncertainties and remaining cross-component/release gates remain unchanged.
