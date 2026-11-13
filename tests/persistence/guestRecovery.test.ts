@@ -51,6 +51,49 @@ describe('cross-tab opt-in recovery', () => {
     svc.stash(crossTab());
     expect(session.map.size).toBe(0);
   });
+  // G independent review #6: a routine session-mode stash in tab B (never opted in) must
+  // not delete tab A's opted-in cross-tab draft. Stash is not an approved clear event.
+  it("session stash in another tab preserves an unrelated tab's valid cross-tab draft", () => {
+    const { local, svc: tabA } = setup();
+    expect(tabA.stash({ ...crossTab(), draftId: 'tab-a' }).ok).toBe(true);
+    const before = local.map.get(GUEST_DRAFT_KEY);
+    const tabB = createGuestRecoveryService({ session: memoryStorage(), local });
+    expect(tabB.stash(draft({ draftId: 'tab-b' }))).toEqual({ ok: true, value: null });
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(before);
+    expect(createGuestRecoveryService({ session: memoryStorage(), local }).recover(NOW)).toEqual({ ok: true, value: { ...crossTab(), draftId: 'tab-a' } });
+  });
+  it('downgrade of the same draftId removes its own shared copy', () => {
+    const { session, local, svc } = setup();
+    svc.stash({ ...crossTab(), draftId: 'd' });
+    expect(svc.stash(draft({ draftId: 'd' }))).toEqual({ ok: true, value: null });
+    expect(local.map.size).toBe(0);
+    expect(session.map.size).toBe(1);
+  });
+  it('session stash leaves a corrupt shared entry for recover() to purge', () => {
+    const { local, svc } = setup();
+    local.setItem(GUEST_DRAFT_KEY, '{not json');
+    expect(svc.stash(draft()).ok).toBe(true);
+    expect(local.map.size).toBe(1);
+    expect(svc.recover(NOW)).toEqual({ ok: true, value: draft() });
+    expect(local.map.size).toBe(0);
+  });
+  it('session stash with an unrelated shared draft does not need removal (no failure when remove is blocked)', () => {
+    const session = memoryStorage(), local = memoryStorage({ failRemove: true });
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify({ ...crossTab(), draftId: 'tab-a' }));
+    expect(createGuestRecoveryService({ session, local }).stash(draft({ draftId: 'tab-b' }))).toEqual({ ok: true, value: null });
+    expect(local.map.size).toBe(1);
+  });
+  it('session stash reports cleanup failure when the shared slot cannot be read to verify ownership', () => {
+    const session = memoryStorage(), local = memoryStorage({ failGet: true });
+    expect(createGuestRecoveryService({ session, local }).stash(draft())).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_cleanup_failed' });
+    expect(session.map.size).toBe(1);
+  });
+  it('explicit clear still removes another tab\'s shared draft', () => {
+    const { local, svc } = setup();
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify({ ...crossTab(), draftId: 'tab-a' }));
+    expect(svc.clear('cancel')).toEqual({ ok: true, value: null });
+    expect(local.map.size).toBe(0);
+  });
   it('rejects lifetimes over 24h', () => {
     const { svc } = setup();
     expect(svc.stash({ ...crossTab(), expiresAt: '2030-01-02T00:00:01Z' }).ok).toBe(false);
@@ -60,7 +103,8 @@ describe('cross-tab opt-in recovery', () => {
 describe('recover validation deletes unusable entries', () => {
   const cases: Array<[string, (s: ReturnType<typeof setup>) => void]> = [
     ['expired', s => s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft({ expiresAt: '2030-01-01T05:00:00Z' })))],
-    ['future-dated', s => s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft({ createdAt: '2030-01-01T07:00:00Z', expiresAt: '2030-01-01T08:00:00Z' })))],
+    ['corrupt future-dated (invalid lifetime)', s => s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft({ createdAt: '2030-01-01T08:00:00Z', expiresAt: '2030-01-01T07:00:00Z' })))],
+    ['misplaced future-dated', s => s.local.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft({ createdAt: '2030-01-01T07:00:00Z', expiresAt: '2030-01-01T08:00:00Z' })))],
     ['corrupt JSON', s => s.session.setItem(GUEST_DRAFT_KEY, '{not json')],
     ['wrong version', s => s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify({ ...draft(), schemaVersion: 2 }))],
     ['session-mode draft planted in localStorage', s => s.local.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()))],
@@ -121,6 +165,41 @@ describe('recover validation deletes unusable entries', () => {
     const session = memoryStorage(), local = memoryStorage({ failGet: true });
     session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
     expect(createGuestRecoveryService({ session, local }).recover(NOW)).toEqual({ ok: true, value: draft() });
+  });
+  // G independent review #7: a stale/skewed caller clock must not delete a valid draft
+  // another tab just created. Kept on disk, typed unavailable (not null), no TTL grace.
+  const future = { createdAt: '2030-01-01T07:00:00Z', expiresAt: '2030-01-01T08:00:00Z' };
+  const behind = { ok: false, code: 'unavailable', reasonCode: 'recovery_clock_behind_draft' };
+  it('keeps a future-dated otherwise-valid cross-tab draft and returns typed unavailable', () => {
+    const s = setup();
+    const fresh = JSON.stringify({ ...crossTab(), ...future });
+    s.local.setItem(GUEST_DRAFT_KEY, fresh);
+    expect(s.svc.recover(NOW)).toEqual(behind);
+    expect(s.local.map.get(GUEST_DRAFT_KEY)).toBe(fresh);
+    // once the clock catches up the same draft is recoverable
+    expect(s.svc.recover('2030-01-01T07:30:00Z')).toEqual({ ok: true, value: { ...crossTab(), ...future } });
+  });
+  it('keeps a future-dated session draft and does not fall back to the shared draft', () => {
+    const s = setup();
+    const own = JSON.stringify(draft({ draftId: 'mine', ...future }));
+    s.session.setItem(GUEST_DRAFT_KEY, own);
+    s.local.setItem(GUEST_DRAFT_KEY, JSON.stringify(crossTab()));
+    expect(s.svc.recover(NOW)).toEqual(behind);
+    expect(s.session.map.get(GUEST_DRAFT_KEY)).toBe(own);
+    expect(s.local.map.size).toBe(1);
+  });
+  it('a valid session draft still wins over a future-dated shared draft, which is kept', () => {
+    const s = setup();
+    s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    s.local.setItem(GUEST_DRAFT_KEY, JSON.stringify({ ...crossTab(), draftId: 'other', ...future }));
+    expect(s.svc.recover(NOW)).toEqual({ ok: true, value: draft() });
+    expect(s.local.map.size).toBe(1);
+  });
+  it('expired is still deleted (no TTL grace): boundary at expiresAt', () => {
+    const s = setup();
+    s.local.setItem(GUEST_DRAFT_KEY, JSON.stringify(crossTab()));
+    expect(s.svc.recover('2030-01-01T12:00:00Z')).toEqual({ ok: true, value: null });
+    expect(s.local.map.size).toBe(0);
   });
   it('rejects an invalid clock', () => {
     expect(setup().svc.recover('yesterday')).toMatchObject({ ok: false, reasonCode: 'invalid_clock' });

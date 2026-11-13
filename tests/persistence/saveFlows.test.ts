@@ -16,11 +16,20 @@ describe('guest → account Save as new', () => {
   it('always creates a new plan, then clears recovery', async () => {
     const d = deps(() => ({ status: 200, body: { status: 'ok', plan: row() } }));
     d.recovery.stash(draft());
-    const r = await saveGuestDraftAsNew(draft(), d);
+    // Clock pinned inside the fixture's lifetime. (Previously this used the real clock, so
+    // the 2030 fixture was "future-dated" and deleted — the bug fixed by G review #7.)
+    const r = await saveGuestDraftAsNew(draft(), { ...d, now: () => '2030-01-01T06:00:00Z' });
     expect(r.ok && r.value.saved.id).toBe(PLAN_ID);
     expect(r.ok && r.value.recoveryCleared).toBe(true);
     expect(d.calls.map(c => c.url)).toEqual([`${CONFIG.url}/rest/v1/rpc/create_plan`]);
     expect(d.session.map.size).toBe(0);
+  });
+  it('does not clear a draft that is ahead of the caller clock after a save', async () => {
+    const d = deps(() => ({ status: 200, body: { status: 'ok', plan: row() } }));
+    d.recovery.stash(draft());
+    const r = await saveGuestDraftAsNew(draft(), { ...d, now: () => '2029-12-31T23:00:00Z' });
+    expect(r).toMatchObject({ ok: true, value: { saved: { id: PLAN_ID }, recoveryCleared: false } });
+    expect(d.session.map.size).toBe(1);
   });
   it('does not clear a newer draft stashed while the save was in flight', async () => {
     const f = deferredFetch();
