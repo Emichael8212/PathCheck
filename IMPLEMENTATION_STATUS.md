@@ -279,7 +279,7 @@ User now requires personally executed functional acceptance and self-captured sc
 
 | PR | Pinned implementation SHA | Human status | Instructions / eligibility |
 | --- | --- | --- | --- |
-| #3 | e941539c4ae12ad6f6f3b07a51dc7394a06a3965 | NOT RUN | [Ready: real E/U/L workflow](docs/acceptance/pr-3/PR_ACCEPTANCE_TEST.md), first human test |
+| #3 | e941539c4ae12ad6f6f3b07a51dc7394a06a3965 | PASS (user-reported; screenshots pending) | [Real E/U/L workflow](docs/acceptance/pr-3/PR_ACCEPTANCE_TEST.md), first human test |
 | #4 | 8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd | NOT RUN | [Ready: actual local SQL/REST](docs/acceptance/pr-4/PR_ACCEPTANCE_TEST.md), tools available |
 | #5 | 645111c43f65b21fc73b776a763360a8cbddb4a4 | NOT RUN | [Current subset runnable](docs/acceptance/pr-5/PR_ACCEPTANCE_TEST.md); final eligibility BLOCKED by #3/T-ENG-5 |
 | #6 | 541ba01a62a163672b08483658d66794b7cc273b | NOT RUN | [Current interactions documented](docs/acceptance/pr-6/PR_ACCEPTANCE_TEST.md); final eligibility BLOCKED by #3/pdf-lib acceptance |
@@ -289,3 +289,15 @@ Agent verification for these instructions: fresh pinned uncommitted checkout ins
 Independent G review caught and resolved automatic screenshot capture, non-fail-fast setup, linked-worktree .git lookup, and restoration of stale database migrations. Final static review PASS, no remaining material findings; reviewer ran no tests. L removed its explicit screenshot call and disabled integration screenshots/traces while retaining assertions. No screenshots captured for the user. No production code, architecture or academic-rule changes.
 
 Prepared human checkout `/private/tmp/pathcheck-human-acceptance`, local-only branch `integration/human-acceptance`, remains at pinned L e941539 plus noncommitting E645111c/U541ba01/S8d28602 merge and root application.patch. Its L screenshot-only test edits match the new capture policy; production sources remain the pinned versions. Retained intentionally for the user's next test, not committed/pushed. Dev server is stopped. Disposable DB/VM stopped after verification; engine-only scratch removed. User may start browser test with the guide's commands; full fresh reconstruction and safe cleanup are documented. Only deliver #3 instructions now, await human result, then next eligible PR. Nothing merged/deployed.
+
+
+### Human PR #3 result
+
+The user reported **PASS** for the currently assigned PR#3 acceptance test after
+clarification that completed SYN101 uses Fall2026 and upcoming Spring2027 is chosen
+in the planner. Record this as human-reported execution PASS for the pinned
+E645111c/U541ba01/L e941539 candidate; do not infer additional scenarios or agent
+screenshots. Required Apply/Undo screenshot evidence has not been supplied or linked;
+evidence collection remains pending before final merge recommendation. PR#3 is still
+OPEN; no merge or deployment. PR#4 is the next eligible human test; its verified
+local-only SQL/REST guide is available. PR#5/#6 remain NOT RUN and blocked as above.

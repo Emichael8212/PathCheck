@@ -6,8 +6,8 @@
 - Commit SHA: `e941539c4ae12ad6f6f3b07a51dc7394a06a3965` (implementation baseline; subsequent acceptance-document commits do not change its behavior)
 - Test type: real integrated browser workflow
 - Feature being verified: E analysis + U timeline + L preview/apply/undo and stale-analysis prevention
-- Human acceptance status: **NOT RUN**. Agent verification is separate.
-- Eligibility: instructions ready; human PASS required before merge recommendation.
+- Human acceptance status: **PASS (user-reported)**. Apply/Undo screenshot evidence pending; agent verification remains separate.
+- Eligibility: human execution reported PASS; required screenshot evidence must still be recorded before final merge recommendation.
 
 ## Before You Begin
 Required: this repository, Git, Node24–26/npm, Chrome; no account, cloud service or
