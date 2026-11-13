@@ -4,6 +4,7 @@ import { createSupabaseStorage } from '../../src/persistence/supabaseStorage';
 import { executeSaveIntent, saveGuestDraftAsNew } from '../../src/persistence/saveFlows';
 import { CONFIG, PLAN_ID, USER_A, deferredFetch, draft, fakeFetch, fixture, flush, memoryStorage, row, sessionFor } from './helpers';
 import type { Responder } from './helpers';
+import type { GuestDraft, GuestRecoveryService } from '../../src/contracts';
 
 const deps = (responder: Responder) => {
   const f = fakeFetch(responder);
@@ -44,6 +45,36 @@ describe('guest → account Save as new', () => {
     const storage = createSupabaseStorage(CONFIG, { fetch: f.fetch, session: sessionFor(USER_A) });
     const r = await saveGuestDraftAsNew(draft(), { storage, recovery, now: () => '2030-01-01T06:00:00Z' });
     expect(r.ok && r.value.recoveryCleared).toBe(false);
+  });
+  it('preserves recovery (never clears) when it cannot be read after a successful save', async () => {
+    const f = fakeFetch(() => ({ status: 200, body: { status: 'ok', plan: row() } }));
+    const storage = createSupabaseStorage(CONFIG, { fetch: f.fetch, session: sessionFor(USER_A) });
+    let clearCalls = 0;
+    const recovery: GuestRecoveryService = {
+      stash: () => ({ ok: true, value: null }),
+      recover: () => ({ ok: false, code: 'unavailable', reasonCode: 'recovery_storage_unavailable' }),
+      clear: () => { clearCalls++; return { ok: true, value: null }; },
+    };
+    const r = await saveGuestDraftAsNew(draft(), { storage, recovery, now: () => '2030-01-01T06:00:00Z' });
+    expect(r).toMatchObject({ ok: true, value: { saved: { id: PLAN_ID }, recoveryCleared: false } });
+    expect(clearCalls).toBe(0);
+  });
+  it('keeps saved success and does not clear when the recovery port throws or returns an invalid draft', async () => {
+    const f = fakeFetch(() => ({ status: 200, body: { status: 'ok', plan: row() } }));
+    const storage = createSupabaseStorage(CONFIG, { fetch: f.fetch, session: sessionFor(USER_A) });
+    let clearCalls = 0;
+    const clear = () => { clearCalls++; return { ok: true as const, value: null }; };
+    const stash = () => ({ ok: true as const, value: null });
+    const throwing: GuestRecoveryService = { stash, clear, recover: () => { throw new Error('storage blew up'); } };
+    const invalid: GuestRecoveryService = { stash, clear, recover: () => ({ ok: true, value: { not: 'a draft' } as unknown as GuestDraft }) };
+    for (const recovery of [throwing, invalid]) {
+      const r = await saveGuestDraftAsNew(draft(), { storage, recovery, now: () => '2030-01-01T06:00:00Z' });
+      expect(r).toMatchObject({ ok: true, value: { saved: { id: PLAN_ID }, recoveryCleared: false } });
+    }
+    const throwingClear: GuestRecoveryService = { stash, recover: () => ({ ok: true, value: null }), clear: () => { throw new Error('remove blew up'); } };
+    expect(await saveGuestDraftAsNew(draft(), { storage, recovery: throwingClear, now: () => '2030-01-01T06:00:00Z' }))
+      .toMatchObject({ ok: true, value: { saved: { id: PLAN_ID }, recoveryCleared: false } });
+    expect(clearCalls).toBe(0);
   });
   it('retains the guest draft when the cloud save fails', async () => {
     const d = deps(() => 'throw');

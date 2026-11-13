@@ -15,14 +15,29 @@ export async function saveGuestDraftAsNew(draft: GuestDraft, deps: { storage: St
   if (!created.ok) return created;
   // Race guard: while the request was in flight the student may have kept editing and a
   // newer draft was stashed. Clearing it would lose unsaved work on the next refresh, so
-  // clear only if the stored draft is still exactly the one that was saved (or absent).
-  const now = (deps.now ?? (() => new Date().toISOString()))();
-  const stored = deps.recovery.recover(now);
-  if (stored.ok && stored.value !== null && JSON.stringify(GuestDraftSchema.parse(stored.value)) !== submitted) {
-    return { ok: true, value: { saved: created.value, recoveryCleared: false } };
+  // clear only if the stored draft is POSITIVELY verified to be the one that was saved
+  // (or absent). If recovery cannot be read or validated (typed failure, schema mismatch,
+  // or a port that throws despite its Result contract) the draft is preserved: the cloud
+  // copy already exists, so the save is still reported as successful, just uncleared.
+  const savedOnly = { ok: true as const, value: { saved: created.value, recoveryCleared: false } };
+  let stored: Result<GuestDraft | null>;
+  try {
+    const now = (deps.now ?? (() => new Date().toISOString()))();
+    stored = deps.recovery.recover(now);
+  } catch {
+    return savedOnly;
   }
-  const cleared = deps.recovery.clear('save');
-  return { ok: true, value: { saved: created.value, recoveryCleared: cleared.ok } };
+  if (!stored.ok) return savedOnly;
+  if (stored.value !== null) {
+    const storedParsed = GuestDraftSchema.safeParse(stored.value);
+    if (!storedParsed.success || JSON.stringify(storedParsed.data) !== submitted) return savedOnly;
+  }
+  try {
+    const cleared = deps.recovery.clear('save');
+    return { ok: true, value: { saved: created.value, recoveryCleared: cleared.ok } };
+  } catch {
+    return savedOnly;
+  }
 }
 
 /**
