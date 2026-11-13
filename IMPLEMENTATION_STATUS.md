@@ -1,6 +1,6 @@
 # PathCheck implementation status
 
-Owner: Codex Agent 1 (L). Updated: 2026-11-12. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
+Owner: Codex Agent 1 (L). Updated: 2026-11-13. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
 
 ## Execution-memory protocol
 
@@ -301,3 +301,64 @@ screenshots. Required Apply/Undo screenshot evidence has not been supplied or li
 evidence collection remains pending before final merge recommendation. PR#3 is still
 OPEN; no merge or deployment. PR#4 is the next eligible human test; its verified
 local-only SQL/REST guide is available. PR#5/#6 remain NOT RUN and blocked as above.
+
+
+### Renewed Accept and continue integration — 2026-11-13
+
+Supersedes prior human-acceptance readiness for the changed UI, not prior test history.
+Main remains de28a31846688f1d1a1a29eb8b2708571bf16301. All feature PRs remain OPEN;
+no merge/deploy/contract or academic-rule change. Approved flow recorded in DECISIONS
+UX-006 amendment, from U's existing handoff. All original worktrees and the old human
+checkout are preserved.
+
+- L implementation/test head: `37c2f0adb8972736cc31247df3ddc19339cd6cfa`.
+- Exact combined heads: E `645111c43f65b21fc73b776a763360a8cbddb4a4`,
+  U `f413d189f93b4cd9de4821b4b0118120b57d245b`,
+  S `8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd`,
+  G `b37f4c2ab6a9709bfae26c57635f1991a3c6ab9f` (local-only, no PR).
+- Lead journeys now use automatic normalization and explicit Accept and continue.
+  Test-only observation forwards the real L command unchanged; assertions verify
+  zero acceptance calls before action, exactly one afterward, one revision increment,
+  and accepted attempts. New invalid-input case verifies refusal, keyboard error focus,
+  successful correction and preserved academic uncertainty. No production service doubles.
+- Initial added assertion FAIL9 because the old harness observed state only on planner
+  evaluation. Corrected test observation, not application behavior. Final real-engine
+  `npm run test:integration` PASS11. Independent G static re-review PASS after correction;
+  reviewer ran no tests and found no blocker.
+- Combined `npm run lint`, `npm run typecheck`, `npm test`: PASS505 units,2 intentionally
+  skipped live-environment guards. `PATHCHECK_TEST_BUILD=1 npm run test:integration`:
+  fresh production build + root Chromium PASS1; known >500kB chunk warning remains.
+- U browser subset PASS40 (36desktop/4responsive), command:
+  `node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts --grep-invert 'a refused Accept|matching runs automatically|issue, keyboard preview|a tradeoff that leaves|one unadopted draft is|desktop screenshots|an empty planner offers|@mobile every screen fits'`.
+  Eight screenshot-emitting cases deliberately not rerun by L under the user's no-capture
+  instruction; U's PR reports full48 at its unchanged code. Do not represent L's subset
+  as a full48 run. L's real-engine suite covers explicit/blocked acceptance and Apply/Undo.
+- Lead standalone `npm run check` PASS103units,lint,typecheck,build,1foundation smoke;
+  lint/typecheck rerun PASS after final test observation changes. CI current heads before
+  this update: L09ee8cb, E645111c, S8d28602, Uf413d18 foundation SUCCESS. New L-head CI
+  must pass and be linked on PR#3; old CI is not substituted for current CI.
+
+| Workstream | Current human state / dependency | Next owner action and trigger |
+| --- | --- | --- |
+| PR#3 L | NOT RUN renewed flow; historical PASS retained, screenshots not received | Updated pinned guide; human repeats acceptance and captures Apply/Undo. Human alone merges after checks. |
+| PR#4 S | NOT RUN; previous live SQL172/REST1 PASS at unchanged8d28602, not rerun this session | Human local security acceptance; L/S/U I3 real OTP/recovery/cloud composition still pending. |
+| PR#5 E | NOT RUN; T-ENG-5 remains BLOCKED by human PR#3 merge | Consume scoped repeat contract only after main merge; implement positive sourced synthetic policy, regression/review. No invented ASU policy. |
+| PR#6 U | NOT RUN; new flow integrated, final PDF replacement BLOCKED by human PR#3 merge | Consume pdf-lib after merge, actual-byte/download gates and independent review; human acceptance guide repinned. |
+| G local | No PR; real transcripts disabled | PR#3 dependency then PDF inspector/corpus; S atomic admission migration + L gateway/Deno; authorized synthetic provider benchmark and separate real-data privacy approval. |
+
+G read-only dependency review confirms safe pending work: labeled synthetic corpus and
+private-store adversarial matrix. No provider invocation or production credentials.
+Optional outlook reason references are deferred as U requested; no contract expansion.
+Merge order remains PR#3 first, PR#4 independent, PR#5/#6 only after their actual dependency
+and test gates, then reviewed root/auth composition. No PR-number-based bulk merge.
+
+Renewed human checkout `/private/tmp/pathcheck-pr3-renewed` pins L37c2f0a and published
+E/U/S heads with noncommitting merge + application.patch, omitting local-only G because
+this manual guest workflow does not use extraction. The older human checkout is intact.
+Use the renewed guide, not the stale Review record instructions. No screenshots captured.
+
+Renewed pinned E/U/S-only checkout verification: `npm run test:integration` PASS11,
+including the exact documented manual journey. Both updated guides' shell blocks
+pass `zsh -n`. All five feature branches share main merge-base de28a31; E/U/S/G
+worktrees are clean. GitHub PR#3 has no review threads or change-request reviews;
+CLI independent review is tracked separately from GitHub reviews.

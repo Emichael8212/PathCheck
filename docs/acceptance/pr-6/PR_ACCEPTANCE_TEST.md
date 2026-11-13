@@ -3,7 +3,7 @@
 ## PR Information
 - PR number: #6
 - Title: Frontend UX: three screens, planner timeline, previews, PDF export (draft)
-- Commit SHA: `541ba01a62a163672b08483658d66794b7cc273b`; integration dependency L e941539, E645111c, S8d28602
+- Commit SHA: `f413d189f93b4cd9de4821b4b0118120b57d245b`; integration dependency L 37c2f0a, E645111c, S8d28602
 - Test type: real integrated browser workflow
 - Feature being verified: three screens, course controls, contextual preview and minimum-data PDF
 - Human acceptance status: **NOT RUN**. Agent verification is separate.
@@ -12,7 +12,7 @@
 ## Before You Begin
 Required: this repository, Git, Node24–26/npm, Chrome; no account, cloud service or
 credentials. Use synthetic data only. Do not upload transcripts. Dependencies are
-pinned to E645111c/U541ba01/S8d28602, not mutable branch tips. A fresh clone can use
+pinned to E645111c/Uf413d18/S8d28602, not mutable branch tips. A fresh clone can use
 its local repository path instead of `/Users/_eman5michael/PathCheck`.
 
 ```sh
@@ -20,10 +20,10 @@ its local repository path instead of `/Users/_eman5michael/PathCheck`.
 set -eu
 cd /Users/_eman5michael/PathCheck
 git fetch origin
-test ! -e /private/tmp/pathcheck-human-acceptance
-git worktree add /private/tmp/pathcheck-human-acceptance -b integration/human-acceptance e941539c4ae12ad6f6f3b07a51dc7394a06a3965
-cd /private/tmp/pathcheck-human-acceptance
-git merge --no-commit --no-ff 645111c43f65b21fc73b776a763360a8cbddb4a4 541ba01a62a163672b08483658d66794b7cc273b 8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd
+test ! -e /private/tmp/pathcheck-pr3-renewed
+git worktree add /private/tmp/pathcheck-pr3-renewed -b integration/pr3-renewed 37c2f0adb8972736cc31247df3ddc19339cd6cfa
+cd /private/tmp/pathcheck-pr3-renewed
+git merge --no-commit --no-ff 645111c43f65b21fc73b776a763360a8cbddb4a4 f413d189f93b4cd9de4821b4b0118120b57d245b 8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd
 git apply tests/e2e/integration/application.patch
 npm ci
 )
@@ -34,12 +34,12 @@ merge conflict by guessing. Expected: merge stops before committing; npm install
 the lockfile. These commands never merge into main or push anything. If the
 checkout was prepared by the lead and left for your test, verify its recorded SHAs
 before reusing it; otherwise use the fresh procedure above. The Git history remains
-at e941539 with the three pinned feature heads recorded in the linked worktree's merge-state file. To inspect it safely, run:
+at 37c2f0a with the three pinned feature heads recorded in the linked worktree's merge-state file. To inspect it safely, run:
 
 ```sh
 (
 set -eu
-cd /private/tmp/pathcheck-human-acceptance
+cd /private/tmp/pathcheck-pr3-renewed
 git rev-parse HEAD
 git rev-parse --git-path MERGE_HEAD
 )
@@ -52,7 +52,7 @@ The second command prints the actual merge-state file path (`.git` is a file in 
    ```sh
    (
    set -eu
-   cd /private/tmp/pathcheck-human-acceptance
+   cd /private/tmp/pathcheck-pr3-renewed
    npm run dev -- --port 5181 --strictPort
    )
    ```
@@ -69,8 +69,10 @@ The second command prints the actual merge-state file path (`.git` is a file in 
 4. Set **Target graduation term** to **Fall 2027**. Click **Continue as guest**.
 5. Click **Add course attempt**. Enter course `SYN 101`, term **Fall 2026**, status
    **Completed**, attempted credits `3`, earned credits `3`, grade `B`.
-   Click **Review record**, then **Accept this record**. Expect **Record accepted**.
-6. Click **Continue to planner**, then **I already selected courses**.
+   Wait for **1 course checked**. Matching alone does not accept the record.
+   Click **Accept and continue** once. Expect **Record accepted** and navigation
+   to the planner.
+6. Click **I already selected courses**.
 7. In **Add course**, select `SYN 201` and **Spring 2027**; click **Add course**.
    Repeat for `SYN 301`, also **Spring 2027**.
 8. Confirm a prerequisite issue: SYN 301 needs SYN 201 in a prior term. The timeline
@@ -114,8 +116,8 @@ Stop the dev server with Ctrl-C. Close the test browser tab. From another termin
 (
 set -eu
 cd /Users/_eman5michael/PathCheck
-git worktree remove --force /private/tmp/pathcheck-human-acceptance
-git branch -D integration/human-acceptance
+git worktree remove --force /private/tmp/pathcheck-pr3-renewed
+git branch -D integration/pr3-renewed
 )
 ```
 
