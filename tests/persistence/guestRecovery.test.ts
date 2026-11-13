@@ -83,6 +83,45 @@ describe('recover validation deletes unusable entries', () => {
       expect(s.session.map.size + s.local.map.size).toBe(1); // still on disk, and we said so
     });
   }
+  // Shared device: this tab has a valid session draft, while another tab's earlier
+  // cross-tab opt-in left a localStorage copy that has since expired. Returning the session
+  // draft must not leave the expired shared copy on disk.
+  const expiredCrossTab = () => JSON.stringify({ ...crossTab(), expiresAt: '2030-01-01T05:00:00Z' });
+  it('purges an expired cross-tab copy even when a valid session draft wins', () => {
+    const s = setup();
+    s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    s.local.setItem(GUEST_DRAFT_KEY, expiredCrossTab());
+    expect(s.svc.recover(NOW)).toEqual({ ok: true, value: draft() });
+    expect(s.local.map.size).toBe(0);
+    expect(s.session.map.size).toBe(1);
+  });
+  it('purges a corrupt cross-tab copy even when a valid session draft wins', () => {
+    const s = setup();
+    s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    s.local.setItem(GUEST_DRAFT_KEY, '{not json');
+    expect(s.svc.recover(NOW)).toEqual({ ok: true, value: draft() });
+    expect(s.local.map.size).toBe(0);
+  });
+  it('keeps a still-valid cross-tab copy for other tabs when the session draft wins', () => {
+    const s = setup();
+    s.session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    s.local.setItem(GUEST_DRAFT_KEY, JSON.stringify(crossTab()));
+    expect(s.svc.recover(NOW)).toEqual({ ok: true, value: draft() });
+    expect(s.local.map.size).toBe(1);
+  });
+  it('reports failed purge of the expired shared copy instead of silently leaving it', () => {
+    const session = memoryStorage(), local = memoryStorage({ failRemove: true });
+    session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    local.setItem(GUEST_DRAFT_KEY, expiredCrossTab());
+    const svc = createGuestRecoveryService({ session, local });
+    expect(svc.recover(NOW)).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_cleanup_failed' });
+    expect(session.map.size).toBe(1); // the valid session draft is not destroyed
+  });
+  it('still returns the session draft when localStorage cannot be read', () => {
+    const session = memoryStorage(), local = memoryStorage({ failGet: true });
+    session.setItem(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    expect(createGuestRecoveryService({ session, local }).recover(NOW)).toEqual({ ok: true, value: draft() });
+  });
   it('rejects an invalid clock', () => {
     expect(setup().svc.recover('yesterday')).toMatchObject({ ok: false, reasonCode: 'invalid_clock' });
   });

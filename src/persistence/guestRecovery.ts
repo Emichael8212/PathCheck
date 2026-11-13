@@ -19,8 +19,9 @@ const modeFor: Record<Slot, GuestDraft['mode']> = { session: 'session', local: '
  *  - `session` mode: same-tab refresh / OTP / failed sign-in → sessionStorage only.
  *  - `cross_tab_opt_in` mode: explicit opt-in (shared-device warning is U-owned) →
  *    same-origin localStorage only, lifetime ≤ 24h enforced by the contract schema.
- * Exactly one copy exists at a time. Recover validates the supplied clock and deletes
- * corrupt, wrong-version, future-dated, expired or mode/slot-mismatched entries.
+ * One tab writes one copy at a time. Recover validates the supplied clock and deletes
+ * corrupt, wrong-version, future-dated, expired or mode/slot-mismatched entries in BOTH
+ * slots (session wins when both are valid).
  * Clear (save/cancel/expiry/sign_out) removes both slots. Never creates cloud records.
  */
 export function createGuestRecoveryService(stores: { session: StorageLike | null; local: StorageLike | null }): GuestRecoveryService {
@@ -89,8 +90,15 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     recover(now) {
       if (!TimestampSchema.safeParse(now).success) return { ok: false, code: 'validation_error', reasonCode: 'invalid_clock' };
       const fromSession = readSlot('session', now);
-      if (!fromSession.ok || fromSession.value) return fromSession;
-      return readSlot('local', now);
+      if (!fromSession.ok) return fromSession;
+      // The shared localStorage slot is always validated, even when this tab's session
+      // draft wins, so an expired/corrupt/misplaced shared-device copy (e.g. another tab's
+      // earlier cross-tab opt-in) is purged rather than left on disk unnoticed. A valid
+      // cross-tab copy is kept for other tabs.
+      const fromLocal = readSlot('local', now);
+      if (!fromSession.value) return fromLocal;
+      if (!fromLocal.ok && fromLocal.reasonCode === 'recovery_cleanup_failed') return fromLocal;
+      return fromSession;
     },
 
     clear(event) {
