@@ -6,8 +6,8 @@
 - Commit SHA: `bbea54d9645d284f4b3dcff71320387441eb1011`; reviewed UI implementation7c17d49, merged engine/persistence baseline4f74a67, lead tests3a734d2
 - Test type: real integrated browser workflow
 - Feature being verified: three screens, course controls, contextual preview and minimum-data PDF
-- Human acceptance status: **NOT RUN**. Agent verification is separate.
-- Eligibility: **HUMAN ACCEPTANCE REQUIRED**. Refreshed-head foundation CI43478299682 PASS; independent review no blocker.
+- Human acceptance status: available manual/export workflows completed by user; full transcript workflow **NOT RUN**. User withholds PR6 merge pending upload integration. Agent verification is separate.
+- Eligibility: **BLOCKED for requested complete workflow** by missing transcript endpoint/admission/provider composition. Previous CI43478299682 PASS does not cover upload integration; U corrections now in progress.
 
 ## Before You Begin
 Required: Git, Node24–26/npm, Chrome and macOS Preview. No account or credentials.

@@ -497,3 +497,13 @@ skipped, not claimed rerun. PR6 human NOT RUN; currentCI43478299682 pending.
 
 PR6 current foundation43478299682 PASS atbbea54d; independent source review retained
 (no Uowned diff). Human browser/PDF acceptance NOT RUN; eligibility ready.
+
+## Transcript workflow execution boundary
+Full transcript upload human acceptance NOT RUN; user completed only currently
+available PR6 manual/export flows and withholds merge. Missing endpoint/admission/
+provider composition remains engineering incompleteness. U consent/file controls
+exist but Ltranscript:null prevents real flow; S atomic store now assigned for
+implementation. Provider benchmark/credentials/runtime/privacy remain BLOCKED, not
+PASS from doubles. New L `tests/e2e/normalization.integration.mjs` actual validation
+→ E matching → Sprojection assertions PASS for repeat/transfer/incomplete/quote/PDF
+cases in combined tree. This is raw-row integration, not real PDF extraction.

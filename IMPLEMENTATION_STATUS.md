@@ -669,3 +669,55 @@ composition and runtime/security integration remain required engineering work.
 PR6 refreshed-head bbea54d foundation43478299682 SUCCESS (includes UI browser and
 real-engine journeys). Human acceptance ready; NOT RUN until user executes browser
 and PDF procedure. No whole-application completion claimed.
+
+
+### Transcript completion execution — 2026-11-13
+Human completed available PR6 manual/export workflows but identified unavailable PDF
+import and explicitly withheld merge/completion. Record limited frontend execution
+evidence only: full PR6/transcript human acceptance NOT RUN; do not recommend merge.
+
+Inspected ARCHITECTURE6/8, DECISIONS privacy, PARALLEL ownership, frozen extraction
+contracts, current fbe9374 extraction source and bbea54d Ucontrols. Exact dependency map:
+| Boundary | Implemented | Missing / owner / next verification |
+|---|---|---|
+| Academic Record UI | TranscriptPanel consent/file/summary/discard; mixed rows normalized by E; explicit acceptance | Composition supplies transcript:null. U fixing failure/consent async races; real client upload browser integration L/U |
+| Browser transport | Same-origin client/session/ticket/extract/revoke and transient ticket cache | L actual port wiring, attestation widget and authenticated same-origin route |
+| Server/parser/provider | Handler factory, signed proof checks, real PDF parser and Gemini HTTP adapter; isolated synthetic tests | Runnable Edge entry/bundling, resource isolation, actual Gemini benchmark; extraction code owner assignment pending |
+| Admission security | Port/call-order and signed proof validation | S private atomic storage/RPC migration, concurrent live SQL replay/quota/budget/lease/revoke tests; L transport/config review |
+| Academic authority | Actual E matching, uncertainty, repeats; L routing | Full UI extraction→acceptance→planner journey; no LLM academic authority |
+| Privacy | No Files API; transient bytes, provider quote scrubbing; projection schema | Actual endpoint/runtime logging/retention/consent tests and approved processing environment |
+
+Actual executions launched: Claude U Opus5.5 medium session46277 on existing
+feat/frontend-ux, owned TranscriptPanel cancellation/read/early-failure cleanup tests;
+Claude S session71193 in existing Sworktree, assigned new feat/transcript-admission
+from main (PR4 remains merged), owned privateSQL migration/tests. No new Gemini
+coding agent. Results /private/tmp/pathcheck-transcript-u-result.json and
+/private/tmp/pathcheck-admission-s-result.json; preserve worktrees before resume.
+S must not start sharedDB without coordination. No provider/realPDF calls authorized.
+
+Blocking external inputs requested without secrets: approved Gemini project/model,
+per-request/day limits and secure local credential setup; env names checked only
+(set/unset): GEMINI_API_KEY,GOOGLE_API_KEY,TURNSTILE_SECRET_KEY,TURNSTILE_SITE_KEY,
+PATHCHECK_GEMINI_MODEL all unset. This does not assert no credentials exist elsewhere.
+No deno/mkcert executable found in PATH. Missing runtime tools can be installed with
+appropriate environment permission; they are not university-policy blockers.
+Old specs name fifth Codex extraction owner, latest user specifies four-person team:
+requested explicit lead-vs-S reassignment of preserved extraction branch; no writes
+in another owner's extraction paths before resolution. Continue independent S/U/L.
+
+L extended actual G→L→E→Sprojection runner with synthetic proposed rows: distinct
+repeats, unmapped transfer, incomplete credits, quote exclusion and PDF-field rejection.
+PASS in /private/tmp/pathcheck-after-pr4; initial invocation from Lalone correctly
+failed absent Gmodule, then executed in composed checkout. Not a PDF extraction/API
+benchmark. Independent read-only review pending.
+Next testable milestone: real local admission store+handler with synthetic documents,
+then approved real-Gemini synthetic PDF → UI summary → E normalization → explicit
+acceptance → real planner. Human upload guide cannot be represented ready until
+provider/config/security checks and exact supported fixture succeed. No mocked
+response may establish that gate. Real student processing remains disabled.
+
+Review follow-up: L strengthened per-row assertions (repeat matched IDs/distinct
+terms; incomplete unknown status/unresolved confidence/null term; needs_review
+envelope), reran composed runner PASS. Lead lint/typecheck PASS. S new branch
+feat/transcript-admission verified; U has owned TranscriptPanel/flow edits underway.
+Both Claude result files still pending; do not redispatch duplicate processes.
