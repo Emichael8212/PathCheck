@@ -39,9 +39,14 @@ const maxQ = (a: Quality, b: Quality): Quality => (a > b ? a : b);
 /** Work bound for joint alternative-selection enumeration (not an academic rule). */
 export const MAX_ALTERNATIVE_SELECTIONS = 256;
 
-/** More than one finished/recorded attempt of the same catalog course (in-progress excluded). */
+/**
+ * Repeat of one catalog course: more than one finished/recorded attempt, or more than one
+ * attempt that is not a definite non-pass (e.g. a pass plus an in-progress retake, whose
+ * outcome may change what the earlier credit counts for under an unsourced repeat policy).
+ * A single in-progress retake after a definite failure is not flagged here.
+ */
 export function isRepeat(own: readonly CourseAttempt[]): boolean {
-  return own.filter(a => a.status !== 'in_progress').length > 1;
+  return own.filter(a => a.status !== 'in_progress').length > 1 || own.filter(a => !definitelyNotPassed(a)).length > 1;
 }
 
 export function buildUnits(input: AuditInput): Unit[] {

@@ -36,6 +36,22 @@ describe('T-ENG degree requirement cases', () => {
     const r = auditOf(cat, [attempt('TEST-101', { term: T(2024, 'spring') }), attempt('TEST-101', { term: T(2024, 'fall') })]);
     expect(r.audit.requirements[0]!.status).toBe('unresolved'); expect(r.audit.earnedCredits).toBeNull();
   });
+  it('6b pass plus in-progress retake (no sourced repeat policy) is unresolved, never definite', () => {
+    const ip = { status: 'in_progress' as const, earnedCredits: null, grade: null, term: T(2025, 'spring') };
+    const r = auditOf(baseCat(), [attempt('TEST-101', { term: T(2024, 'fall') }), attempt('TEST-101', ip)]);
+    expect(r.audit.requirements[0]!.status).toBe('unresolved'); expect(r.audit.totalStatus).toBe('unresolved');
+    expect(r.units.get('unit:TEST-101')!.reasons).toContain('repeat_policy_unresolved');
+    const gaps = evaluate(scenario(baseCat(), { attempts: [attempt('TEST-101', { term: T(2024, 'fall') }), attempt('TEST-101', ip)] }));
+    if (!gaps.ok) throw new Error(gaps.reasonCode);
+    expect(gaps.value.evidenceGaps.map(f => f.code)).toContain('repeat_policy_unresolved');
+    // Two in-progress rows of one course are not silently collapsed into one conditional pass.
+    expect(auditOf(baseCat(), [attempt('TEST-101', ip), attempt('TEST-101', ip)]).audit.requirements[0]!.status).toBe('unresolved');
+    // Unchanged controls: a single in-progress retake after a definite failure stays conditional,
+    // and a lone pass stays definite.
+    const f = auditOf(baseCat(), [attempt('TEST-101', { status: 'failed', earnedCredits: 0, grade: 'F' }), attempt('TEST-101', ip)]);
+    expect(f.audit.requirements[0]).toMatchObject({ status: 'satisfied', conditional: true });
+    expect(auditOf(baseCat(), [attempt('TEST-101')]).audit.requirements[0]).toMatchObject({ status: 'satisfied', conditional: false });
+  });
   it('7 unverified transfer course is unresolved (degree and prerequisite)', () => {
     const t = attempt(null, { rawCourseCode: 'TEST 101', origin: 'transfer', status: 'transfer_pending', institution: 'Synthetic CC' });
     expect(req(baseCat(), [t]).status).toBe('unresolved');
