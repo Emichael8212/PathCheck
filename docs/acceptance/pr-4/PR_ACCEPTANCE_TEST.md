@@ -8,7 +8,7 @@
 - Test type: real local PostgreSQL/REST security and persistence
 - Feature being verified: owner isolation, anonymous denial, revision conflicts, quota, recent-auth deletion and JSON integrity
 - Human acceptance status: **PASS (human-executed, 2026-11-13)** for the pinned baseline and PR head. SQL172 PASS; real REST1 PASS with1 expected configuration-guard skip.
-- Eligibility: human security acceptance complete; current-head CI, baseline freshness and required reviews remain separate merge gates.
+- Eligibility: **BLOCKED for merge** by the save/recovery data-loss finding in the [coverage audit](../../testing/requirements-coverage-audit.md). Human security acceptance remains PASS; the correction, current-head CI, baseline freshness and independent review remain separate gates.
 
 ## Before You Begin
 Git, Node24–26/npm, Python3, Colima, Docker CLI and Supabase CLI on macOS. Verified
@@ -193,3 +193,8 @@ PASS (231ms;1passed/1configuration-guard skipped). These are human-supplied exec
 results, not an agent-run test. The test ran on main2bb6b3f plus PR4 head8d28602.
 Human manages screenshot evidence on GitHub. This does not certify production or
 pending OTP/browser/Gemini integration gates.
+
+Cleanup confirmed by the human: Supabase containers and the dedicated Colima VM
+stopped successfully; local backup volumes retained. No screenshot path requested.
+The later coverage audit found a separate in-memory save/recovery defect outside
+this SQL/REST scenario; it does not invalidate the reported security assertions.

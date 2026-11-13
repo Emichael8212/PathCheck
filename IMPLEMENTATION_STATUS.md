@@ -444,3 +444,37 @@ main2bb6b3f, real pdf-lib inspector plus synthetic tests;115transcript tests and
 218units/lint/typecheck/build/1smoke PASS reported. L static review pending before first
 draft PR. Runtime isolation/atomic store/gateway/provider benchmark/privacy gates remain
 blocked; no public processing or real-data authorization inferred.
+
+
+### Requirements-to-test audit — 2026-11-13
+
+Complete [coverage matrix](docs/testing/requirements-coverage-audit.md) maps inspected
+assertions to source requirements, exact evidence commits and A PR / B integration /
+C deployment / D optional gates. Documentation-only audit; no human database test
+rerun, provider call, screenshot capture, merge or deployment.
+
+- Human PR4 security acceptance remains **PASS** at S8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd
+  combined with main2bb6b3f8e36039a243ea3af389380019256357b7. User subsequently
+  confirmed Supabase and Colima stopped successfully; backups/worktrees retained.
+- **FAIL / A4 blocker:** actual `saveGuestDraftAsNew` + actual `createGuestRecoveryService`
+  deletes unrelated valid cross-tab draft B when saving session draft A. In-memory
+  synthetic diagnostic through Vite SSR (WS disabled) returned save success and
+  `recoveryCleared:true` while B disappeared. Only cloud create was stubbed; no DB used.
+  G independently corroborated source flow. Existing separate helper/recovery tests
+  miss this composition. S must preserve unrelated/newer recovery data and add a
+  permanent regression; coordinate any frozen port amendment with L. No fix made.
+- PR4 current `foundation` CI **PASS**, run43355738416 at8d28602; GitHub reports
+  MERGEABLE but BEHIND strict protected main. Owner baseline refresh/current CI and
+  independent review of the recovery fix are required before recommendation.
+- SQL172 includes34 setup assertions; live REST1 genuinely tests two authenticated
+  owners, anon, CAS and deletion. The intentional invalid-config skip does not hide
+  skipped authorization. These tests do not cover the demonstrated recovery defect.
+- A5 positive sourced-repeat implementation/regression remains missing; A6 final
+  pdf-lib export and final UI acceptance pending. G author coverage review identifies
+  executable failure/stream/budget/corpus gaps separately from atomic-store/gateway/
+  provider/runtime/privacy blockers. Full integration still needs actual G→L→E,
+  OTP/save/reopen, concurrent recovery, browser search interruption and complete
+  apply-fingerprint stale rejection coverage. See matrix for precise scope/evidence.
+- **Next merge recommendation: BLOCKED; no current open PR recommended.** PR4 remains
+  next candidate after correction, refreshed CI/review and acceptance impact review.
+  Preserve existing H4 database PASS; do not request a blanket human rerun.
