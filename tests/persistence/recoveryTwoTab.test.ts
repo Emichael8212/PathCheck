@@ -167,7 +167,12 @@ describe('two real Chromium tabs sharing localStorage', () => {
     const wrote = await B.evaluate(() => { const w = window as never as W; return w.svc().stash(w.ct({ draftId: 'd', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' })).ok; });
     expect(wrote).toBe(true);
     expect(cleaning.done).toBe(false);
-    await cleaning.promise;
+    // Documented limit of clearSavedGuestDraft (narrower semantics, flagged for L review):
+    // Chromium applies another tab's write to this tab's storage view only between tasks,
+    // so a synchronous verification inside A's task cannot see B's write and reports true.
+    // It must never delete that write, and A's next task must see it.
+    expect(await cleaning.promise).toBe(true);
+    expect(await A.evaluate(([n]) => { const r = (window as never as W).svc().recover(n) as { ok: boolean; value?: { createdAt: string } }; return r.ok ? r.value?.createdAt : r; }, [NOW] as const)).toBe('2030-01-01T05:00:00Z');
     await settle();
     expect(await B.evaluate(() => (window as never as W).snaps())).toEqual(['d@2030-01-01T05:00:00Z']); // saved copy gone, newer kept
     expect(await freshRecover()).toEqual({ ok: true, draftId: 'd' });

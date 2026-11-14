@@ -53,8 +53,10 @@ const modeFor: Record<Slot, GuestDraft['mode']> = { session: 'session', local: '
  * The session slot (tab-private) wins over shared snapshots.
  *
  * The legacy single localStorage slot (`GUEST_DRAFT_KEY`) is never written. It is read as a
- * candidate; unusable legacy entries are purged by recover()/clear(). That purge remains a
- * read→remove on a mutable key, racing only a pre-snapshot build still open in another tab.
+ * candidate; unusable legacy entries are purged by recover()/clear(), and an exact saved copy
+ * by clearSavedGuestDraft. Those removals remain read→remove on a mutable key, racing only a
+ * pre-snapshot build still open in another tab. A recovered legacy draft is never removed by
+ * stash(): withdrawing or continuing it reports `recovery_cleanup_failed` while it remains.
  */
 export function createGuestRecoveryService(stores: { session: StorageLike | null; local: StorageLike | null }): GuestRecoveryService {
   const store = (slot: Slot) => (slot === 'session' ? stores.session : stores.local);
@@ -67,6 +69,8 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
 
   /** Snapshot keys this instance wrote or returned from recover(), with their draftId. */
   const owned = new Map<string, string>();
+  /** draftIds this instance returned from the legacy single local slot. */
+  const adoptedLegacy = new Set<string>();
 
   const removeKey = (s: StorageLike, key: string): boolean => {
     try {
@@ -176,6 +180,41 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     return scan;
   };
 
+  /**
+   * True while the legacy single slot may still hold a draft this instance recovered from it.
+   * The legacy key is mutable (a pre-snapshot build in another tab could have rewritten it),
+   * so it is never removed here: the copy is preserved and the caller gets a typed
+   * cleanup failure instead of a false "withdrawn". Unreadable → cannot confirm → true.
+   */
+  const legacyRetained = (draftId: string): boolean => {
+    if (!adoptedLegacy.has(draftId)) return false;
+    const s = stores.local;
+    const r = s ? read(s, GUEST_DRAFT_KEY) : { ok: true as const, raw: null };
+    if (!r.ok) return true;
+    const id = r.raw === null ? undefined : (parseJson(r.raw) as { draftId?: unknown } | undefined)?.draftId;
+    if (id === draftId) return true;
+    adoptedLegacy.delete(draftId); // gone (cleared/expired) or replaced by another draft
+    return false;
+  };
+
+  /** True if this tab can still see any copy of `draftId`, or any session draft. */
+  const anyCopyVisible = (draftId: string): boolean => {
+    for (const slot of ['session', 'local'] as const) {
+      const s = store(slot);
+      if (!s) continue;
+      const r = read(s, GUEST_DRAFT_KEY);
+      if (!r.ok) return true;
+      if (r.raw === null) continue;
+      if (slot === 'session') return true;
+      const id = (parseJson(r.raw) as { draftId?: unknown } | undefined)?.draftId;
+      if (id === draftId) return true;
+    }
+    const listed = listSnapshots();
+    if (!listed.ok) return listed.reason === 'unreadable';
+    const mark = `${SHARED_DRAFT_PREFIX}${draftId}.`;
+    return listed.keys.some(k => k.startsWith(mark) && /^[0-9a-f]{64}$/.test(k.slice(mark.length)));
+  };
+
   /** Removes the snapshots of `draftId` this instance owns, except `keep`. */
   const removeOwned = (draftId: string, keep?: string): boolean => {
     const s = stores.local;
@@ -193,9 +232,14 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
    * byte-identical to the saved draft are removed (the session slot by exact comparison,
    * shared snapshots by their content-addressed key). Unusable entries are purged exactly
    * as recover() would. Valid but different entries (newer same-draftId edits, another tab's
-   * draft, future-dated) are kept. Returns true only when every removal succeeded, every
-   * slot was readable, and nothing remains that belongs to this save: no same-draftId copy
-   * and no draft in this tab's own session slot. Never throws.
+   * draft, future-dated) are kept. Never throws.
+   *
+   * Returns true only when every removal succeeded, every slot was readable, and a
+   * verification read AFTER the removals saw no copy of this draftId (any revision) and no
+   * draft in this tab's session slot. Exact limit (no cross-tab lock exists in Web Storage):
+   * a write by another tab that is not yet visible to this tab when the verification runs
+   * cannot be excluded. Such a write is never deleted (removal names exact bytes) and the
+   * next recover() finds it.
    */
   const clearSaved = (saved: GuestDraft, now: string): boolean => {
     const savedJson = serialize(saved);
@@ -231,7 +275,8 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       }
       if (entry.draft.draftId === saved.draftId) clean = false; // newer/different revision kept
     }
-    return clean;
+    // Certify absence only from what this tab can see after its own removals.
+    return clean && !anyCopyVisible(saved.draftId);
   };
 
   const service: GuestRecoveryService = {
@@ -250,8 +295,11 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
           return unavailable; // quota / disabled storage: caller keeps in-memory plan
         }
         // Declining/revoking opt-in withdraws this draft's own shared snapshots (exact keys
-        // this instance wrote or recovered), never another tab's or an unseen revision.
-        return removeOwned(parsed.data.draftId) ? { ok: true, value: null } : cleanupFailed;
+        // this instance wrote or recovered), never another tab's or an unseen revision. A
+        // recovered legacy copy cannot be withdrawn safely: kept, reported as cleanup failure.
+        const withdrawn = removeOwned(parsed.data.draftId);
+        const legacyKept = legacyRetained(parsed.data.draftId);
+        return withdrawn && !legacyKept ? { ok: true, value: null } : cleanupFailed;
       }
       const s = stores.local;
       if (!s) return unavailable;
@@ -267,8 +315,11 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       owned.set(key, parsed.data.draftId);
       // One tab keeps one copy: opting in moves this tab's session copy to the shared
       // snapshot and retires this instance's earlier snapshots of the same draft.
-      const cleaned = remove('session') && removeOwned(parsed.data.draftId, key);
-      return cleaned ? { ok: true, value: null } : cleanupFailed; // new snapshot written
+      // Each step is attempted independently; any leftover is a typed failure.
+      const sessionMoved = remove('session');
+      const retired = removeOwned(parsed.data.draftId, key);
+      const legacyKept = legacyRetained(parsed.data.draftId); // continuing a legacy draft: old copy kept
+      return sessionMoved && retired && !legacyKept ? { ok: true, value: null } : cleanupFailed; // new snapshot written
     },
 
     recover(now) {
@@ -289,7 +340,10 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       if (candidates === 0) return { ok: true, value: null };
       if (candidates > 1) return ambiguous; // every copy preserved; no arbitrary "newest"
       if (scan.future === 1 || legacy.ok === 'deferred') return clockBehind;
-      if (legacyDraft) return { ok: true, value: legacyDraft };
+      if (legacyDraft) {
+        adoptedLegacy.add(legacyDraft.draftId); // later withdrawal/continuation must account for it
+        return { ok: true, value: legacyDraft };
+      }
       const only = scan.valid[0]!;
       owned.set(only.key, only.draft.draftId); // continuing this draft may retire this snapshot
       return { ok: true, value: only.draft };
@@ -298,11 +352,15 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     clear(event) {
       if (!(RECOVERY_CLEAR_EVENTS as readonly string[]).includes(event)) return { ok: false, code: 'validation_error', reasonCode: 'invalid_clear_event' };
       // User-directed clear of the whole opted-in recovery scope on this device.
-      let clean = remove('session') && remove('local');
+      // Every removal is attempted independently, even after an earlier one throws.
+      const sessionCleared = remove('session');
+      const legacyCleared = remove('local');
+      let clean = sessionCleared && legacyCleared;
       const listed = listSnapshots();
       if (!listed.ok && listed.reason === 'unreadable') clean = false;
       if (listed.ok) for (const key of listed.keys) if (!remove('local', key)) clean = false;
       owned.clear();
+      if (legacyCleared) adoptedLegacy.clear();
       return clean ? { ok: true, value: null } : cleanupFailed;
     },
   };

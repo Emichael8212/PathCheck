@@ -220,15 +220,15 @@ describe('stale decisions never delete a newer or different write (read→remove
 
   // The newer write lands after cleanup enumerated: cleanup can only report what it saw,
   // but it can never delete what it did not read (it removes one content-addressed key).
-  it('save cleanup vs a newer same-draftId write landing mid-cleanup: exact copy removed, newer kept', () => {
+  it('save cleanup vs a newer same-draftId write landing mid-cleanup: exact copy removed, newer kept, NOT reported cleared', () => {
     const local = memoryStorage();
     const saved = ct({ draftId: 'd' });
     const newer = ct({ draftId: 'd', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' });
     const { store, state } = interleaved(local);
     const svc = createGuestRecoveryService({ session: memoryStorage(), local: store });
     svc.stash(saved);
-    state.hook = () => { tab(local).stash(newer); };
-    clearSavedGuestDraft(svc, saved, NOW);
+    state.hook = () => { tab(local).stash(newer); }; // lands after enumeration, before verification
+    expect(clearSavedGuestDraft(svc, saved, NOW)).toBe(false); // post-removal verification sees it
     expect(snapshots(local)).toEqual([sharedDraftKey(newer)]);
   });
 
@@ -262,5 +262,96 @@ describe('stale decisions never delete a newer or different write (read→remove
     store.getItem('probe'); // any read by A may interleave with B's write
     expect(createGuestRecoveryService({ session: memoryStorage(), local: store }).stash(ct({ draftId: 'a' })).ok).toBe(true);
     expect(snapshots(local)).toHaveLength(2);
+  });
+});
+
+describe('review fixes: legacy adoption, verified save cleanup, independent clear', () => {
+  const legacyD = () => ct({ draftId: 'd' });
+  const failed = { ok: false, code: 'unavailable', reasonCode: 'recovery_cleanup_failed' };
+
+  it('legacy recover → session withdrawal: legacy copy preserved byte-for-byte, typed cleanup failure (not "kept in this tab only")', () => {
+    const local = memoryStorage(), session = memoryStorage();
+    const raw = JSON.stringify(legacyD());
+    local.setItem(GUEST_DRAFT_KEY, raw);
+    const svc = createGuestRecoveryService({ session, local });
+    expect(svc.recover(NOW)).toEqual({ ok: true, value: legacyD() });
+    expect(svc.stash(draft({ draftId: 'd' }))).toEqual(failed);
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(raw);
+    expect(session.map.size).toBe(1); // the session copy itself was written
+  });
+
+  it('legacy recover → changed cross-tab continuation: snapshot written, legacy kept, typed failure; recover then conflicts with both preserved', () => {
+    const local = memoryStorage();
+    const raw = JSON.stringify(legacyD());
+    local.setItem(GUEST_DRAFT_KEY, raw);
+    const svc = tab(local);
+    svc.recover(NOW);
+    const next = ct({ draftId: 'd', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' });
+    expect(svc.stash(next)).toEqual(failed);
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(raw);
+    expect(snapshots(local)).toEqual([sharedDraftKey(next)]);
+    expect(tab(local).recover(NOW)).toEqual(conflict);
+  });
+
+  it('a concurrent newer legacy value (pre-snapshot build in another tab) is never deleted by withdrawal', () => {
+    const local = memoryStorage();
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(legacyD()));
+    const svc = tab(local);
+    svc.recover(NOW);
+    const newerLegacy = JSON.stringify(ct({ draftId: 'd', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' }));
+    local.setItem(GUEST_DRAFT_KEY, newerLegacy); // old build rewrites the mutable slot
+    expect(svc.stash(draft({ draftId: 'd' }))).toEqual(failed);
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(newerLegacy);
+  });
+
+  it('legacy withdrawal succeeds once the legacy slot no longer holds the draft (cleared or replaced)', () => {
+    const local = memoryStorage();
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(legacyD()));
+    const svc = tab(local);
+    svc.recover(NOW);
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(ct({ draftId: 'other' })));
+    expect(svc.stash(draft({ draftId: 'd' }))).toEqual({ ok: true, value: null });
+    expect(JSON.parse(local.map.get(GUEST_DRAFT_KEY)!).draftId).toBe('other');
+  });
+
+  it('legacy withdrawal with an unreadable local store cannot confirm: typed failure', () => {
+    const backing = memoryStorage();
+    backing.setItem(GUEST_DRAFT_KEY, JSON.stringify(legacyD()));
+    let blocked = false;
+    const local: StorageLike = { getItem: k => { if (blocked) throw new Error('SecurityError'); return backing.getItem(k); }, setItem: (k, v) => backing.setItem(k, v), removeItem: k => backing.removeItem(k), get length() { return backing.length!; }, key: i => backing.key!(i) };
+    const svc = createGuestRecoveryService({ session: memoryStorage(), local });
+    svc.recover(NOW);
+    blocked = true;
+    expect(svc.stash(draft({ draftId: 'd' }))).toEqual(failed);
+  });
+
+  it('saving a recovered legacy draft: exact legacy copy removed and verified absent → cleared', () => {
+    const local = memoryStorage();
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(legacyD()));
+    const svc = tab(local);
+    svc.recover(NOW);
+    expect(clearSavedGuestDraft(svc, legacyD(), NOW)).toBe(true);
+    expect(local.map.size).toBe(0);
+  });
+
+  it('clear(event): a throwing session removal does not skip legacy or snapshot removal; typed failure kept', () => {
+    const session = memoryStorage({ failRemove: true }), local = memoryStorage();
+    session.map.set(GUEST_DRAFT_KEY, JSON.stringify(draft()));
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(ct({ draftId: 'legacy' })));
+    put(local, ct({ draftId: 'a' }));
+    const svc = createGuestRecoveryService({ session, local });
+    expect(svc.clear('sign_out')).toEqual(failed);
+    expect(local.map.size).toBe(0);
+    expect(session.map.size).toBe(1);
+  });
+
+  it('cross-tab stash: a throwing session removal does not skip retiring this tab\'s older snapshot', () => {
+    const session = memoryStorage({ failRemove: true }), local = memoryStorage();
+    const svc = createGuestRecoveryService({ session, local });
+    const v1 = ct({ draftId: 'd' }), v2 = ct({ draftId: 'd', expiresAt: '2030-01-01T18:00:00Z' });
+    svc.stash(v1);
+    session.map.set(GUEST_DRAFT_KEY, JSON.stringify(draft({ draftId: 'd' })));
+    expect(svc.stash(v2)).toEqual(failed);
+    expect(snapshots(local)).toEqual([sharedDraftKey(v2)]);
   });
 });
