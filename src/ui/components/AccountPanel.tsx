@@ -5,7 +5,9 @@ import type { AcademicRecord, GuestDraft, Plan, Result, SavedPlan } from '../../
 // stored copies byte-identical to the given draft; the generic clear('save') port would
 // delete both slots (another tab's draft, or a newer edit stashed while a save was pending).
 import { clearSavedGuestDraft } from '../../persistence/guestRecovery';
+import * as guestRecovery from '../../persistence/guestRecovery';
 import { failureText, formatTimestamp } from '../labels';
+import { termLabel } from '../terms';
 import { guard, guardAsync } from '../scenario';
 import type { AccountPorts, WorkflowClock } from '../services';
 
@@ -18,6 +20,43 @@ const SYNC_TEXT: Record<SyncState, string> = {
 const SYNC_SHORT: Record<SyncState, string> = { local: 'Signed in, not saved', saving: 'Saving…', saved: 'Saved', unsynced: 'Unsaved changes', conflict: 'Save conflict', failed: 'Save failed' };
 
 const SESSION_DRAFT_HOURS = 6, CROSS_TAB_DRAFT_HOURS = 24;
+
+/**
+ * S-owned recovery choice helpers (lead-approved consumption, like clearSavedGuestDraft).
+ * They ship with S's recovery snapshots; until that S module is present this is a capability
+ * check only. U never reads recovery storage itself and never picks a draft automatically.
+ */
+type RecoveryChoice = { selectionId: string; draft: GuestDraft };
+type ChoiceHelpers = {
+  listGuestRecoveryChoices?: (recovery: AccountPorts['recovery'], now: string) => Result<RecoveryChoice[]>;
+  selectGuestRecoveryChoice?: (recovery: AccountPorts['recovery'], selectionId: string, now: string) => Result<GuestDraft>;
+};
+const choiceHelpers = guestRecovery as unknown as ChoiceHelpers;
+
+/** What the recovery banner shows when recover() did not return exactly one draft. */
+type RecoveryProblem =
+  | { kind: 'choices'; choices: RecoveryChoice[]; error: string | null }
+  | { kind: 'notice'; text: string; canClearAll: boolean };
+
+const MULTIPLE_NO_CHOICE = 'Several guest drafts were found on this device. This version cannot choose between them, so none was restored and all are kept.';
+
+function problemFor(f: Extract<Result<never>, { ok: false }>): RecoveryProblem {
+  switch (f.reasonCode) {
+    case 'recovery_multiple_shared_drafts': return { kind: 'notice', text: MULTIPLE_NO_CHOICE, canClearAll: true };
+    case 'recovery_cleanup_failed': return { kind: 'notice', text: 'A recovery draft on this device could not be removed and is still stored here. Nothing was restored.', canClearAll: true };
+    case 'recovery_storage_unavailable': return { kind: 'notice', text: 'Recovery drafts on this device could not be read. Nothing was restored or removed.', canClearAll: false };
+    case 'recovery_cross_tab_unsupported': return { kind: 'notice', text: 'This browser cannot read cross-tab recovery drafts. Nothing was restored.', canClearAll: false };
+    case 'recovery_clock_behind_draft': return { kind: 'notice', text: 'A recovery draft here is dated later than this device’s clock, so it was not restored. It is kept.', canClearAll: true };
+    default: return { kind: 'notice', text: `Recovery drafts could not be checked. Nothing was restored. ${failureText(f)}`, canClearAll: false };
+  }
+}
+
+const CHOICE_ERROR: Record<string, string> = {
+  recovery_choice_missing: 'That draft is no longer stored on this device.',
+  recovery_choice_changed: 'That draft changed in another tab after this list was shown.',
+  recovery_choice_unusable: 'That draft has expired or is no longer valid.',
+  recovery_session_draft_present: 'This tab has its own draft, which takes priority. Reload the page to see it.',
+};
 
 type Work = { record: AcademicRecord; plan: Plan };
 type CloudRef = { id: string; revision: number };
@@ -73,6 +112,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
   const [crossTab, setCrossTab] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [recovered, setRecovered] = useState<GuestDraft | null>(null);
+  const [problem, setProblem] = useState<RecoveryProblem | null>(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [plans, setPlans] = useState<Array<{ id: string; revision: number; updatedAt: string }> | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -98,8 +139,10 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     });
     const draft = guard(() => ports.recovery.recover(clock.now()), 'recovery_failed');
     if (draft.ok && draft.value) queueMicrotask(() => { if (live) setRecovered(draft.value); });
+    // Failures are never silent: preserved drafts must stay reachable or at least disclosed.
+    if (!draft.ok) { const next = recoveryProblem(draft); queueMicrotask(() => { if (live) setProblem(next); }); }
     return () => { live = false; };
-  }, [ports, clock]);
+  }, [ports, clock]); // eslint-disable-line react-hooks/exhaustive-deps -- mount-time recovery check only
 
   /** Writes a session (or opted-in cross-tab) recovery draft of exactly `w`. No PDF, no tokens: S validates the projection. */
   function stashWork(w: Work, mode: GuestDraft['mode']): Result<null> {
@@ -133,6 +176,49 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     const r = stashWork(work, recoveryMode);
     queueMicrotask(() => setRecoveryIssue(r.ok ? null : `Your latest changes could not be kept for refresh recovery: ${failureText(r)}`));
   }, [ports, work, cloud, recoveryMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Maps a failed recover() to the banner, listing S's explicit choices when several drafts exist. */
+  function recoveryProblem(f: Extract<Result<never>, { ok: false }>, error: string | null = null): RecoveryProblem {
+    if (!ports || f.reasonCode !== 'recovery_multiple_shared_drafts') return problemFor(f);
+    const list = choiceHelpers.listGuestRecoveryChoices;
+    if (!list) return problemFor(f);
+    const r = guard(() => list(ports.recovery, clock.now()), 'recovery_choices_failed');
+    if (!r.ok) return { kind: 'notice', text: `${MULTIPLE_NO_CHOICE} ${failureText(r)}`, canClearAll: true };
+    if (r.value.length === 0) return { kind: 'notice', text: error ? `${error} No other drafts are stored here.` : 'The recovery drafts on this device are no longer available. Nothing was restored.', canClearAll: false };
+    return { kind: 'choices', choices: r.value, error };
+  }
+
+  /** Continue a recovered draft exactly like the single-draft banner: same draftId and mode. */
+  function restore(d: GuestDraft) {
+    draftId.current = d.draftId; stashed.current = { draft: d, record: d.record, plan: d.plan };
+    setRecoveryMode(d.mode); setCrossTab(d.mode === 'cross_tab_opt_in');
+    onRestoreDraft(d); setRecovered(null); setProblem(null); setConfirmClearAll(false);
+    say('Draft restored. Planning assumptions use the defaults (15 credits per term, no summer terms) because drafts do not store them.');
+  }
+
+  function chooseDraft(selectionId: string) {
+    if (!ports) return;
+    const select = choiceHelpers.selectGuestRecoveryChoice;
+    if (!select) { setProblem({ kind: 'notice', text: MULTIPLE_NO_CHOICE, canClearAll: true }); return; }
+    const r = guard(() => select(ports.recovery, selectionId, clock.now()), 'recovery_choice_failed');
+    if (r.ok) { restore(r.value); return; }
+    // Nothing is deleted on a failed choice; show what remains now.
+    const why = `${CHOICE_ERROR[r.reasonCode] ?? failureText(r)} Nothing was restored.`;
+    setProblem(recoveryProblem({ ok: false, code: 'conflict', reasonCode: 'recovery_multiple_shared_drafts' }, why));
+  }
+
+  /** Explicit, confirmed deletion of every recovery draft in this browser (S's clear('cancel')). */
+  function clearAllDrafts() {
+    if (!ports) return;
+    const r = guard(() => ports.recovery.clear('cancel'), 'recovery_clear_failed');
+    stashed.current = null;
+    setConfirmClearAll(false); setRecovered(null);
+    if (!r.ok) { setProblem({ kind: 'notice', text: `Some recovery drafts could not be deleted and may still be stored on this device. ${failureText(r)}`, canClearAll: true }); return; }
+    setProblem(null); setRecoveryMode('session'); setCrossTab(false);
+    // Keep refresh protection for the work on screen (re-stashed to this tab only).
+    const kept = work && !cloud ? stashWork(work, 'session') : null;
+    say(kept && !kept.ok ? `All recovery drafts on this device were deleted. Your current work could not be kept for refresh recovery: ${failureText(kept)}` : 'All recovery drafts on this device were deleted. Your current work is unchanged.');
+  }
 
   if (!ports) {
     return (
@@ -294,7 +380,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     userRef.current = null; authGen.current += 1; openGen.current += 1;
     const cleared = guard(() => ports.recovery.clear('sign_out'), 'recovery_clear_failed');
     stashed.current = null; draftId.current = null;
-    setUser(null); setPlans(null); setStage('idle'); setRecoveryMode('session'); setCrossTab(false); setRecovered(null);
+    setUser(null); setPlans(null); setStage('idle'); setRecoveryMode('session'); setCrossTab(false); setRecovered(null); setProblem(null); setConfirmClearAll(false);
     onSignedOut();
     return { signedOut: true, cleanup: cleared.ok ? '' : ` The recovery draft on this device could not be removed: ${failureText(cleared)}` };
   }
@@ -395,16 +481,40 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
       )}
       <p className="account-message" role="status">{message}</p>
       </AccountMenu>
+      {problem && !recovered && (
+        <div className="recovery-banner" role="region" aria-label="Recovery drafts" data-testid="recovery-problem">
+          {problem.kind === 'choices' ? (
+            <>
+              <p>Several guest drafts were found on this device. Choose one to restore; the others are kept.</p>
+              {problem.error && <p className="warning" role="alert">{problem.error}</p>}
+              <ul className="recovery-choices" aria-label="Recovery drafts on this device">
+                {problem.choices.map(c => (
+                  <li key={c.selectionId} data-testid="recovery-choice">
+                    <span>Target {termLabel(c.draft.plan.targetTerm)} · saved <time dateTime={c.draft.createdAt}>{formatTimestamp(c.draft.createdAt)}</time> · <span className="tabular">{c.draft.record.courseAttempts.length}</span> recorded, <span className="tabular">{c.draft.plan.activePlacements.length}</span> planned</span>
+                    <button type="button" onClick={() => chooseDraft(c.selectionId)}>Restore this draft</button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : <p role="alert">{problem.text}</p>}
+          <div className="button-row">
+            {(problem.kind === 'choices' || problem.canClearAll) && (confirmClearAll ? (
+              <>
+                <p className="warning" role="note">This permanently deletes every PathCheck recovery draft in this browser, including drafts from other tabs. Your current on-screen work is not affected.</p>
+                <button type="button" className="danger" onClick={clearAllDrafts}>Delete all recovery drafts</button>
+                <button type="button" className="secondary" onClick={() => setConfirmClearAll(false)}>Keep them</button>
+              </>
+            ) : <button type="button" className="secondary" onClick={() => setConfirmClearAll(true)}>Delete all recovery drafts…</button>)}
+            <button type="button" className="secondary" onClick={() => { setProblem(null); setConfirmClearAll(false); }}>Dismiss</button>
+          </div>
+        </div>
+      )}
       {recovered && (
         <div className="recovery-banner" role="region" aria-label="Recovered draft" data-testid="recovery-banner">
           <p>A guest draft from <time dateTime={recovered.createdAt}>{formatTimestamp(recovered.createdAt)}</time> was recovered on this device.</p>
           <div className="button-row">
-            <button type="button" onClick={() => {
-              // Continue the same draft: later edits re-stash under its draftId and mode.
-              draftId.current = recovered.draftId; stashed.current = { draft: recovered, record: recovered.record, plan: recovered.plan };
-              setRecoveryMode(recovered.mode); setCrossTab(recovered.mode === 'cross_tab_opt_in');
-              onRestoreDraft(recovered); setRecovered(null); say('Draft restored. Planning assumptions use the defaults (15 credits per term, no summer terms) because drafts do not store them.');
-            }}>Restore draft</button>
+            {/* Continue the same draft: later edits re-stash under its draftId and mode. */}
+            <button type="button" onClick={() => restore(recovered)}>Restore draft</button>
             <button type="button" className="secondary" onClick={() => {
               // Remove only this recovered draft; this tab's current work draft is kept.
               const removed = clearSavedGuestDraft(ports.recovery, recovered, clock.now());
