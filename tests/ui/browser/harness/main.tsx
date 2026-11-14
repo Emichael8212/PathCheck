@@ -56,10 +56,11 @@ const harness = fakeServices({
   ...(q.get('catalogs') === 'pair' ? { catalogPair: 'provisional' as const } : q.get('catalogs') === 'pair-synthetic' ? { catalogPair: 'synthetic' as const } : {}),
 });
 
-declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; recoveryCapabilities: { snapshots: boolean; choices: boolean }; release: (name: string) => void; rearm: (name: string) => void } } }
+declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; recoveryCapabilities: { snapshots: boolean; choices: boolean }; advanceClock: (ms: number) => void; release: (name: string) => void; rearm: (name: string) => void } } }
 window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, revokedIds: harness.revokedIds, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0, savedPlans: () => [...(harness.account?.inspect.rows.values() ?? [])], authCalls,
   // Which S recovery module is composed (snapshots/choices arrive with S PR13); tests needing them report BLOCKED otherwise.
   recoveryCapabilities: { snapshots: 'SHARED_DRAFT_PREFIX' in guestRecovery, choices: typeof (guestRecovery as Record<string, unknown>).listGuestRecoveryChoices === 'function' },
+  advanceClock: ms => (harness.services.clock as { advance?: (ms: number) => void }).advance?.(ms),
   currentUser: async () => (await harness.services.account!.auth.currentUser()), release: name => gate.release(name), rearm: name => gate.rearm(name) };
 
 createRoot(document.getElementById('root')!).render(<StrictMode><PathCheckWorkflow services={harness.services} /></StrictMode>);

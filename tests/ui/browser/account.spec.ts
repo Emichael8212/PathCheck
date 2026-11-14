@@ -460,10 +460,17 @@ test.describe('recovery problems are shown, never silently dropped', () => {
     await enterCompletedAttempt(page);
     await toPlanner(page, 'selected');
     await addCourse(page, /^SYN 202/, 'Spring 2027');
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts…' }).click();
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' }).click();
     await expect(problemBanner(page).getByRole('button', { name: 'Keep them' })).toBeFocused();
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts', exact: true }).click();
-    await expect(page.getByTestId('recovery-status')).toContainText('kept for refresh in this tab only');
+    const warning = problemBanner(page).getByTestId('clear-all-warning');
+    await expect(warning).toContainText('deletes the other PathCheck recovery drafts');
+    await expect(warning).toContainText('Exception: your current work stays on screen and is saved again as this tab’s own recovery draft');
+    await expect(warning).toContainText('may not be removed');
+    expect((await slots(page)).shared).toHaveLength(1); // nothing deleted before confirming
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts', exact: true }).click();
+    const status = page.getByTestId('recovery-status');
+    await expect(status).toContainText('Other stored recovery drafts were deleted. Your work on screen is unchanged and kept for refresh in this tab only.');
+    await expect(status).not.toContainText('All recovery drafts');
     expect((await slots(page)).shared).toEqual([]);
     const own = await draftIn(page, 'session');
     expect(own?.mode).toBe('session');
@@ -532,14 +539,15 @@ test.describe('recovery problems are shown, never silently dropped', () => {
       await expect(problemBanner(page).getByRole('alert')).toContainText('cannot choose between them, so none was restored and all are kept');
     }
     expect((await slots(page)).shared).toHaveLength(2);
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts…' }).click();
-    await expect(problemBanner(page)).toContainText('including drafts from other tabs');
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' }).click();
+    await expect(problemBanner(page).getByTestId('clear-all-warning')).toContainText('This deletes the PathCheck recovery drafts stored in this browser, including drafts from other tabs.');
+    await expect(problemBanner(page).getByTestId('clear-all-warning')).not.toContainText('Exception');
     expect((await slots(page)).shared).toHaveLength(2); // nothing deleted before confirming
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts', exact: true }).click();
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts', exact: true }).click();
     await expect(problemBanner(page)).toHaveCount(0);
     expect((await slots(page)).shared).toEqual([]);
     expect(await page.evaluate(() => localStorage.getItem('unrelated.app.setting'))).toBe('keep-me');
-    await expect(page.getByTestId('recovery-status')).toContainText('All recovery drafts on this device were deleted');
+    await expect(page.getByTestId('recovery-status')).toHaveText(/^Stored recovery drafts were deleted\./);
     await expect(page.getByTestId('recovery-status')).toBeFocused();
   });
 
@@ -557,10 +565,10 @@ test.describe('recovery problems are shown, never silently dropped', () => {
     await page.evaluate(k => localStorage.setItem(k, JSON.stringify({ schemaVersion: 1, draftId: 'guest-draft-old', mode: 'cross_tab_opt_in', explicitRecoveryConsent: true, createdAt: '2026-11-01T00:00:00.000Z', expiresAt: '2026-11-01T01:00:00.000Z', record: {}, plan: {} })), KEY);
     await page.reload();
     await expect(problemBanner(page).getByRole('alert')).toContainText('could not be removed and is still stored here');
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts…' }).click();
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts', exact: true }).click();
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' }).click();
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts', exact: true }).click();
     await expect(problemBanner(page).getByRole('alert')).toContainText('could not be deleted and may still be stored');
-    await expect(page.getByText('All recovery drafts on this device were deleted')).toHaveCount(0);
+    await expect(page.getByText('recovery drafts were deleted')).toHaveCount(0);
   });
 
   test('a draft written while an older shared copy cannot be removed is reported as kept, and Start over still removes it', async ({ page }) => {
@@ -605,11 +613,90 @@ test.describe('recovery problems are shown, never silently dropped', () => {
         return original.call(this, key);
       };
     });
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts…' }).click();
-    await problemBanner(page).getByRole('button', { name: 'Delete all recovery drafts', exact: true }).click();
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' }).click();
+    await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts', exact: true }).click();
     const alert = problemBanner(page).getByRole('alert');
     await expect(alert).toContainText('could not be deleted');
     await expect(alert).toContainText('Your work on screen is unchanged and kept for refresh in this tab only');
     expect(courses(await draftIn(page, 'session'))).toEqual(['SYN-202']);
+  });
+});
+
+const advanceClock = (page: Page, ms: number) => page.evaluate(m => window.__pathcheckHarness!.advanceClock(m), ms);
+
+test.describe('single-draft Restore re-validates the stored copy first', () => {
+  /** Leaves a session draft with SYN-201 planned, reloads; the banner offers it. */
+  async function offered(page: Page) {
+    await plannerWithRecord(page, 'recovery=real');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    const stored = (await slots(page)).session!;
+    await page.reload();
+    await expect(page.getByTestId('recovery-banner')).toBeVisible();
+    return stored;
+  }
+
+  test('an exact, still-valid copy is restored without renewing its expiry', async ({ page }) => {
+    const stored = await offered(page);
+    await page.getByRole('button', { name: 'Restore draft' }).click();
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toContainText('SYN 201');
+    expect((await slots(page)).session).toBe(stored); // same bytes: no new createdAt/expiresAt
+  });
+
+  test('a copy that expired after it was shown is not resurrected', async ({ page }) => {
+    const stored = await offered(page);
+    const { expiresAt } = JSON.parse(stored) as { expiresAt: string };
+    expect(expiresAt).toBeTruthy();
+    await advanceClock(page, 7 * 3_600_000); // session drafts live 6h
+    await page.getByRole('button', { name: 'Restore draft' }).click();
+    await expect(page.getByTestId('recovery-status')).toContainText('no longer available');
+    await expect(page.getByTestId('recovery-banner')).toHaveCount(0);
+    await expect(page.getByTestId('screen-start')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Graduation planner' })).toBeDisabled();
+    expect((await slots(page)).session).toBeNull(); // S purged it; nothing re-written with a new TTL
+  });
+
+  test('a copy removed after it was shown is not restored from the cached banner', async ({ page }) => {
+    await offered(page);
+    await page.evaluate(k => sessionStorage.removeItem(k), KEY);
+    await page.getByRole('button', { name: 'Restore draft' }).click();
+    await expect(page.getByTestId('recovery-status')).toContainText('no longer available');
+    await expect(page.getByTestId('screen-start')).toBeVisible();
+    expect((await slots(page)).session).toBeNull();
+  });
+
+  test('a replaced (newer) copy is shown for review and needs a fresh click', async ({ page }) => {
+    const stored = await offered(page);
+    // The stored draft is replaced by a newer revision (same draft, SYN-201 moved out, new time).
+    const newer = await page.evaluate(([k, old]) => {
+      const d = JSON.parse(old) as { createdAt: string; expiresAt: string; plan: { activePlacements: unknown[] } };
+      const next = JSON.stringify({ ...d, createdAt: new Date(Date.parse(d.createdAt) + 2000).toISOString(), plan: { ...d.plan, activePlacements: [] } });
+      sessionStorage.setItem(k, next);
+      return next;
+    }, [KEY, stored] as const);
+    await page.getByRole('button', { name: 'Restore draft' }).click();
+    await expect(page.getByTestId('recovery-banner-note')).toContainText('changed since this was shown');
+    await expect(page.getByTestId('screen-start')).toBeVisible(); // nothing restored yet
+    await page.getByRole('button', { name: 'Restore draft' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Graduation planner' })).toBeVisible();
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(0); // the newer copy, not the cached one
+    expect((await slots(page)).session).toBe(newer);
+  });
+});
+
+test.describe('no usable choices left', () => {
+  test('expired copies S still retains are described as unavailable, not absent, with cleanup offered (needs S PR13 choice helpers)', async ({ page }) => {
+    await open(page, 'recovery=real');
+    test.skip(!(await capabilities(page)).choices, 'BLOCKED: S PR13 choice helpers not in this composition');
+    await twoSharedSnapshots(page);
+    await expect(problemBanner(page).getByTestId('recovery-choice')).toHaveCount(2);
+    await advanceClock(page, 25 * 3_600_000); // past the 24h cross-tab lifetime
+    await problemBanner(page).getByRole('button', { name: 'Restore this draft' }).first().click();
+    const alert = problemBanner(page).getByRole('alert').last();
+    await expect(alert).toContainText('No recovery drafts are currently available to restore');
+    await expect(alert).toContainText('Expired or unreadable copies may still be stored');
+    await expect(problemBanner(page)).not.toContainText('No other drafts are stored');
+    await expect(problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' })).toBeVisible();
+    expect((await slots(page)).shared).toHaveLength(2); // retained, not deleted by the choice attempt
+    await expect(page.getByTestId('screen-start')).toBeVisible();
   });
 });

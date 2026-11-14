@@ -117,6 +117,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
   const [message, setMessage] = useState<string | null>(null);
   const [recovered, setRecovered] = useState<GuestDraft | null>(null);
   const [problem, setProblem] = useState<RecoveryProblem | null>(null);
+  // Why the single-draft banner now shows a different candidate than before.
+  const [recoveredNote, setRecoveredNote] = useState<string | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   // Outcome of a banner action, shown outside the (possibly closed) account menu.
   const [recoveryStatus, setRecoveryStatus] = useState<string | null>(null);
@@ -194,7 +196,8 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     if (!list) return problemFor(f);
     const r = guard(() => list(ports.recovery, clock.now()), 'recovery_choices_failed');
     if (!r.ok) return { kind: 'notice', text: `Several guest drafts were found on this device, but they could not be listed. None was restored and all are kept. ${failureText(r)}`, canClearAll: true };
-    if (r.value.length === 0) return { kind: 'notice', text: error ? `${error} No other drafts are stored here.` : 'The recovery drafts on this device are no longer available. Nothing was restored.', canClearAll: false };
+    // S omits expired, future-dated or invalid copies it still retains: "none usable", not "none stored".
+    if (r.value.length === 0) return { kind: 'notice', text: `${error ? `${error} ` : ''}No recovery drafts are currently available to restore. Expired or unreadable copies may still be stored in this browser; you can delete stored recovery drafts below.`, canClearAll: true };
     return { kind: 'choices', choices: r.value, error };
   }
 
@@ -202,8 +205,34 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
   function restore(d: GuestDraft) {
     draftId.current = d.draftId; stashed.current = { draft: d, record: d.record, plan: d.plan };
     setRecoveryMode(d.mode); setCrossTab(d.mode === 'cross_tab_opt_in');
-    onRestoreDraft(d); setRecovered(null); setProblem(null); setConfirmClearAll(false);
+    onRestoreDraft(d); setRecovered(null); setRecoveredNote(null); setProblem(null); setConfirmClearAll(false);
     say('Draft restored. Planning assumptions use the defaults (15 credits per term, no summer terms) because drafts do not store them.');
+  }
+
+  /**
+   * Explicit Restore of the single-draft banner. The banner holds the draft read at mount, so
+   * S is asked again now: only a byte-identical, still-valid copy is restored. A changed,
+   * expired, removed or conflicting result never restores the cached data; it is shown instead
+   * and needs a fresh click.
+   */
+  function restoreRecovered() {
+    if (!ports || !recovered) return;
+    const fresh = guard(() => ports.recovery.recover(clock.now()), 'recovery_failed');
+    if (!fresh.ok) { setRecovered(null); setRecoveredNote(null); setProblem(recoveryProblem(fresh, 'The draft changed since it was shown. Nothing was restored.')); return; }
+    const now = fresh.value;
+    if (now && JSON.stringify(now) === JSON.stringify(recovered)) { setRecoveredNote(null); restore(now); return; }
+    if (!now) {
+      setRecovered(null); setRecoveredNote(null);
+      setRecoveryStatus('That draft is no longer available (it expired or was removed), so nothing was restored.');
+      return;
+    }
+    if (stashed.current && JSON.stringify(now) === JSON.stringify(stashed.current.draft)) {
+      setRecovered(null); setRecoveredNote(null);
+      setRecoveryStatus('That draft was replaced by your current work in this tab, so it can no longer be restored. Nothing changed.');
+      return;
+    }
+    setRecovered(now);
+    setRecoveredNote('The stored draft changed since this was shown. Review the updated draft below and choose Restore again if you want it. Nothing was restored.');
   }
 
   function chooseDraft(selectionId: string) {
@@ -230,9 +259,10 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     const workNote = !kept ? '' : kept.ok ? ' Your work on screen is unchanged and kept for refresh in this tab only.'
       : stashWritten(kept) ? ` Your work on screen is unchanged and kept for refresh in this tab only. ${OLDER_COPY_REMAINS}`
       : ` Your work on screen is unchanged but could not be kept for refresh: ${failureText(kept)}`;
-    if (!r.ok) { setProblem({ kind: 'notice', text: `Some recovery drafts could not be deleted and may still be stored on this device. ${failureText(r)}${workNote}`, canClearAll: true }); return; }
+    if (!r.ok) { setProblem({ kind: 'notice', text: `Some recovery drafts could not be deleted and may still be stored in this browser. ${failureText(r)}${workNote}`, canClearAll: true }); return; }
     setProblem(null);
-    setRecoveryStatus(`All recovery drafts on this device were deleted.${workNote}`);
+    // Scoped claim only: copies another open tab writes at the same moment cannot be excluded.
+    setRecoveryStatus(`${kept ? 'Other stored recovery drafts were deleted.' : 'Stored recovery drafts were deleted.'}${workNote}`);
   }
 
   if (!ports) {
@@ -517,11 +547,13 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
           <div className="button-row">
             {(problem.kind === 'choices' || problem.canClearAll) && (confirmClearAll ? (
               <>
-                <p className="warning" role="note">This permanently deletes every PathCheck recovery draft in this browser, including drafts from other tabs. Your current on-screen work is not affected.</p>
-                <button type="button" className="danger" onClick={clearAllDrafts}>Delete all recovery drafts</button>
+                <p className="warning" role="note" data-testid="clear-all-warning">{work && !cloud
+                  ? 'This deletes the other PathCheck recovery drafts stored in this browser, including drafts from other tabs. Exception: your current work stays on screen and is saved again as this tab’s own recovery draft.'
+                  : 'This deletes the PathCheck recovery drafts stored in this browser, including drafts from other tabs.'} A draft another open tab saves at the same moment may not be removed. This does not erase other browser data.</p>
+                <button type="button" className="danger" onClick={clearAllDrafts}>Delete stored recovery drafts</button>
                 <button type="button" className="secondary" autoFocus onClick={() => setConfirmClearAll(false)}>Keep them</button>
               </>
-            ) : <button type="button" className="secondary" onClick={() => setConfirmClearAll(true)}>Delete all recovery drafts…</button>)}
+            ) : <button type="button" className="secondary" onClick={() => setConfirmClearAll(true)}>Delete stored recovery drafts…</button>)}
             <button type="button" className="secondary" onClick={() => { setProblem(null); setConfirmClearAll(false); }}>Dismiss</button>
           </div>
         </div>
@@ -534,13 +566,14 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
       {recovered && (
         <div className="recovery-banner" role="region" aria-label="Recovered draft" data-testid="recovery-banner">
           <p>A guest draft from <time dateTime={recovered.createdAt}>{formatTimestamp(recovered.createdAt)}</time> was recovered on this device.</p>
+          {recoveredNote && <p className="warning" role="alert" data-testid="recovery-banner-note">{recoveredNote}</p>}
           <div className="button-row">
             {/* Continue the same draft: later edits re-stash under its draftId and mode. */}
-            <button type="button" onClick={() => restore(recovered)}>Restore draft</button>
+            <button type="button" onClick={restoreRecovered}>Restore draft</button>
             <button type="button" className="secondary" onClick={() => {
               // Remove only this recovered draft; this tab's current work draft is kept.
               const removed = clearSavedGuestDraft(ports.recovery, recovered, clock.now());
-              setRecovered(null);
+              setRecovered(null); setRecoveredNote(null);
               say(removed === true ? 'Recovered draft discarded.' : 'Recovered draft hidden. PathCheck could not confirm it was removed from this device.');
             }}>Discard</button>
           </div>
