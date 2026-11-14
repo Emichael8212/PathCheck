@@ -1586,3 +1586,10 @@ record and student not_listed evidence persisted, stale save conflict preserves
 local work, explicit reopen loads remote changes, exported active-plan section
 excludes rejected local changes and retains uncertainty, plan/account deletion
 returns to guest state. No mocked account services or captured screenshots.
+
+Lead evidence committed/pushed only to feat/integration-03: `d0aa51ea5715d28f95b772549a79cea4d83c6678`.
+PR12 description updated with candidate evidence and explicit blockers; new-head CI
+pending (previous implementation CI FAIL recorded above). PR13/15 guides committed;
+PR12 guide explicitly BLOCKED until dependency refresh yields a reproducible pin.
+Agent-owned local Supabase and Colima stopped successfully; no parser containers
+remained, images/volumes/worktrees preserved. No user screenshots or secrets captured.
