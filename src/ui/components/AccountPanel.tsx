@@ -58,6 +58,10 @@ const CHOICE_ERROR: Record<string, string> = {
   recovery_session_draft_present: 'This tab already keeps a draft of its own work, which takes priority. Another draft can be restored only when this tab has no work (for example after Start over).',
 };
 
+/** stash() wrote the new draft but could not remove an older copy of it (S `recovery_cleanup_failed`). */
+const stashWritten = (r: Result<null>) => !r.ok && r.reasonCode === 'recovery_cleanup_failed';
+const OLDER_COPY_REMAINS = 'Your latest changes are kept for refresh, but an older recovery copy on this device could not be removed.';
+
 type Work = { record: AcademicRecord; plan: Plan };
 type CloudRef = { id: string; revision: number };
 
@@ -156,7 +160,9 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     draftId.current ??= clock.newId('guest-draft');
     const draft: GuestDraft = { schemaVersion: 1, draftId: draftId.current, mode, explicitRecoveryConsent: mode === 'cross_tab_opt_in', createdAt: now, expiresAt: new Date(Date.parse(now) + hours * 3_600_000).toISOString(), record: w.record, plan: w.plan };
     const r = guard(() => ports.recovery.stash(draft), 'stash_failed');
-    if (r.ok) stashed.current = { draft, record: w.record, plan: w.plan };
+    // S writes the new copy before reporting recovery_cleanup_failed (an older copy remains):
+    // the draft IS kept, so record it for exact cleanup later.
+    if (r.ok || stashWritten(r)) stashed.current = { draft, record: w.record, plan: w.plan };
     return r;
   }
 
@@ -178,7 +184,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     const s = stashed.current;
     if (s && s.record === work.record && s.plan === work.plan && s.draft.mode === recoveryMode) return;
     const r = stashWork(work, recoveryMode);
-    queueMicrotask(() => setRecoveryIssue(r.ok ? null : `Your latest changes could not be kept for refresh recovery: ${failureText(r)}`));
+    queueMicrotask(() => setRecoveryIssue(r.ok ? null : stashWritten(r) ? OLDER_COPY_REMAINS : `Your latest changes could not be kept for refresh recovery: ${failureText(r)}`));
   }, [ports, work, cloud, recoveryMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Maps a failed recover() to the banner, listing S's explicit choices when several drafts exist. */
@@ -221,7 +227,9 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     // re-keep the work on screen for refresh, in this tab only (the student chose to delete
     // every shared copy), and say so.
     const kept = work && !cloud ? stashWork(work, 'session') : null;
-    const workNote = !kept ? '' : kept.ok ? ' Your work on screen is unchanged and kept for refresh in this tab only.' : ` Your work on screen is unchanged but could not be kept for refresh: ${failureText(kept)}`;
+    const workNote = !kept ? '' : kept.ok ? ' Your work on screen is unchanged and kept for refresh in this tab only.'
+      : stashWritten(kept) ? ` Your work on screen is unchanged and kept for refresh in this tab only. ${OLDER_COPY_REMAINS}`
+      : ` Your work on screen is unchanged but could not be kept for refresh: ${failureText(kept)}`;
     if (!r.ok) { setProblem({ kind: 'notice', text: `Some recovery drafts could not be deleted and may still be stored on this device. ${failureText(r)}${workNote}`, canClearAll: true }); return; }
     setProblem(null);
     setRecoveryStatus(`All recovery drafts on this device were deleted.${workNote}`);
@@ -253,13 +261,13 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     if (work) {
       const mode: GuestDraft['mode'] = crossTab ? 'cross_tab_opt_in' : 'session';
       const r = stashWork(work, mode);
-      if (!r.ok) {
+      if (!r.ok && !stashWritten(r)) {
         say(r.code === 'conflict'
           ? 'Another tab already keeps a cross-tab recovery draft on this device, so this one was not stored there. Turn off the 24-hour option to keep your draft in this tab only.'
           : `Your draft could not be protected for sign-in: ${failureText(r)}`);
         return;
       }
-      setRecoveryMode(mode); setRecoveryIssue(null);
+      setRecoveryMode(mode); setRecoveryIssue(r.ok ? null : OLDER_COPY_REMAINS);
     }
     const gen = ++authGen.current;
     const r = await guardAsync(() => ports.auth.requestEmailOtp(email.trim()), 'otp_request_failed');

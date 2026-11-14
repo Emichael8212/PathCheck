@@ -563,17 +563,45 @@ test.describe('recovery problems are shown, never silently dropped', () => {
     await expect(page.getByText('All recovery drafts on this device were deleted')).toHaveCount(0);
   });
 
+  test('a draft written while an older shared copy cannot be removed is reported as kept, and Start over still removes it', async ({ page }) => {
+    await plannerWithRecord(page, 'recovery=real');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    await summary(page).click();
+    await page.getByLabel('Email').fill('student@example.test');
+    await page.getByLabel(/Also keep a recovery draft/).check();
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    expect((await slots(page)).shared).toHaveLength(1);
+    await page.evaluate(() => {
+      const original = Storage.prototype.removeItem;
+      Storage.prototype.removeItem = function (key: string) {
+        if (this === window.localStorage && key.startsWith('pathcheck.guestDraft.v1')) throw new Error('synthetic removal failure');
+        return original.call(this, key);
+      };
+    });
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(message(page)).toContainText('The 24-hour recovery draft could not be withdrawn');
+    expect(courses(await draftIn(page, 'session'))).toEqual(['SYN-201']); // written despite the failure
+    await addCourse(page, /^SYN 202/, 'Spring 2027');
+    await expect(page.getByTestId('account-panel').getByRole('alert')).toContainText('Your latest changes are kept for refresh, but an older recovery copy');
+    expect(courses(await draftIn(page, 'session'))).toEqual(['SYN-201', 'SYN-202']);
+    await summary(page).click();
+    await page.getByRole('button', { name: 'Get started' }).click();
+    await page.getByRole('button', { name: 'Start over' }).click();
+    await expect.poll(async () => (await slots(page)).session).toBeNull();
+  });
+
   test('a failed delete-all with work on screen still keeps that work for refresh', async ({ page }) => {
     await futureDatedSharedDraft(page);
     await startGuest(page);
     await enterCompletedAttempt(page);
     await toPlanner(page, 'selected');
     await addCourse(page, /^SYN 202/, 'Spring 2027');
-    // From now on every removal of a recovery key fails.
+    // From now on removing shared (localStorage) recovery keys fails, while this tab's
+    // session draft is really deleted by clear() — so only a re-save can keep the work.
     await page.evaluate(() => {
       const original = Storage.prototype.removeItem;
       Storage.prototype.removeItem = function (key: string) {
-        if (key.startsWith('pathcheck.guestDraft.v1')) throw new Error('synthetic removal failure');
+        if (this === window.localStorage && key.startsWith('pathcheck.guestDraft.v1')) throw new Error('synthetic removal failure');
         return original.call(this, key);
       };
     });
