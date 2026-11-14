@@ -75,6 +75,9 @@ function AddCourse({ catalog, terms, busy, onAdd }: { catalog: CatalogModel; ter
 function Assumptions({ capacity, includeSummer, assumeFuturePass, onCapacity, onIncludeSummer }: Pick<PlannerProps, 'capacity' | 'includeSummer' | 'assumeFuturePass' | 'onCapacity' | 'onIncludeSummer'>) {
   const capId = useId(), sumId = useId(), errId = useId();
   const [value, setValue] = useState(String(capacity.maximum));
+  // When the workflow replaces the capacity (e.g. opening a saved plan resets it), show it.
+  const [shown, setShown] = useState(capacity);
+  if (shown !== capacity) { setShown(capacity); setValue(String(capacity.maximum)); }
   const valid = /^\d{1,2}$/.test(value) && Number(value) > 0;
   return (
     <details className="insp-disclosure" data-testid="assumptions">

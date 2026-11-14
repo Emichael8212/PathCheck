@@ -5,7 +5,7 @@ import type {
 } from '../contracts';
 import { exportFileName } from '../export/pdfExportService';
 import { AccountPanel } from '../ui/components/AccountPanel';
-import type { SaveAdoption, SyncState, WorkSnapshot } from '../ui/components/AccountPanel';
+import type { SaveAdoption, SyncState, WorkSnapshot, WorkspaceMark } from '../ui/components/AccountPanel';
 import type { AvailabilityAnswer, NoticeState } from '../ui/components/Display';
 import { CatalogChip, NoticeAlert, NoticeCapsule } from '../ui/components/Display';
 import type { RowMatch } from '../ui/components/ManualRecordEditor';
@@ -126,7 +126,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   function clearWorkspace() {
     epoch.current += 1;
     setPlan(null); setRecord(EMPTY_RECORD); setRows([]); setProposed(null); setLastNormalized(null); setExtracted(null); setRecordDirty(false);
-    setCatalog(null); setSelectedVersion(''); setTargetKey(''); setCloud(null); setSync('local'); setCapacity(DEFAULT_CAPACITY);
+    setCatalog(null); setSelectedVersion(''); setTargetKey(''); setCloud(null); setSync('local'); setCapacity(DEFAULT_CAPACITY); setIncludeSummer(false);
     resetPlanning(); setScreen('start');
   }
 
@@ -292,6 +292,9 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     setCatalog(loaded.value); setSelectedVersion(input.plan.catalogRef.catalogVersion); setCatalogError(null);
     setPlan(input.plan); setRecord(input.record); setRows(input.record.courseAttempts.map(attemptToRow));
     setTargetKey(termKey(input.plan.targetTerm)); setProposed(null); setLastNormalized(null); setExtracted(null); setRecordDirty(false);
+    // Saved plans and drafts do not store capacity/summer assumptions: start from the disclosed
+    // defaults instead of silently inheriting the previous workspace's choices.
+    setCapacity(DEFAULT_CAPACITY); setIncludeSummer(false);
     setEvaluatedAt(clock.now()); resetPlanning(); setPath('selected'); setScreen('planner');
     setCloud(cloudRef); setSync(cloudRef ? 'saved' : 'local');
   }
@@ -301,6 +304,12 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   const latest = useRef<Omit<WorkSnapshot, 'epoch'> | null>(null);
   useLayoutEffect(() => { latest.current = plan ? { record, plan, cloud, sync } : null; }, [record, plan, cloud, sync]);
   const currentWork = (): WorkSnapshot | null => (latest.current ? { ...latest.current, epoch: epoch.current } : null);
+  // Identity token renewed after any committed change to the workspace, including unaccepted
+  // record rows and planning assumptions. An async result may replace the workspace only if
+  // neither the token nor the epoch changed since it was requested.
+  const markToken = useRef<object>({});
+  useLayoutEffect(() => { markToken.current = {}; }, [record, plan, rows, extracted, capacity, includeSummer, targetKey, selectedVersion]);
+  const workspaceMark = (): WorkspaceMark => ({ epoch: epoch.current, token: markToken.current });
 
   /**
    * Applies a finished cloud save only to the work it was requested for. Later local edits
@@ -358,7 +367,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
               ))}
             </ol>
           </nav>
-          <AccountPanel ports={services.account} clock={clock} work={work} cloud={cloud} sync={sync} currentWork={currentWork}
+          <AccountPanel ports={services.account} clock={clock} work={work} cloud={cloud} sync={sync} currentWork={currentWork} workspaceMark={workspaceMark}
             onSaving={() => setSync('saving')} onSaved={acceptSave} onSaveFailed={saveFailed}
             onOpen={(saved: SavedPlan) => loadWork(saved, { id: saved.id, revision: saved.revision })}
             onRestoreDraft={(d: GuestDraft) => loadWork(d, null)}

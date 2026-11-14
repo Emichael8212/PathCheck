@@ -273,3 +273,130 @@ test.describe('sign-out and account deletion end the local session in the UI', (
     expect(await savedPlans(page)).toHaveLength(0);
   });
 });
+
+/** Opens or closes the account sheet (it can cover page controls). */
+async function menu(page: Page, wantOpen: boolean) {
+  const isOpen = (await page.locator('.account-menu[open]').count()) > 0;
+  if (isOpen !== wantOpen) await summary(page).click();
+}
+const releaseNamed = (page: Page, name: string) => page.evaluate(n => window.__pathcheckHarness!.release(n), name);
+const savedList = (page: Page) => page.getByRole('list', { name: 'Saved plans' });
+
+/** Signed in with two cloud plans: cloud-1 = [SYN-201], cloud-2 = [SYN-201, SYN-202] (current). */
+async function twoSavedPlans(page: Page, flags: string) {
+  await plannerWithRecord(page, flags);
+  await addCourse(page, /^SYN 201/, 'Spring 2027');
+  await signIn(page);
+  await page.getByRole('button', { name: 'Save as new' }).click();
+  await expect(summary(page)).toContainText('Saved');
+  await addCourse(page, /^SYN 202/, 'Spring 2027');
+  await page.getByRole('button', { name: 'Save as new' }).click();
+  await expect(message(page)).toHaveText('Saved as a new plan.');
+  await page.getByRole('button', { name: 'My saved plans' }).click();
+  await expect(savedList(page).getByRole('button', { name: 'Open' })).toHaveCount(2);
+}
+
+test.describe('explicit Open applies only the latest request to unchanged work', () => {
+  test('a slower earlier Open never overwrites a newer one', async ({ page }) => {
+    await twoSavedPlans(page, 'hold=open&recovery=real');
+    await addCourse(page, /^SYN 301/, 'Fall 2027'); // unsaved change the student chooses to discard
+    await savedList(page).getByRole('button', { name: 'Open' }).nth(0).click(); // cloud-1 (slow)
+    await savedList(page).getByRole('button', { name: 'Open' }).nth(1).click(); // cloud-2 (newer)
+    await releaseNamed(page, 'open:cloud-2');
+    await expect(message(page)).toContainText('Opened saved plan');
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await expect(termCard(page, 'Fall 2027').getByTestId('placement')).toHaveCount(0);
+    await releaseNamed(page, 'open:cloud-1');
+    await page.waitForTimeout(150);
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await expect(summary(page)).toContainText('Saved');
+  });
+
+  test('edits made while an Open is pending are kept and the late plan is not opened', async ({ page }) => {
+    await twoSavedPlans(page, 'hold=open&recovery=real');
+    await savedList(page).getByRole('button', { name: 'Open' }).nth(0).click();
+    await addCourse(page, /^SYN 301/, 'Fall 2027');
+    await releaseNamed(page, 'open:cloud-1');
+    await expect(message(page)).toContainText('so it was not opened');
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toHaveCount(2);
+    await expect(termCard(page, 'Fall 2027').getByTestId('placement')).toContainText('SYN 301');
+    await expect(summary(page)).toContainText('Unsaved changes');
+  });
+
+  test('Start over while an Open is pending stays started over', async ({ page }) => {
+    await twoSavedPlans(page, 'hold=open&recovery=real');
+    await savedList(page).getByRole('button', { name: 'Open' }).nth(0).click();
+    await menu(page, false);
+    await page.getByRole('button', { name: 'Get started' }).click();
+    await page.getByRole('button', { name: 'Start over' }).click();
+    await expect(page.getByTestId('notice-status')).toContainText('Started over');
+    await releaseNamed(page, 'open:cloud-1');
+    await menu(page, true);
+    await expect(message(page)).toContainText('so it was not opened');
+    await expect(page.getByTestId('screen-start')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Graduation planner' })).toBeDisabled();
+  });
+
+  test('opening a saved plan resets capacity and summer to the disclosed defaults', async ({ page }) => {
+    await twoSavedPlans(page, 'recovery=real');
+    await menu(page, false);
+    const assumptions = page.getByTestId('assumptions');
+    await assumptions.locator('summary').click();
+    await page.getByLabel('Maximum credits per term').fill('18');
+    await page.getByRole('button', { name: 'Use this load' }).click();
+    await page.getByLabel(/Model summer terms/).check();
+    await expect(assumptions.locator('summary')).toContainText('18 cr/term (yours), with summer');
+    await menu(page, true);
+    await savedList(page).getByRole('button', { name: 'Open' }).nth(0).click();
+    await expect(message(page)).toContainText('Planning assumptions use the defaults (15 credits per term, no summer terms)');
+    await menu(page, false);
+    await expect(assumptions.locator('summary')).toContainText('15 cr/term, no summer');
+    await assumptions.locator('summary').click();
+    await expect(page.getByLabel('Maximum credits per term')).toHaveValue('15');
+    await expect(page.getByLabel(/Model summer terms/)).not.toBeChecked();
+  });
+});
+
+test.describe('cancelling sign-in with the real S auth service', () => {
+  const authCalls = (page: Page) => page.evaluate(() => [...window.__pathcheckHarness!.authCalls]);
+  const currentUser = (page: Page) => page.evaluate(() => window.__pathcheckHarness!.currentUser());
+
+  async function verifyPending(page: Page) {
+    await plannerWithRecord(page, 'auth=real&hold=verify&recovery=real');
+    await addCourse(page, /^SYN 201/, 'Spring 2027');
+    await summary(page).click();
+    await page.getByLabel('Email').fill('student@example.test');
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    await page.getByLabel('One-time code').fill('123456');
+    await page.getByRole('button', { name: 'Verify code' }).click();
+    await expect.poll(() => authCalls(page)).toContain('verify:held');
+  }
+
+  test('control: an uncancelled verification signs in', async ({ page }) => {
+    await verifyPending(page);
+    await releaseNamed(page, 'verify');
+    await expect(page.getByTestId('account-panel')).toContainText('Signed in.');
+    expect(await currentUser(page)).toEqual({ ok: true, value: { userId: '00000000-0000-4000-8000-00000000000a' } });
+  });
+
+  test('cancel during a pending verification: no session, no login shown, guest work and drafts kept', async ({ page }) => {
+    await verifyPending(page);
+    const foreign = await plantForeignSharedDraft(page);
+    const ownBefore = (await slots(page)).session;
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(message(page)).toContainText('Sign-in cancelled. Your guest work is unchanged.');
+    await releaseNamed(page, 'verify');
+    await expect.poll(() => authCalls(page)).toContain('verify:released');
+    // S discarded the superseded tokens and revoked them server-side (best effort).
+    await expect.poll(() => authCalls(page)).toContain('logout');
+    expect(await currentUser(page)).toEqual({ ok: true, value: null });
+    await page.waitForTimeout(150);
+    await expect(page.getByTestId('account-panel')).not.toContainText('Signed in.');
+    await expect(summary(page)).toContainText('Guest, not saved');
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(message(page)).not.toContainText('could not confirm');
+    await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toContainText('SYN 201');
+    expect((await slots(page)).session).toBe(ownBefore);
+    expect((await slots(page)).local).toBe(foreign);
+  });
+});

@@ -38,6 +38,8 @@ export function fakeClock(start = '2026-11-12T15:00:00.000Z', persist?: Pick<Sto
  * dropped, server revocation unconfirmed); 'stuck' keeps the session and fails.
  */
 export interface FakeAccountOptions {
+  /** Replaces the auth double (e.g. S's real createSupabaseAuth over a synthetic fetch). */
+  auth?: AuthService;
   conflictOnSave?: boolean; clearFails?: boolean; recovery?: GuestRecoveryService; gate?: TranscriptGate;
   signOut?: 'ok' | 'unconfirmed' | 'stuck';
 }
@@ -296,7 +298,11 @@ export function fakeAccount(options: FakeAccountOptions = {}) {
       return ok(saved);
     },
     listOwnedPlans: async () => (user ? ok([...rows.values()].map(r => ({ id: r.id, revision: r.revision, updatedAt: r.updatedAt }))) : fail('forbidden', 'not_signed_in')),
-    getOwnedPlan: async id => (rows.get(id) ? ok(rows.get(id)!) : fail('forbidden', 'not_found')),
+    // hold=open: each getOwnedPlan(id) waits for release(`open:${id}`), so completions can be reordered.
+    getOwnedPlan: async id => {
+      if (options.gate?.hold.has('open')) await options.gate.wait(`open:${id}`);
+      return rows.get(id) ? ok(rows.get(id)!) : fail('forbidden', 'not_found');
+    },
     savePlan: async (id, expectedRevision, record, plan) => {
       await held();
       const row = rows.get(id);
@@ -316,7 +322,31 @@ export function fakeAccount(options: FakeAccountOptions = {}) {
     // clearFails mirrors S's typed failure when device storage removal throws; the draft stays.
     clear: event => { clears.push(event); if (options.clearFails) return fail('external_failure', 'recovery_remove_failed'); stashed = null; return ok(null); },
   };
-  return { ports: Object.freeze({ auth, storage, recovery: options.recovery ?? recovery }), inspect: { rows, clears, stashed: () => stashed, user: () => user } };
+  return { ports: Object.freeze({ auth: options.auth ?? auth, storage, recovery: options.recovery ?? recovery }), inspect: { rows, clears, stashed: () => stashed, user: () => user } };
+}
+
+/**
+ * Synthetic Supabase Auth endpoint for S's REAL createSupabaseAuth (no network, no real tokens).
+ * Code 123456 verifies; `gate` holding 'verify' keeps /verify pending until release('verify').
+ * Every call path is recorded in `calls` (e.g. 'verify:held', 'logout').
+ */
+export function syntheticAuthFetch(calls: string[], gate?: TranscriptGate) {
+  const reply = (status: number, body: unknown = null) => ({ status, ok: status < 400, text: async () => (body === null ? '' : JSON.stringify(body)) });
+  let issued = 0;
+  return async (url: string, init: { method: string; body?: string }) => {
+    const path = new URL(url).pathname;
+    if (path === '/auth/v1/otp') { calls.push('otp'); return reply(200, {}); }
+    if (path === '/auth/v1/logout') { calls.push('logout'); return reply(204); }
+    if (path === '/auth/v1/verify') {
+      calls.push('verify');
+      if (gate?.hold.has('verify')) { calls.push('verify:held'); await gate.wait('verify'); calls.push('verify:released'); }
+      const token = (JSON.parse(init.body ?? '{}') as { token?: string }).token;
+      if (token !== '123456') return reply(400, { error: 'otp_expired' });
+      return reply(200, { access_token: `synthetic-access-${++issued}`, refresh_token: `synthetic-refresh-${issued}`, expires_in: 3600, user: { id: '00000000-0000-4000-8000-00000000000a' } });
+    }
+    calls.push(`unexpected:${path}`);
+    return reply(404);
+  };
 }
 
 export function syntheticExtraction(status: TranscriptExtraction['acceptanceStatus'] = 'needs_review'): TranscriptExtraction {
