@@ -1757,3 +1757,47 @@ Reported752unit/12environment skips,12actualDenoHTTP assertions,22entry/bundle t
 no public processing/provider call. No PR opened. Lead has not yet integrated this
 work; precise handoff /private/tmp/pathcheck-g-runtime-entry-progress.md. Actual
 hosted ports/gateway/bot/SQL composition remain mandatory pending integration.
+
+
+### PR11 merged — PR14 then PR12 dependency verification
+
+Human merge `b419682b83ecfa6d632bc8086b75737382e36496` at2026-11-14T06:58:11Z
+verified on GitHub, includes accepted2a96a776. Local main fast-forwarded cleanly;
+L refreshed main at c023b00. A11 human PASS retained (34assertions/eightmanualcases);
+cleanup lead-executed with explicit authorization. PR11 MERGED. MainCI43568936023
+dispatched; local regression checks running. Existing U session resumed to refresh
+PR14 and verify cancellation/interruption. PR12 CI cannot pass its mandatory UI
+tests until PR14's implementation is incorporated; no tests disabled or downgraded.
+Reproducible noncommitting candidate will verify exact PR14/12 combination before
+its human checkpoint. Public entry/G runtime branch remains separate, no scope change.
+
+Post-PR11 main b419682 regression closure: npmcheck730unit/12 documented environment
+skips,43benchmark/9uploadguards,lint/type/build,3production PASS;14 engine integration
+PASS. MainCI43568936023 PASS. PR14 refreshed cbbf0df100e733543073120000ef8a0db4b53054
+contains mergedmain; currentCI43569084094 PASS, CLEAN. Owner UI114 PASS incl12
+generation cases, no dependency skips; reviewed7-file U delta unchanged.
+
+PR12/14 candidate /private/tmp/pathcheck-pr14-verification: c023b00 lead baseline
+plus noncommitting U049996f. Verified refreshed c023+cbbf merge-tree and actual
+candidate index BOTH8bccb542f8914c74a2a2e1b277ba87ba43448412, so exact source tree
+matches new head combination without replaying unchanged code. npmcheck741unit/12
+environment skips,43benchmark,9uploadguards,4accountguards,3production PASS;
+integration18 PASS and UI114 PASS. Exact human CLI `npm run test:integration --
+--grep 'actual.*worker|real UI'`4 PASS. Both previously failing real UI cancellation
+and watchdog tests pass with real E work and byte-identical active Plan.
+Independent dependency re-review: no source/contract blocker; no tests weakened.
+
+PR12 standalone red CI is an unmet PR14 dependency, not a waived test or a claimed
+fixed standalone head. Actual integration fix is inclusion of U's generation port
+consumer; temporary composition is verified but not committed/pushed. After human
+PR14 merge, refresh PR12 and require current-head standalone CI plus human acceptance.
+Pinned PR14 procedure uses actual engine/worker with test-only held continuation,
+not fake academic responses. Human NOT RUN; exact Stage1 composition/Stage2 four
+assertions/two manual interrupted-search cases/cleanup documented under pr-14.
+
+PR14 source and human-procedure independent re-review PASS; headCI43569084094
+confirmed PASS. A14 HUMAN ACCEPTANCE REQUIRED, initial NOT RUN. Guide finalized
+with exact c023+cbbf/tree pins and tested4-case command. PR12 guide updated to
+remove completed PR11/13/15 dependencies; only14 remains unmerged. G boot work
+continues separately from this accepted dependency order. No additional merge,
+deployment, paid billing or real transcript processing occurred.

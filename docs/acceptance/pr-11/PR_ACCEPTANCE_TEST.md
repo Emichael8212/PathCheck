@@ -6,7 +6,7 @@
 - Test type: real React UI interactions and S guest recovery with synthetic auth/cloud doubles.
 - Feature: preserve current work on late save/open/sign-in, explicit validated recovery choices, honest cleanup and disclosed restored assumptions.
 - Human status: **PASS** (34 assertions and all eight manual cases reported by the human).
-- Cleanup: **PASS**, executed by the lead under explicit user authorization. Eligibility: **READY TO MERGE** personally.
+- Cleanup: **PASS**, executed by the lead under explicit user authorization. Status: **MERGED** personally as `b419682b83ecfa6d632bc8086b75737382e36496`.
 - Current-head foundation CI43564599936 PASS; independent review retained because refresh changed no UI code.
 - Reviewed UI implementation: `36c0624`; refresh changes no UI implementation/tests, only merged dependencies and guide counts.
 

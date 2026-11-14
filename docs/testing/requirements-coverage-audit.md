@@ -925,3 +925,18 @@ human PASS. Final cleanup delegated by user and executed/verified by lead: empty
 5179 storage, temporary tab closed, confirmed test Vite stopped/no listener.
 Current-headCI43564599936 PASS; independent review retained; PR11 READY TO MERGE,
 not merged. A14/A12 and full application acceptance remain pending.
+
+
+A11 merged by human as b419682b83ecfa6d632bc8086b75737382e36496 at
+2026-11-14T06:58:11Z. Current local main synchronized. Accepted2a96a776 unchanged;
+A11 human PASS retained, cleanup separately agent-authorized. MainCI43568936023 and
+postmerge regressions running. SCH18 PR14/12 real UI cancellation/watchdog tests
+remain mandatory; candidate integration being verified, no assertion weakened.
+
+Post-A11 main b419682 CI43568936023 PASS,730unit/12environment skips,14integration
+PASS. A14 current cbbf0df CI43569084094 PASS; U12 generation cases and114UI PASS.
+SCH17/18 and A12 dependency: real combined tree8bccb542 (c023+cbbf)4 focused Worker/UI
+assertions PASS; full18integration/741unit/114UI PASS. Cancellation and watchdog
+wait for actual E progress and preserve exact Plan. Independent review clear.
+A14 human NOT RUN; pinned combined procedure prepared. A12 standalone current-head
+CI remains a mandatory blocker until14 lands; no test removed/conditional waiver.
