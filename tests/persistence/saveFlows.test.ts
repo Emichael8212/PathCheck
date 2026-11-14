@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createGuestRecoveryService } from '../../src/persistence/guestRecovery';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
+import { createGuestRecoveryService, SHARED_DRAFT_PREFIX } from '../../src/persistence/guestRecovery';
 import { createSupabaseStorage } from '../../src/persistence/supabaseStorage';
 import { executeSaveIntent, saveGuestDraftAsNew } from '../../src/persistence/saveFlows';
 import { CONFIG, PLAN_ID, USER_A, deferredFetch, draft, fakeFetch, fixture, flush, memoryStorage, row, sessionFor } from './helpers';
@@ -108,18 +110,25 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     return { f, session, local, storage: createSupabaseStorage(CONFIG, { fetch: f.fetch, session: sessionFor(USER_A) }), recovery: createGuestRecoveryService({ session, local }) };
   };
   const put = (s: ReturnType<typeof memoryStorage>, d: unknown) => s.map.set(KEY, typeof d === 'string' ? d : JSON.stringify(d));
+  /** Cross-tab drafts live in content-addressed snapshots (the legacy single slot is read-only). */
+  const putShared = (s: ReturnType<typeof memoryStorage>, d: unknown) => {
+    const raw = typeof d === 'string' ? d : JSON.stringify(d);
+    const id = typeof d === 'object' && d !== null && typeof (d as { draftId?: unknown }).draftId === 'string' ? (d as { draftId: string }).draftId : 'tab-b';
+    s.map.set(`${SHARED_DRAFT_PREFIX}${id}.${bytesToHex(sha256(new TextEncoder().encode(raw)))}`, raw);
+  };
+  const shared = (s: ReturnType<typeof memoryStorage>) => { const k = [...s.map.keys()].filter(x => x.startsWith(SHARED_DRAFT_PREFIX)); return k.length === 1 ? s.map.get(k[0]!)! : k.length === 0 ? undefined : 'MULTIPLE'; };
 
   it('session draft A + unrelated valid cross-tab draft B: saves A, removes only A, keeps B byte-for-byte', async () => {
     const t = setup();
     const a = draft({ draftId: 'tab-a' }), b = crossTab({ draftId: 'tab-b' });
     expect(t.recovery.stash(a).ok).toBe(true);
-    put(t.local, b);
-    const bBytes = t.local.map.get(KEY);
+    putShared(t.local, b);
+    const bBytes = shared(t.local);
     const r = await saveGuestDraftAsNew(a, { storage: t.storage, recovery: t.recovery, now: () => NOW });
     expect(r).toMatchObject({ ok: true, value: { saved: { id: PLAN_ID }, recoveryCleared: true } });
     expect(t.f.calls.map(c => c.url.split('/').pop())).toEqual(['create_plan']);
     expect(t.session.map.size).toBe(0);
-    expect(t.local.map.get(KEY)).toBe(bBytes);
+    expect(shared(t.local)!).toBe(bBytes);
     expect(createGuestRecoveryService({ session: memoryStorage(), local: t.local }).recover(NOW)).toEqual({ ok: true, value: b });
   });
 
@@ -127,10 +136,10 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     const t = setup({ local: { failRemove: true } });
     const a = draft({ draftId: 'tab-a' });
     t.recovery.stash(a);
-    put(t.local, crossTab({ draftId: 'tab-b' }));
+    putShared(t.local, crossTab({ draftId: 'tab-b' }));
     const r = await saveGuestDraftAsNew(a, { storage: t.storage, recovery: t.recovery, now: () => NOW });
     expect(r).toMatchObject({ ok: true, value: { recoveryCleared: true } });
-    expect(t.local.map.has(KEY)).toBe(true);
+    expect(shared(t.local)).toBeDefined();
   });
 
   it('saved cross-tab draft A with no session copy: removes the shared copy', async () => {
@@ -145,7 +154,7 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
   it('saved cross-tab draft A + unrelated session draft in this storage: keeps the session draft and reports not cleared', async () => {
     const t = setup();
     const a = crossTab({ draftId: 'tab-a' }), other = draft({ draftId: 'tab-s' });
-    put(t.local, a);
+    putShared(t.local, a);
     put(t.session, other);
     const r = await saveGuestDraftAsNew(a, { storage: t.storage, recovery: t.recovery, now: () => NOW });
     expect(r).toMatchObject({ ok: true, value: { recoveryCleared: false } });
@@ -158,11 +167,11 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     const a = draft({ draftId: 'tab-a' });
     const newer = crossTab({ draftId: 'tab-a', expiresAt: '2030-01-01T18:00:00Z' });
     put(t.session, a);
-    put(t.local, newer);
+    putShared(t.local, newer);
     const r = await saveGuestDraftAsNew(a, { storage: t.storage, recovery: t.recovery, now: () => NOW });
     expect(r).toMatchObject({ ok: true, value: { recoveryCleared: false } });
     expect(t.session.map.size).toBe(0);
-    expect(JSON.parse(t.local.map.get(KEY)!)).toEqual(newer);
+    expect(JSON.parse(shared(t.local)!)).toEqual(newer);
   });
 
   it('same draftId, newer session edit stashed in flight + unrelated shared B: both preserved', async () => {
@@ -172,7 +181,7 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     const storage = createSupabaseStorage(CONFIG, { fetch: f.fetch, session: sessionFor(USER_A) });
     const a = draft({ draftId: 'tab-a' }), b = crossTab({ draftId: 'tab-b' });
     recovery.stash(a);
-    put(local, b);
+    putShared(local, b);
     const saving = saveGuestDraftAsNew(a, { storage, recovery, now: () => NOW });
     await flush();
     const edited = draft({ draftId: 'tab-a', expiresAt: '2030-01-01T11:00:00Z' });
@@ -180,7 +189,7 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     await f.release('create_plan', ok());
     expect(await saving).toMatchObject({ ok: true, value: { recoveryCleared: false } });
     expect(JSON.parse(session.map.get(KEY)!)).toEqual(edited);
-    expect(JSON.parse(local.map.get(KEY)!)).toEqual(b);
+    expect(JSON.parse(shared(local)!)).toEqual(b);
   });
 
   it('nothing stored, or only an unrelated shared draft: nothing removed, reported cleared', async () => {
@@ -188,9 +197,9 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     expect(await saveGuestDraftAsNew(draft(), { storage: empty.storage, recovery: empty.recovery, now: () => NOW })).toMatchObject({ ok: true, value: { recoveryCleared: true } });
     const t = setup();
     const b = crossTab({ draftId: 'tab-b' });
-    put(t.local, b);
+    putShared(t.local, b);
     expect(await saveGuestDraftAsNew(draft({ draftId: 'tab-a' }), { storage: t.storage, recovery: t.recovery, now: () => NOW })).toMatchObject({ ok: true, value: { recoveryCleared: true } });
-    expect(JSON.parse(t.local.map.get(KEY)!)).toEqual(b);
+    expect(JSON.parse(shared(t.local)!)).toEqual(b);
   });
 
   it('keeps a future-dated unrelated shared draft and an expired saved copy is still removed', async () => {
@@ -198,11 +207,11 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     const a = draft({ draftId: 'tab-a', createdAt: '2029-12-31T00:00:00Z', expiresAt: '2029-12-31T12:00:00Z' }); // expired at NOW
     const future = crossTab({ draftId: 'tab-b', createdAt: '2030-01-01T07:00:00Z', expiresAt: '2030-01-01T19:00:00Z' });
     put(t.session, a);
-    put(t.local, future);
+    putShared(t.local, future);
     const r = await saveGuestDraftAsNew(a, { storage: t.storage, recovery: t.recovery, now: () => NOW });
     expect(r).toMatchObject({ ok: true, value: { recoveryCleared: true } });
     expect(t.session.map.size).toBe(0);
-    expect(JSON.parse(t.local.map.get(KEY)!)).toEqual(future);
+    expect(JSON.parse(shared(t.local)!)).toEqual(future);
   });
 
   it('purges an expired or corrupt unrelated shared entry (privacy), keeping saved success', async () => {
@@ -210,7 +219,7 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
       const t = setup();
       const a = draft({ draftId: 'tab-a' });
       t.recovery.stash(a);
-      put(t.local, stale);
+      putShared(t.local, stale);
       const r = await saveGuestDraftAsNew(a, { storage: t.storage, recovery: t.recovery, now: () => NOW });
       expect(r).toMatchObject({ ok: true, value: { recoveryCleared: true } });
       expect(t.local.map.size + t.session.map.size).toBe(0);
@@ -231,7 +240,7 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
 
     const stuck = setup({ local: { failRemove: true } });
     put(stuck.session, a);
-    put(stuck.local, crossTab({ draftId: 'tab-b', createdAt: '2029-12-31T00:00:00Z', expiresAt: '2029-12-31T12:00:00Z' }));
+    putShared(stuck.local, crossTab({ draftId: 'tab-b', createdAt: '2029-12-31T00:00:00Z', expiresAt: '2029-12-31T12:00:00Z' }));
     expect(await saveGuestDraftAsNew(a, { storage: stuck.storage, recovery: stuck.recovery, now: () => NOW })).toMatchObject({ ok: true, value: { recoveryCleared: false } });
   });
 
@@ -256,7 +265,7 @@ describe('save-triggered recovery cleanup is scoped to the saved draft (A4)', ()
     for (const event of ['cancel', 'sign_out'] as const) {
       const t = setup();
       t.recovery.stash(draft({ draftId: 'tab-a' }));
-      put(t.local, crossTab({ draftId: 'tab-b' }));
+      putShared(t.local, crossTab({ draftId: 'tab-b' }));
       expect(t.recovery.clear(event)).toEqual({ ok: true, value: null });
       expect(t.local.map.size + t.session.map.size).toBe(0);
     }

@@ -16,20 +16,23 @@ const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const fail = (code: Extract<Result<never>, { ok: false }>['code'], reasonCode: string) => ({ ok: false as const, code, reasonCode });
 
 /**
- * Deterministic test clock. With `persist` (a tab's sessionStorage) the tick and ID counters
- * survive a same-tab reload, so a recovered draft is not "from the future" and restored IDs
- * are never reissued — as with a real clock.
+ * Deterministic test clock. With `persist` the tick and ID counters live in that storage and
+ * are re-read on every call, so they survive a reload and — with localStorage — stay
+ * monotonic and unique across tabs of one browser profile, as a real clock and IDs would.
  */
 export function fakeClock(start = '2026-11-12T15:00:00.000Z', persist?: Pick<Storage, 'getItem' | 'setItem'>) {
   const KEY = 'pathcheck.harness.clock';
-  const saved = persist ? (JSON.parse(persist.getItem(KEY) ?? 'null') as { tick: number; ids: number } | null) : null;
-  let tick = saved?.tick ?? 0, ids = saved?.ids ?? 0;
+  let tick = 0, ids = 0;
+  const load = () => {
+    const saved = persist ? (JSON.parse(persist.getItem(KEY) ?? 'null') as { tick: number; ids: number } | null) : null;
+    if (saved) { tick = Math.max(tick, saved.tick); ids = Math.max(ids, saved.ids); }
+  };
   const keep = () => persist?.setItem(KEY, JSON.stringify({ tick, ids }));
   return {
-    now: () => { const t = new Date(Date.parse(start) + 1000 * tick++).toISOString(); keep(); return t; },
-    newId: (prefix: string) => { const id = `${prefix}-${++ids}`; keep(); return id; },
+    now: () => { load(); const t = new Date(Date.parse(start) + 1000 * tick++).toISOString(); keep(); return t; },
+    newId: (prefix: string) => { load(); const id = `${prefix}-${++ids}`; keep(); return id; },
     /** Test-only: moves the clock forward (e.g. past a recovery draft's expiry). */
-    advance: (ms: number) => { tick += Math.ceil(ms / 1000); keep(); },
+    advance: (ms: number) => { load(); tick += Math.ceil(ms / 1000); keep(); },
   };
 }
 
