@@ -151,12 +151,40 @@ export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, o
 export type DraftState =
   | { kind: 'draft'; draft: GeneratedDraft }
   | { kind: 'no_valid_draft'; expansions: number }
+  /** A search job is running for `fingerprint`; `jobId` identifies exactly one request. */
+  | { kind: 'generating'; jobId: number; fingerprint: string }
+  /** Stopped before finishing: nothing was evaluated, no feasibility conclusion. */
+  | { kind: 'interrupted'; reason: 'cancelled' | 'input_changed' | 'search_interrupted' }
   | { kind: 'failed'; failure: TypedFailure }
   | null;
 
-export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, onRegenerate }: { state: DraftState; catalog: CatalogModel; stale: boolean; busy: boolean; onAdopt: (acks: string[]) => void; onDiscard: () => void; onRegenerate: () => void }) {
+const INTERRUPTED_TEXT: Record<Extract<DraftState, { kind: 'interrupted' }>['reason'], string> = {
+  cancelled: 'You cancelled the search.',
+  input_changed: 'Your plan inputs changed while it was running, so the search was stopped.',
+  search_interrupted: 'The search was stopped before it finished.',
+};
+
+export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, onRegenerate, onCancel }: { state: DraftState; catalog: CatalogModel; stale: boolean; busy: boolean; onAdopt: (acks: string[]) => void; onDiscard: () => void; onRegenerate: () => void; onCancel: () => void }) {
   const [acks, setAcks] = useState<Set<string>>(new Set());
   if (!state) return null;
+  if (state.kind === 'generating') {
+    return (
+      <section className="draft insp-section" aria-labelledby="draft-title" aria-busy="true" data-testid="draft-panel">
+        <FocusHeading id="draft-title">Building a draft plan…</FocusHeading>
+        <p role="status" data-testid="draft-generating">Searching within fixed limits. Your active plan is unchanged; you can keep working or cancel.</p>
+        <div className="button-row"><button type="button" className="secondary" onClick={onCancel}>Cancel search</button></div>
+      </section>
+    );
+  }
+  if (state.kind === 'interrupted') {
+    return (
+      <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
+        <FocusHeading id="draft-title">Search interrupted</FocusHeading>
+        <p role="alert">{INTERRUPTED_TEXT[state.reason]} No draft was evaluated. No feasibility conclusion was drawn and your active plan is unchanged.</p>
+        <div className="button-row"><button type="button" disabled={busy} onClick={onRegenerate}>Search again</button></div>
+      </section>
+    );
+  }
   if (state.kind === 'failed') {
     return (
       <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">

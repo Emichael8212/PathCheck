@@ -37,6 +37,17 @@ export interface AccountPorts {
   recovery: GuestRecoveryService;
 }
 
+/**
+ * Cancellable draft generation (ARCH Search-v1 / SCH-18). L implements it over a browser
+ * Worker running E's search with a bounded watchdog; U owns only controls and lifecycle.
+ * Aborting `signal` must stop the job; an interrupted/cancelled job resolves with
+ * `search_interrupted` (never `no_valid_draft_under_search_bounds`). The UI additionally
+ * ignores any result whose job was cancelled, superseded or whose inputs changed.
+ */
+export interface DraftGenerationPort {
+  generate(scenario: PlanningScenario, signal: AbortSignal): Promise<ReturnType<AcademicService['generateDraft']>>;
+}
+
 export interface WorkflowServices {
   academic: AcademicService;
   commands: PlannerCommands;
@@ -47,4 +58,10 @@ export interface WorkflowServices {
   transcript: TranscriptPorts | null;
   /** null => cloud save/sign-in shown as unavailable; guest planning always works. */
   account: AccountPorts | null;
+  /**
+   * Optional UI-private port. The real application always supplies it (worker). When absent,
+   * the workflow falls back to synchronous academic.generateDraft — kept only for existing
+   * test/harness compatibility until L injects the port everywhere.
+   */
+  generation?: DraftGenerationPort;
 }
