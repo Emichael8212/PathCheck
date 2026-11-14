@@ -7,7 +7,7 @@
 - Test type: actual two-tab Chromium storage races plus persistence contract tests.
 - Feature: preserve concurrent guest drafts, scoped cleanup and explicit recovery selection.
 - Human status: **PASS**, reported by the human for pinned head `a7fa58d` after all three stages.
-- Eligibility: **READY TO MERGE** for the human; no agent merge authorized.
+- Status: **MERGED** by the human as `ef6ba14ae69986f8fbdeb4e55f930b25482f2cd8`; acceptance retained.
 - Current-head CI: foundation43559926987 PASS. Independent static review: no remaining S-code blocker; code/test source unchanged by final comment correction.
 
 # Before You Begin

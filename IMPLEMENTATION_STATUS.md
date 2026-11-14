@@ -1610,3 +1610,46 @@ this change touches recovery storage, not SQL/REST policies. No running services
 from this human test; preserve worktree. Next after human merge: verify actual
 merge, synchronize main, refresh PR11/14 and revalidate combined integration.
 Full application still incomplete; this scoped PASS does not close final gates.
+
+
+### PR13 merged — post-merge verification in progress
+
+GitHub confirms human merge `ef6ba14ae69986f8fbdeb4e55f930b25482f2cd8` at
+2026-11-14T05:36:42Z, containing accepted head a7fa58d. Local main fast-forwarded
+cleanly; L feat/integration-03 merged origin/main without conflict. Human acceptance
+remains PASS (two-tab10, persistence148/2 expected DB skips). PR13 status MERGED.
+Main CI43562527368 and current-main check/integration running; not yet PASS.
+Existing U Claude session resumed for PR11/14 refresh and zero dependency-skip
+verification. Existing G owner resumed for PR15 refresh. No worktrees discarded.
+
+Post-merge main ef6ba14 automated results: `npm run check` PASS (724unit including
+all148 persistence tests /2 documented liveDB skips;43benchmark;9uploadguards;
+lint/type/build;3productionbrowser), `npm run test:integration`14 PASS. Recovery
+suite includes real two-tab10 cases; no regression found. Lead refreshed branch
+`node tests/e2e/normalization.integration.mjs`3 assertion groups PASS. No SQL policy
+change or live provider test was implied by these commands. Current-main CI still
+in progress; owner branch refreshes in progress, no merge recommendation yet.
+
+Post-merge CI closure: current-main foundation43562527368 PASS at exact ef6ba14.
+PR15 refreshed head `eac711c8e727c8e7ed45e0951b8a5e4f5d005bba` includes ef6ba14;
+owned parser/tests/contracts/dependencies byte-identical to reviewed ba2e325.
+Owner fullcheck730 PASS/12explicit skips (10Docker prior actualPASS,2liveDB),
+58 targeted isolation/handler/localRuntime PASS; CI43562622863 PASS. Prior Docker10
+and independent review retained, no unnecessary Google or Docker rerun. PR15 human
+NOT RUN, HUMAN ACCEPTANCE REQUIRED; guide updated with exact pin and non-activating
+Colima flags/socket verification. Next human checkpoint is PR15 Stage1 setup only.
+
+U actually resumed session74d5fd17 (process79166) and refreshed PR11/14 onto main.
+Latest owner evidence: PR11 named S helper imports, no dependency skips,101UI PASS
+including real three-tab recovery,724unit/2liveDBskips; revised owned human guide.
+Review/PR14 final refresh still underway; do not infer final readiness. Worktrees
+and temporary test candidate retained. L remains blocked on these PRs and PR15
+plus combined human acceptance; no feature PR merged by agents.
+
+Remaining mandatory engineering: actual extraction entry/module-resolution tests;
+trusted same-origin gateway identity producer/verifier; real browser bot-attestation
+adapter and integration; configured ordinary-app transcript ports. Local synthetic
+factory remains test-only. Hosting-specific parser equivalence, authorized real-data
+terms/testing and deployment approval are separate external/release gates. G's
+read-only code-grounded handoff lists entry/config/gateway/bot tests that can proceed
+without real credentials. None is falsely waived as optional or reported complete.

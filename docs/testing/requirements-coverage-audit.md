@@ -860,3 +860,27 @@ current-head foundation43559926987 PASS; independent review clear; head/base cle
 and merge-compatible. PR13 **READY TO MERGE**, not merged. No SQL/REST behavior
 change; prior database human acceptance remains valid. B integration evidence
 retained; A11/A12/A14/A15 and whole-application human gates are not cleared by A13.
+
+
+### A13 merge evidence
+
+PR13 MERGED by human: ef6ba14ae69986f8fbdeb4e55f930b25482f2cd8,
+2026-11-14T05:36:42Z. Accepted a7fa58d is included. A13 human PASS retained,
+including10 real two-tab tests and148 persistence assertions/tests with2 documented
+liveDB skips. Local main synchronized. Post-merge main CI43562527368 and relevant
+regressions are in progress, not inferred PASS from pre-merge evidence.
+
+Post-merge ef6ba14: `npm run check` PASS724unit/2 expected liveDBskips,
+43benchmark/9uploadguards/3productionbrowser; `npm run test:integration`14 PASS.
+T-AUTH recovery (10 actual two-tab cases) and148 persistence tests included in the
+724 current-main tests: PASS, no regression. F03/F05–F14/F19 real-engine integration
+PASS14. Lead refreshed normalization boundary PASS3. No live provider/database
+rerun required for unchanged policy/transport scope; previous evidence retained.
+
+Current-main CI43562527368 **PASS** at ef6ba14 closes post-merge regression gate.
+PR15 refreshed eac711c includes that base with zero G implementation changes:
+730unit/12explicit environment skips and58 targeted tests PASS; foundation43562622863
+PASS. Prior actual Docker10 and independent review remain applicable. A15 human
+NOT RUN; next eligible checkpoint is pinned local-parser test. Public entry, gateway,
+bot and ordinary-app extraction composition remain mandatory unfinished B/C tests,
+distinct from external real-data/hosting/deployment approval gates.

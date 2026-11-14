@@ -1,11 +1,12 @@
 # PR Information
 
 - PR number/title: [#15 — Local PDF parsing isolation](https://github.com/Emichael8212/PathCheck/pull/15).
-- Commit SHA: `ba2e325e06b20d8f8229495fd165ac7d0e07da9c`; base mainc6ab714.
+- Commit SHA: `eac711c8e727c8e7ed45e0951b8a5e4f5d005bba`; base main `ef6ba14`.
+- Parser implementation remains byte-identical to reviewed/tested `ba2e325`; refresh only includes merged PR13.
 - Test type: real container resource/security tests with synthetic PDF fixtures.
 - Feature: enforced parser memory/CPU/wall/cancel boundaries and fail-closed cleanup.
-- Human status: **NOT RUN**. Eligibility: human procedure prepared; sequence after PR13.
-- Current-head foundationCI43560174182 PASS; independent local-scope review no blocker.
+- Human status: **NOT RUN**. Eligibility: **HUMAN ACCEPTANCE REQUIRED** after PR13 merge.
+- Prior implementation foundationCI43560174182 PASS; refreshed CI43562622863 PASS at eac711c. Independent local-scope review no blocker; no owned code changed in refresh.
 
 # Before You Begin
 
@@ -21,17 +22,31 @@ cd /Users/_eman5michael/PathCheck
 git fetch origin
 test ! -e /private/tmp/pathcheck-pr15-human
 git worktree add /private/tmp/pathcheck-pr15-human \
-  -b integration/pr15-human ba2e325e06b20d8f8229495fd165ac7d0e07da9c
+  -b integration/pr15-human eac711c8e727c8e7ed45e0951b8a5e4f5d005bba
 cd /private/tmp/pathcheck-pr15-human
 npm ci --ignore-scripts
-colima start pathcheck-test
+test "$(git rev-parse HEAD)" = eac711c8e727c8e7ed45e0951b8a5e4f5d005bba
+printf 'PR15 pinned setup PASS — human parser tests NOT RUN\n'
+)
+```
+
+Stage1 expected: exact pin and setup PASS; no services started.
+
+**Stage2 — isolated runtime and code-only parser image:**
+
+```sh
+(
+set -eu
+cd /private/tmp/pathcheck-pr15-human
+colima start pathcheck-test --activate=false --ssh-config=false
+test "$(docker context inspect colima-pathcheck-test --format '{{.Endpoints.docker.Host}}')" = "unix://${HOME}/.colima/pathcheck-test/docker.sock"
 docker --context colima-pathcheck-test info --format '{{.Name}}'
 docker --context colima-pathcheck-test pull node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
 node supabase/functions/extract-transcript/isolation/build.mjs
 )
 ```
 
-Expected: context identifies `colima-pathcheck-test`, build completes and prints
+Expected: Docker socket check matches the dedicated profile, build completes and prints
 `PATHCHECK_PDF_IMAGE=sha256:…` for the image just built. The verified agent image was
 `sha256:2f739c92573e01372ef19d2f6b8b81a2da0f0e2db62f3c9e7003133a4b69fefd`; a fresh
 Docker build may have a different image identity. The suite resolves and pins the
@@ -39,6 +54,8 @@ locally built image by its immutable ID, not by that historical value.
 Missing runtime/image is BLOCKED, not a security PASS.
 
 # Step-by-Step Test
+
+**Stage3 — actual parser resource/security tests:**
 
 ```sh
 cd /private/tmp/pathcheck-pr15-human
