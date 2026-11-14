@@ -308,10 +308,9 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
       if (fpRef.current !== fp) { controller.abort(); setDraft({ kind: 'interrupted', reason: 'input_changed' }); return; }
       setDraft(next);
       // The result may arrive while the student works elsewhere: announce it, don't move focus.
-      say(next?.kind === 'draft' ? 'info' : 'error', next?.kind === 'draft' ? 'Draft plan ready. Review it in the side panel; nothing is adopted until you choose.'
-        : next?.kind === 'no_valid_draft' ? 'No draft found within search limits. Your plan is unchanged.'
-        : next?.kind === 'interrupted' ? 'Search interrupted. No draft was evaluated and your plan is unchanged.'
-        : 'Draft plan not available. Your plan is unchanged.');
+      // Interrupted/failed panels carry their own alert, so only these two are announced here.
+      if (next?.kind === 'draft') say('info', 'Draft plan ready. Review it in the side panel; nothing is adopted until you choose.');
+      else if (next?.kind === 'no_valid_draft') say('info', 'No draft found within search limits. Your plan is unchanged.');
     };
     guardAsync(() => port.generate(scenario, controller.signal), 'generate_failed')
       .then(r => settle(draftStateFor(r, fp)), () => settle({ kind: 'failed', failure: { ok: false, code: 'external_failure', reasonCode: 'generate_failed' } }));
