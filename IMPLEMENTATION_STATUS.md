@@ -1497,3 +1497,31 @@ S recovery correction→independent review; compose U/L/S on noncommitting scrat
 real OTP/CAS/recovery/PDF journeys; SCH18 browser interruption; secure extraction
 runtime/gateway/bot/resource isolation. Existing unknown ASU policies remain
 conditional and separate from engineering defects. No merge/deploy/billing change.
+
+### Mandatory runtime/correctness follow-up
+
+Draft LPR12 https://github.com/Emichael8212/PathCheck/pull/12 implementationd0dab52,
+CI43557228112 PASS. Local noncommitting candidate d0dab52 + U7beea3f: fullcheck679,
+43benchmark,9uploadguards,4accountguards,3production,87UI,14integration and3normalization
+PASS. ActualOTP/save/reopen PASS including persisted record. Extended real REST-backed
+browserCAS test also PASS: remote save changes, stale first-device save rejected,
+local edits retained, explicit cloud reopen restores latest version. Initial extension
+failed on wrong test navigation (already accepted record has no Accept button);
+corrected to Graduation planner navigation, not production logic.
+
+SCH18 L worker adapter now uses E's pure incremental generator in an actual Worker;
+unit5 and realChromium2 PASS for identical output, watchdog/cancel not_evaluated and
+unchanged plan. UI controls on UPR14head4a011bd (dependsPR11) require composition and
+independent final review. No fullSCH18PASS before actual controls are tested together.
+
+S PR13head9eec311 implements immutable snapshots; actual2tab6cases x3 PASS and
+per-ID-only mutation3fail demonstrates same-ID race coverage. Independent review
+found legacy consent withdrawal, cleanup-success semantics and partialclear blockers;
+S actually resumed to correct them. U must adapt recovery fixture and surface typed
+multiple-draft conflicts rather than silently ignore them. HumanNOT RUN.
+
+Runtime decision: docs/reviews/pdf-isolation-decision.md records official hosted
+Supabase limitation and proposed separately constrained parser boundary. User
+approval requested; no change to approved architecture made. Public processing stays
+blocked. Root/account/search/recovery correction PRs are not full application
+completion, and no final human acceptance test is eligible yet.

@@ -6,6 +6,7 @@ import type { ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CatalogModelSchema, SEARCH_POLICY, fingerprint } from '../../../src/contracts';
 import type { AcademicService, AnalysisResult, CatalogModel, ExportService, PlanningScenario, TranscriptClient, TranscriptService } from '../../../src/contracts';
+import { createDraftGenerationService } from '../../../src/app/createDraftGenerationService';
 import { createGuestWorkflow } from '../../../src/app/createGuestWorkflow';
 
 const load = (path: string) => import(/* @vite-ignore */ path);
@@ -21,8 +22,8 @@ const catalog = CatalogModelSchema.parse({
   requirementGroups: [{ ...base, requirementId: 'root', kind: 'all', requirementIds: ['intro', 'middle', 'advanced', 'total'] }, ...['intro', 'middle', 'advanced'].map((id, i) => ({ ...base, requirementId: id, kind: 'course', courseId: ['SYN-101', 'SYN-201', 'SYN-301'][i] })), { ...base, requirementId: 'total', kind: 'total_degree_credits', minimum: 9 }],
   rootRequirementId: 'root', equivalencies: [], gradeScale: { ordered: ['A', 'B', 'C', 'D', 'F'], sourceRefs: [source.sourceId] }, policyGaps: [], validationResults: [],
 });
-declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number; acceptanceCalls: number; acceptedFromRevision: number | null } } }
-window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0, acceptanceCalls: 0, acceptedFromRevision: null };
+declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number; acceptanceCalls: number; acceptedFromRevision: number | null; searchStarted: boolean } } }
+window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0, acceptanceCalls: 0, acceptedFromRevision: null, searchStarted: false };
 // Only the isolated upload test may select the actual approved catalog registry.
 const actualCatalogUpload = location.pathname === '/tests/e2e/upload/index.html' && new URLSearchParams(location.search).get('catalog') === 'actual';
 const realAcademic = actualCatalogUpload ? engine.academicService : engine.createAcademicService(engine.createCatalogRegistry([catalog]));
@@ -53,7 +54,15 @@ const transcript = uploadTest ? {
     return { ok: false as const, code: 'unavailable' as const, reasonCode: 'local_capability_unavailable' };
   },
 } : null;
-const services = Object.freeze({ ...realServices, transcript, commands: Object.freeze({
+// Test-only controlled continuation stall; engine performs real work before notification.
+const generationMode = new URLSearchParams(location.search).get('generation');
+const generation = generationMode === 'held' || generationMode === 'watchdog'
+  ? createDraftGenerationService({ watchdogMs: generationMode === 'watchdog' ? 5000 : 30000, worker: () => {
+    const worker = new Worker('/tests/e2e/integration/generation-held.worker.ts', { type: 'module' });
+    worker.addEventListener('message', event => { if (event.data.kind === 'progress' && event.data.expansions > 0) window.__integration.searchStarted = true; });
+    return worker;
+  } }) : realServices.generation;
+const services = Object.freeze({ ...realServices, generation, transcript, commands: Object.freeze({
   ...realServices.commands,
   acceptRecord: ((...args) => {
     window.__integration.acceptanceCalls += 1;

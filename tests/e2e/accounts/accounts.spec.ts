@@ -59,7 +59,7 @@ async function signIn(page: Page, mailbox: string, previousRequest = 0) {
   return requestedAt;
 }
 
-test('real email OTP preserves guest work and saves/reopens an owned plan', async ({ page, browser }) => {
+test('real OTP preserves record, save/reopen and revision conflicts', async ({ page, browser }) => {
   const mailbox = `pc-${randomUUID()}`;
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await enterRecord(page);
@@ -89,6 +89,25 @@ test('real email OTP preserves guest work and saves/reopens an owned plan', asyn
   await expect(reopened.getByLabel('Attempted credits')).toHaveValue('3');
   await expect(reopened.getByLabel('Earned credits')).toHaveValue('3');
   await expect(reopened.getByLabel('Status')).toHaveValue('completed');
+  await other.getByRole('button', { name: 'Graduation planner', exact: true }).click();
+  const remoteForm = other.getByTestId('add-course');
+  await remoteForm.getByLabel('Course', { exact: true }).selectOption('CIS-205');
+  await remoteForm.getByLabel('Term', { exact: true }).selectOption({ label: 'Spring 2027' });
+  await remoteForm.getByRole('button', { name: 'Add course', exact: true }).click();
+  if (!(await other.locator('details.account-menu').evaluate(e => (e as HTMLDetailsElement).open))) await other.getByTestId('account-summary').click();
+  await other.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(other.getByText('Changes saved.', { exact: false })).toBeVisible();
+  const localForm = page.getByTestId('add-course');
+  await localForm.getByLabel('Course', { exact: true }).selectOption('CIS-206');
+  await localForm.getByLabel('Term', { exact: true }).selectOption({ label: 'Spring 2027' });
+  await localForm.getByRole('button', { name: 'Add course', exact: true }).click();
+  await page.getByRole('button', { name: 'Save changes', exact: true }).click();
+  await expect(page.getByTestId('account-summary')).toContainText('Save conflict');
+  await expect(page.getByTestId('screen-planner')).toContainText('CIS 206');
+  await page.getByRole('button', { name: 'Open the cloud version (discard local changes)' }).click();
+  await expect(page.getByText('Opened saved plan.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Spring 2027', exact: true }).getByRole('listitem').filter({ hasText: 'CIS 205' })).toHaveCount(1);
+  await expect(page.getByRole('region', { name: 'Spring 2027', exact: true }).getByRole('listitem').filter({ hasText: 'CIS 206' })).toHaveCount(0);
   await second.close();
   expect(errors).toEqual([]);
 });

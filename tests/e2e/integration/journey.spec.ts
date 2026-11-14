@@ -2,8 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-async function start(page: Page, attempt = { status: 'Completed', grade: 'B', earned: '3' }, target = 'Fall 2027') {
-  await page.goto('/tests/e2e/integration/index.html');
+async function start(page: Page, attempt = { status: 'Completed', grade: 'B', earned: '3' }, target = 'Fall 2027', query = '') {
+  await page.goto('/tests/e2e/integration/index.html' + query);
   await expect(page.getByTestId('screen-start')).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
@@ -244,4 +244,16 @@ test('real engine outlook exports a readable conditional PDF without transcript 
   for (const privateValue of ['Fall 2026', 'Grade:', current.fingerprint!]) expect(pdf.visible).not.toContain(privateValue);
   for (const [i, text] of pdf.pageTexts.entries()) expect(text).toContain(`Page ${i + 1} of ${pdf.pageCount}`);
   expect(await page.evaluate(() => window.__integration.fingerprint)).toBe(current.fingerprint);
+});
+
+for (const mode of ['held', 'watchdog']) test(`real UI ${mode === 'held' ? 'cancellation' : 'watchdog'} interrupts started engine work without changing active plan`, async ({ page }) => {
+  await start(page, undefined, undefined, `?generation=${mode}`);
+  await add(page, 'SYN-201', 'Spring 2027');
+  const before = await page.evaluate(() => JSON.stringify(window.__integration.scenario!.plan));
+  await page.getByRole('button', { name: 'Help me build a plan', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.__integration.searchStarted)).toBe(true);
+  if (mode === 'held') await page.getByRole('button', { name: 'Cancel search', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Search interrupted', exact: true })).toBeVisible({ timeout: 10000 });
+  expect(await page.evaluate(() => JSON.stringify(window.__integration.scenario!.plan))).toBe(before);
+  await expect(page.getByText('No valid draft', { exact: false })).toHaveCount(0);
 });
