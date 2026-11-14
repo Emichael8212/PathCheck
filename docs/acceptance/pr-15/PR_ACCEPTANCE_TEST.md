@@ -5,7 +5,7 @@
 - Parser implementation remains byte-identical to reviewed/tested `ba2e325`; refresh only includes merged PR13.
 - Test type: real container resource/security tests with synthetic PDF fixtures.
 - Feature: enforced parser memory/CPU/wall/cancel boundaries and fail-closed cleanup.
-- Human status: **PASS**. Eligibility: **READY TO MERGE** personally after all four stages.
+- Human status: **PASS**. Status: **MERGED** personally as `8fab5bfae66d38b5970db4d601f8325655962922`.
 - Prior implementation foundationCI43560174182 PASS; refreshed CI43562622863 PASS at eac711c. Independent local-scope review no blocker; no owned code changed in refresh.
 
 # Before You Begin

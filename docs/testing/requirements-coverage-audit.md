@@ -894,3 +894,26 @@ A15 closure: human confirmed Colima stop. SEC-LOCAL-PDF-001 human **PASS** at
 eac711c, including10 actual parser tests and cleanup. Current-head foundation
 CI43562622863 PASS, independent code review clear, CLEAN/MERGEABLE. PR15 READY TO
 MERGE personally, not merged. Public/hosted/real-transcript B/C gates unchanged.
+
+
+### A15 merge evidence
+
+PR15 human merge8fab5bfae66d38b5970db4d601f8325655962922 verified at
+2026-11-14T06:01:44Z; accepted eac711c included. A15 human PASS retained.
+Local main synchronized; current-main CI43564375085 and affected extraction,
+actual container/parser and academic integration regressions in progress.
+No synthetic result promotes real-transcript or hosted security acceptance.
+
+Post-merge8fab5bf: T-GEM/T-SEC actual isolation10 PASS (41.4s), extraction/unit
+regressions included in730 PASS/12explicit environment skips;43benchmark+9guards
+PASS; integration14/normalization3/production3 PASS; mainCI43564375085 PASS.
+No new provider request needed for unchanged transport/fixtures. Candidate
+8e4cf8d+21eb8fe:741unit,UI114,integration18,4accountprivacyguards PASS. A11 human
+NOT RUN; pinned guide prepared. A12/A14/final human pending; public-runtime/bot/
+gateway/hosted and real-data gates not cleared by local parser merge.
+
+A11 eligible human checkpoint:2a96a7763061a9657b72d462f2526e06a1e80fa4, CI43564599936
+PASS, unchanged reviewed UI code. Account UI34/wholeUI102 PASS with zero skips;
+composed candidateUI114 PASS. Human NOT RUN; exact guide indexed under pr-11.
+Real S recovery is used; cloud/auth doubles explicitly limit this to UI safety.
+F16–18 real-service combined human acceptance remains A12 pending, not inferred.

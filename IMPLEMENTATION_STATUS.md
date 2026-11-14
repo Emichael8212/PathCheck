@@ -1674,3 +1674,50 @@ against mainef6ba14; no unresolved review threads/changes-requested review. Prio
 independent local-scope review remains valid because refresh changed no G code.
 PR15 READY TO MERGE personally; not merged. Images/worktree retained. Local parser
 acceptance does not clear public runtime, hosted isolation or real-data gates.
+
+
+### PR15 merged — current-main verification running
+
+GitHub confirms human merge `8fab5bfae66d38b5970db4d601f8325655962922` at
+2026-11-14T06:01:44Z, including accepted parser head eac711c. Local clean main
+fast-forwarded and L feature branch refreshed without conflict. PR15 MERGED;
+human10-test/container-build/cleanup PASS retained. Main CI43564375085 dispatched.
+Requested post-merge npmcheck/integration/normalization and actual Docker parser
+regressions running against main8fab5bf; no live Google or real transcript requests.
+U existing session resumed for PR11/14 refresh; previous finalized reviewed UI
+heads36c0624/21eb8fe preserved. Final acceptance guide next: PR11 UI behavior,
+separate from real-service account integration in PR12. No human retest of PR15.
+
+Post-merge main8fab5bf tests PASS: npmcheck730unit/12explicit skips,43benchmark,
+9uploadguards,lint/type/build/3production; actual `PATHCHECK_PDF_ISOLATION_LIVE=1
+npm test -- tests/transcript/isolation.live.test.ts`10 PASS in41.4s;
+`npm run test:integration`14 PASS; normalization CLI3 PASS. MainCI43564375085 PASS.
+The10opt-in Docker skips in genericcheck are separately closed by the actual run;
+2liveDBskips retain existing evidence (SQL unchanged). Parser containers removed;
+agent-owned Colima stopped successfully. No real transcripts/Google rerun.
+
+New local-only candidate /private/tmp/pathcheck-post15-integration: HEAD8e4cf8d
+(L branch after mergedmain8fab5bf), noncommitting merge UPR14 21eb8fe (contains
+reviewed PR11 36c0624). npmcheck741unit/12explicit skips,43benchmark,9uploadguards,
+4accountguards,3production PASS; integration18 PASS, UI114 PASS/0skip. No scratch
+commit/push. This composes actual engine/worker/command/account ports, but no new
+live Auth/REST or Google assertion is implied. Prior live evidence preserved where
+source unchanged; final combined human acceptance still NOT RUN.
+
+Next eligible checkpoint: PR11 currenthead2a96a7763061a9657b72d462f2526e06a1e80fa4
+includes main8fab5bf; foundationCI43564599936 PASS. Owned UI code/tests byte-identical
+to independently reviewed36c0624; only acceptance-guide counts changed after base
+merge. PR11 agent UI102/0skip (account34), currentunit730/12explicit environment
+skips; composed candidateUI114/engine18 PASS above. Human NOT RUN, HUMAN ACCEPTANCE
+REQUIRED. Canonical index docs/acceptance/pr-11/PR_ACCEPTANCE_TEST.md reuses owner's
+eight-case browser guide, exact pin and one-stage-at-a-time commands. Auth/cloud
+doubles are explicit: this accepts UI race/recovery logic, not real cloud integration.
+PR14 refreshed049996f pending finalCI; PR12 still depends on11/14 and combinedhuman
+acceptance, not ready. Previous A13/A15 human evidence remains closed.
+
+G existing extraction owner actually resumed next approved runtime-entry work on
+assigned feat/extraction-runtime-entry, preserving merged parser branch; no credentials
+or public processing authorized. Scope: actual boot/module-resolution/config tests,
+fail closed without trusted gateway/hosted parser adapters. No fake network identity
+or hosted-isolation claim, no stub-only completion/PR. Remaining gateway/bot/hosted
+verification and final integrated human gates still mandatory.
