@@ -15,12 +15,38 @@ import { identityPairCatalogs, syntheticCatalog, SYNTHETIC_REF } from './synthet
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const fail = (code: Extract<Result<never>, { ok: false }>['code'], reasonCode: string) => ({ ok: false as const, code, reasonCode });
 
-export function fakeClock(start = '2026-11-12T15:00:00.000Z') {
+/**
+ * Deterministic test clock. With `persist` the tick and ID counters live in that storage and
+ * are re-read on every call, so they survive a reload and — with localStorage — stay
+ * monotonic and unique across tabs of one browser profile, as a real clock and IDs would.
+ */
+export function fakeClock(start = '2026-11-12T15:00:00.000Z', persist?: Pick<Storage, 'getItem' | 'setItem'>) {
+  const KEY = 'pathcheck.harness.clock';
   let tick = 0, ids = 0;
-  return {
-    now: () => new Date(Date.parse(start) + 1000 * tick++).toISOString(),
-    newId: (prefix: string) => `${prefix}-${++ids}`,
+  const load = () => {
+    const saved = persist ? (JSON.parse(persist.getItem(KEY) ?? 'null') as { tick: number; ids: number } | null) : null;
+    if (saved) { tick = Math.max(tick, saved.tick); ids = Math.max(ids, saved.ids); }
   };
+  const keep = () => persist?.setItem(KEY, JSON.stringify({ tick, ids }));
+  return {
+    now: () => { load(); const t = new Date(Date.parse(start) + 1000 * tick++).toISOString(); keep(); return t; },
+    newId: (prefix: string) => { load(); const id = `${prefix}-${++ids}`; keep(); return id; },
+    /** Test-only: moves the clock forward (e.g. past a recovery draft's expiry). */
+    advance: (ms: number) => { load(); tick += Math.ceil(ms / 1000); keep(); },
+  };
+}
+
+/**
+ * Account double options. `recovery` replaces the in-memory recovery double with S's real
+ * service (e.g. createGuestRecoveryService over window storage). `gate` holds createPlan/
+ * savePlan ('save') until released. `signOut`: 'unconfirmed' mirrors S (local credentials
+ * dropped, server revocation unconfirmed); 'stuck' keeps the session and fails.
+ */
+export interface FakeAccountOptions {
+  /** Replaces the auth double (e.g. S's real createSupabaseAuth over a synthetic fetch). */
+  auth?: AuthService;
+  conflictOnSave?: boolean; clearFails?: boolean; recovery?: GuestRecoveryService; gate?: TranscriptGate;
+  signOut?: 'ok' | 'unconfirmed' | 'stuck';
 }
 
 const SEASON_BY_NAME: Record<string, TermId['season']> = { spring: 'spring', summer: 'summer', fall: 'fall' };
@@ -249,8 +275,9 @@ export function fakeCommands(academic: AcademicService, clock: { newId(p: string
   return Object.freeze(commands);
 }
 
-export function fakeAccount(options: { conflictOnSave?: boolean; clearFails?: boolean } = {}) {
+export function fakeAccount(options: FakeAccountOptions = {}) {
   let user: { userId: string } | null = null;
+  const held = async () => { if (options.gate?.hold.has('save')) await options.gate.wait('save'); };
   const rows = new Map<string, SavedPlan>();
   let seq = 0;
   let stashed: GuestDraft | null = null;
@@ -258,20 +285,31 @@ export function fakeAccount(options: { conflictOnSave?: boolean; clearFails?: bo
   const auth: AuthService = {
     currentUser: async () => ok(user),
     requestEmailOtp: async email => (email.includes('@') ? ok(null) : fail('validation_error', 'invalid_email')),
-    verifyEmailOtp: async (_email, token) => (token === '123456' ? ok((user = { userId: 'user-a' })) : fail('forbidden', 'invalid_otp')),
-    signOut: async () => { user = null; return ok(null); },
+    verifyEmailOtp: async (_email, token) => (token === '123456' ? ok((user = { userId: 'user-a' })) : token === '654321' ? ok((user = { userId: 'user-b' })) : fail('forbidden', 'invalid_otp')),
+    signOut: async () => {
+      if (options.signOut === 'stuck') return fail('external_failure', 'server_sign_out_unconfirmed');
+      user = null;
+      return options.signOut === 'unconfirmed' ? fail('external_failure', 'server_sign_out_unconfirmed') : ok(null);
+    },
   };
   const storage: StorageService = {
     createPlan: async (record, plan) => {
-      if (!user) return fail('forbidden', 'not_signed_in');
+      const owner = user;
+      await held();
+      if (!owner || user !== owner) return fail('forbidden', 'not_signed_in');
       const id = `cloud-${++seq}`;
       const saved: SavedPlan = { schemaVersion: 1, id, ownerUserId: user.userId, revision: 0, record, plan: { ...plan, planId: id }, createdAt: plan.updatedAt, updatedAt: plan.updatedAt };
       rows.set(id, saved);
       return ok(saved);
     },
     listOwnedPlans: async () => (user ? ok([...rows.values()].map(r => ({ id: r.id, revision: r.revision, updatedAt: r.updatedAt }))) : fail('forbidden', 'not_signed_in')),
-    getOwnedPlan: async id => (rows.get(id) ? ok(rows.get(id)!) : fail('forbidden', 'not_found')),
+    // hold=open: each getOwnedPlan(id) waits for release(`open:${id}`), so completions can be reordered.
+    getOwnedPlan: async id => {
+      if (options.gate?.hold.has('open')) await options.gate.wait(`open:${id}`);
+      return rows.get(id) ? ok(rows.get(id)!) : fail('forbidden', 'not_found');
+    },
     savePlan: async (id, expectedRevision, record, plan) => {
+      await held();
       const row = rows.get(id);
       if (!row) return fail('forbidden', 'not_found');
       if (options.conflictOnSave || row.revision !== expectedRevision) return fail('conflict', 'revision_mismatch');
@@ -280,7 +318,8 @@ export function fakeAccount(options: { conflictOnSave?: boolean; clearFails?: bo
       return ok(saved);
     },
     deleteOwnedPlan: async id => (rows.delete(id) ? ok(null) : fail('forbidden', 'not_found')),
-    deleteAccount: async () => { rows.clear(); user = null; return ok(null); },
+    // Like S: deletion removes server data only; the browser session stays until signOut.
+    deleteAccount: async () => { rows.clear(); return ok(null); },
   };
   const recovery: GuestRecoveryService = {
     stash: draft => { stashed = draft; return ok(null); },
@@ -288,7 +327,31 @@ export function fakeAccount(options: { conflictOnSave?: boolean; clearFails?: bo
     // clearFails mirrors S's typed failure when device storage removal throws; the draft stays.
     clear: event => { clears.push(event); if (options.clearFails) return fail('external_failure', 'recovery_remove_failed'); stashed = null; return ok(null); },
   };
-  return { ports: Object.freeze({ auth, storage, recovery }), inspect: { rows, clears, stashed: () => stashed } };
+  return { ports: Object.freeze({ auth: options.auth ?? auth, storage, recovery: options.recovery ?? recovery }), inspect: { rows, clears, stashed: () => stashed, user: () => user } };
+}
+
+/**
+ * Synthetic Supabase Auth endpoint for S's REAL createSupabaseAuth (no network, no real tokens).
+ * Code 123456 verifies; `gate` holding 'verify' keeps /verify pending until release('verify').
+ * Every call path is recorded in `calls` (e.g. 'verify:held', 'logout').
+ */
+export function syntheticAuthFetch(calls: string[], gate?: TranscriptGate) {
+  const reply = (status: number, body: unknown = null) => ({ status, ok: status < 400, text: async () => (body === null ? '' : JSON.stringify(body)) });
+  let issued = 0;
+  return async (url: string, init: { method: string; body?: string }) => {
+    const path = new URL(url).pathname;
+    if (path === '/auth/v1/otp') { calls.push('otp'); return reply(200, {}); }
+    if (path === '/auth/v1/logout') { calls.push('logout'); return reply(204); }
+    if (path === '/auth/v1/verify') {
+      calls.push('verify');
+      if (gate?.hold.has('verify')) { calls.push('verify:held'); await gate.wait('verify'); calls.push('verify:released'); }
+      const token = (JSON.parse(init.body ?? '{}') as { token?: string }).token;
+      if (token !== '123456') return reply(400, { error: 'otp_expired' });
+      return reply(200, { access_token: `synthetic-access-${++issued}`, refresh_token: `synthetic-refresh-${issued}`, expires_in: 3600, user: { id: '00000000-0000-4000-8000-00000000000a' } });
+    }
+    calls.push(`unexpected:${path}`);
+    return reply(404);
+  };
 }
 
 export function syntheticExtraction(status: TranscriptExtraction['acceptanceStatus'] = 'needs_review'): TranscriptExtraction {
@@ -304,13 +367,15 @@ export function syntheticExtraction(status: TranscriptExtraction['acceptanceStat
  * discard and unmount. A held call records itself as `<name>:held` before waiting and
  * `<name>:released` once the test lets it settle, so ordering against `revoke` can be asserted.
  */
-export interface TranscriptGate { hold: ReadonlySet<string>; release(name: string): void; wait(name: string): Promise<void> }
+export interface TranscriptGate { hold: ReadonlySet<string>; release(name: string): void; rearm(name: string): void; wait(name: string): Promise<void> }
 export function transcriptGate(names: string[]): TranscriptGate {
   const waiting = new Map<string, Array<() => void>>();
   const released = new Set<string>();
   return {
     hold: new Set(names),
     release(name) { released.add(name); for (const go of waiting.get(name) ?? []) go(); waiting.delete(name); },
+    /** Holds the next calls again (a later request of the same kind stays pending until released). */
+    rearm(name) { released.delete(name); },
     wait: name => (released.has(name) ? Promise.resolve() : new Promise<void>(go => { waiting.set(name, [...(waiting.get(name) ?? []), go]); })),
   };
 }
@@ -368,8 +433,8 @@ export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls
   });
 }
 
-export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; transcriptOptions?: FakeTranscriptOptions; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean; catalogPair?: 'provisional' | 'synthetic' } = {}) {
-  const clock = fakeClock();
+export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; transcriptOptions?: FakeTranscriptOptions; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean; catalogPair?: 'provisional' | 'synthetic'; accountOptions?: Omit<FakeAccountOptions, 'conflictOnSave' | 'clearFails'>; clockStore?: Pick<Storage, 'getItem' | 'setItem'> } = {}) {
+  const clock = fakeClock(undefined, options.clockStore);
   const catalogs = options.catalogPair
     ? identityPairCatalogs({ synthetic: options.catalogPair === 'synthetic' })
     : [syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })];
@@ -381,7 +446,7 @@ export function fakeServices(options: { blockingGap?: boolean; longTitles?: bool
     : base;
   const transcriptCalls: string[] = [];
   const revokedIds: string[] = [];
-  const account = options.account === false ? null : fakeAccount({ conflictOnSave: options.conflictOnSave ?? false, clearFails: options.clearFails ?? false });
+  const account = options.account === false ? null : fakeAccount({ ...options.accountOptions, conflictOnSave: options.conflictOnSave ?? false, clearFails: options.clearFails ?? false });
   const services: WorkflowServices = Object.freeze({
     academic,
     commands: fakeCommands(academic, clock),

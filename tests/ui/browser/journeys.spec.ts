@@ -734,8 +734,11 @@ test.describe('selected-courses journey', () => {
     await page.getByLabel('One-time code').fill('123456');
     await page.getByRole('button', { name: 'Verify code' }).click();
     await page.getByRole('button', { name: 'Sign out' }).click();
+    // Unsaved work in the tab is cleared on sign-out, so it asks first.
+    await page.getByRole('button', { name: /Confirm sign out/ }).click();
     const message = page.getByTestId('account-panel').locator('.account-message');
-    await expect(message).toContainText('Signed out. The recovery draft on this device could not be removed');
+    await expect(message).toContainText('Signed out.');
+    await expect(message).toContainText('The recovery draft on this device could not be removed');
     await expect(message).not.toContainText('were cleared');
   });
 });
