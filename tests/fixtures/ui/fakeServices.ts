@@ -28,6 +28,8 @@ export function fakeClock(start = '2026-11-12T15:00:00.000Z', persist?: Pick<Sto
   return {
     now: () => { const t = new Date(Date.parse(start) + 1000 * tick++).toISOString(); keep(); return t; },
     newId: (prefix: string) => { const id = `${prefix}-${++ids}`; keep(); return id; },
+    /** Test-only: moves the clock forward (e.g. past a recovery draft's expiry). */
+    advance: (ms: number) => { tick += Math.ceil(ms / 1000); keep(); },
   };
 }
 
