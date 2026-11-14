@@ -1663,3 +1663,14 @@ and Stage3 actual container suite10 PASS/0failed/0skipped (23:55:12 local start)
 Behavioral human acceptance PASS; final VM cleanup confirmation pending. No merge
 recommendation until current-head gates rechecked. No agent rerun or screenshot
 claim. Scope remains local synthetic parser, not hosted/real-data acceptance.
+
+
+### PR15 human acceptance closed — ready for personal merge
+
+Human confirmed successful Colima stop after10/10 actual parser tests. A15 human
+acceptance PASS including cleanup at eac711c8e727c8e7ed45e0951b8a5e4f5d005bba.
+Current head unchanged, required foundationCI43562622863 PASS, CLEAN/MERGEABLE
+against mainef6ba14; no unresolved review threads/changes-requested review. Prior
+independent local-scope review remains valid because refresh changed no G code.
+PR15 READY TO MERGE personally; not merged. Images/worktree retained. Local parser
+acceptance does not clear public runtime, hosted isolation or real-data gates.

@@ -889,3 +889,8 @@ A15 human update: pinned eac711c actual isolation.live.test.ts10/10 PASS reporte
 by human; built image matches verified2f739c92573e. SEC-LOCAL-PDF-001 local
 resource/security behavior human PASS. VM cleanup confirmation and final current
 head merge-gate check pending; no hosted/public/real-transcript gate cleared.
+
+A15 closure: human confirmed Colima stop. SEC-LOCAL-PDF-001 human **PASS** at
+eac711c, including10 actual parser tests and cleanup. Current-head foundation
+CI43562622863 PASS, independent code review clear, CLEAN/MERGEABLE. PR15 READY TO
+MERGE personally, not merged. Public/hosted/real-transcript B/C gates unchanged.

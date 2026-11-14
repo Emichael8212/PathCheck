@@ -5,7 +5,7 @@
 - Parser implementation remains byte-identical to reviewed/tested `ba2e325`; refresh only includes merged PR13.
 - Test type: real container resource/security tests with synthetic PDF fixtures.
 - Feature: enforced parser memory/CPU/wall/cancel boundaries and fail-closed cleanup.
-- Human status: **NOT RUN**. Eligibility: **HUMAN ACCEPTANCE REQUIRED** after PR13 merge.
+- Human status: **PASS**. Eligibility: **READY TO MERGE** personally after all four stages.
 - Prior implementation foundationCI43560174182 PASS; refreshed CI43562622863 PASS at eac711c. Independent local-scope review no blocker; no owned code changed in refresh.
 
 # Before You Begin
@@ -101,3 +101,12 @@ Approved for local synthetic testing under SEC-LOCAL-PDF-001. It does not establ
 hosted Supabase isolation, public bot/gateway correctness, real-transcript terms,
 production retention, deployment readiness or authorization. Full application
 acceptance remains separate. See the module README for measured limits and review.
+
+# Recorded human acceptance
+
+Human reported pinned setup PASS at eac711c8e727c8e7ed45e0951b8a5e4f5d005bba,
+image build matching2f739c92573e, actual isolation suite10 PASS/0failed/0skipped,
+and successful Colima stop. Current head is unchanged; required foundation
+CI43562622863 PASS, merge state CLEAN/MERGEABLE against main ef6ba14. Independent
+local-scope code review has no remaining blocker; no unresolved GitHub review
+threads. No formal GitHub approval is claimed. Agent does not merge.
