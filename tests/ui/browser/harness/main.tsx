@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { PathCheckWorkflow } from '../../../../src/screens';
 import { createSupabaseAuth } from '../../../../src/auth/supabaseAuth';
 import { parsePublicSupabaseConfig } from '../../../../src/persistence/config';
+import * as guestRecovery from '../../../../src/persistence/guestRecovery';
 import { createGuestRecoveryService } from '../../../../src/persistence/guestRecovery';
 import { deferredGeneration, fakeServices, syntheticAuthFetch, transcriptGate } from '../../../fixtures/ui/fakeServices';
 import type { GenerationCall } from '../../../fixtures/ui/fakeServices';
@@ -64,8 +65,11 @@ const services = genMode && ['deferred', 'ignoreabort', 'failure', 'watchdog', '
   ? Object.freeze({ ...harness.services, generation: deferredGeneration(harness.services.academic, gate, generationCalls, { ignoreAbort: genMode === 'ignoreabort', outcome: genMode === 'failure' || genMode === 'watchdog' || genMode === 'mismatch' ? genMode : 'engine' }) })
   : harness.services;
 
-declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; generationCalls: GenerationCall[]; unmount: () => void; release: (name: string) => void; rearm: (name: string) => void } } }
-window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, revokedIds: harness.revokedIds, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0, savedPlans: () => [...(harness.account?.inspect.rows.values() ?? [])], authCalls, generationCalls, unmount: () => root.unmount(), currentUser: async () => (await harness.services.account!.auth.currentUser()), release: name => gate.release(name), rearm: name => gate.rearm(name) };
+declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; generationCalls: GenerationCall[]; unmount: () => void; recoveryCapabilities: { snapshots: boolean; choices: boolean }; release: (name: string) => void; rearm: (name: string) => void } } }
+window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, revokedIds: harness.revokedIds, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0, savedPlans: () => [...(harness.account?.inspect.rows.values() ?? [])], authCalls, generationCalls, unmount: () => root.unmount(),
+  // Which S recovery module is composed (snapshots/choices arrive with S PR13); tests needing them report BLOCKED otherwise.
+  recoveryCapabilities: { snapshots: 'SHARED_DRAFT_PREFIX' in guestRecovery, choices: typeof (guestRecovery as Record<string, unknown>).listGuestRecoveryChoices === 'function' },
+  currentUser: async () => (await harness.services.account!.auth.currentUser()), release: name => gate.release(name), rearm: name => gate.rearm(name) };
 
 const root = createRoot(document.getElementById('root')!);
 root.render(<StrictMode><PathCheckWorkflow services={services} /></StrictMode>);
