@@ -55,7 +55,7 @@ const CHOICE_ERROR: Record<string, string> = {
   recovery_choice_missing: 'That draft is no longer stored on this device.',
   recovery_choice_changed: 'That draft changed in another tab after this list was shown.',
   recovery_choice_unusable: 'That draft has expired or is no longer valid.',
-  recovery_session_draft_present: 'This tab has its own draft, which takes priority. Reload the page to see it.',
+  recovery_session_draft_present: 'This tab already keeps a draft of its own work, which takes priority. Another draft can be restored only when this tab has no work (for example after Start over).',
 };
 
 type Work = { record: AcademicRecord; plan: Plan };
@@ -114,6 +114,10 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
   const [recovered, setRecovered] = useState<GuestDraft | null>(null);
   const [problem, setProblem] = useState<RecoveryProblem | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
+  // Outcome of a banner action, shown outside the (possibly closed) account menu.
+  const [recoveryStatus, setRecoveryStatus] = useState<string | null>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (recoveryStatus) statusRef.current?.focus(); }, [recoveryStatus]);
   const [plans, setPlans] = useState<Array<{ id: string; revision: number; updatedAt: string }> | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -183,7 +187,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     const list = choiceHelpers.listGuestRecoveryChoices;
     if (!list) return problemFor(f);
     const r = guard(() => list(ports.recovery, clock.now()), 'recovery_choices_failed');
-    if (!r.ok) return { kind: 'notice', text: `${MULTIPLE_NO_CHOICE} ${failureText(r)}`, canClearAll: true };
+    if (!r.ok) return { kind: 'notice', text: `Several guest drafts were found on this device, but they could not be listed. None was restored and all are kept. ${failureText(r)}`, canClearAll: true };
     if (r.value.length === 0) return { kind: 'notice', text: error ? `${error} No other drafts are stored here.` : 'The recovery drafts on this device are no longer available. Nothing was restored.', canClearAll: false };
     return { kind: 'choices', choices: r.value, error };
   }
@@ -212,12 +216,15 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
     if (!ports) return;
     const r = guard(() => ports.recovery.clear('cancel'), 'recovery_clear_failed');
     stashed.current = null;
-    setConfirmClearAll(false); setRecovered(null);
-    if (!r.ok) { setProblem({ kind: 'notice', text: `Some recovery drafts could not be deleted and may still be stored on this device. ${failureText(r)}`, canClearAll: true }); return; }
-    setProblem(null); setRecoveryMode('session'); setCrossTab(false);
-    // Keep refresh protection for the work on screen (re-stashed to this tab only).
+    setConfirmClearAll(false); setRecovered(null); setRecoveryMode('session'); setCrossTab(false);
+    // clear() may have removed this tab's own draft even when a later removal failed: always
+    // re-keep the work on screen for refresh, in this tab only (the student chose to delete
+    // every shared copy), and say so.
     const kept = work && !cloud ? stashWork(work, 'session') : null;
-    say(kept && !kept.ok ? `All recovery drafts on this device were deleted. Your current work could not be kept for refresh recovery: ${failureText(kept)}` : 'All recovery drafts on this device were deleted. Your current work is unchanged.');
+    const workNote = !kept ? '' : kept.ok ? ' Your work on screen is unchanged and kept for refresh in this tab only.' : ` Your work on screen is unchanged but could not be kept for refresh: ${failureText(kept)}`;
+    if (!r.ok) { setProblem({ kind: 'notice', text: `Some recovery drafts could not be deleted and may still be stored on this device. ${failureText(r)}${workNote}`, canClearAll: true }); return; }
+    setProblem(null);
+    setRecoveryStatus(`All recovery drafts on this device were deleted.${workNote}`);
   }
 
   if (!ports) {
@@ -485,13 +492,15 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
         <div className="recovery-banner" role="region" aria-label="Recovery drafts" data-testid="recovery-problem">
           {problem.kind === 'choices' ? (
             <>
-              <p>Several guest drafts were found on this device. Choose one to restore; the others are kept.</p>
+              <p>{problem.choices.length === 1 ? 'A guest draft was found on this device. Restore it, or keep it for later.' : 'Several guest drafts were found on this device. Choose one to restore; the others are kept.'}</p>
               {problem.error && <p className="warning" role="alert">{problem.error}</p>}
+              {/* S gives this tab's own draft priority, and a restore would replace the work on screen. */}
+              {work && <p className="muted" data-testid="recovery-choices-locked">You have started work in this tab, so these drafts can’t be restored here now. They are kept; Start over to restore one.</p>}
               <ul className="recovery-choices" aria-label="Recovery drafts on this device">
                 {problem.choices.map(c => (
                   <li key={c.selectionId} data-testid="recovery-choice">
                     <span>Target {termLabel(c.draft.plan.targetTerm)} · saved <time dateTime={c.draft.createdAt}>{formatTimestamp(c.draft.createdAt)}</time> · <span className="tabular">{c.draft.record.courseAttempts.length}</span> recorded, <span className="tabular">{c.draft.plan.activePlacements.length}</span> planned</span>
-                    <button type="button" onClick={() => chooseDraft(c.selectionId)}>Restore this draft</button>
+                    {!work && <button type="button" onClick={() => chooseDraft(c.selectionId)}>Restore this draft</button>}
                   </li>
                 ))}
               </ul>
@@ -502,12 +511,17 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
               <>
                 <p className="warning" role="note">This permanently deletes every PathCheck recovery draft in this browser, including drafts from other tabs. Your current on-screen work is not affected.</p>
                 <button type="button" className="danger" onClick={clearAllDrafts}>Delete all recovery drafts</button>
-                <button type="button" className="secondary" onClick={() => setConfirmClearAll(false)}>Keep them</button>
+                <button type="button" className="secondary" autoFocus onClick={() => setConfirmClearAll(false)}>Keep them</button>
               </>
             ) : <button type="button" className="secondary" onClick={() => setConfirmClearAll(true)}>Delete all recovery drafts…</button>)}
             <button type="button" className="secondary" onClick={() => { setProblem(null); setConfirmClearAll(false); }}>Dismiss</button>
           </div>
         </div>
+      )}
+      {recoveryStatus && !problem && (
+        <p className="recovery-banner" role="status" tabIndex={-1} ref={statusRef} data-testid="recovery-status">
+          {recoveryStatus} <button type="button" className="link" onClick={() => setRecoveryStatus(null)}>Dismiss</button>
+        </p>
       )}
       {recovered && (
         <div className="recovery-banner" role="region" aria-label="Recovered draft" data-testid="recovery-banner">
