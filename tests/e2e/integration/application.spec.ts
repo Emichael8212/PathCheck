@@ -2,6 +2,30 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { inspectPdf, libraryPageCount } from '../../ui/pdfInspect';
 
+test('current and historical ASU curriculum choices have distinct visible labels', async ({ page }) => {
+  await page.goto('/');
+  const select = page.getByLabel('University and program');
+  const current = await select.locator('option[value="asu-cis-department-provisional-v1"]').innerText();
+  const historical = await select.locator('option[value="asu-cis-guide-2019-2021-v1"]').innerText();
+  expect(current).not.toBe(historical);
+  // Select by the label a student sees, not an internal version identifier.
+  await select.selectOption({ label: current });
+  await expect(select).toHaveValue('asu-cis-department-provisional-v1');
+  await expect(page.getByTestId('catalog-year')).toContainText(/unresolved|unverified|not established/i);
+  await select.selectOption({ label: historical });
+  await expect(select).toHaveValue('asu-cis-guide-2019-2021-v1');
+  await expect(page.getByTestId('catalog-year')).toContainText(/unresolved|unverified|not established/i);
+  await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2027' });
+  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await page.getByRole('button', { name: 'Add course attempt' }).click();
+  const row = page.getByTestId('record-row').last();
+  await row.getByLabel('Course code').fill('CIS 304');
+  await row.getByLabel('Status').selectOption({ label: 'Completed' });
+  await expect(row).toContainText('In catalog');
+  await row.getByLabel('Course code').fill('CIS 300');
+  await expect(row).toContainText('Not in this catalog');
+});
+
 test('assembled application loads provisional curriculum without inventing catalog applicability', async ({ page, baseURL }) => {
   if (!baseURL) throw new Error('Integration test requires an explicit local baseURL');
   const expectedOrigin = new URL(baseURL).origin;
@@ -49,6 +73,8 @@ test('ordinary application accepts a manual record and exports an uncertainty-pr
   await row.getByLabel('Earned credits').fill('3');
   await row.getByLabel('Grade (optional)', { exact: true }).fill('B');
   await expect(page.getByTestId('record-summary')).toContainText('1 course checked');
+  await expect(page.getByTestId('record-summary')).toContainText('All found in this catalog.');
+  await expect(row).toContainText('In catalog');
   await expect(page.getByTestId('screen-planner')).toHaveCount(0);
   await page.getByRole('button', { name: 'Accept and continue' }).click();
   await expect(page.getByTestId('notice-status')).toContainText('Record accepted');
