@@ -52,11 +52,13 @@ const modeFor: Record<Slot, GuestDraft['mode']> = { session: 'session', local: '
  * candidates are a typed `conflict` (all copies preserved), never an arbitrary choice.
  * The session slot (tab-private) wins over shared snapshots.
  *
- * The legacy single localStorage slot (`GUEST_DRAFT_KEY`) is never written. It is read as a
- * candidate; unusable legacy entries are purged by recover()/clear(), and an exact saved copy
- * by clearSavedGuestDraft. Those removals remain read→remove on a mutable key, racing only a
- * pre-snapshot build still open in another tab. A recovered legacy draft is never removed by
- * stash(): withdrawing or continuing it reports `recovery_cleanup_failed` while it remains.
+ * The legacy single localStorage slot (`GUEST_DRAFT_KEY`) is never written, and no automatic
+ * path removes it: it is mutable and a pre-snapshot build in another tab may have rewritten
+ * it. recover() reads a valid legacy draft as a candidate; an unusable legacy entry is
+ * RETAINED and, when nothing else is recoverable, reported as `recovery_cleanup_failed`.
+ * clearSavedGuestDraft never removes it (a legacy copy of the saved draftId → false), and
+ * withdrawing or continuing a recovered legacy draft via stash() keeps it and reports
+ * `recovery_cleanup_failed`. Only an explicit whole-scope clear(event) deletes it.
  */
 export function createGuestRecoveryService(stores: { session: StorageLike | null; local: StorageLike | null }): GuestRecoveryService {
   const store = (slot: Slot) => (slot === 'session' ? stores.session : stores.local);
