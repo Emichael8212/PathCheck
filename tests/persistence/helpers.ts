@@ -43,14 +43,23 @@ export function fakeFetch(responder: Responder): { fetch: FetchLike; calls: Call
   return { fetch, calls };
 }
 
-export function memoryStorage(opts: { failSet?: boolean; failGet?: boolean; failRemove?: boolean } = {}): StorageLike & { map: Map<string, string> } {
+/**
+ * Web Storage double. Enumerable (`length`/`key`) like window.localStorage unless
+ * `enumerable: false`, which models a basic getItem/setItem/removeItem-only store.
+ */
+export function memoryStorage(opts: { failSet?: boolean; failGet?: boolean; failRemove?: boolean; enumerable?: boolean } = {}): StorageLike & { map: Map<string, string> } {
   const map = new Map<string, string>();
-  return {
+  const base = {
     map,
-    getItem: k => { if (opts.failGet) throw new Error('SecurityError'); return map.get(k) ?? null; },
-    setItem: (k, v) => { if (opts.failSet) throw new Error('QuotaExceededError'); map.set(k, v); },
-    removeItem: k => { if (opts.failRemove) throw new Error('SecurityError'); map.delete(k); },
+    getItem: (k: string) => { if (opts.failGet) throw new Error('SecurityError'); return map.get(k) ?? null; },
+    setItem: (k: string, v: string) => { if (opts.failSet) throw new Error('QuotaExceededError'); map.set(k, v); },
+    removeItem: (k: string) => { if (opts.failRemove) throw new Error('SecurityError'); map.delete(k); },
   };
+  if (opts.enumerable === false) return base;
+  return Object.defineProperties(base, {
+    length: { get: () => { if (opts.failGet) throw new Error('SecurityError'); return map.size; } },
+    key: { value: (i: number) => { if (opts.failGet) throw new Error('SecurityError'); return [...map.keys()][i] ?? null; } },
+  }) as typeof base & { readonly length: number; key(i: number): string | null };
 }
 
 /**
