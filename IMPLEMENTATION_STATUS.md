@@ -1325,3 +1325,35 @@ PR9 is BLOCKED: its new mandatory label regression intentionally exposes the mis
 PR10 dependency on its standalone branch; do not skip it or call old CI current.
 PR10 is HUMAN ACCEPTANCE REQUIRED. Prior combined upload human PASS is unchanged.
 Neither PR has been merged, and full account/public-runtime/privacy gates remain open.
+
+
+### Human checkpoint — current CIS 300 matching PASS
+
+Human explicitly reports: "CIS 300 shows In catalog" in the corrected acceptance
+flow (documented pins: L ad2b1b9 + U 3e5a092). Record only the current-curriculum
+course-matching checkpoint as human PASS. Remaining explicit acceptance, planner,
+PDF identity/conditions and other unreported checks are NOT RUN; the complete
+PR9/PR10 human procedure is not yet PASS. Next action: Accept and continue, add
+CIS351 Spring2027, inspect conditional outlook and exported PDF. No merge authorized.
+
+
+### Corrected staged human acceptance PASS; PR10 ready for personal merge
+
+Human first confirmed CIS300 In catalog, then explicitly reported PASS for the
+follow-up: Accept and continue/Record accepted, CIS351 Spring2027 placement, PDF
+Current departmental curriculum/CIS351/Important conditions/unresolved information,
+and absence of completed-record Fall2026 term/Grade field. Pins remain L ad2b1b9 +
+U 3e5a092. This satisfies the scoped meaningful human acceptance for the correction
+and ordinary-root workflow. Supplementary historical-choice/disabled-service checks
+remain automated evidence; do not claim the human separately executed them.
+Prior live upload/security human PASS is retained. No screenshots requested.
+
+PR10 current head3e5a092 unchanged, main6f255bc unchanged, MERGEABLE; required
+foundation43546609647 SUCCESS. Independent Codex review and lead diff review no
+blocker; no GitHub review threads. Active ruleset27097753 requires strict foundation
+check and PR-only changes (legacy branch-protection endpoint404 is not absence of
+ruleset enforcement). PR10 READY TO MERGE by the human; no agent merge.
+PR9 head0a3feae foundation43547679816 FAIL: exactly the distinct-label regression,
+2 other production tests PASS. This is the known missing PR10 dependency, not a
+waived check. After personal PR10 merge, refresh PR9 and run affected checks/CI.
+This documentation checkpoint changes no application behavior; no repeat human test.

@@ -9,10 +9,15 @@
 - Test type: Chrome, real production UI, deterministic engine and PDF export.
 - Feature being verified: distinguish current/historical curriculum; match CIS 300
   in the current configuration; accept a fictional record and export a conditional plan.
-- Human status: **NOT RUN** for this corrected candidate. The previous root attempt
-  stopped after the missing-CIS-300 report. Previous live upload/security PASS stands.
+- Human acceptance: **PASS** for the staged checks actually presented in chat:
+  current-curriculum CIS300 matching, explicit record acceptance, CIS351 Spring2027
+  placement, and PDF curriculum identity/conditions with record term/grade omitted.
+  The human explicitly reported the matching result, then PASS for the remaining steps.
+  Supplementary historical-option and disabled-service assertions have automated PASS;
+  no separate human execution of those assertions is claimed. Prior live upload/security PASS stands.
 - Dependencies: PR #10 may merge after its CI/review/human gates; then refresh PR #9
-  and rerun affected CI before its personal merge. Neither PR is currently merge-ready.
+  and rerun affected CI before its personal merge. PR #10 is READY TO MERGE at
+  the pinned UI head; PR #9 remains BLOCKED pending that dependency and current CI.
 
 ## Before You Begin
 

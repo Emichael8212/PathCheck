@@ -714,3 +714,22 @@ The missing-CIS300 report exposed ambiguous visible catalog choices; the user's 
 selection remains unconfirmed. Historical data and unresolved academic policies are
 unchanged. PR10 must land through personal merge, then PR9 refresh/current CI must
 PASS before recommendation. No mandatory test is waived for this dependency.
+
+
+Human update: current CIS300 matching checkpoint **PASS**, explicitly reported as
+"CIS 300 shows In catalog" for the corrected procedure (L ad2b1b9 + U 3e5a092).
+This is scoped F03 evidence only. Remaining corrected root/planner/PDF human checks
+are **NOT RUN**; full A9/A10 human gates remain pending. No automated result was
+substituted for human acceptance.
+
+
+### Human acceptance closure for curriculum correction
+
+At L ad2b1b9 + U3e5a092, human PASS now covers CIS300 matching, explicit record
+acceptance, CIS351 Spring2027 planning, PDF current identity/conditions and privacy
+omissions. Supplementary historical-option/disabled-service assertions retain their
+automated PASS, without asserting separate human execution. Scoped A10 human gate
+PASS; PR10 CI43546609647 PASS/current3e5a092, independent review no blocker.
+PR10 READY TO MERGE personally. A9 human workflow PASS but A9 merge remains BLOCKED:
+CI43547679816 at0a3feae FAIL on duplicate-label regression; 2 other root tests PASS.
+Refresh and revalidate after PR10 merge; no waiver or full-MVP completion claim.

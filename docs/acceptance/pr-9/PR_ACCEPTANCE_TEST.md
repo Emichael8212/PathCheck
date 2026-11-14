@@ -1,6 +1,6 @@
 > **Current retry procedure:** use [PR #10 + PR #9 corrected curriculum acceptance](../pr-10/PR_ACCEPTANCE_TEST.md).
 > The earlier ordinary-root attempt below was interrupted by indistinguishable current/historical
-> catalog labels. Corrected human acceptance is NOT RUN. Do not restart the old pin or repeat
+> catalog labels. Corrected staged human acceptance is PASS (scope recorded in the linked guide). Do not restart the old pin or repeat
 > accepted live upload/security tests. PR #10 must merge before PR #9 is refreshed for final CI.
 
 # PR #9 — Ordinary application entry acceptance
