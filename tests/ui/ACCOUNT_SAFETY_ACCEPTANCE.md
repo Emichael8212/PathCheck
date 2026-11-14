@@ -4,7 +4,7 @@ For L to index under `docs/acceptance/pr-11/`. Human status: **NOT RUN**. Agent 
 
 ## What is being accepted
 
-- **Implementation:** branch `feat/frontend-account-safety`, merged with `origin/main` `ef6ba14ae69986f8fbdeb4e55f930b25482f2cd8` (includes S PR #13). Tested SHA = the PR #11 head named in the PR's Evidence section. Check it with `git rev-parse HEAD`.
+- **Implementation:** branch `feat/frontend-account-safety`, merged with `origin/main` `8fab5bfae66d38b5970db4d601f8325655962922` (includes S PR #13 and PR #15). Tested SHA = the PR #11 head named in the PR's Evidence section. Check it with `git rev-parse HEAD`.
 - **Scope:** independent UI behavior only, in `AccountPanel` and the `PathCheckWorkflow` account/recovery wiring.
   - **Real S code used:** recovery service, `clearSavedGuestDraft`, `listGuestRecoveryChoices`/`selectGuestRecoveryChoice`, and (for step 5) `createSupabaseAuth` against a synthetic in-page Auth endpoint.
   - **Synthetic:** cloud storage and the normal auth path are test doubles.
@@ -20,11 +20,14 @@ Node ≥24, `npm ci`, Playwright Chromium installed, port 5179 free. Use Chrome 
 git rev-parse HEAD
 npx playwright test -c tests/ui/browser/playwright.ui.config.ts tests/ui/browser/account.spec.ts   # 34 passed, 0 skipped
 npx playwright test -c tests/ui/browser/playwright.ui.config.ts                                     # 102 passed, 0 skipped
-npm run lint && npm run typecheck && npm test                                                       # 724 passed, 2 skipped
+npm run lint && npm run typecheck && npm test                                                       # 730 passed, 12 skipped
 npm run build
 ```
 
-- The 2 skipped tests in `npm test` are the documented live-database checks. Any other skip, any failure, or a lower count is a **FAIL**.
+- The 12 skips in `npm test` are expected:
+  - 2 are live-database checks (`tests/persistence/live.supabase.test.ts`).
+  - 10 are opt-in Docker isolation checks for the transcript parser (`tests/transcript/isolation.live.test.ts`, from PR #15).
+  - Neither group belongs to PR #11. Any other skip, any failure, or a lower count is a **FAIL**.
 
 ## 2. Manual checks
 
