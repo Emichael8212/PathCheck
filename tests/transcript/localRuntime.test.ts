@@ -11,7 +11,7 @@ import type { ProcessingEligibility } from '../../src/contracts';
 
 const origin = 'https://127.0.0.1:5185';
 const network = 'n'.repeat(43);
-async function fixture(lifetimeMs = 3_600_000) {
+async function fixture(lifetimeMs = 3_600_000, pdf?: LocalSyntheticRuntimeOptions['pdf']) {
   const bytes = await generatedPdf(1, false);
   const digest = await sha256(bytes);
   const digests = [digest];
@@ -34,7 +34,7 @@ async function fixture(lifetimeMs = 3_600_000) {
     expiresAt: new Date(clock + lifetimeMs).toISOString(), fixtureDigests: digests, accounting: { dailyLimitUnits: 100, perRequestUnits: 1 },
     store, bot, resolveNetwork: async () => network,
     authorizeRetry: async () => revoked.has(activeReceipt) ? { ok: false, code: 'forbidden', reasonCode: 'consent_revoked' } : { ok: true, value: null },
-    authorizeAttempt, now: () => new Date(clock).toISOString(), send,
+    authorizeAttempt, now: () => new Date(clock).toISOString(), send, ...(pdf ? { pdf } : {}),
     timing: { now: () => clock, random: () => 0, sleep: async ms => { clock += ms; } } };
   const handler = createLocalSyntheticTranscriptRuntime(options);
   const request = (operation: string, body: BodyInit | null = '{}', cookie = '', headers: Record<string, string> = {}) => new Request(`${origin}/api/transcript/${operation}`, {
@@ -53,6 +53,16 @@ async function fixture(lifetimeMs = 3_600_000) {
 }
 
 describe('local synthetic factory using real handler/admission/provider, simulated Google/store', () => {
+  it('injects local isolation only after admission and never dispatches after parser failure', async () => {
+    const inspect = vi.fn().mockResolvedValue({ ok: false, code: 'unavailable', reasonCode: 'pdf_inspection_resource_or_runtime_failure' });
+    const f = await fixture(3_600_000, { inspect });
+    const issued = (await (await f.ticket()).json()).value;
+    expect((await f.upload(issued)).status).toBe(503);
+    expect(f.store.admit).toHaveBeenCalledOnce(); expect(inspect).toHaveBeenCalledOnce();
+    expect(inspect.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(f.store.dispatch).not.toHaveBeenCalled(); expect(f.send).not.toHaveBeenCalled();
+    expect(f.store.finish).toHaveBeenCalledWith(expect.objectContaining({ actualCostMicrousd: 0, outcome: 'failed' }));
+  });
   it('extracts only the allowlisted fixture with explicit consent and zero API monetary cost', async () => {
     const f = await fixture();
     const availability = await f.handler(f.request('availability'));

@@ -3,6 +3,7 @@
 import { createAdmissionCore } from '../../../supabase/functions/extract-transcript/admissionCore';
 import type { AdmissionStore, BotVerifier } from '../../../supabase/functions/extract-transcript/admissionCore';
 import { createTranscriptHandlerCore } from '../../../supabase/functions/extract-transcript/handlerCore';
+import type { PdfInspector } from '../../../supabase/functions/extract-transcript/handlerCore';
 import { createSyntheticGeminiProvider } from '../../../supabase/functions/extract-transcript/provider';
 import type { ProviderTiming, SyntheticProviderPolicy } from '../../../supabase/functions/extract-transcript/provider';
 import type { Result } from '../../../src/contracts';
@@ -28,6 +29,8 @@ export interface LocalSyntheticRuntimeOptions {
   now?: () => string;
   send?: typeof fetch;
   timing?: ProviderTiming;
+  /** Lead's local-only constrained parser; admission and digest checks precede it. */
+  pdf?: PdfInspector;
 }
 
 export function createLocalSyntheticTranscriptRuntime(options: LocalSyntheticRuntimeOptions): (request: Request) => Promise<Response> {
@@ -59,7 +62,8 @@ export function createLocalSyntheticTranscriptRuntime(options: LocalSyntheticRun
     retry: { maxAttempts: 3, maxElapsedMs: 50_000, baseDelayMs: 6000 }, authorizeAttempt: options.authorizeAttempt }, options.send, options.timing);
   const handler = createTranscriptHandlerCore({ allowedOrigin: origin.origin, disclosureVersion: options.disclosureVersion,
     sessionSecret: options.sessionSecret, eligibility: () => permit, admission, store: options.store, provider,
-    resolveNetwork: options.resolveNetwork, now, authorizeEgress: options.authorizeRetry }, {
+    resolveNetwork: options.resolveNetwork, now, authorizeEgress: options.authorizeRetry,
+    ...(options.pdf ? { pdf: options.pdf } : {}) }, {
     enabled, reservedCost: () => perRequestUnits, processingTier: 'free_tier_synthetic_fixtures_only',
   });
   return async request => {
