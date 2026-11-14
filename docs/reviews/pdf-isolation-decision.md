@@ -1,6 +1,6 @@
-# PDF parsing isolation — approval required
+# PDF parsing isolation — approved local implementation
 
-Status: APPROVED for local implementation/synthetic tests by the human on2026-11-13; not yet implemented or verified. See DECISIONS.md SEC-LOCAL-PDF-001. Existing extraction and privacy
+Status: APPROVED for local implementation/synthetic tests by the human on2026-11-13; implemented in PR15 `ba2e325`; actual container tests and one live synthetic integration passed. See DECISIONS.md SEC-LOCAL-PDF-001. Existing extraction and privacy
 contracts remain authoritative. No deployment, paid billing or real transcripts.
 
 ## Evidence and impact
@@ -54,7 +54,9 @@ by relabeling whole-function limits as per-request isolation.
   approved durable lease, and replay/revocation/security suites still pass.
 - Existing synthetic corpus and browser workflow remain correct; no paid fallback.
 
-Until implemented and verified, this is an **engineering gate BLOCKED**, separate
-from release-only real-transcript terms, hosted configuration and human deployment
-approval. Safe Edge entry/module-resolution work can proceed independently with
+Local implementation evidence: PR15 actual Docker suite10 PASS, all16containers
+removed; lead live browser/SQL/Gemini success1 PASS with confirmed parser cleanup.
+Human PR15 acceptance is NOT RUN. Public/hosted integration remains an engineering
+gate BLOCKED, separate from release-only real-transcript terms, hosted configuration
+and human deployment approval. Safe Edge entry/module-resolution work can proceed independently with
 processing disabled; no new credentials are needed for that work.

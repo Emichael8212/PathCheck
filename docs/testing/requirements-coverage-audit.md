@@ -813,3 +813,39 @@ and synchronized; PR9 refresh8daea48, test head d74555b0a8b7e3255202e4d99c9755c0
 Prior duplicate-label CI failure is resolved by mergedPR10; do not delete its historical
 evidence. Remaining account/public-runtime/real-data privacy requirements are mandatory
 unfinished B/C work, not waived requirements or an assertion of MVP completion.
+
+
+## PR9 merged / approved local-isolation and correction audit
+
+PR9 merge `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e` verified; mainCI43553584601 PASS.
+Prior human acceptance of PR4–10 remains scoped PASS. Main is not the correction
+candidate: no new feature PR was merged. Pins: S13 a7fa58d, U11 a23b04c/U14 dd275b3,
+G15 ba2e325, L12 80230f6 plus lead E2E changes (ledger records exact composition).
+
+| Requirement/source | Owner | Exact test / actual evidence | Result / acceptance gate |
+|---|---|---|---|
+| T-AUTH guest recovery, cross-tab loss; ARCH8 | S | tests/persistence/recoveryTwoTab.test.ts:10 real browser races; recovery.test.ts explicit choices, expiry, consent and cleanup;148 persistence PASS/2 liveDB skips | PASS candidate; A13 human NOT RUN |
+| T-AUTH stale restore and honest deletion | U/S | tests/ui/browser/account.spec.ts `single-draft Restore re-validates the stored copy first`, `no usable choices left`; combined UI112 PASS/0skip, independent static review clear | PASS B; A11 human NOT RUN, dependency13 |
+| SCH17/18 actual interrupted search | L/U/E | generation.spec.ts `actual worker watchdog and cancellation interrupt after engine work begins`; journey.spec.ts real UI cancellation/watchdog cases;18 integration PASS | PASS B candidate; A12 CI FAIL without U14, human NOT RUN |
+| F03/F06/F10/F13/F19 integrated correctness | L/E/U | application.spec manual current CIS300/PDF, journey.spec availability single owner, actual recommendation/preview/reject/apply/undo;18 integration+3production PASS | PASS candidate B; university unknown rules remain conditional |
+| SEC-LOCAL-PDF-001 / T-GEM resource control | G | tests/transcript/isolation.live.test.ts10 actual container tests:memory,CPU,wall,cancel,amplification,next clean request,no network/output/cleanup;16containers removed | PASS A15 local; human NOT RUN; no hosted claim |
+| F04/T-GEM real isolated upload | G/L/S/E/U | live.spec.ts `LIVE synthetic PDF through real Google, SQL, normalization, acceptance and planner`;1/1 attempt,1HTTP200,one cleanupConfirmed parser; actual SQL/provider | PASS B local candidate; public runtime BLOCKED implementation |
+| T-SEC OTP/build secrecy | L | tests/e2e/accounts/guards.node.mjs4 PASS including actual Vite secret rejection and missing/filled OTP artifact probes | PASS candidate A12/B |
+| Shared regressions | All | npm run check741unit PASS/12skip,43benchmark,9uploadguards,4accountguards,3production; UI112 PASS; integration18 PASS | PASS candidate B;12skips=10separateDocker+2separateDB gates, not inferred PASS |
+| Mandatory human gates | Human/L | pr13 and pr15 PR_ACCEPTANCE_TEST.md; prior scoped PR4–10 evidence retained | NOT RUN A11–15; final full application BLOCKED |
+| Public endpoint/attestation | G/L/U | Actual deployable entry/module resolution, trusted gateway/network identity and genuine public bot flow not complete | MISSING TEST / implementation BLOCKED B/C; not optional |
+| Real-document terms/hosted controls | Human/G/L | No real transcript/billing/deploy authorized; local isolated proof does not establish hosted equivalence | BLOCKED C; no full-MVP/deployment-ready claim |
+
+Independent reviewer inspected latest U/S compatibility and local parser wiring with
+no remaining blocker; static review is separate from the executed tests. L current
+CI failure is explicitly retained until dependencies land and current head passes.
+Only genuinely new behavior needs human verification; no screenshots requested from
+the user beyond their own GitHub evidence.
+
+F16–18/T-AUTH/T-EXPORT candidate closure: `tests/e2e/accounts/accounts.spec.ts`
+`real OTP persists record and availability, resolves conflicts, exports and deletes`
+PASS1 via `node tests/e2e/accounts/run.mjs --test`, using latest Udd275b3/Sa7fa58d
+composition and real local Auth/REST. Tests two sessions, saved record/evidence,
+revision conflict/local preservation, explicit remote reopen, active-plan PDF and
+plan/account deletion. Status PASS B automated; A12/final human NOT RUN. This does
+not make old main account composition complete or assert hosted security.

@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { inspectPdf, libraryPageCount } from '../../ui/pdfInspect';
 import { verifyPrivateCode } from './privateOtp';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -59,10 +61,14 @@ async function signIn(page: Page, mailbox: string, previousRequest = 0) {
   return requestedAt;
 }
 
-test('real OTP preserves record, save/reopen and revision conflicts', async ({ page, browser }) => {
+test('real OTP persists record and availability, resolves conflicts, exports and deletes', async ({ page, browser }) => {
   const mailbox = `pc-${randomUUID()}`;
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await enterRecord(page);
+  const selected = page.getByTestId('placement').filter({ hasText: 'CIS 351' });
+  await selected.getByLabel('Edit CIS 351', { exact: true }).click();
+  await selected.getByRole('button', { name: 'Not listed', exact: true }).click();
+  await expect(selected).toContainText('You reported: Not listed');
   const firstRequest = await signIn(page, mailbox);
   await expect(page.getByText('Nothing has been saved yet', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Save as new', exact: true }).click();
@@ -80,6 +86,7 @@ test('real OTP preserves record, save/reopen and revision conflicts', async ({ p
   await other.getByTestId('account-summary').press('Escape');
   await expect(other.getByTestId('outlook')).toContainText(/insufficient|unknown/i);
   await expect(other.getByTestId('screen-planner')).toContainText('CIS 351');
+  await expect(other.getByTestId('placement').filter({ hasText: 'CIS 351' })).toContainText('You reported: Not listed');
   await other.getByRole('button', { name: 'Academic record', exact: true }).click();
   const reopened = other.getByTestId('record-row');
   await expect(reopened).toHaveCount(1);
@@ -108,6 +115,30 @@ test('real OTP preserves record, save/reopen and revision conflicts', async ({ p
   await expect(page.getByText('Opened saved plan.', { exact: false })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Spring 2027', exact: true }).getByRole('listitem').filter({ hasText: 'CIS 205' })).toHaveCount(1);
   await expect(page.getByRole('region', { name: 'Spring 2027', exact: true }).getByRole('listitem').filter({ hasText: 'CIS 206' })).toHaveCount(0);
+  if (await page.locator('details.account-menu').evaluate(e => (e as HTMLDetailsElement).open)) await page.getByTestId('account-summary').click();
+  const downloadPending = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
+  await page.getByRole('button', { name: 'Export PDF', exact: true }).click();
+  await expect(page.getByTestId('notice-status')).toContainText('PDF exported with your active plan only.');
+  const download = await downloadPending;
+  expect(download).not.toBeNull();
+  const bytes = new Uint8Array(await readFile((await download!.path())!));
+  const pdf = inspectPdf(bytes);
+  expect(await libraryPageCount(bytes)).toBe(pdf.pageCount);
+  const activePlan = pdf.text.split('Active plan')[1]?.split('Priority issues')[0];
+  expect(activePlan).toBeDefined();
+  expect(activePlan).toContain('CIS 351'); expect(activePlan).toContain('CIS 205');
+  expect(activePlan).not.toContain('CIS 206'); expect(pdf.text).toContain('Important conditions');
+  expect(pdf.text).toMatch(/unverified|unresolved|unknown/i);
+  expect(pdf.visible).not.toContain('Grade:'); expect(pdf.visible).not.toContain('Fall 2026');
+  await page.getByTestId('account-summary').click();
+  await page.getByRole('button', { name: 'My saved plans', exact: true }).click();
+  await page.getByRole('list', { name: 'Saved plans' }).getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm delete', exact: true }).click();
+  await expect(page.getByText('No saved plans.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete account', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm: delete my account and saved plans', exact: true }).click();
+  await expect(page.getByTestId('account-summary')).toContainText('Guest, not saved');
+  await expect(page.getByTestId('screen-start')).toBeVisible();
   await second.close();
   expect(errors).toEqual([]);
 });

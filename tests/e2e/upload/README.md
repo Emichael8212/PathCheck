@@ -60,3 +60,19 @@ Remaining gates: real gateway/bot attestation, runtime PDF resource isolation,
 approved real-transcript terms/privacy and final application/account composition.
 Live synthetic browser extraction and its human acceptance have passed at the
 recorded pins; preserve their evidence and revalidate affected changes. The synthetic provider factory is not wired into a public bypass.
+
+
+## Approved local isolated parser follow-up (PR12 + PR15)
+
+The historical PR9 acceptance pins above remain valid. Current `runLive.mjs`
+requires PR15 and `PATHCHECK_LOCAL_PDF_IMAGE` containing the immutable ID printed
+by `node supabase/functions/extract-transcript/isolation/build.mjs`; see
+[PR15 acceptance](../../../docs/acceptance/pr-15/PR_ACCEPTANCE_TEST.md). Set that
+variable only in the server-side launcher environment. It is not a Vite variable.
+The server creates one constrained inspector pool, and live acceptance asserts
+completed parsing and confirmed container cleanup before reporting success. A
+missing image fails closed. No in-process fallback or paid fallback is enabled.
+Actual agent verification: one synthetic PDF, real local SQL, real Google HTTP200,
+1/1 course attempt, explicit acceptance and deterministic preview/apply/undo PASS.
+This is separate from the simulated-provider suite and human acceptance NOT RUN
+for the new parser boundary. Public gateway/bot and hosted isolation remain open.

@@ -1525,3 +1525,64 @@ Supabase limitation and proposed separately constrained parser boundary. User
 approval requested; no change to approved architecture made. Public processing stays
 blocked. Root/account/search/recovery correction PRs are not full application
 completion, and no final human acceptance test is eligible yet.
+
+
+### Local parser approval and final-audit correction integration — 2026-11-13
+
+This checkpoint supersedes the stale approval-request and pending-review statements
+above without deleting their history. Human approved SEC-LOCAL-PDF-001. PR9 merge
+verified again: `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e`, 2026-11-14T03:40:17Z;
+local main clean at that merge. Current-main CI43553584601 PASS. No further merges.
+
+| PR / owner | Current implementation head | Evidence / remaining gate |
+|---|---|---|
+| 13 / S recovery | a7fa58d67e386ffe54b1e13bf37991de4713d86b | CI43559926987 PASS; code de92df6 unchanged except comment; real two-tab10 PASS x3, persistence148 PASS/2 documented DB skips; independent review no blocker; human NOT RUN, HUMAN ACCEPTANCE REQUIRED |
+| 11 / U account safety | a23b04ca0d0f9240378a0b4500d8ac88eb6d7557 | CI43561192741 PASS; latest independent review no blocker; with S helpers UI100 PASS; standalone5 dependent tests skipped/BLOCKED until PR13 merge; human NOT RUN |
+| 14 / U cancellable search | dd275b3bd3d867670e9f3d947567985aab6a075c | CI43561305797 PASS; depends PR11/13; composed UI112 PASS; independent review no blocker; human NOT RUN |
+| 15 / G local parser | ba2e325e06b20d8f8229495fd165ac7d0e07da9c | CI43560174182 PASS; actual Docker10 PASS/all16containers removed; independent review no blocker; human NOT RUN |
+| 12 / L integration | 80230f6 plus pending lead tests/docs | CI43559127505 FAIL: actual new cancellation UI tests depend on unmerged PR14; combined tests PASS below. Remains BLOCKED, never ready from older CI. Also live parser launcher depends PR15. |
+
+Reproducible local-only candidate `/private/tmp/pathcheck-account-candidate`: HEAD
+d0dab52, noncommitting U7beea3f merge, exact U delta through dd275b3, L delta through
+80230f6 plus current lead E2E changes, S a7fa58d owned paths, G ba2e325 owned paths.
+No scratch commits/push. `npm run check` PASS: lint/type/build,741unit PASS/12skips
+(10 actual-Docker opt-in cases separately PASS,2 liveDB cases separately tested),
+43benchmark,9uploadguards,4accountprivacyguards,3productionbrowser.
+`node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts`
+112 PASS/0skip; `npm run test:integration`18 PASS. These include real engine Worker
+work before cancel/watchdog, unchanged active plan and honest interrupted outcome.
+
+G actual isolation: pinned base image,256MiB memory/no swap,CPU and wall limits,
+nonroot/read-only/no network/no mounts/no core/no log driver,bounded output and
+cancellation cleanup; failed cleanup quarantines capacity. G Docker tests10 PASS.
+Lead live synthetic browser/SQL/Gemini3.5Flash-Lite1 PASS: actual isolated parsing
+cleanup confirmed,1/1 course attempt,one HTTP200,explicit record acceptance,real
+normalization/planner/preview/apply/undo. No paid fallback or corpus rerun.
+
+U latest fixes refuse expired/removed/replaced cached recovery on Restore, preserve
+TTL, disclose current-session re-stash and concurrent deletion limitations, and
+describe retained but unusable drafts accurately. S immutable snapshots preserve
+concurrent distinct drafts and same-ID revisions; explicit choices validate current
+content without deleting others. Fresh human verification required for changed
+recovery behavior, not repetition of prior SQL acceptance.
+
+Human procedures: docs/acceptance/pr-13/PR_ACCEPTANCE_TEST.md and pr-15 equivalent.
+Next eligible checkpoint is PR13 focused recovery human test, initial NOT RUN.
+Dependency order: PR13→refresh/revalidate PR11→PR14; PR15 can proceed independently;
+PR12 requires those corrections, current-head CI and combined human acceptance.
+No PR is READY TO MERGE without its human PASS. Final whole-application acceptance
+remains BLOCKED: pending correction integration/human gates and actual public
+extraction entry/gateway/bot implementation. Local synthetic factory is not public
+production runtime. Hosted isolation, authorized real-data terms/testing and separate
+deployment approval remain release gates. No architecture/academic-rule change beyond
+the explicitly approved local parser boundary. Implementation/integration incomplete;
+prior scoped human PASS retained, final human NOT RUN; deployment NOT READY.
+
+Final composed account verification: `node tests/e2e/accounts/run.mjs --test`
+PASS1 on the latest candidate (1.1min; actual local OTP resend delay preserved).
+Exact test `real OTP persists record and availability, resolves conflicts, exports
+and deletes`: two real browser sessions, actual Supabase Auth/REST, CIS300/B/3/3
+record and student not_listed evidence persisted, stale save conflict preserves
+local work, explicit reopen loads remote changes, exported active-plan section
+excludes rejected local changes and retains uncertainty, plan/account deletion
+returns to guest state. No mocked account services or captured screenshots.

@@ -12,6 +12,7 @@ import { guardLiveEgress } from './liveEgress.mjs';
 import { atomicJson } from '../transcript-benchmark/checkpoint.mjs';
 
 const origin = 'https://127.0.0.1:5185';
+if (!/^sha256:[a-f0-9]{64}$/.test(process.env.PATHCHECK_LOCAL_PDF_IMAGE ?? '')) throw Error('isolated_parser_image_required');
 if (process.env.PATHCHECK_LIVE_SYNTHETIC !== '1' || process.env.PATHCHECK_GEMINI_FREE_TIER_CONFIRMED !== '1'
   || process.env.PATHCHECK_GEMINI_MODEL !== 'gemini-3.5-flash-lite' || !process.env.GEMINI_API_KEY
   || process.env.PATHCHECK_LOCAL_API_URL !== 'http://127.0.0.1:55431' || !process.env.PATHCHECK_LOCAL_ROLE_KEY) throw Error('private_synthetic_configuration_required');
@@ -35,7 +36,7 @@ catch { execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes'
 await chmod(`${cert}/key.pem`, 0o600);
 const report = { fixtureId: fixture.fixtureId, fixtureDigest: fixture.digest, liveGoogle: true, liveDatabase: true,
   model: 'gemini-3.5-flash-lite', botMode: 'local_one_use_capability_not_public_attestation', startedAt: new Date().toISOString(),
-  evidenceWriteFailed: false, quotaReservations: 0, providerAttempts: [], rpc: { issue: 0, admit: 0, dispatch: 0, retry: 0, finish: 0, revoke: 0 } };
+  pdfIsolation: [], evidenceWriteFailed: false, quotaReservations: 0, providerAttempts: [], rpc: { issue: 0, admit: 0, dispatch: 0, retry: 0, finish: 0, revoke: 0 } };
 const reportPath = `${privateRoot}/run-${Date.now()}.json`;
 const attestationTokens = new Map();
 const issuanceTimes = [];
@@ -91,6 +92,11 @@ server = await createServer({ configFile: false, logLevel: 'silent', plugins: [r
   fs: { deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/supabase/functions/**'] } } });
 const { createLocalSyntheticTranscriptRuntime } = await server.ssrLoadModule('/tests/fixtures/transcripts/localRuntime.ts');
 const { createAdmissionRpc, createTranscriptAdmissionStore } = await server.ssrLoadModule('/supabase/functions/_shared/transcriptAdmission.ts');
+const { createDockerPdfInspector } = await server.ssrLoadModule('/supabase/functions/extract-transcript/isolation/dockerInspector.ts');
+// One resource-admission pool per local endpoint; SQL quotas remain authoritative.
+const pdf = createDockerPdfInspector({ imageId: process.env.PATHCHECK_LOCAL_PDF_IMAGE, onEvidence: evidence => {
+  report.pdfIsolation.push({ elapsedMs: evidence.elapsedMs, exitCode: evidence.exitCode, oomKilled: evidence.oomKilled, terminated: evidence.terminated, cleanupConfirmed: evidence.cleanupConfirmed });
+} });
 const rpc = createAdmissionRpc({ url: process.env.PATHCHECK_LOCAL_API_URL, serviceRoleKey: process.env.PATHCHECK_LOCAL_ROLE_KEY });
 const networkKey = randomBytes(32).toString('base64url');
 const store = createTranscriptAdmissionStore({ networkKeys: async () => [networkKey], rpc: async (name, args) => {
@@ -102,7 +108,7 @@ handler = createLocalSyntheticTranscriptRuntime({ allowedOrigin: origin, disclos
   sessionSecret: randomBytes(32).toString('hex'), signingSecret: randomBytes(32).toString('hex'),
   apiKey: process.env.GEMINI_API_KEY, modelId: 'gemini-3.5-flash-lite', freeTierConfirmed: true,
   expiresAt: new Date(Date.now() + 3500000).toISOString(), fixtureDigests: [fixture.digest],
-  accounting: { dailyLimitUnits: 100, perRequestUnits: 1 }, store,
+  accounting: { dailyLimitUnits: 100, perRequestUnits: 1 }, store, pdf,
   bot: { verify: async token => { const expiry = attestationTokens.get(token); attestationTokens.delete(token); return expiry !== undefined && expiry > Date.now(); } },
   resolveNetwork: async () => networkKey, authorizeRetry: input => store.authorizeRetry(input),
   authorizeAttempt: async tokens => {
