@@ -1721,3 +1721,39 @@ or public processing authorized. Scope: actual boot/module-resolution/config tes
 fail closed without trusted gateway/hosted parser adapters. No fake network identity
 or hosted-isolation claim, no stub-only completion/PR. Remaining gateway/bot/hosted
 verification and final integrated human gates still mandatory.
+
+PR11 human progress at2a96a776: Stage1 pinned setup PASS; Stage2 account/recovery
+UI suite34 PASS reported by human. Eight interactive browser cases and cleanup
+remain NOT RUN; overall A11 human acceptance is not yet PASS.
+
+PR11 human progress correction: browser cases1–5 explicitly reported PASS by
+human (restore, expired rejection, late-save preservation, unconfirmed signout,
+canceled verification). Case6 instructions issued, result not yet reported;
+cases7–8 and cleanup pending. Overall human gate remains incomplete.
+
+
+### PR11 human acceptance complete; authorized agent cleanup
+
+Human reported all eight manual cases PASS plus34 account UI assertions at
+2a96a7763061a9657b72d462f2526e06a1e80fa4. Cases6–8: late-open preserves edits;
+two drafts remain separate and need explicit selection; deletion requires confirm,
+Keep them preserves copies, final key check empty. Case8 reused current two-draft
+fixture rather than recreating it. A11 human PASS.
+User explicitly asked lead to execute cleanup. Actual Chrome5179 DevTools showed
+no local keys and empty session storage; prior harness tabs were already closed.
+Temporary account-disabled cleanup tab closed. Browser blocked console paste;
+used storage UI without bypass. Confirmed PID74444 Vite cwd/path/port, SIGINT sent,
+no5179listener afterward. Other5187 application tab/server untouched, no screenshots.
+Cleanup agent PASS under user authorization; not relabeled human execution.
+
+Current PR11 head unchanged; foundation43564599936 PASS, CLEAN; independent review
+no remaining blocker, GitHub no unresolved threads/change-requested review (no formal
+approval claimed). PR11 READY TO MERGE personally, not merged. After human merge,
+refresh/retest14 then12; their remaining human gates are not waived.
+
+G runtime-entry handoff: owner finished/pushed15c38d5fbc8546a71980a3e7f3b5003b40d450e2
+on feat/extraction-runtime-entry, independently reviewed bounded boot/bundle scope.
+Reported752unit/12environment skips,12actualDenoHTTP assertions,22entry/bundle tests;
+no public processing/provider call. No PR opened. Lead has not yet integrated this
+work; precise handoff /private/tmp/pathcheck-g-runtime-entry-progress.md. Actual
+hosted ports/gateway/bot/SQL composition remain mandatory pending integration.

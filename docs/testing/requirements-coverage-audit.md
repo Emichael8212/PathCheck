@@ -917,3 +917,11 @@ PASS, unchanged reviewed UI code. Account UI34/wholeUI102 PASS with zero skips;
 composed candidateUI114 PASS. Human NOT RUN; exact guide indexed under pr-11.
 Real S recovery is used; cloud/auth doubles explicitly limit this to UI safety.
 F16–18 real-service combined human acceptance remains A12 pending, not inferred.
+
+A11 human closure at2a96a776:34 account/recovery assertions and eight interactive
+cases explicitly reported PASS by human. T-AUTH/UI stale-save/open, canceled auth,
+unconfirmed signout, expired restore, multi-draft choices and confirmed deletion
+human PASS. Final cleanup delegated by user and executed/verified by lead: empty
+5179 storage, temporary tab closed, confirmed test Vite stopped/no listener.
+Current-headCI43564599936 PASS; independent review retained; PR11 READY TO MERGE,
+not merged. A14/A12 and full application acceptance remain pending.

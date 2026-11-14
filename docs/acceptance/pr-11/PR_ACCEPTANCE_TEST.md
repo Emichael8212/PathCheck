@@ -5,7 +5,8 @@
 - Base included: main `8fab5bfae66d38b5970db4d601f8325655962922` (PR13/15 merged).
 - Test type: real React UI interactions and S guest recovery with synthetic auth/cloud doubles.
 - Feature: preserve current work on late save/open/sign-in, explicit validated recovery choices, honest cleanup and disclosed restored assumptions.
-- Human status: **NOT RUN**. Eligibility: **HUMAN ACCEPTANCE REQUIRED**.
+- Human status: **PASS** (34 assertions and all eight manual cases reported by the human).
+- Cleanup: **PASS**, executed by the lead under explicit user authorization. Eligibility: **READY TO MERGE** personally.
 - Current-head foundation CI43564599936 PASS; independent review retained because refresh changed no UI code.
 - Reviewed UI implementation: `36c0624`; refresh changes no UI implementation/tests, only merged dependencies and guide counts.
 
@@ -99,3 +100,20 @@ are explicitly synthetic doubles except the noted real S auth client transport c
 This does not replace PR12's real OTP/REST/engine integration or final application
 human acceptance. Previously accepted PR13 concurrency and PR15 security tests are
 not being reopened. Public runtime and release/privacy gates remain separate.
+
+# Recorded acceptance closure
+
+Human reported34 automated assertions and all eight browser cases PASS at pinned
+2a96a776. Case8 reused the two already-created synthetic drafts in a fresh tab
+instead of recreating them; confirmation/cancel/explicit deletion and empty matching
+storage checks passed. User explicitly delegated final cleanup to the lead.
+Lead inspected Chrome's actual5179 origin with DevTools storage UI: local storage
+had no keys and session storage was empty; old harness tabs were already closed.
+Console pasting was blocked by Chrome; no security warning was bypassed. Temporary
+account-disabled cleanup tab closed, only confirmed Vite PID74444 from the pinned
+worktree stopped with SIGINT, port5179 verified without a listener. Other application
+tabs/servers left intact; no screenshot captured.
+
+Current head2a96a776 unchanged, CI43564599936 PASS, CLEAN against main. Independent
+review applies to unchanged code; no blocking GitHub review threads. Human acceptance
+is grounded in the user's reports, not the lead cleanup or automated reruns.
