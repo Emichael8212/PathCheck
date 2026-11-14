@@ -24,9 +24,9 @@ async function generating(page: Page, gen: string) {
 
 async function expectInterrupted(page: Page, reason: string | RegExp) {
   await expect(panel(page).getByRole('heading', { name: 'Search interrupted' })).toBeVisible();
-  const alert = panel(page).getByRole('alert');
-  await expect(alert).toContainText(reason);
-  await expect(alert).toContainText('No feasibility conclusion was drawn and your active plan is unchanged');
+  const text = panel(page).getByTestId('draft-interrupted');
+  await expect(text).toContainText(reason);
+  await expect(text).toContainText('No feasibility conclusion was drawn and your active plan is unchanged');
   await expect(page.getByText('No draft found within search limits')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Draft plan', exact: true })).toHaveCount(0);
 }
@@ -105,6 +105,68 @@ test.describe('cancellable draft generation', () => {
     await expect.poll(async () => (await calls(page))[0]!.settled).toBe('result');
     await expect(page.getByTestId('screen-start')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Graduation planner' })).toBeDisabled();
+  });
+
+  test('a draft built for other inputs is refused, not shown as current', async ({ page }) => {
+    await generating(page, 'mismatch');
+    await release(page, 1);
+    await expect(panel(page).getByRole('heading', { name: 'Draft plan not available' })).toBeVisible();
+    await expect(panel(page).getByRole('alert')).toContainText('draft_fingerprint_mismatch');
+    await expect(page.getByRole('heading', { name: 'Draft plan', exact: true })).toHaveCount(0);
+  });
+
+  test('a result arriving while the student works elsewhere is announced without moving focus', async ({ page }) => {
+    await generating(page, 'deferred');
+    await page.getByTestId('assumptions').locator('summary').click();
+    const input = page.getByLabel('Maximum credits per term');
+    await input.focus();
+    await release(page, 1);
+    await expect(panel(page).getByRole('heading', { name: 'Draft plan', exact: true })).toBeVisible();
+    await expect(page.getByTestId('notice-status')).toContainText('Draft plan ready');
+    await expect(input).toBeFocused();
+  });
+
+  test('stopping for an input change keeps focus on the control the student used; cancel moves focus to the result', async ({ page }) => {
+    await generating(page, 'deferred');
+    await page.getByTestId('assumptions').locator('summary').click();
+    await page.getByLabel('Maximum credits per term').fill('12');
+    const apply = page.getByRole('button', { name: 'Use this load' });
+    await apply.click();
+    await expectInterrupted(page, 'Your plan inputs changed');
+    await expect(page.getByRole('heading', { name: 'Search interrupted' })).not.toBeFocused();
+    await expect(page.getByTestId('assumptions').locator(':focus')).toHaveCount(1);
+    await panel(page).getByRole('button', { name: 'Search again' }).click();
+    await panel(page).getByRole('button', { name: 'Cancel search' }).click();
+    await expect(page.getByRole('heading', { name: 'Search interrupted' })).toBeFocused();
+  });
+
+  test('opening a saved plan or signing out aborts a running job', async ({ page }) => {
+    await generating(page, 'deferred');
+    await panel(page).getByRole('button', { name: 'Cancel search' }).click();
+    const summary = page.getByTestId('account-summary');
+    await summary.click();
+    await page.getByLabel('Email').fill('student@example.test');
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    await page.getByLabel('One-time code').fill('123456');
+    await page.getByRole('button', { name: 'Verify code' }).click();
+    await page.getByRole('button', { name: 'Save as new' }).click();
+    await expect(summary).toContainText('Saved');
+    await summary.click(); // close the sheet
+    await panel(page).getByRole('button', { name: 'Search again' }).click();
+    await expect.poll(async () => (await calls(page)).length).toBe(2);
+    await summary.click();
+    await page.getByRole('button', { name: 'My saved plans' }).click();
+    await page.getByRole('list', { name: 'Saved plans' }).getByRole('button', { name: 'Open' }).click();
+    await expect.poll(async () => (await calls(page))[1]!.aborted).toBe(true);
+    await expect(panel(page)).toHaveCount(0);
+
+    await summary.click(); // close the sheet; the opened plan is on the selected-courses path
+    await page.getByRole('button', { name: 'Help me build a plan' }).click();
+    await expect.poll(async () => (await calls(page)).length).toBe(3);
+    await summary.click();
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect.poll(async () => (await calls(page))[2]!.aborted).toBe(true);
+    await expect(page.getByTestId('screen-start')).toBeVisible();
   });
 
   test('unmounting the workflow aborts a running job', async ({ page }) => {

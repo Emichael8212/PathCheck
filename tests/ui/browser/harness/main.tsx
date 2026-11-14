@@ -60,8 +60,8 @@ const harness = fakeServices({
 // call n stays pending until release(`gen:${n}`). Without it the sync fallback is used.
 const genMode = q.get('gen');
 const generationCalls: GenerationCall[] = [];
-const services = genMode && ['deferred', 'ignoreabort', 'failure', 'watchdog'].includes(genMode)
-  ? Object.freeze({ ...harness.services, generation: deferredGeneration(harness.services.academic, gate, generationCalls, { ignoreAbort: genMode === 'ignoreabort', outcome: genMode === 'failure' ? 'failure' : genMode === 'watchdog' ? 'watchdog' : 'engine' }) })
+const services = genMode && ['deferred', 'ignoreabort', 'failure', 'watchdog', 'mismatch'].includes(genMode)
+  ? Object.freeze({ ...harness.services, generation: deferredGeneration(harness.services.academic, gate, generationCalls, { ignoreAbort: genMode === 'ignoreabort', outcome: genMode === 'failure' || genMode === 'watchdog' || genMode === 'mismatch' ? genMode : 'engine' }) })
   : harness.services;
 
 declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; generationCalls: GenerationCall[]; unmount: () => void; release: (name: string) => void; rearm: (name: string) => void } } }

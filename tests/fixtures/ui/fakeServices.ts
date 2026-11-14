@@ -357,7 +357,7 @@ export interface GenerationCall { n: number; fingerprint: string; aborted: boole
  * forced `failure`). Like the real port it resolves `search_interrupted` when aborted, unless
  * `ignoreAbort` simulates a misbehaving job that still delivers its old result later.
  */
-export function deferredGeneration(academic: AcademicService, gate: TranscriptGate, calls: GenerationCall[], options: { ignoreAbort?: boolean; outcome?: 'engine' | 'failure' | 'watchdog' } = {}) {
+export function deferredGeneration(academic: AcademicService, gate: TranscriptGate, calls: GenerationCall[], options: { ignoreAbort?: boolean; outcome?: 'engine' | 'failure' | 'watchdog' | 'mismatch' } = {}) {
   return Object.freeze({
     generate: (scenario: PlanningScenario, signal: AbortSignal): Promise<ReturnType<AcademicService['generateDraft']>> => {
       const call: GenerationCall = { n: calls.length + 1, fingerprint: fingerprint(scenario), aborted: false, settled: null };
@@ -371,7 +371,13 @@ export function deferredGeneration(academic: AcademicService, gate: TranscriptGa
         void gate.wait(`gen:${call.n}`).then(() => {
           if (options.outcome === 'failure') return finish(fail('external_failure', 'worker_failed'), 'failure');
           if (options.outcome === 'watchdog') return finish(fail('search_interrupted', 'watchdog_timeout'), 'watchdog');
-          finish(academic.generateDraft(scenario), 'result');
+          const r = academic.generateDraft(scenario);
+          // mismatch: a misbehaving port answers with a draft built for other inputs.
+          if (options.outcome === 'mismatch' && r.ok && !('kind' in r.value)) {
+            const fp = r.value.baseFingerprint;
+            return finish(ok({ ...r.value, baseFingerprint: `${fp.slice(0, -1)}${fp.endsWith('0') ? '1' : '0'}` as typeof fp }), 'result');
+          }
+          finish(r, 'result');
         });
       });
     },

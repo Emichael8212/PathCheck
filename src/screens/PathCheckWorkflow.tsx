@@ -89,6 +89,8 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   const currentFp = useMemo(() => (scenario ? scenarioFingerprint(scenario) : null), [scenario]);
   const analysis = useMemo<Result<AnalysisResult> | null>(() => (scenario && path ? evaluateChecked(academic, scenario) : null), [academic, scenario, path]);
   const stale = Boolean(analysis?.ok && analysis.value.inputFingerprint !== currentFp);
+  const fpRef = useRef<string | null>(null);
+  useLayoutEffect(() => { fpRef.current = currentFp; }, [currentFp]);
 
   // Generation lifecycle. A job lives only while the draft area shows exactly that job as
   // generating for the current inputs: any other draft state (discard, adopt, reset, open,
@@ -281,7 +283,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     const parsed = GeneratedDraftSchema.safeParse(r.value);
     if (!parsed.success) return { kind: 'failed', failure: { ok: false, code: 'validation_error', reasonCode: 'invalid_generation_result' } };
     // Generation identity: a draft for other inputs is never shown as the current draft.
-    if (parsed.data.baseFingerprint !== fp) return { kind: 'interrupted', reason: 'input_changed' };
+    if (parsed.data.baseFingerprint !== fp) return { kind: 'failed', failure: { ok: false, code: 'stale_preview', reasonCode: 'draft_fingerprint_mismatch' } };
     return { kind: 'draft', draft: parsed.data };
   }
 
@@ -302,7 +304,14 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
       // Only the live job may publish; cancelled/superseded/changed/unmounted jobs are dropped.
       if (job.current?.jobId !== jobId || controller.signal.aborted) return;
       job.current = null;
+      // Inputs committed but the lifecycle effect has not run yet: still not this job's inputs.
+      if (fpRef.current !== fp) { controller.abort(); setDraft({ kind: 'interrupted', reason: 'input_changed' }); return; }
       setDraft(next);
+      // The result may arrive while the student works elsewhere: announce it, don't move focus.
+      say(next?.kind === 'draft' ? 'info' : 'error', next?.kind === 'draft' ? 'Draft plan ready. Review it in the side panel; nothing is adopted until you choose.'
+        : next?.kind === 'no_valid_draft' ? 'No draft found within search limits. Your plan is unchanged.'
+        : next?.kind === 'interrupted' ? 'Search interrupted. No draft was evaluated and your plan is unchanged.'
+        : 'Draft plan not available. Your plan is unchanged.');
     };
     guardAsync(() => port.generate(scenario, controller.signal), 'generate_failed')
       .then(r => settle(draftStateFor(r, fp)), () => settle({ kind: 'failed', failure: { ok: false, code: 'external_failure', reasonCode: 'generate_failed' } }));
