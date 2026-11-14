@@ -8,7 +8,8 @@ import { PathCheckWorkflow } from '../../../../src/screens';
 import { createSupabaseAuth } from '../../../../src/auth/supabaseAuth';
 import { parsePublicSupabaseConfig } from '../../../../src/persistence/config';
 import { createGuestRecoveryService } from '../../../../src/persistence/guestRecovery';
-import { fakeServices, syntheticAuthFetch, transcriptGate } from '../../../fixtures/ui/fakeServices';
+import { deferredGeneration, fakeServices, syntheticAuthFetch, transcriptGate } from '../../../fixtures/ui/fakeServices';
+import type { GenerationCall } from '../../../fixtures/ui/fakeServices';
 
 const q = new URLSearchParams(window.location.search);
 // hold=ticket,extract,revoke keeps those transcript calls pending until the test releases them.
@@ -63,9 +64,18 @@ const harness = fakeServices({
   ...(q.get('catalogs') === 'pair' ? { catalogPair: 'provisional' as const } : q.get('catalogs') === 'pair-synthetic' ? { catalogPair: 'synthetic' as const } : {}),
 });
 
-declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; advanceClock: (ms: number) => void; release: (name: string) => void; rearm: (name: string) => void } } }
-window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, revokedIds: harness.revokedIds, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0, savedPlans: () => [...(harness.account?.inspect.rows.values() ?? [])], authCalls,
+// gen=deferred|ignoreabort|failure|watchdog injects the cancellable generation port double;
+// call n stays pending until release(`gen:${n}`). Without it the sync fallback is used.
+const genMode = q.get('gen');
+const generationCalls: GenerationCall[] = [];
+const services = genMode && ['deferred', 'ignoreabort', 'failure', 'watchdog', 'mismatch'].includes(genMode)
+  ? Object.freeze({ ...harness.services, generation: deferredGeneration(harness.services.academic, gate, generationCalls, { ignoreAbort: genMode === 'ignoreabort', outcome: genMode === 'failure' || genMode === 'watchdog' || genMode === 'mismatch' ? genMode : 'engine' }) })
+  : harness.services;
+
+declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; savedPlans: () => unknown[]; authCalls: string[]; currentUser: () => Promise<unknown>; generationCalls: GenerationCall[]; unmount: () => void; advanceClock: (ms: number) => void; release: (name: string) => void; rearm: (name: string) => void } } }
+window.__pathcheckHarness = { transcriptCalls: harness.transcriptCalls, revokedIds: harness.revokedIds, savedPlanCount: () => harness.account?.inspect.rows.size ?? 0, savedPlans: () => [...(harness.account?.inspect.rows.values() ?? [])], authCalls, generationCalls, unmount: () => root.unmount(),
   advanceClock: ms => (harness.services.clock as { advance?: (ms: number) => void }).advance?.(ms),
   currentUser: async () => (await harness.services.account!.auth.currentUser()), release: name => gate.release(name), rearm: name => gate.rearm(name) };
 
-createRoot(document.getElementById('root')!).render(<StrictMode><PathCheckWorkflow services={harness.services} /></StrictMode>);
+const root = createRoot(document.getElementById('root')!);
+root.render(<StrictMode><PathCheckWorkflow services={services} /></StrictMode>);

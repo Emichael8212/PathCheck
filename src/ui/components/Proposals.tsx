@@ -25,9 +25,17 @@ function Acknowledgements({ ids, checked, onChange, prefix, catalog }: { ids: st
 }
 
 /** Heading that receives focus when its panel opens, so keyboard users land on it. */
-function FocusHeading({ id, children }: { id: string; children: ReactNode }) {
+/**
+ * Panel heading that takes focus on mount. `when="if_unfocused"` (results that may arrive
+ * asynchronously) takes focus only if focus was lost — e.g. it was inside the panel this one
+ * replaced — never from a control the student is using elsewhere.
+ */
+function FocusHeading({ id, children, when = 'always' }: { id: string; children: ReactNode; when?: 'always' | 'if_unfocused' }) {
   const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { ref.current?.focus(); }, []);
+  useEffect(() => {
+    const active = document.activeElement;
+    if (when === 'always' || active === null || active === document.body) ref.current?.focus();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <h2 id={id} ref={ref} tabIndex={-1}>{children}</h2>;
 }
 
@@ -151,16 +159,45 @@ export function PreviewPanel({ preview, catalog, active, stale, busy, onApply, o
 export type DraftState =
   | { kind: 'draft'; draft: GeneratedDraft }
   | { kind: 'no_valid_draft'; expansions: number }
+  /** A search job is running for `fingerprint`; `jobId` identifies exactly one request. */
+  | { kind: 'generating'; jobId: number; fingerprint: string }
+  /** Stopped before finishing: nothing was evaluated, no feasibility conclusion. */
+  | { kind: 'interrupted'; reason: 'cancelled' | 'input_changed' | 'search_interrupted' }
   | { kind: 'failed'; failure: TypedFailure }
   | null;
 
-export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, onRegenerate }: { state: DraftState; catalog: CatalogModel; stale: boolean; busy: boolean; onAdopt: (acks: string[]) => void; onDiscard: () => void; onRegenerate: () => void }) {
+const INTERRUPTED_TEXT: Record<Extract<DraftState, { kind: 'interrupted' }>['reason'], string> = {
+  cancelled: 'You cancelled the search.',
+  input_changed: 'Your plan inputs changed while it was running, so the search was stopped.',
+  search_interrupted: 'The search was stopped before it finished.',
+};
+
+export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, onRegenerate, onCancel }: { state: DraftState; catalog: CatalogModel; stale: boolean; busy: boolean; onAdopt: (acks: string[]) => void; onDiscard: () => void; onRegenerate: () => void; onCancel: () => void }) {
   const [acks, setAcks] = useState<Set<string>>(new Set());
   if (!state) return null;
+  if (state.kind === 'generating') {
+    return (
+      <section className="draft insp-section" aria-labelledby="draft-title" aria-busy="true" data-testid="draft-panel">
+        <FocusHeading id="draft-title">Building a draft plan…</FocusHeading>
+        <p role="status" data-testid="draft-generating">Searching within fixed limits. Your active plan is unchanged; you can keep working or cancel.</p>
+        <div className="button-row"><button type="button" className="secondary" onClick={onCancel}>Cancel search</button></div>
+      </section>
+    );
+  }
+  if (state.kind === 'interrupted') {
+    return (
+      <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
+        <FocusHeading id="draft-title" when={state.reason === 'cancelled' ? 'always' : 'if_unfocused'}>Search interrupted</FocusHeading>
+        {/* A student-initiated cancel is already announced by the notice; other stops are alerts. */}
+        <p role={state.reason === 'cancelled' ? undefined : 'alert'} data-testid="draft-interrupted">{INTERRUPTED_TEXT[state.reason]} No draft was evaluated. No feasibility conclusion was drawn and your active plan is unchanged.</p>
+        <div className="button-row"><button type="button" disabled={busy} onClick={onRegenerate}>Search again</button></div>
+      </section>
+    );
+  }
   if (state.kind === 'failed') {
     return (
       <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
-        <FocusHeading id="draft-title">Draft plan not available</FocusHeading>
+        <FocusHeading id="draft-title" when="if_unfocused">Draft plan not available</FocusHeading>
         <p role="alert">{failureText(state.failure)}</p>
         <div className="button-row"><button type="button" disabled={busy} onClick={onRegenerate}>Try again</button></div>
       </section>
@@ -169,7 +206,7 @@ export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, on
   if (state.kind === 'no_valid_draft') {
     return (
       <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
-        <FocusHeading id="draft-title">No draft found within search limits</FocusHeading>
+        <FocusHeading id="draft-title" when="if_unfocused">No draft found within search limits</FocusHeading>
         <p>The bounded search stopped after <span className="tabular">{state.expansions}</span> expansions without a validated draft. This does not mean no university-approved path exists.</p>
         <div className="button-row"><button type="button" disabled={busy} onClick={onRegenerate}>Search again</button></div>
       </section>
@@ -184,7 +221,7 @@ export function DraftPanel({ state, catalog, stale, busy, onAdopt, onDiscard, on
   return (
     <section className="draft insp-section" aria-labelledby="draft-title" data-testid="draft-panel">
       <p className="eyebrow">Not adopted yet</p>
-      <FocusHeading id="draft-title">Draft plan</FocusHeading>
+      <FocusHeading id="draft-title" when="if_unfocused">Draft plan</FocusHeading>
       <p data-testid="draft-summary"><span className="tabular">{draft.placements.length}</span> courses across <span className="tabular">{terms}</span> terms, <span className="tabular">{knownCredits}</span> credits{unknownCredits > 0 ? ` plus ${unknownCredits} with unknown credits` : ''}. Shown as dashed <span className="tag tag-system_projection">Draft</span> rows. Nothing changes until you adopt it.</p>
       {draft.validation.length > 0 && <ul className="findings">{draft.validation.map(f => <FindingCard key={f.findingId} finding={f} catalog={catalog} />)}</ul>}
       <Acknowledgements ids={draft.assumptions} checked={acks} onChange={setAcks} prefix="draft" catalog={catalog} />

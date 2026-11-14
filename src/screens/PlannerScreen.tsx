@@ -38,6 +38,7 @@ export interface PlannerProps {
   /** Cancel dispatches L's existing rejectPreview command. */
   onReject(): void;
   onGenerate(): void;
+  onCancelGenerate(): void;
   onAdopt(acks: string[]): void;
   onDiscardDraft(): void;
   onCapacity(c: CapacityAssumption): void;
@@ -285,7 +286,7 @@ export function PlannerScreen(p: PlannerProps) {
         <aside className={`planner-side${covered ? ' has-preview' : ''}`} aria-label="Issues, suggestions and availability">
           {p.preview && <PreviewPanel key={p.preview.previewId + p.preview.baseFingerprint} preview={p.preview} catalog={p.catalog} active={p.plan.activePlacements} stale={previewStale} busy={p.busy} onApply={p.onApply} onCancel={p.onReject} />}
           <div className="inspector">
-            {p.draft && <DraftPanel key={p.draft.kind === 'draft' ? p.draft.draft.draftId + p.draft.draft.baseFingerprint : p.draft.kind} state={p.draft} catalog={p.catalog} stale={draftStale} busy={p.busy} onAdopt={p.onAdopt} onDiscard={p.onDiscardDraft} onRegenerate={p.onGenerate} />}
+            {p.draft && <DraftPanel key={p.draft.kind === 'draft' ? p.draft.draft.draftId + p.draft.draft.baseFingerprint : p.draft.kind === 'generating' ? `generating-${p.draft.jobId}` : p.draft.kind} state={p.draft} catalog={p.catalog} stale={draftStale} busy={p.busy} onAdopt={p.onAdopt} onDiscard={p.onDiscardDraft} onRegenerate={p.onGenerate} onCancel={p.onCancelGenerate} />}
             {analysis && (
               <section className="insp-section" aria-labelledby="issues-title" data-testid="issues">
                 <h2 id="issues-title" className="insp-title" tabIndex={-1}>Needs attention{top.length > 0 && <span className="count"><span className="visually-hidden">: </span>{top.length}</span>}</h2>

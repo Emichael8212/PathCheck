@@ -354,6 +354,41 @@ export function syntheticAuthFetch(calls: string[], gate?: TranscriptGate) {
   };
 }
 
+export interface GenerationCall { n: number; fingerprint: string; aborted: boolean; settled: string | null }
+
+/**
+ * TEST DOUBLE for L's worker-backed DraftGenerationPort. Call n waits for release(`gen:${n}`)
+ * and then answers with the fake engine's generateDraft for the submitted scenario (or a
+ * forced `failure`). Like the real port it resolves `search_interrupted` when aborted, unless
+ * `ignoreAbort` simulates a misbehaving job that still delivers its old result later.
+ */
+export function deferredGeneration(academic: AcademicService, gate: TranscriptGate, calls: GenerationCall[], options: { ignoreAbort?: boolean; outcome?: 'engine' | 'failure' | 'watchdog' | 'mismatch' } = {}) {
+  return Object.freeze({
+    generate: (scenario: PlanningScenario, signal: AbortSignal): Promise<ReturnType<AcademicService['generateDraft']>> => {
+      const call: GenerationCall = { n: calls.length + 1, fingerprint: fingerprint(scenario), aborted: false, settled: null };
+      calls.push(call);
+      return new Promise(resolve => {
+        const finish = (r: ReturnType<AcademicService['generateDraft']>, how: string) => { if (call.settled) return; call.settled = how; resolve(r); };
+        signal.addEventListener('abort', () => {
+          call.aborted = true;
+          if (!options.ignoreAbort) finish(fail('search_interrupted', 'cancelled'), 'interrupted');
+        });
+        void gate.wait(`gen:${call.n}`).then(() => {
+          if (options.outcome === 'failure') return finish(fail('external_failure', 'worker_failed'), 'failure');
+          if (options.outcome === 'watchdog') return finish(fail('search_interrupted', 'watchdog_timeout'), 'watchdog');
+          const r = academic.generateDraft(scenario);
+          // mismatch: a misbehaving port answers with a draft built for other inputs.
+          if (options.outcome === 'mismatch' && r.ok && !('kind' in r.value)) {
+            const fp = r.value.baseFingerprint;
+            return finish(ok({ ...r.value, baseFingerprint: `${fp.slice(0, -1)}${fp.endsWith('0') ? '1' : '0'}` as typeof fp }), 'result');
+          }
+          finish(r, 'result');
+        });
+      });
+    },
+  });
+}
+
 export function syntheticExtraction(status: TranscriptExtraction['acceptanceStatus'] = 'needs_review'): TranscriptExtraction {
   return { schemaVersion: 1, documentPageCount: 1, detectedRowCount: 2, coveredPages: [1], unrecognizedRows: [], completeness: 'unknown', acceptanceStatus: status, modelId: 'synthetic-model', extractionSchemaVersion: 1, warnings: ['synthetic_fixture'],
     rows: [

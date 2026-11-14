@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { GeneratedDraftSchema } from '../contracts';
 import type {
   AcademicRecord, AnalysisResult, CandidatePreview, CatalogModel, ChangeSet, GuestDraft, Plan, PlanPlacement, Result,
   SavedPlan, TermId, TypedFailure, UndoCheckpoint, ValidatedExtractedRows,
@@ -57,6 +58,9 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   const [evaluatedAt, setEvaluatedAt] = useState(initialNow);
   const [path, setPath] = useState<'selected' | 'generated' | null>(null);
   const [draft, setDraft] = useState<DraftState>(null);
+  // The one live generation job. Its result is published only while it is still this job.
+  const job = useRef<{ jobId: number; controller: AbortController; fingerprint: string } | null>(null);
+  const jobSeq = useRef(0);
   const [preview, setPreview] = useState<CandidatePreview | null>(null);
   const [rejected, setRejected] = useState<string[]>([]);
   const [undo, setUndo] = useState<UndoCheckpoint | null>(null);
@@ -85,6 +89,25 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   const currentFp = useMemo(() => (scenario ? scenarioFingerprint(scenario) : null), [scenario]);
   const analysis = useMemo<Result<AnalysisResult> | null>(() => (scenario && path ? evaluateChecked(academic, scenario) : null), [academic, scenario, path]);
   const stale = Boolean(analysis?.ok && analysis.value.inputFingerprint !== currentFp);
+  const fpRef = useRef<string | null>(null);
+  useLayoutEffect(() => { fpRef.current = currentFp; }, [currentFp]);
+
+  // Generation lifecycle. A job lives only while the draft area shows exactly that job as
+  // generating for the current inputs: any other draft state (discard, adopt, reset, open,
+  // start over) aborts it, and an input change stops it and says so. Unmount aborts too.
+  useEffect(() => {
+    const running = job.current;
+    if (!running) return;
+    const shown = draft?.kind === 'generating' && draft.jobId === running.jobId;
+    if (shown && running.fingerprint === currentFp) return;
+    job.current = null;
+    running.controller.abort();
+    if (shown) queueMicrotask(() => setDraft(d => (d?.kind === 'generating' && d.jobId === running.jobId ? { kind: 'interrupted', reason: 'input_changed' } : d)));
+  }, [draft, currentFp]);
+  useEffect(() => {
+    const live = job;
+    return () => { live.current?.controller.abort(); live.current = null; };
+  }, []);
   const candidates = analysis?.ok ? analysis.value.candidates.filter(c => !rejected.includes(`${c.previewId}|${c.baseFingerprint}`)) : [];
 
   const say = (tone: 'ok' | 'error' | 'info', text: string) => setNotice({ tone, text });
@@ -253,12 +276,58 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     setPlan(r.value.plan); touched(); say('ok', 'Undone. The earlier placements were restored as a new revision.');
   }
 
+  /** Maps one finished generation result for inputs `fp` to a draft state. Never infers feasibility from interruption. */
+  function draftStateFor(r: ReturnType<typeof academic.generateDraft>, fp: string): DraftState {
+    if (!r.ok) return r.code === 'search_interrupted' ? { kind: 'interrupted', reason: 'search_interrupted' } : { kind: 'failed', failure: r };
+    if ('kind' in r.value) return r.value.kind === 'no_valid_draft_under_search_bounds' ? { kind: 'no_valid_draft', expansions: r.value.expansions } : { kind: 'failed', failure: { ok: false, code: 'validation_error', reasonCode: 'invalid_generation_result' } };
+    const parsed = GeneratedDraftSchema.safeParse(r.value);
+    if (!parsed.success) return { kind: 'failed', failure: { ok: false, code: 'validation_error', reasonCode: 'invalid_generation_result' } };
+    // Generation identity: a draft for other inputs is never shown as the current draft.
+    if (parsed.data.baseFingerprint !== fp) return { kind: 'failed', failure: { ok: false, code: 'stale_preview', reasonCode: 'draft_fingerprint_mismatch' } };
+    return { kind: 'draft', draft: parsed.data };
+  }
+
   function generate() {
-    if (!scenario) return say('error', 'The plan inputs are invalid; no draft was generated.');
-    const r = guard(() => academic.generateDraft(scenario), 'generate_failed');
-    if (!r.ok) setDraft({ kind: 'failed', failure: r });
-    else if ('kind' in r.value) setDraft({ kind: 'no_valid_draft', expansions: r.value.expansions });
-    else setDraft({ kind: 'draft', draft: r.value });
+    if (!scenario || !currentFp) return say('error', 'The plan inputs are invalid; no draft was generated.');
+    stopGeneration();
+    const port = services.generation;
+    if (!port) {
+      // Synchronous fallback for test harnesses only; the application always injects the worker port.
+      const r = guard(() => academic.generateDraft(scenario), 'generate_failed');
+      setDraft(draftStateFor(r, currentFp));
+      return;
+    }
+    const jobId = ++jobSeq.current, controller = new AbortController(), fp = currentFp;
+    job.current = { jobId, controller, fingerprint: fp };
+    setDraft({ kind: 'generating', jobId, fingerprint: fp });
+    const settle = (next: DraftState) => {
+      // Only the live job may publish; cancelled/superseded/changed/unmounted jobs are dropped.
+      if (job.current?.jobId !== jobId || controller.signal.aborted) return;
+      job.current = null;
+      // Inputs committed but the lifecycle effect has not run yet: still not this job's inputs.
+      if (fpRef.current !== fp) { controller.abort(); setDraft({ kind: 'interrupted', reason: 'input_changed' }); return; }
+      setDraft(next);
+      // The result may arrive while the student works elsewhere: announce it, don't move focus.
+      // Interrupted/failed panels carry their own alert, so only these two are announced here.
+      if (next?.kind === 'draft') say('info', 'Draft plan ready. Review it in the side panel; nothing is adopted until you choose.');
+      else if (next?.kind === 'no_valid_draft') say('info', 'No draft found within search limits. Your plan is unchanged.');
+    };
+    guardAsync(() => port.generate(scenario, controller.signal), 'generate_failed')
+      .then(r => settle(draftStateFor(r, fp)), () => settle({ kind: 'failed', failure: { ok: false, code: 'external_failure', reasonCode: 'generate_failed' } }));
+  }
+
+  /** Aborts the running job (if any). The caller decides what the draft area shows next. */
+  function stopGeneration() {
+    const running = job.current;
+    job.current = null;
+    running?.controller.abort();
+  }
+
+  function cancelGeneration() {
+    if (!job.current) return;
+    stopGeneration();
+    setDraft({ kind: 'interrupted', reason: 'cancelled' });
+    say('info', 'Search cancelled. Your plan is unchanged.');
   }
 
   function adopt(acks: string[]) {
@@ -401,7 +470,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
                 onReport: report,
               }}
               onReport={report} onPreviewCandidate={c => { setPreview(c); say('info', 'Preview ready. Your active plan has not changed.'); }}
-              onApply={applyPreview} onReject={rejectPreview} onGenerate={generate} onAdopt={adopt} onDiscardDraft={() => { setDraft(null); say('info', 'Draft discarded. Your plan is unchanged.'); }}
+              onApply={applyPreview} onReject={rejectPreview} onGenerate={generate} onCancelGenerate={cancelGeneration} onAdopt={adopt} onDiscardDraft={() => { setDraft(null); say('info', 'Draft discarded. Your plan is unchanged.'); }}
               onCapacity={c => { setCapacity(c); say('info', `Now modeled with up to ${c.maximum} credits per term. Earlier previews are stale.`); }} onIncludeSummer={v => setIncludeSummer(v)}
               onRefresh={() => { setEvaluatedAt(clock.now()); say('info', 'Analysis re-run with a new evaluation time. Earlier previews are now stale.'); }}
               onExport={exportPdf} onBack={() => setScreen('record')} onChangeTarget={() => goTo('start')} />
