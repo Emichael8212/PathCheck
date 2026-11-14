@@ -1270,3 +1270,58 @@ npmci/buildPASS, documentedpreview5186 starts and servesbuiltassetsHTTP200, then
 stopped. Local Supabase/Colima stopped successfully; benchmark lock released.
 Newroot acceptanceNOTRUN is the only new human check; no provider/database repetition
 requested. Documentation-only follow-up records pins and evidence; no newcodechange.
+
+Final GitHub head7893d31ee9d9994e1d71c10075b0b1354c118c6e foundation43531838223 SUCCESS (2m11s), all applicable workflow steps including productionroot/UI/engine/normalization ran. Implementation9214515 is unchanged by later docs. PR9 remains BLOCKED solely on new ordinary-root human acceptanceNOTRUN within its scoped merge gates. Current CI evidence also recorded in PR9 body; this final ledger observation is queued for the next documentation checkpoint.
+
+
+### Human root acceptance blocked: ambiguous curriculum identity
+
+Human reports "THERE is no CIS 300". Exact screen/catalog selection not yet confirmed;
+requested concise text clarification, no screenshot. Independent source inspection
+finds reproducible UI defect regardless of that answer: currentdepartmental and
+historicalguide refs both render identical B.S.CIS / Provisional catalog option text.
+Current hasCIS300/351, historical hasCIS304/415; academicdata is correct and must not
+be changed to hide historicalrequirements. New L browser regression assertsdistinct
+visiblelabels and selectionbylabel rather than opaqueversion; strongerexistingmanual
+recordassert verifies CIS300 actuallymatched, notmerely'1coursechecked'.
+
+ClaudeU actuallyinvoked opus5.5medium on existingfrontendworktree, assignednewbugfix
+branch feat/frontend-catalog-identity frommain6f (PR6alreadymerged). OwnonlyUpaths,
+preparetests/commit/draftPR; no mainmerge. Independentreviewer resumedreadonly.
+PR9root acceptance BLOCKED on reproducibleUIidentity defect; previouslyaccepted
+liveupload/manual/export evidence preserved forunchangedbehavior. Useraskedtopause
+root test; no agent screenshot, APIrequest or academicrulechange.
+
+
+### Curriculum identity correction — PR #10 dependency (2026-11-13)
+
+Reproduced FAIL: current and historical program options had identical visible text.
+This is a UI defect, not missing CIS 300 in the approved current catalog. The exact
+selection in the human's interrupted test remains unconfirmed. No academic rule changed.
+Claude frontend owner completed and pushed `feat/frontend-catalog-identity`, PR #10,
+head `3e5a092c59aad43e6a542a37e6a2df70d4d5d0d5`. Current/historical identity now appears
+in selection, persistent UI and PDF; governing year remains unresolved. Independent
+Codex source review: no blocker. Owner check: 650 unit PASS/2 live skips, UI68 PASS.
+Current-head GitHub foundation43546609647 PASS. Human corrected test NOT RUN.
+
+Lead regression commit `ad2b1b9231a31753fdc32efeff276dfecf91a7cb` adds distinct-label
+selection and actual historical CIS304/current CIS300 catalog matching assertions.
+Combined noncommitting candidate: PR9 7893d31 + PR10 3e5a092 + this lead test change.
+Verified npm check: 674 unit PASS/2 documented live skips; 43 benchmark regressions,
+9 upload guards, lint/typecheck/build, production3 PASS. Integration14 PASS;
+normalization2 PASS. UI68 PASS (separate harness; not evidence of real engine).
+Current CIS300 matches; historical CIS304 matches and CIS300 does not silently become
+historical credit. Existing PDF/manual/planning assertions PASS. No API/SQL policy
+changes, so accepted live provider/database evidence is retained, not rerun.
+
+Fresh /private/tmp/pathcheck-catalog-fix-repro at ad2b1b9 with noncommitting3e5a092
+merge: npm ci/build PASS; localhost preview5187 HTTP200 verified, then stopped. New human instructions in docs/acceptance/pr-10/PR_ACCEPTANCE_TEST.md
+combine PR10 identity/PDF checks with PR9 unfinished ordinary-root acceptance.
+Old user preview/worktree preserved. No screenshots captured or requested.
+
+Sequence: corrected combined human acceptance -> human PR10 merge -> refresh PR9
+against main and rerun affected checks/current-head CI -> human PR9 merge.
+PR9 is BLOCKED: its new mandatory label regression intentionally exposes the missing
+PR10 dependency on its standalone branch; do not skip it or call old CI current.
+PR10 is HUMAN ACCEPTANCE REQUIRED. Prior combined upload human PASS is unchanged.
+Neither PR has been merged, and full account/public-runtime/privacy gates remain open.

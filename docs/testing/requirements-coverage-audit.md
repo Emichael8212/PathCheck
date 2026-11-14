@@ -692,3 +692,25 @@ simulated provider503/malformed/withdrawal/exhaustion); no live503 falselyclaime
 Final independent review confirms restoredprivacyassertions and guideaccuracy.
 Fresh pinned checkoutnpmci/build/previewHTTP200PASS; alltestservices stopped.
 Root humanNOTRUN remains the specificA9 merge blocker after automatedCI closure.
+
+Current-head CI closure: PR9 7893d31ee9d9994e1d71c10075b0b1354c118c6e, foundation43531838223 PASS including all available UI/engine/normalization steps. Newroot humanNOTRUN remains A9 blocker; prior combinedupload humanPASS retained.
+
+
+## Current/historical curriculum identity correction — 2026-11-13
+
+Pins: L `ad2b1b9231a31753fdc32efeff276dfecf91a7cb`; U PR10
+`3e5a092c59aad43e6a542a37e6a2df70d4d5d0d5`. Combined scratch is noncommitting.
+
+| Requirement/source | Owner | Test and verified evidence | Status / gate |
+|---|---|---|---|
+| F01 / CAT-001–003 distinguish curriculum provenance | U/L | application.spec `current and historical ASU curriculum choices have distinct visible labels`: reproduced FAIL before U fix, PASS combined; real historical CIS304 matched, CIS300 unmatched | PASS combined; PR9 standalone dependency BLOCKED A9/B |
+| F03 academic normalization | E/L/U | application.spec `ordinary application accepts a manual record and exports an uncertainty-preserving plan`: current CIS300 In catalog + All found, explicit acceptance, CIS351 planner/PDF | PASS combined A9/B; corrected human NOT RUN |
+| F19 / uncertainty-preserving export | U/L | tests/ui/catalogIdentity.test.ts plus ordinary-root PDF assertions; UI labels only, no academic changes | PASS automated A10/B; human NOT RUN |
+| F01 accessible curriculum selection | U | UI browser68 PASS (3 new identity tests); owner unit650/2 live skips; independent source review no blocker | PASS A10 automated; foundation43546609647 PASS at3e5a092 |
+| Shared regression checks | L | Combined npmcheck674/2 live skips,43 benchmark,9 guards,production3; integration14; normalization2; UI68 PASS | PASS B, no new live API/SQL claim |
+| Mandatory human gate | Human/L | docs/acceptance/pr-10/PR_ACCEPTANCE_TEST.md pinned combined procedure | NOT RUN A10/A9; prior upload/security PASS retained |
+
+The missing-CIS300 report exposed ambiguous visible catalog choices; the user's exact
+selection remains unconfirmed. Historical data and unresolved academic policies are
+unchanged. PR10 must land through personal merge, then PR9 refresh/current CI must
+PASS before recommendation. No mandatory test is waived for this dependency.
