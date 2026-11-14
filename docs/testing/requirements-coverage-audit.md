@@ -733,3 +733,27 @@ PASS; PR10 CI43546609647 PASS/current3e5a092, independent review no blocker.
 PR10 READY TO MERGE personally. A9 human workflow PASS but A9 merge remains BLOCKED:
 CI43547679816 at0a3feae FAIL on duplicate-label regression; 2 other root tests PASS.
 Refresh and revalidate after PR10 merge; no waiver or full-MVP completion claim.
+
+
+## PR10 merge / PR9 refreshed evidence
+
+Human merge21097eb7d434e879e7dd8368db0ac786eea8deec contains U3e5a092. Main clean
+and synchronized; PR9 refresh8daea48, test head d74555b0a8b7e3255202e4d99c9755c0b2794486.
+
+| Requirement/source | Owner | Exact test/command and verified result | Status and gate |
+|---|---|---|---|
+| F01/CAT-001–003 curriculum identity | U/L | application.spec distinct labels/current-vs-history; human CIS300 matching and PDF identity accepted; PR10 merged21097eb | PASS A10 closed |
+| F03/G→L→E normalization | L/E/G | normalization.integration.mjs third assertion group: actual validation and normalization, fictional CIS300 current exact match/history null, no CIS304 equivalence, explicit acceptance | PASS3 CLI atd74555b A9/B |
+| F04/F03 upload catalog matching | L/E/U/G/S | upload.spec `fictional CIS300 upload uses current catalog without inventing equivalency (Gemini simulated)` and historical variant; real SQL/handler/engine; after fixture correction targeted2PASS | PASS A9/B; provider simulated, not liveCIS300 recall |
+| T-GEM/T-SEC extraction failure/privacy paths | L/G/S/U | run.mjs upload suite7PASS; 503 retry/exhaustion, malformed, revocation, manual fallback; unit674/2 documented DB skips,43benchmark/9guards | PASS A9; live transport separated below |
+| F05–F19 integration/preview/PDF | L/E/U | test:integration14PASS; production3PASS; UI68PASS incl keyboard/contrast/mobile regressions | PASS A9/B; fixture UI tests not engine proof |
+| T-SEC SQL/RLS | S/L | supabase test db371/5filesPASS; mounted sources byte-equal9files | PASS A9 local, no hosted security claim |
+| T-SEC replay/concurrency/revocation | S/L | concurrency.sh12workers winners1/1/3/5; dispatch-revoke0/6, retry-revoke4/2;22reservations/cleanup0 | PASS A9 |
+| T-AUTH owner/CAS | S/L | live.supabase.test.ts real two-user test1PASS/configguard1documentedskip | PASS A9; previous negativeguard retained |
+| Real provider upload/accept/planner | G/L/E/U/S | live.spec actual Gemini3.5Flash-Lite1PASS, fixtureSYN1011/1, HTTP2002016ms/oneadmission/no retry; report run-1794625739039.json | PASS A9/B atd74555b; no liveCIS300 extraction claim |
+| Human/independent review applicability | Human/L/reviewer | Production comparisons identical to accepted ad2b1b9+3e5a092; only test additions, reviewer fixture-title finding fixed/closed | PASS A9; no repeat human run |
+| Current implementation CI | L/GitHub | foundation43550171780 PASS atd74555b, all steps including real engine/UI/normalization | PASS A9 implementation; final documentation-head CI also required and recorded on PR9 |
+
+Prior duplicate-label CI failure is resolved by mergedPR10; do not delete its historical
+evidence. Remaining account/public-runtime/real-data privacy requirements are mandatory
+unfinished B/C work, not waived requirements or an assertion of MVP completion.

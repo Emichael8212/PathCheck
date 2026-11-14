@@ -1,7 +1,10 @@
-> **Current retry procedure:** use [PR #10 + PR #9 corrected curriculum acceptance](../pr-10/PR_ACCEPTANCE_TEST.md).
-> The earlier ordinary-root attempt below was interrupted by indistinguishable current/historical
-> catalog labels. Corrected staged human acceptance is PASS (scope recorded in the linked guide). Do not restart the old pin or repeat
-> accepted live upload/security tests. PR #10 must merge before PR #9 is refreshed for final CI.
+> **Current status:** corrected staged human acceptance is **PASS**, with exact scope
+> in [PR #10 + PR #9 acceptance](../pr-10/PR_ACCEPTANCE_TEST.md). PR #10 is human-merged
+> as `21097eb7d434e879e7dd8368db0ac786eea8deec`. PR #9 refreshed in `8daea48`;
+> additional test-only coverage is `d74555b0a8b7e3255202e4d99c9755c0b2794486`.
+> Production code equals the accepted combined pins. No repeat human execution is
+> required. The older procedures below are preserved evidence, not new instructions.
+> Current-head CI must pass before PR #9 is recommended for personal merge.
 
 # PR #9 — Ordinary application entry acceptance
 

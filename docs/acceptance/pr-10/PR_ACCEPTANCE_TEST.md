@@ -16,8 +16,9 @@
   Supplementary historical-option and disabled-service assertions have automated PASS;
   no separate human execution of those assertions is claimed. Prior live upload/security PASS stands.
 - Dependencies: PR #10 may merge after its CI/review/human gates; then refresh PR #9
-  and rerun affected CI before its personal merge. PR #10 is READY TO MERGE at
-  the pinned UI head; PR #9 remains BLOCKED pending that dependency and current CI.
+  and rerun affected CI before its personal merge. PR #10 is **MERGED** as `21097eb7d434e879e7dd8368db0ac786eea8deec`.
+  PR #9 has refreshed without production behavior changes; current CI is required
+  before its personal merge. No repeat human acceptance is requested.
 
 ## Before You Begin
 

@@ -1357,3 +1357,54 @@ PR9 head0a3feae foundation43547679816 FAIL: exactly the distinct-label regressio
 2 other production tests PASS. This is the known missing PR10 dependency, not a
 waived check. After personal PR10 merge, refresh PR9 and run affected checks/CI.
 This documentation checkpoint changes no application behavior; no repeat human test.
+
+
+### PR10 merged; PR9 post-merge verification (2026-11-13 local)
+
+GitHub confirms human PR10 merge `21097eb7d434e879e7dd8368db0ac786eea8deec`
+at 2026-11-14T02:53:45Z, accepted U head3e5a092. Local main fast-forwarded to that
+commit and is clean. Lead feat/integration-02 refreshed without conflicts in
+`8daea48b7bffb5377d367dc10dcfe61caf2a02a8`. Regression implementation/test head:
+`d74555b0a8b7e3255202e4d99c9755c0b2794486`. No feature worktree deleted.
+
+Independent review verified production source equals the accepted composition:
+U paths identical3e5a092; app/contracts/engine/catalog/transcript/functions identical
+ad2b1b9. Added only lead-owned tests/fixture harness documentation. Reviewer caught
+an unprinted title in a simulated response; corrected CIS300 rawTitle to null,
+review finding closed, targeted two browser tests rerun PASS. Human CIS300 matching,
+record acceptance, CIS351 planning and PDF PASS retained; prior real synthetic upload
+human PASS retained. No new production behavior requiring renewed human acceptance.
+
+Post-merge evidence:
+- npm run check PASS:674 unit/2 documented live DB skips,43 benchmark regressions,
+  9 upload guards,lint/typecheck/build,3 production Chromium tests. Later test-only
+  changes additionally pass lint/typecheck; final CI verifies the committed tree.
+- npm run test:integration PASS14; UI browser PASS68 including desktop accessibility
+  and retained mobile regressions; node tests/e2e/normalization.integration.mjs PASS3.
+- node tests/e2e/upload/run.mjs PASS7: real HTTP/SQL/G/L/E, simulated provider.
+  Two new fictional CIS300 cases load actual current/historical catalogs by visible
+  label: current matches CIS-300; historical unmatched, no CIS304 equivalency,
+  explicit acceptance, correct fingerprints, unresolved year/insufficient outlook.
+  Targeted CIS300 pair PASS2 after reviewed fixture correction.
+- Live SQL PASS371/5files; mounted config+SQL source equality verified9files.
+  concurrency.sh PASS:12 workers/winners1,1,3,5; dispatch/revoke6pairs0/6,
+  retry/revoke6pairs4/2;22 reservations cleaned with0remaining.
+- Actual two-user REST authorization/CAS/save-as-new PASS1; separate configuration
+  guard intentionally skipped1, its prior negative-case evidence unchanged.
+- Real Google browser PASS1 atd74555b: fixture live-upload-syn101-v1, one accurate
+  attempt, one HTTP200/2016ms, one issue/admit/dispatch/finish/quota reservation,
+  zero retries; retry-check1 is the first-egress authorization. Explicit acceptance
+  and deterministic preview/apply/undo PASS. Private sanitized report
+  run-1794625739039.json; no evidence-write failure. This is live SYN101 extraction,
+  NOT live CIS300 accuracy. CIS300 upload coverage above uses simulated provider.
+- Gemini approved free-only model unchanged; existing ignored0600 server env used
+  without printing secrets. Original benchmark corpus not rerun. All test services
+  stopped successfully; user acceptance previews/worktrees preserved.
+
+Required foundation CI43550171780 PASS at d74555b (1m26s), including production,
+UI, engine journeys and normalization steps. This follow-up changes documentation
+only; its final exact-head CI must also pass and is recorded on PR9. No academic/security requirement
+waived. PR10 MERGED. PR9 human/independent/local gates PASS; no agent merge/deploy.
+Full account/cloud composition, public gateway and PDF resource isolation, and
+real-transcript privacy approval remain mandatory unfinished application/release
+work, distinct from this scoped integration PR. No full-MVP completion claim.
