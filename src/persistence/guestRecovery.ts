@@ -142,8 +142,13 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     }
   };
 
-  type SlotRead = Result<GuestDraft | null> | { ok: 'deferred' };
-  /** Session slot (or legacy local slot): unusable entries are removed, future ones kept. */
+  type SlotRead = Result<GuestDraft | null> | { ok: 'deferred' } | { ok: 'retained' };
+  /**
+   * Session slot: unusable entries are removed (tab-private, no race), future ones kept.
+   * Legacy local slot: mutable and shared with possible pre-snapshot builds in other tabs,
+   * so automatic paths NEVER remove it; an unusable legacy entry is reported `retained`.
+   * Only an explicit whole-scope clear(event) deletes it.
+   */
   const readSlot = (slot: Slot, now: string): SlotRead => {
     const s = store(slot);
     if (!s) return { ok: true, value: null };
@@ -153,6 +158,7 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
     const entry = classify(slot, r.raw, now);
     if (entry.kind === 'future') return { ok: 'deferred' };
     if (entry.kind === 'valid') return { ok: true, value: entry.draft };
+    if (slot === 'local') return { ok: 'retained' };
     // Never report "nothing to recover" while an unusable (possibly expired, shared-device)
     // copy is still on disk: a failed deletion is a typed failure, not success/null.
     return remove(slot) ? { ok: true, value: null } : cleanupFailed;
@@ -230,9 +236,11 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
   /**
    * Save-triggered cleanup (A4). After a successful Save-as-new only stored copies
    * byte-identical to the saved draft are removed (the session slot by exact comparison,
-   * shared snapshots by their content-addressed key). Unusable entries are purged exactly
-   * as recover() would. Valid but different entries (newer same-draftId edits, another tab's
-   * draft, future-dated) are kept. Never throws.
+   * shared snapshots by their content-addressed key). Unusable session/snapshot entries are
+   * purged exactly as recover() would. The mutable legacy local slot is never removed here
+   * (it may hold a newer write from a pre-snapshot tab): a legacy copy of this draftId
+   * makes the result false. Valid but different entries (newer same-draftId edits, another
+   * tab's draft, future-dated) are kept. Never throws.
    *
    * Returns true only when every removal succeeded, every slot was readable, and a
    * verification read AFTER the removals saw no copy of this draftId (any revision) and no
@@ -244,19 +252,15 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
   const clearSaved = (saved: GuestDraft, now: string): boolean => {
     const savedJson = serialize(saved);
     let clean = true;
-    // Mutable single slots: this tab's session slot and the legacy local slot.
-    for (const slot of ['session', 'local'] as const) {
-      const s = store(slot);
-      if (!s) continue;
-      const r = read(s, GUEST_DRAFT_KEY);
-      if (!r.ok) { clean = false; continue; }
-      if (r.raw === null) continue;
-      const entry = classify(slot, r.raw, now);
+    // This tab's own session slot (tab-private). The legacy local slot is only verified below.
+    const ss = stores.session;
+    const sr = ss ? read(ss, GUEST_DRAFT_KEY) : { ok: true as const, raw: null };
+    if (!sr.ok) clean = false;
+    else if (sr.raw !== null) {
+      const entry = classify('session', sr.raw, now);
       if (entry.kind === 'unusable' || (entry.kind === 'valid' && serialize(entry.draft) === savedJson)) {
-        if (!remove(slot)) clean = false;
-        continue;
-      }
-      if (slot === 'session' || entry.draft.draftId === saved.draftId) clean = false; // kept, unsaved work
+        if (!remove('session')) clean = false;
+      } else clean = false; // kept, unsaved work
     }
     // Immutable shared snapshots.
     const s = stores.local;
@@ -327,17 +331,19 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       const fromSession = readSlot('session', now);
       if (fromSession.ok === false) return fromSession;
       // Shared storage is always validated, even when this tab's session draft wins, so
-      // expired/corrupt/misplaced shared-device copies are purged rather than left on disk.
+      // expired/corrupt/misplaced snapshots are purged (exact keys). The mutable legacy slot
+      // is only read; unusable legacy entries are retained until an explicit clear(event).
       const legacy = readSlot('local', now);
       const scan = scanSnapshots(now);
-      if (scan.cleanupFailed || (legacy.ok === false && legacy.reasonCode === 'recovery_cleanup_failed')) return cleanupFailed;
+      if (scan.cleanupFailed) return cleanupFailed;
       // This tab's own session draft is ahead of the clock: do not fall back to a shared draft.
       if (fromSession.ok === 'deferred') return clockBehind;
-      if (fromSession.value) return fromSession;
+      if (fromSession.ok === true && fromSession.value) return { ok: true, value: fromSession.value };
       if (legacy.ok === false || scan.unreadable) return unavailable;
       const legacyDraft = legacy.ok === true ? legacy.value : null;
       const candidates = scan.valid.length + scan.future + (legacy.ok === 'deferred' ? 1 : 0) + (legacyDraft ? 1 : 0);
-      if (candidates === 0) return { ok: true, value: null };
+      // An unusable legacy entry is retained (never auto-deleted): not "nothing to recover".
+      if (candidates === 0) return legacy.ok === 'retained' ? cleanupFailed : { ok: true, value: null };
       if (candidates > 1) return ambiguous; // every copy preserved; no arbitrary "newest"
       if (scan.future === 1 || legacy.ok === 'deferred') return clockBehind;
       if (legacyDraft) {
@@ -364,12 +370,117 @@ export function createGuestRecoveryService(stores: { session: StorageLike | null
       return clean ? { ok: true, value: null } : cleanupFailed;
     },
   };
-  scopedSaveCleanup.set(service, clearSaved);
+  const LEGACY_CHOICE = `${GUEST_DRAFT_KEY}#`;
+  const failure = (code: 'conflict' | 'unresolved' | 'validation_error' | 'unavailable', reasonCode: string): Result<never> => ({ ok: false, code, reasonCode });
+
+  /** Choices exist only for shared drafts; a session draft (valid or ahead of clock) has priority. */
+  const sessionBlocks = (now: string): Result<never> | null => {
+    const s = stores.session;
+    if (!s) return null;
+    const r = read(s, GUEST_DRAFT_KEY);
+    if (!r.ok) return unavailable;
+    if (r.raw === null) return null;
+    return classify('session', r.raw, now).kind === 'unusable' ? null : failure('conflict', 'recovery_session_draft_present');
+  };
+
+  /** Read-only: every currently valid shared draft, each freshly validated. Deletes nothing. */
+  const listChoices = (now: string): Result<GuestRecoveryChoice[]> => {
+    const blocked = sessionBlocks(now);
+    if (blocked) return blocked;
+    const s = stores.local;
+    if (!s) return { ok: true, value: [] };
+    const choices: GuestRecoveryChoice[] = [];
+    const listed = listSnapshots();
+    if (!listed.ok && listed.reason === 'unreadable') return unavailable;
+    for (const key of listed.ok ? listed.keys : []) {
+      const r = read(s, key);
+      if (!r.ok) return unavailable;
+      if (r.raw === null) continue;
+      const entry = classifySnapshot(key, r.raw, now);
+      if (entry.kind === 'valid') choices.push({ selectionId: key, draft: entry.draft });
+    }
+    const lr = read(s, GUEST_DRAFT_KEY);
+    if (!lr.ok) return unavailable;
+    if (lr.raw !== null) {
+      const entry = classify('local', lr.raw, now);
+      if (entry.kind === 'valid') choices.push({ selectionId: `${LEGACY_CHOICE}${sha256Hex(lr.raw)}`, draft: entry.draft });
+    }
+    choices.sort((a, b) => (a.selectionId < b.selectionId ? -1 : a.selectionId > b.selectionId ? 1 : 0));
+    return { ok: true, value: choices };
+  };
+
+  /**
+   * Explicit user choice. Re-reads and re-validates the chosen entry now (never trusts a
+   * stale list), deletes nothing, and records ownership so a later continuation/withdrawal
+   * retires exactly the chosen snapshot (a chosen legacy draft stays under the legacy rules).
+   */
+  const selectChoice = (selectionId: string, now: string): Result<GuestDraft> => {
+    const blocked = sessionBlocks(now);
+    if (blocked) return blocked;
+    const s = stores.local;
+    const isLegacy = selectionId.startsWith(LEGACY_CHOICE) && /^[0-9a-f]{64}$/.test(selectionId.slice(LEGACY_CHOICE.length));
+    if (!s || (!isLegacy && !selectionId.startsWith(SHARED_DRAFT_PREFIX))) return failure('validation_error', 'invalid_recovery_choice');
+    const r = read(s, isLegacy ? GUEST_DRAFT_KEY : selectionId);
+    if (!r.ok) return unavailable;
+    if (r.raw === null) return failure('conflict', 'recovery_choice_missing');
+    if (isLegacy && sha256Hex(r.raw) !== selectionId.slice(LEGACY_CHOICE.length)) return failure('conflict', 'recovery_choice_changed');
+    const entry = isLegacy ? classify('local', r.raw, now) : classifySnapshot(selectionId, r.raw, now);
+    if (entry.kind !== 'valid') return failure('unresolved', 'recovery_choice_unusable');
+    if (isLegacy) adoptedLegacy.add(entry.draft.draftId);
+    else owned.set(selectionId, entry.draft.draftId);
+    return { ok: true, value: entry.draft };
+  };
+
+  internals.set(service, { clearSaved, listChoices, selectChoice });
   return service;
 }
 
+/** One shared draft the user may explicitly choose after recover() returned a multi-draft conflict. */
+export interface GuestRecoveryChoice { selectionId: string; draft: GuestDraft }
+
 /** S-internal capability registry; keeps the frozen GuestRecoveryService port unchanged. */
-const scopedSaveCleanup = new WeakMap<GuestRecoveryService, (saved: GuestDraft, now: string) => boolean>();
+const internals = new WeakMap<GuestRecoveryService, {
+  clearSaved: (saved: GuestDraft, now: string) => boolean;
+  listChoices: (now: string) => Result<GuestRecoveryChoice[]>;
+  selectChoice: (selectionId: string, now: string) => Result<GuestDraft>;
+}>();
+const choicesUnsupported: Result<never> = { ok: false, code: 'unavailable', reasonCode: 'recovery_choices_unsupported' };
+const invalidClock: Result<never> = { ok: false, code: 'validation_error', reasonCode: 'invalid_clock' };
+
+/**
+ * After recover(now) returned `conflict` / `recovery_multiple_shared_drafts`: every currently
+ * valid shared draft (schema, mode, TTL, privacy projection and snapshot hash checked on this
+ * read), with an opaque `selectionId`. Read-only. A session draft has priority →
+ * `recovery_session_draft_present`. Non-S services → `recovery_choices_unsupported`.
+ */
+export function listGuestRecoveryChoices(recovery: GuestRecoveryService, now: string): Result<GuestRecoveryChoice[]> {
+  const i = internals.get(recovery);
+  if (!i) return choicesUnsupported;
+  if (!TimestampSchema.safeParse(now).success) return invalidClock;
+  try {
+    return i.listChoices(now);
+  } catch {
+    return { ok: false, code: 'unavailable', reasonCode: 'recovery_storage_unavailable' };
+  }
+}
+
+/**
+ * Explicit user selection of one listed choice. Freshly re-reads and re-validates it; never
+ * falls back to another draft and deletes nothing. Missing → `conflict`/`recovery_choice_missing`;
+ * changed legacy entry → `conflict`/`recovery_choice_changed`; now expired/invalid/future →
+ * `unresolved`/`recovery_choice_unusable`; malformed id → `validation_error`/`invalid_recovery_choice`.
+ */
+export function selectGuestRecoveryChoice(recovery: GuestRecoveryService, selectionId: string, now: string): Result<GuestDraft> {
+  const i = internals.get(recovery);
+  if (!i) return choicesUnsupported;
+  if (!TimestampSchema.safeParse(now).success) return invalidClock;
+  if (typeof selectionId !== 'string') return { ok: false, code: 'validation_error', reasonCode: 'invalid_recovery_choice' };
+  try {
+    return i.selectChoice(selectionId, now);
+  } catch {
+    return { ok: false, code: 'unavailable', reasonCode: 'recovery_storage_unavailable' };
+  }
+}
 
 /**
  * Removes only the stored copies of `saved` from a service created by
@@ -379,7 +490,7 @@ const scopedSaveCleanup = new WeakMap<GuestRecoveryService, (saved: GuestDraft, 
  * An invalid clock removes nothing and returns false.
  */
 export function clearSavedGuestDraft(recovery: GuestRecoveryService, saved: GuestDraft, now: string): boolean | undefined {
-  const scoped = scopedSaveCleanup.get(recovery);
+  const scoped = internals.get(recovery)?.clearSaved;
   if (!scoped) return undefined;
   if (!TimestampSchema.safeParse(now).success) return false;
   const parsed = GuestDraftSchema.safeParse(saved);

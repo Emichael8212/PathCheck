@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GuestDraft } from '../../src/contracts';
-import { clearSavedGuestDraft, createGuestRecoveryService, GUEST_DRAFT_KEY, SHARED_DRAFT_PREFIX, sharedDraftKey } from '../../src/persistence/guestRecovery';
+import { clearSavedGuestDraft, createGuestRecoveryService, GUEST_DRAFT_KEY, listGuestRecoveryChoices, selectGuestRecoveryChoice, SHARED_DRAFT_PREFIX, sharedDraftKey } from '../../src/persistence/guestRecovery';
 import type { StorageLike } from '../../src/persistence/guestRecovery';
 import { draft, memoryStorage } from './helpers';
 
@@ -325,13 +325,14 @@ describe('review fixes: legacy adoption, verified save cleanup, independent clea
     expect(svc.stash(draft({ draftId: 'd' }))).toEqual(failed);
   });
 
-  it('saving a recovered legacy draft: exact legacy copy removed and verified absent → cleared', () => {
+  it('saving a recovered legacy draft: the mutable legacy copy is retained and the save is NOT reported cleared', () => {
     const local = memoryStorage();
-    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(legacyD()));
+    const raw = JSON.stringify(legacyD());
+    local.setItem(GUEST_DRAFT_KEY, raw);
     const svc = tab(local);
     svc.recover(NOW);
-    expect(clearSavedGuestDraft(svc, legacyD(), NOW)).toBe(true);
-    expect(local.map.size).toBe(0);
+    expect(clearSavedGuestDraft(svc, legacyD(), NOW)).toBe(false);
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(raw);
   });
 
   it('clear(event): a throwing session removal does not skip legacy or snapshot removal; typed failure kept', () => {
@@ -353,5 +354,136 @@ describe('review fixes: legacy adoption, verified save cleanup, independent clea
     session.map.set(GUEST_DRAFT_KEY, JSON.stringify(draft({ draftId: 'd' })));
     expect(svc.stash(v2)).toEqual(failed);
     expect(snapshots(local)).toEqual([sharedDraftKey(v2)]);
+  });
+});
+
+describe('legacy slot: automatic paths never delete a concurrently newer old-tab value', () => {
+  /** Hook fires right after this tab reads the legacy key (pre-snapshot tab writes then). */
+  function legacyInterleaved(local: ReturnType<typeof memoryStorage>, hook: () => void) {
+    let fired = false;
+    const store: StorageLike = {
+      getItem: k => { const v = local.getItem(k); if (!fired && k === GUEST_DRAFT_KEY) { fired = true; hook(); } return v; },
+      setItem: (k, v) => local.setItem(k, v), removeItem: k => local.removeItem(k),
+      get length() { return local.length!; }, key: i => local.key!(i),
+    };
+    return store;
+  }
+  const fresh = () => JSON.stringify(ct({ draftId: 'old-tab', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' }));
+
+  it('expired legacy read by recover(), fresh legacy written by an old tab before any removal: fresh value kept', () => {
+    const local = memoryStorage();
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(ct({ createdAt: '2029-12-31T00:00:00Z', expiresAt: '2029-12-31T12:00:00Z' })));
+    const store = legacyInterleaved(local, () => local.setItem(GUEST_DRAFT_KEY, fresh()));
+    expect(createGuestRecoveryService({ session: memoryStorage(), local: store }).recover(NOW)).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_cleanup_failed' });
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(fresh());
+  });
+
+  for (const [name, next] of [['newer same-draftId', () => JSON.stringify(ct({ draftId: 'd', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' }))], ['foreign', fresh]] as const) {
+    it(`exact saved legacy copy vs a ${name} legacy write during save cleanup: kept, reported not cleared`, () => {
+      const local = memoryStorage();
+      local.setItem(GUEST_DRAFT_KEY, JSON.stringify(ct({ draftId: 'd' })));
+      const store = legacyInterleaved(local, () => local.setItem(GUEST_DRAFT_KEY, next()));
+      const svc = createGuestRecoveryService({ session: memoryStorage(), local: store });
+      expect(clearSavedGuestDraft(svc, ct({ draftId: 'd' }), NOW)).toBe(false);
+      expect(local.map.get(GUEST_DRAFT_KEY)).toBe(next());
+    });
+  }
+});
+
+describe('explicit recovery choices after a multi-draft conflict', () => {
+  const a = () => ct({ draftId: 'tab-a' });
+  const b = () => ct({ draftId: 'tab-b', createdAt: '2030-01-01T01:00:00Z' });
+  const twoDrafts = () => { const local = memoryStorage(); put(local, a()); put(local, b()); return local; };
+
+  it('lists every valid shared draft with opaque ids, read-only; select restores each independently and deletes nothing', () => {
+    const local = twoDrafts();
+    const before = new Map(local.map);
+    const svc = tab(local);
+    expect(svc.recover(NOW)).toEqual(conflict);
+    const listed = listGuestRecoveryChoices(svc, NOW);
+    expect(listed.ok && listed.value.map(c => c.draft.draftId).sort()).toEqual(['tab-a', 'tab-b']);
+    expect(local.map).toEqual(before);
+    if (!listed.ok) throw new Error('unreachable');
+    for (const c of listed.value) {
+      const fresh = tab(local); // each choice from a fresh tab, independently
+      expect(selectGuestRecoveryChoice(fresh, c.selectionId, NOW)).toEqual({ ok: true, value: c.draft });
+      expect(local.map).toEqual(before);
+    }
+  });
+
+  it('a selected choice is owned: continuing it retires exactly that snapshot; the unrelated draft is preserved', () => {
+    const local = twoDrafts();
+    const svc = tab(local);
+    const listed = listGuestRecoveryChoices(svc, NOW);
+    if (!listed.ok) throw new Error('list failed');
+    const pick = listed.value.find(c => c.draft.draftId === 'tab-a')!;
+    expect(selectGuestRecoveryChoice(svc, pick.selectionId, NOW).ok).toBe(true);
+    const next = ct({ draftId: 'tab-a', createdAt: '2030-01-01T05:00:00Z', expiresAt: '2030-01-01T17:00:00Z' });
+    expect(svc.stash(next)).toEqual({ ok: true, value: null });
+    expect(snapshots(local)).toEqual([sharedDraftKey(b()), sharedDraftKey(next)].sort());
+  });
+
+  it('privacy/expiry/validity: expired, corrupt, future-dated and hash-mismatched entries are never offered', () => {
+    const local = memoryStorage();
+    put(local, a());
+    put(local, ct({ draftId: 'expired', expiresAt: '2030-01-01T05:00:00Z' }));
+    put(local, ct({ draftId: 'future', createdAt: '2030-01-01T07:00:00Z', expiresAt: '2030-01-01T08:00:00Z' }));
+    local.setItem(`${SHARED_DRAFT_PREFIX}junk.${'0'.repeat(64)}`, JSON.stringify(b()));
+    local.setItem(GUEST_DRAFT_KEY, '{not json');
+    const listed = listGuestRecoveryChoices(tab(local), NOW);
+    expect(listed.ok && listed.value.map(c => c.draft.draftId)).toEqual(['tab-a']);
+    expect(listed.ok && JSON.stringify(listed.value)).not.toMatch(/%PDF-|JVBERi0/);
+  });
+
+  it('stale choice: removed, now expired, or changed legacy entry → typed failure, never a fallback to another draft', () => {
+    const local = twoDrafts();
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(ct({ draftId: 'legacy' })));
+    const svc = tab(local);
+    const listed = listGuestRecoveryChoices(svc, NOW);
+    if (!listed.ok) throw new Error('list failed');
+    const byId = (id: string) => listed.value.find(c => c.draft.draftId === id)!.selectionId;
+    local.removeItem(byId('tab-a'));
+    expect(selectGuestRecoveryChoice(svc, byId('tab-a'), NOW)).toEqual({ ok: false, code: 'conflict', reasonCode: 'recovery_choice_missing' });
+    expect(selectGuestRecoveryChoice(svc, byId('tab-b'), '2030-01-01T12:00:00Z')).toEqual({ ok: false, code: 'unresolved', reasonCode: 'recovery_choice_unusable' });
+    local.setItem(GUEST_DRAFT_KEY, JSON.stringify(ct({ draftId: 'legacy', expiresAt: '2030-01-01T11:00:00Z' })));
+    expect(selectGuestRecoveryChoice(svc, byId('legacy'), NOW)).toEqual({ ok: false, code: 'conflict', reasonCode: 'recovery_choice_changed' });
+    expect(snapshots(local)).toEqual([sharedDraftKey(b())]); // nothing deleted by failed selections
+  });
+
+  it('a valid legacy choice can be selected; the legacy copy is not deleted and later withdrawal reports cleanup failure', () => {
+    const local = memoryStorage();
+    put(local, a());
+    const raw = JSON.stringify(ct({ draftId: 'legacy' }));
+    local.setItem(GUEST_DRAFT_KEY, raw);
+    const svc = tab(local);
+    expect(svc.recover(NOW)).toEqual(conflict);
+    const listed = listGuestRecoveryChoices(svc, NOW);
+    if (!listed.ok) throw new Error('list failed');
+    const legacy = listed.value.find(c => c.draft.draftId === 'legacy')!;
+    expect(selectGuestRecoveryChoice(svc, legacy.selectionId, NOW)).toEqual({ ok: true, value: ct({ draftId: 'legacy' }) });
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(raw);
+    expect(svc.stash(draft({ draftId: 'legacy' }))).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_cleanup_failed' });
+    expect(local.map.get(GUEST_DRAFT_KEY)).toBe(raw);
+  });
+
+  it('session priority: a session draft blocks listing and selection', () => {
+    const local = twoDrafts(), session = memoryStorage();
+    const svc = createGuestRecoveryService({ session, local });
+    svc.stash(draft({ draftId: 'mine' }));
+    const blocked = { ok: false, code: 'conflict', reasonCode: 'recovery_session_draft_present' };
+    expect(listGuestRecoveryChoices(svc, NOW)).toEqual(blocked);
+    expect(selectGuestRecoveryChoice(svc, sharedDraftKey(a()), NOW)).toEqual(blocked);
+  });
+
+  it('non-S service, bad clock, malformed id and unreadable storage are typed failures', () => {
+    const foreign = { stash: () => ({ ok: true as const, value: null }), recover: () => ({ ok: true as const, value: null }), clear: () => ({ ok: true as const, value: null }) };
+    expect(listGuestRecoveryChoices(foreign, NOW)).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_choices_unsupported' });
+    expect(selectGuestRecoveryChoice(foreign, 'x', NOW)).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_choices_unsupported' });
+    const svc = tab(twoDrafts());
+    expect(listGuestRecoveryChoices(svc, 'yesterday')).toEqual({ ok: false, code: 'validation_error', reasonCode: 'invalid_clock' });
+    expect(selectGuestRecoveryChoice(svc, 'pathcheck.other', NOW)).toEqual({ ok: false, code: 'validation_error', reasonCode: 'invalid_recovery_choice' });
+    expect(selectGuestRecoveryChoice(svc, `${GUEST_DRAFT_KEY}#nothex`, NOW)).toEqual({ ok: false, code: 'validation_error', reasonCode: 'invalid_recovery_choice' });
+    const unreadable = createGuestRecoveryService({ session: memoryStorage(), local: memoryStorage({ failGet: true }) });
+    expect(listGuestRecoveryChoices(unreadable, NOW)).toEqual({ ok: false, code: 'unavailable', reasonCode: 'recovery_storage_unavailable' });
   });
 });
