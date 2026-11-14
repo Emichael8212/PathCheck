@@ -1,6 +1,6 @@
 # PathCheck implementation status
 
-Owner: Codex Agent 1 (L). Updated: 2026-11-13. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
+Owner: Codex Agent 1 (L). Updated: 2026-11-13 (UTC audit 2026-11-14). Current main: c6ab714, PRs1–10 merged; final application acceptance BLOCKED. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
 
 ## Application completion checklist (current)
 
@@ -1408,3 +1408,92 @@ waived. PR10 MERGED. PR9 human/independent/local gates PASS; no agent merge/depl
 Full account/cloud composition, public gateway and PDF resource isolation, and
 real-transcript privacy approval remain mandatory unfinished application/release
 work, distinct from this scoped integration PR. No full-MVP completion claim.
+
+
+### PR9 merged / final integrated audit in progress
+
+Human PR9 merge verified: `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e` at
+2026-11-14T03:40:17Z; accepted headab72400. Local main fast-forwarded cleanly.
+All existing PRs1–10 are MERGED. Explicit workflow_dispatch on exact mainc6ab714:
+foundation43553584601 PASS. No automatic main push/deploy. New isolated lead branch
+feat/integration-03 starts at c6ab714; old integration worktree/branches preserved.
+
+Current-main verification: npmcheck674unit/2documentedDBskips,43benchmark,9guards,
+3productionbrowser PASS; exact main installed lockfile and integration14/normalization3
+PASS. These cover actual manual record, conditional ASU outlook/PDF, synthetic
+prerequisite/recommendation/preview/apply/reject/undo/generator, and student-reported
+availability invalidation. Live main SYN101 upload PASS1 via actualGoogle/SQL/G/L/E,
+one correctattempt/HTTP200/no retry; no real transcript or paid processing.
+Live SQL371/5files PASS in isolated localhost stack, unchanged migrations. No claim
+that every mandatory security/integration requirement is satisfied.
+
+Audit blockers are implementation gaps, not acceptable final limitations:
+- F16–18 ordinary main account:null; realOTP/save/reopen/browserCAS/recovery tests
+  absent. L is composing existing S ports using approved public VITE config only.
+- U AccountPanel generic clear('save') bypasses S scoped cleanup, risking unrelated
+  draft loss; async save completion can overwrite newer edits. Existing Claude U
+  actually resumed in original worktree, assigned feat/frontend-account-safety.
+  DraftPR11 head1950804 adds guards/realS recovery tests81UI PASS, CI43554809787PASS.
+  Independent review still found stale open response race; correction pending.
+- Main browser generation remains synchronous; mandatory SCH18 runtime interruption
+  lacks integration/test. E pure chunk/cancel is implemented, not yet wired.
+- Reopened plans inherit current capacity/summer assumptions; must reset/disclose or
+  explicitly restore validated settings, with regression. No new academic policy.
+- Cross-tab shared-slot read/write cleanup has no proven atomic coordination.
+- Actual Edge entry, authenticated gateway/network identity, genuine bot flow and
+  terminating PDF resource isolation remain unfinished G/L/U engineering. Local
+  fixture-only Node runtime is not the production endpoint. Separate release gates:
+  real-data terms/authorized representative validation, hosted config/security,
+  paid billing if needed and separate deployment approval. None authorized here.
+
+L account test required a numeric OTP email template. Initial test failures also
+exposed an obsolete inbox API and an unmounted Colima template path: the local
+gateway served a directory listing. Mailpit API and mounted template setup corrected;
+no external email or auth-policy weakening. Browser tests use syntheticmail/localDB
+and never print OTP/tokens. This and account composition are unmerged work; not counted
+as complete. Final full-application human acceptance is BLOCKED until engineering
+and mandatory integration gaps close. Existing scoped human PASS remains valid.
+
+### Final audit correction checkpoint — account and recovery
+
+U PR11 head `7beea3f4dd005147af933fb3e0b87c09abfa2827`, CI43555931750 PASS.
+Independent static re-review: no remaining blocking finding in U delta. Slow open
+cannot overwrite edits/new workspace; canceled realS OTP verification cannot sign
+in later; reopen/restore resets/discloses 15-credit/no-summer assumptions. Owner
+UI87 (19 account) PASS; actual negative controls fail on old implementation.
+Human acceptance NOT RUN. No U merge; main retains these defects.
+
+L unmerged `feat/integration-03` composes actual S auth/storage/recovery using
+existing public config. Actual two-browser local email OTP→save→list→reopen PASS;
+stronger record-field assertions also PASS (CIS300/Completed/B/3/3). Email resend limit retained
+(61-second wait), no auth-policy bypass. Template must reside on Colima's mounted
+scratch path; do not mount the lead secret directory. Port5188 browser/mail55434,
+DB/API still127.0.0.1 only. Raw mail/code/tokens are never printed. Build-time
+public-config guard rejects secret/service_role keys before Vite embeds them;
+forced OTP-failure guard verifies stdout and actual Playwright artifacts are clean.
+L `npm run check`:679unit/2expectedDBskips,43benchmark,9uploadguards,3newaccountguards,
+3productionbrowser PASS; lint/type/build PASS. Attempted .ts import cleanup failedTS5097 and was reverted; original working
+configuration retained. Filled-input privacy probe added and affected guards rerun. This does not close full account tests.
+
+Actual current-source REST owner-isolation/CAS/Save-as-new PASS1; config guard1
+expected skip on valid local setup. Main admission concurrency PASS:12queuedworkers,
+winners1/1/3/5; dispatch/revoke6pairs2/4 and retry/revoke6pairs2/4;22reservations,
+cleanup0. No human acceptance rerun/claim. SQL371 remains verified unchanged source.
+
+S independently reproduced actual localStorage loss in two Chromium tabs:
+300/300 simultaneous stashes both reported success;100/100 session-first races
+left the losing tab without a stored recovery copy. Sequential control50/50
+correctly rejected conflict. Scope: new account integration blocked, not imaginary
+risk or release-only limitation. Existing S session unavailable; preserved worktree
+and handoff recovered into actual Claude sessionea69c35b. S is implementing a
+contract-compatible immutable snapshot namespace on assigned feat/recovery-atomicity;
+ambiguous candidates must return conflict, never silently choose/overwrite. Legacy,
+same-ID newer edits, expiry and scoped save cleanup require regression/race evidence.
+This is NOT verified fixed. Separate human acceptance required when ready.
+
+Final human E2E procedure remains ineligible until these engineering gates close.
+Do not request repetitions of already accepted PR4–10 scopes. Remaining next work:
+S recovery correction→independent review; compose U/L/S on noncommitting scratch;
+real OTP/CAS/recovery/PDF journeys; SCH18 browser interruption; secure extraction
+runtime/gateway/bot/resource isolation. Existing unknown ASU policies remain
+conditional and separate from engineering defects. No merge/deploy/billing change.

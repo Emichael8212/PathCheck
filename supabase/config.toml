@@ -44,3 +44,12 @@ enable_refresh_token_rotation = true
 enabled = true
 # Local tests mint disposable principals; no real email delivery or production policy.
 enable_confirmations = false
+
+# Product uses email OTP entry, not a link callback. Local SMTP captures synthetic mail.
+# https://supabase.com/docs/guides/local-development/customizing-email-templates
+[auth.email.template.magic_link]
+subject = "Your PathCheck sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"
+[auth.email.template.confirmation]
+subject = "Your PathCheck sign-in code"
+content_path = "./supabase/templates/sign-in-code.html"

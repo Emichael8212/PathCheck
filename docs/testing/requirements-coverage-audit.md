@@ -1,3 +1,59 @@
+# Current integrated acceptance audit — main c6ab714
+
+PR #9 is human-merged as `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e` (2026-11-14T03:40:17Z).
+All historical PRs1–10 are merged. Main CI43553584601 PASS; local main clean/synchronized.
+The historical sections below are retained evidence, not the current completion verdict.
+
+| Requirement / source | Current-main evidence | Status / remaining gate |
+|---|---|---|
+| F01 three screens / T-UI | Production3, real integration14, UI68 in main CI | PASS |
+| F02/F14 selected + generated paths | journey.spec generated bounded draft/explicit adoption | PASS core; SCH18 interruption MISSING TEST |
+| F03/F05 record/normalization | actual manual CIS300 matching; normalization.integration3; engine tests | PASS core; persisted lifecycle below remains blocked |
+| F06/F07 degree/prerequisites | engine rules/allocation/repeat/scheduling suites; unknown ASU rules preserved | PASS modeled behavior; formal applicability/equivalencies remain unavailable university information |
+| F08/F09/F11 analysis/recommendations | real engine browser conflict/overlooked-course and uncertain outlook | PASS conditional functionality |
+| F10 availability | journey.spec student offering report has one owner and invalidates prior recommendation | PASS local; persisted availability re-open MISSING TEST |
+| F12/F13 timeline/transactions | real integration14 incl reject/apply/undo, stale capacity and availability | PASS local; composed cloud conflict MISSING TEST |
+| F04 extraction / T-GEM | exact-main realGoogle SYN101 upload1PASS, HTTP200, one correct attempt, explicit acceptance/planner; simulated errors/units separate | PASS local fixture journey; ordinary root/runtime engineering BLOCKED |
+| F15 guest planning | guest full manual/generated paths PASS | PASS planning; recovery issues below |
+| F16–18 / T-AUTH | S SQL/REST/unit components exist; main account:null; real UIOTP/save/reopen/CAS not integrated | BLOCKED implementation; MISSING TEST live browser journey |
+| T-AUTH recovery/save races | U generic clear(save) bypasses scoped S helper; stale saved snapshot replaces later edits | FAIL source-confirmed; U PR11 correction in progress, not main |
+| T-AUTH cross-tab atomicity | synchronous shared-slot read then write/clear; no real race proof | BLOCKED / MISSING TEST |
+| CAT persisted reopen / T-DATA | UI restores inputs but carries previous workspace capacity/summer assumptions | FAIL source audit; regression/correction required |
+| SCH18 browser interruption / ARCH Search-v1 | pure E step/cancel implemented; no L/U worker/watchdog integration | BLOCKED implementation / MISSING TEST browser interruption |
+| F19 PDF | actual PDF bytes/pages/current curriculum/conditions/privacy omissions; no full transcript export required | PASS |
+| F20 desktop/accessibility/responsive | main CI UI68 incl keyboard/contrast/mobile regressions | PASS |
+| T-SEC local SQL/admission | current source SQL371/5filesPASS; main unit/retry/privacy suitesPASS | PASS tested local scope; not all security gates |
+| T-SEC actual Edge startup/gateway/bot | factory/test-only Node composition; no actual Edge entry or authenticated identity/bot runtime | BLOCKED implementation / MISSING TEST |
+| T-SEC PDF CPU/memory termination | in-process parser + timer race does not terminate work | BLOCKED implementation / MISSING TEST real isolation |
+| Release-only controls | appropriate real-data processing terms, authorized representative validation, hosted settings/retention and explicit deploy approval | BLOCKED external/release; real transcripts remain disabled |
+
+Implementation complete: **NO**. Integration complete: **NO**. Human accepted:
+**scoped prior workflows PASS, final complete application NOT RUN/BLOCKED**.
+Deployment ready: **NO**. New lead feat/integration-03 and U feat/frontend-account-safety
+are correction work, not additional feature scope. Final human procedure cannot be
+presented as a full acceptance pass while the above mandatory gaps remain.
+
+## Unmerged corrections and additional measured evidence
+
+These do not change the current-main verdict above.
+
+| Requirement | Exact test/evidence | Candidate / result | Gate |
+|---|---|---|---|
+| F16/Same-tab OTP + owned create/list/open | accounts.spec.ts `real email OTP preserves guest work and saves/reopens an owned plan`; actual email/GoTrue/PostgREST, two browser contexts | L working tree basec6ab714: PASS including saved CIS300/Completed/B/3/3 assertions | Integration/human NOT RUN |
+| Secret build boundary | accounts/guards.node.mjs `reject secret key before Vite emits output`, `reject service-role key before Vite emits output` | L workingtree PASS2; no bundle/no secret output | Merge |
+| OTP diagnostics privacy | accounts/guards.node.mjs `forced OTP failure exposes no code in terminal output or artifacts` | L workingtree PASS1; actual failing browser probe/artifacts inspected | Merge |
+| Scoped recovery + save/open/OTP races | U tests/ui/browser/account.spec.ts19 cases, real S recovery/auth with explicitly simulated deferred transport | U7beea3f: UI87PASS, CI43555931750PASS, independent re-review no blocker; humanNOT RUN | Merge/integration |
+| T-AUTH shared-slot race | S actualChromium two-tab harness, 300natural races +100session-first,50sequential controls | FAIL mainc6ab714: both succeed then loser has no stored recovery; correction in progress | Integration, not optional |
+| T-SEC live REST | live.supabase.test.ts `enforces owner isolation, CAS and Save-as-new end to end` | currentSsource PASS1; separate valid-config guard expectedSKIP1 | Local security |
+| T-SEC admission races | supabase/tests/admission/concurrency.sh actual12queued workers, replay/session/network/budget + revoke races | mainc6ab714 PASS,22reservations,cleanup0 | Local security |
+
+Real saved-record update/CAS browser conflicts, authenticated deletion/recent-auth,
+recovery concurrency and integrated generation interruption are still mandatory;
+initial account happy-path PASS does not satisfy them. Internal storage correction
+must preserve opt-in/TTL/privacy and return typed conflict for ambiguous candidates.
+
+---
+
 # PathCheck requirements-to-test audit — 2026-11-13
 
 ## Corrected acceptance and merge sequence — includes PR8
