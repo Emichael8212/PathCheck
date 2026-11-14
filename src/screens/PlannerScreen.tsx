@@ -7,7 +7,7 @@ import { useNarrowLayout } from '../ui/previewText';
 import type { DraftState } from '../ui/components/Proposals';
 import { Timeline } from '../ui/components/Timeline';
 import type { RowContext, TimelineHandlers } from '../ui/components/Timeline';
-import { catalogStatus, courseCode, failureText } from '../ui/labels';
+import { catalogEdition, catalogStatus, courseCode, failureText } from '../ui/labels';
 import { describeChanges, findingDelta } from '../ui/planView';
 import type { CapacityAssumption } from '../ui/scenario';
 import { termKey, termLabel } from '../ui/terms';
@@ -231,6 +231,7 @@ export function PlannerScreen(p: PlannerProps) {
     summary?.scrollIntoView({ block: 'nearest' }); summary?.focus();
   };
   const cat = catalogStatus(p.catalog.catalogRef, p.catalog.approval);
+  const edition = catalogEdition(p.catalog.catalogRef);
   const covered = Boolean(p.preview) && !narrow;
   // Empty plan: one clear starting point instead of a list of empty semesters.
   const emptyPlan = p.plan.activePlacements.length === 0 && !p.draft;
@@ -318,7 +319,7 @@ export function PlannerScreen(p: PlannerProps) {
               )}
               <Assumptions capacity={p.capacity} includeSummer={p.includeSummer} assumeFuturePass={p.assumeFuturePass} onCapacity={p.onCapacity} onIncludeSummer={p.onIncludeSummer} />
               <details className="insp-disclosure">
-                <summary>Catalog<span className={`summary-meta${cat.tone === 'warn' ? ' is-warn' : ''}`}>{cat.short}</span></summary>
+                <summary>Catalog<span className={`summary-meta${cat.tone === 'warn' ? ' is-warn' : ''}`}>{edition ? `${edition.short} · ${cat.short}` : cat.short}</span></summary>
                 <CatalogSummary catalog={p.catalog} />
               </details>
             </div>

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { AnalysisResult, AvailabilityEvidence, CatalogModel, RuleFinding, TermId } from '../../contracts';
 import {
   APPROVAL_LABEL, OUTLOOK_UI, REPORT_LABEL, REPORT_UI, RULESET_LABEL, SOURCE_KIND_LABEL, VERIFICATION_LABEL,
-  assumptionText, catalogStatus, catalogYearLabel, constraintText, courseCode, courseTitle, findingMark, findingParams, findingScope, findingTitle,
+  assumptionText, catalogEdition, catalogStatus, catalogYearLabel, constraintText, courseCode, courseTitle, findingMark, findingParams, findingScope, findingTitle,
   formatTimestamp, groupTitle, humanizeCode, programLabel, sourceLookup, withTarget,
 } from '../labels';
 import { groupFindings } from '../planView';
@@ -43,17 +43,27 @@ export function NoticeAlert({ notice }: { notice: NoticeState }) {
 /** Persistent catalog identification; the toolbar shows it on every screen. */
 export function CatalogChip({ catalog }: { catalog: CatalogModel }) {
   const s = catalogStatus(catalog.catalogRef, catalog.approval);
-  return <span className={`catalog-chip catalog-chip-${s.tone}`} data-testid="catalog-chip" title={s.message}>{s.short}<span className="visually-hidden">. {s.message}</span></span>;
+  const edition = catalogEdition(catalog.catalogRef);
+  const text = edition ? `${edition.short} · ${s.short}` : s.short;
+  const message = edition ? `${edition.name}. ${s.message}` : s.message;
+  return <span className={`catalog-chip catalog-chip-${s.tone}`} data-testid="catalog-chip" title={message}>{text}<span className="visually-hidden">. {message}</span></span>;
 }
 
 /** Catalog rows for the setup card: status banner always visible, provenance on demand. */
 export function CatalogSummary({ catalog }: { catalog: CatalogModel }) {
   const ref = catalog.catalogRef;
   const status = catalogStatus(ref, catalog.approval);
+  const edition = catalogEdition(ref);
   const blocking = catalog.policyGaps.filter(g => g.blocksConclusions).length;
   return (
     <div className="catalog-summary" role="group" aria-label="Catalog and source status" data-testid="catalog-summary">
       {status.tone === 'warn' && <p className="banner banner-warn" data-testid="catalog-banner"><span aria-hidden="true">⚠ </span>{status.message}</p>}
+      {edition && (
+        <div className="setup-row">
+          <span className="setup-label">Curriculum</span>
+          <span className="setup-value" data-testid="catalog-edition">{edition.name}<span className="edition-detail">{edition.detail}</span></span>
+        </div>
+      )}
       <div className="setup-row">
         <span className="setup-label">Catalog year</span>
         <span className="setup-value" data-testid="catalog-year">{catalogYearLabel(ref)}</span>

@@ -51,6 +51,55 @@ export function programLabel(ref: CatalogRef): string {
   return `${institution} — ${program}`;
 }
 
+/** Program name without the institution, e.g. "B.S. Computer Information Systems". */
+export function programName(ref: CatalogRef): string {
+  const full = programLabel(ref);
+  return full.split(' — ').slice(1).join(' — ') || full;
+}
+
+/**
+ * Human-readable identity of a catalog configuration. Several approved configurations can share
+ * institution, program, status and an unresolved catalog year, so the selector, toolbar, setup card
+ * and PDF need a visible name for which curriculum the plan uses. Presentation only: keyed on the
+ * exact approved version identifiers, no rules derived. A printed guide year is never presented as
+ * the governing catalog year. Synthetic rule sets never receive an institutional name.
+ */
+export type CatalogEdition = { name: string; short: string; detail: string };
+const CATALOG_EDITION: Readonly<Record<string, CatalogEdition>> = {
+  'asu-cis-department-provisional-v1': {
+    name: 'Current departmental curriculum',
+    short: 'Current curriculum',
+    detail: 'The department’s current curriculum, used as a provisional interpretation. The governing catalog year is not confirmed.',
+  },
+  'asu-cis-guide-2019-2021-v1': {
+    name: 'Historical 2019–2021 curriculum guide',
+    short: '2019–2021 guide',
+    detail: 'Historical reference from the printed 2019–2021 curriculum guide. The printed guide years are not a confirmed catalog year.',
+  },
+};
+export function catalogEdition(ref: CatalogRef): CatalogEdition | null {
+  if (ref.ruleSetStatus === 'synthetic') return null;
+  return CATALOG_EDITION[ref.catalogVersion] ?? null;
+}
+
+/**
+ * Visible option text per catalog version for the program selector. Always distinct: if two
+ * configurations would read the same, an ordinal is appended rather than the internal version string.
+ */
+export function catalogOptionLabels(refs: readonly CatalogRef[]): Map<string, string> {
+  const base = refs.map(r => {
+    const edition = catalogEdition(r);
+    return `${programName(r)}${edition ? ` — ${edition.name}` : ''} · ${catalogStatus(r, null).short}`;
+  });
+  const out = new Map<string, string>();
+  refs.forEach((r, i) => {
+    const same = base.filter(b => b === base[i]).length;
+    const nth = base.slice(0, i + 1).filter(b => b === base[i]).length;
+    out.set(r.catalogVersion, same > 1 ? `${base[i]} (option ${nth} of ${same})` : base[i]!);
+  });
+  return out;
+}
+
 export function humanizeCode(code: string): string {
   const text = code.replace(/[_-]+/g, ' ').trim();
   return text.length === 0 ? code : text.charAt(0).toUpperCase() + text.slice(1);
