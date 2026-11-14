@@ -4,8 +4,11 @@ import type { AcademicRecord, GuestDraft, Plan, Result, SavedPlan } from '../../
 // Lead-approved consumption of S's existing public, draft-scoped cleanup. It removes only
 // stored copies byte-identical to the given draft; the generic clear('save') port would
 // delete both slots (another tab's draft, or a newer edit stashed while a save was pending).
-import { clearSavedGuestDraft } from '../../persistence/guestRecovery';
-import * as guestRecovery from '../../persistence/guestRecovery';
+// listGuestRecoveryChoices/selectGuestRecoveryChoice: S-owned explicit choice among several
+// stored drafts (same lead-approved consumption). U never reads recovery storage itself and
+// never picks a draft automatically.
+import { clearSavedGuestDraft, listGuestRecoveryChoices, selectGuestRecoveryChoice } from '../../persistence/guestRecovery';
+import type { GuestRecoveryChoice } from '../../persistence/guestRecovery';
 import { failureText, formatTimestamp } from '../labels';
 import { termLabel } from '../terms';
 import { guard, guardAsync } from '../scenario';
@@ -21,24 +24,12 @@ const SYNC_SHORT: Record<SyncState, string> = { local: 'Signed in, not saved', s
 
 const SESSION_DRAFT_HOURS = 6, CROSS_TAB_DRAFT_HOURS = 24;
 
-/**
- * S-owned recovery choice helpers (lead-approved consumption, like clearSavedGuestDraft).
- * They ship with S's recovery snapshots; until that S module is present this is a capability
- * check only. U never reads recovery storage itself and never picks a draft automatically.
- */
-type RecoveryChoice = { selectionId: string; draft: GuestDraft };
-type ChoiceHelpers = {
-  listGuestRecoveryChoices?: (recovery: AccountPorts['recovery'], now: string) => Result<RecoveryChoice[]>;
-  selectGuestRecoveryChoice?: (recovery: AccountPorts['recovery'], selectionId: string, now: string) => Result<GuestDraft>;
-};
-const choiceHelpers = guestRecovery as unknown as ChoiceHelpers;
-
 /** What the recovery banner shows when recover() did not return exactly one draft. */
 type RecoveryProblem =
-  | { kind: 'choices'; choices: RecoveryChoice[]; error: string | null }
+  | { kind: 'choices'; choices: GuestRecoveryChoice[]; error: string | null }
   | { kind: 'notice'; text: string; canClearAll: boolean };
 
-const MULTIPLE_NO_CHOICE = 'Several guest drafts were found on this device. This version cannot choose between them, so none was restored and all are kept.';
+const MULTIPLE_NO_CHOICE = 'Several guest drafts were found on this device. None was restored and all are kept.';
 
 function problemFor(f: Extract<Result<never>, { ok: false }>): RecoveryProblem {
   switch (f.reasonCode) {
@@ -192,9 +183,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
   /** Maps a failed recover() to the banner, listing S's explicit choices when several drafts exist. */
   function recoveryProblem(f: Extract<Result<never>, { ok: false }>, error: string | null = null): RecoveryProblem {
     if (!ports || f.reasonCode !== 'recovery_multiple_shared_drafts') return problemFor(f);
-    const list = choiceHelpers.listGuestRecoveryChoices;
-    if (!list) return problemFor(f);
-    const r = guard(() => list(ports.recovery, clock.now()), 'recovery_choices_failed');
+    const r = guard(() => listGuestRecoveryChoices(ports.recovery, clock.now()), 'recovery_choices_failed');
     if (!r.ok) return { kind: 'notice', text: `Several guest drafts were found on this device, but they could not be listed. None was restored and all are kept. ${failureText(r)}`, canClearAll: true };
     // S omits expired, future-dated or invalid copies it still retains: "none usable", not "none stored".
     if (r.value.length === 0) return { kind: 'notice', text: `${error ? `${error} ` : ''}No recovery drafts are currently available to restore. Expired or unreadable copies may still be stored in this browser; you can delete stored recovery drafts below.`, canClearAll: true };
@@ -237,9 +226,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
 
   function chooseDraft(selectionId: string) {
     if (!ports) return;
-    const select = choiceHelpers.selectGuestRecoveryChoice;
-    if (!select) { setProblem({ kind: 'notice', text: MULTIPLE_NO_CHOICE, canClearAll: true }); return; }
-    const r = guard(() => select(ports.recovery, selectionId, clock.now()), 'recovery_choice_failed');
+    const r = guard(() => selectGuestRecoveryChoice(ports.recovery, selectionId, clock.now()), 'recovery_choice_failed');
     if (r.ok) { restore(r.value); return; }
     // Nothing is deleted on a failed choice; show what remains now.
     const why = `${CHOICE_ERROR[r.reasonCode] ?? failureText(r)} Nothing was restored.`;

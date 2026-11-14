@@ -7,7 +7,7 @@ import type { Page } from '@playwright/test';
 import { addCourse, enterCompletedAttempt, open, startGuest, termCard, toPlanner } from './helpers';
 
 const KEY = 'pathcheck.guestDraft.v1';
-// S PR13 stores cross-tab drafts as immutable snapshots under this prefix; the legacy key may remain.
+// S recovery (merged PR13) stores cross-tab drafts as immutable snapshots under this prefix; the legacy key may remain.
 const SHARED_PREFIX = 'pathcheck.guestDraft.v1.x.';
 type Saved = { id: string; revision: number; plan: { planId: string; activePlacements: Array<{ courseId: string }> } };
 type Draft = { draftId: string; mode: string; plan: { activePlacements: Array<{ courseId: string }> } };
@@ -416,7 +416,6 @@ test.describe('cancelling sign-in with the real S auth service', () => {
   });
 });
 
-const capabilities = (page: Page) => page.evaluate(() => window.__pathcheckHarness!.recoveryCapabilities);
 const problemBanner = (page: Page) => page.getByTestId('recovery-problem');
 
 /**
@@ -478,9 +477,8 @@ test.describe('recovery problems are shown, never silently dropped', () => {
     await expect(termCard(page, 'Spring 2027').getByTestId('placement')).toContainText('SYN 202');
   });
 
-  test('several shared drafts: an explicit choice restores one and keeps the other (needs S PR13 choice helpers)', async ({ page }) => {
+  test('several shared drafts: an explicit choice restores one and keeps the other', async ({ page }) => {
     await open(page, 'recovery=real');
-    test.skip(!(await capabilities(page)).choices, 'BLOCKED: S PR13 listGuestRecoveryChoices/selectGuestRecoveryChoice not in this composition');
     await twoSharedSnapshots(page);
     const choices = problemBanner(page).getByTestId('recovery-choice');
     await expect(choices).toHaveCount(2);
@@ -503,9 +501,8 @@ test.describe('recovery problems are shown, never silently dropped', () => {
       .toContain('cross_tab_opt_in:SYN-201,SYN-202');
   });
 
-  test('once this tab has its own work, the choices are kept but not restorable here (needs S PR13 choice helpers)', async ({ page }) => {
+  test('once this tab has its own work, the choices are kept but not restorable here', async ({ page }) => {
     await open(page, 'recovery=real');
-    test.skip(!(await capabilities(page)).choices, 'BLOCKED: S PR13 choice helpers not in this composition');
     await twoSharedSnapshots(page);
     await expect(problemBanner(page).getByTestId('recovery-choice')).toHaveCount(2);
     await startGuest(page);
@@ -514,9 +511,8 @@ test.describe('recovery problems are shown, never silently dropped', () => {
     expect((await slots(page)).shared).toHaveLength(2);
   });
 
-  test('a stale choice restores nothing, deletes nothing and refreshes the list (needs S PR13 choice helpers)', async ({ page }) => {
+  test('a stale choice restores nothing, deletes nothing and refreshes the list', async ({ page }) => {
     await open(page, 'recovery=real');
-    test.skip(!(await capabilities(page)).choices, 'BLOCKED: S PR13 choice helpers not in this composition');
     await twoSharedSnapshots(page);
     await expect(problemBanner(page).getByTestId('recovery-choice')).toHaveCount(2);
     // Another tab removes draft "b" after the list was shown.
@@ -528,16 +524,11 @@ test.describe('recovery problems are shown, never silently dropped', () => {
     expect((await slots(page)).shared).toHaveLength(1);
   });
 
-  test('several shared drafts without the choice helpers: disclosed, all kept; delete-all needs confirmation and spares unrelated data (needs S PR13 snapshots)', async ({ page }) => {
+  test('several shared drafts stay listed until chosen; delete-all needs confirmation and spares unrelated data', async ({ page }) => {
     await open(page, 'recovery=real');
-    const caps = await capabilities(page);
-    test.skip(!caps.snapshots, 'BLOCKED: S PR13 snapshot recovery not in this composition');
     await twoSharedSnapshots(page);
-    if (caps.choices) {
-      await expect(problemBanner(page).getByTestId('recovery-choice')).toHaveCount(2);
-    } else {
-      await expect(problemBanner(page).getByRole('alert')).toContainText('cannot choose between them, so none was restored and all are kept');
-    }
+    await expect(problemBanner(page).getByTestId('recovery-choice')).toHaveCount(2);
+    await expect(page.getByTestId('recovery-banner')).toHaveCount(0);
     expect((await slots(page)).shared).toHaveLength(2);
     await problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' }).click();
     await expect(problemBanner(page).getByTestId('clear-all-warning')).toContainText('This deletes the PathCheck recovery drafts stored in this browser, including drafts from other tabs.');
@@ -684,9 +675,8 @@ test.describe('single-draft Restore re-validates the stored copy first', () => {
 });
 
 test.describe('no usable choices left', () => {
-  test('expired copies S still retains are described as unavailable, not absent, with cleanup offered (needs S PR13 choice helpers)', async ({ page }) => {
+  test('expired copies S still retains are described as unavailable, not absent, with cleanup offered', async ({ page }) => {
     await open(page, 'recovery=real');
-    test.skip(!(await capabilities(page)).choices, 'BLOCKED: S PR13 choice helpers not in this composition');
     await twoSharedSnapshots(page);
     await expect(problemBanner(page).getByTestId('recovery-choice')).toHaveCount(2);
     await advanceClock(page, 25 * 3_600_000); // past the 24h cross-tab lifetime
@@ -698,5 +688,30 @@ test.describe('no usable choices left', () => {
     await expect(problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' })).toBeVisible();
     expect((await slots(page)).shared).toHaveLength(2); // retained, not deleted by the choice attempt
     await expect(page.getByTestId('screen-start')).toBeVisible();
+  });
+});
+
+test.describe('real multi-tab recovery (three tabs, one browser profile)', () => {
+  test('two tabs that opt in to 24-hour recovery are both offered as choices in a third tab', async ({ context, page }) => {
+    const optIn = async (tab: Page, course: RegExp) => {
+      await plannerWithRecord(tab, 'recovery=real');
+      await addCourse(tab, course, 'Spring 2027');
+      await tab.getByTestId('account-summary').click();
+      await tab.getByLabel('Email').fill('student@example.test');
+      await tab.getByLabel(/Also keep a recovery draft/).check();
+      await tab.getByRole('button', { name: 'Email me a code' }).click();
+      await expect(tab.getByTestId('account-panel').locator('.account-message')).toContainText('Check your email');
+    };
+    await optIn(page, /^SYN 201/);
+    const tabB = await context.newPage();
+    await optIn(tabB, /^SYN 202/);
+    expect((await slots(tabB)).shared).toHaveLength(2);
+    const tabC = await context.newPage();
+    await open(tabC, 'recovery=real');
+    const choices = tabC.getByTestId('recovery-problem').getByTestId('recovery-choice');
+    await expect(choices).toHaveCount(2);
+    await expect(tabC.getByTestId('recovery-banner')).toHaveCount(0);
+    await choices.first().getByRole('button', { name: 'Restore this draft' }).click();
+    await expect(tabC.getByRole('heading', { level: 1, name: 'Graduation planner' })).toBeVisible();
   });
 });
