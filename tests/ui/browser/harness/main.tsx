@@ -29,6 +29,8 @@ const harness = fakeServices({
   clearFails: q.get('clear') === 'fail',
   exportFails: q.get('export') === 'fail',
   staleAnalysis: q.get('analysis') === 'stale',
+  // catalogs=pair|pair-synthetic lists two catalogs that differ only by version (identity labels).
+  ...(q.get('catalogs') === 'pair' ? { catalogPair: 'provisional' as const } : q.get('catalogs') === 'pair-synthetic' ? { catalogPair: 'synthetic' as const } : {}),
 });
 
 declare global { interface Window { __pathcheckHarness?: { transcriptCalls: string[]; revokedIds: string[]; savedPlanCount: () => number; release: (name: string) => void } } }

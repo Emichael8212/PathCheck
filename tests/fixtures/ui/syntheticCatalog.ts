@@ -38,3 +38,23 @@ export function syntheticCatalog(options: { blockingGap?: boolean; longTitles?: 
     validationResults: [],
   });
 }
+
+/** The exact approved catalog version identifiers; used only to exercise UI identity labels. */
+export const CURRENT_VERSION = 'asu-cis-department-provisional-v1';
+export const HISTORICAL_VERSION = 'asu-cis-guide-2019-2021-v1';
+
+/**
+ * PRESENTATION-ONLY pair: two catalogs that differ only in catalogVersion, mirroring how the two
+ * approved configurations share institution, program, status and an unresolved year. Course
+ * content stays the synthetic SYN-* set; nothing here asserts real ASU courses or rules.
+ * `synthetic: true` keeps the synthetic rule-set status so the UI must not name a real curriculum.
+ */
+export function identityPairCatalogs(options: { synthetic?: boolean } = {}): CatalogModel[] {
+  // A provisional catalog must retain blocking uncertainty (contract refinement).
+  const base = syntheticCatalog({ blockingGap: !options.synthetic });
+  return [CURRENT_VERSION, HISTORICAL_VERSION].map(catalogVersion => CatalogModelSchema.parse({
+    ...base,
+    approval: options.synthetic ? 'synthetic' : 'user_provisional',
+    catalogRef: { ...SYNTHETIC_REF, catalogYearId: null, catalogVersion, ruleSetStatus: options.synthetic ? 'synthetic' : 'provisional' },
+  }));
+}

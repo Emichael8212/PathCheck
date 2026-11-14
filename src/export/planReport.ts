@@ -1,7 +1,7 @@
 import type { AnalysisResult, PlanningScenario, RuleFinding } from '../contracts';
 import {
   APPROVAL_LABEL, ORIGIN_LABEL, OUTLOOK_TEXT, REPORT_LABEL, RULESET_LABEL, SOURCE_KIND_LABEL, VERIFICATION_LABEL,
-  catalogYearLabel, constraintText, courseTitle, findingClass, humanizeCode, programLabel, sourceLookup,
+  catalogEdition, catalogYearLabel, constraintText, courseTitle, findingClass, humanizeCode, programLabel, sourceLookup,
 } from '../ui/labels';
 import { termLabel } from '../ui/terms';
 import type { Block, PdfDocumentInput } from './pdfWriter';
@@ -82,6 +82,8 @@ export function buildPlanReport(scenario: PlanningScenario, analysis: AnalysisRe
 
   h('Program and catalog');
   t(programLabel(ref));
+  const edition = catalogEdition(ref);
+  if (edition) b(`Curriculum: ${edition.name}. ${edition.detail}`);
   b(`Target term: ${termLabel(plan.targetTerm)} (student goal, not a promise)`);
   b(`Catalog year: ${catalogYearLabel(ref)}`);
   b(`Catalog version: ${ref.catalogVersion}`);
