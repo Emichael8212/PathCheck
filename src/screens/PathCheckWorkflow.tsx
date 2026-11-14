@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type {
   AcademicRecord, AnalysisResult, CandidatePreview, CatalogModel, ChangeSet, GuestDraft, Plan, PlanPlacement, Result,
   SavedPlan, TermId, TypedFailure, UndoCheckpoint, ValidatedExtractedRows,
 } from '../contracts';
 import { exportFileName } from '../export/pdfExportService';
 import { AccountPanel } from '../ui/components/AccountPanel';
-import type { SyncState } from '../ui/components/AccountPanel';
+import type { SaveAdoption, SyncState, WorkSnapshot } from '../ui/components/AccountPanel';
 import type { AvailabilityAnswer, NoticeState } from '../ui/components/Display';
 import { CatalogChip, NoticeAlert, NoticeCapsule } from '../ui/components/Display';
 import type { RowMatch } from '../ui/components/ManualRecordEditor';
@@ -64,6 +64,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   const [busy, setBusy] = useState(false);
   const [cloud, setCloud] = useState<{ id: string; revision: number } | null>(null);
   const [sync, setSync] = useState<SyncState>('local');
+  const epoch = useRef(0);
   const mainRef = useRef<HTMLElement>(null);
   const firstRender = useRef(true);
 
@@ -122,10 +123,15 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     setScreen('record');
   }
 
-  function startOver() {
+  function clearWorkspace() {
+    epoch.current += 1;
     setPlan(null); setRecord(EMPTY_RECORD); setRows([]); setProposed(null); setLastNormalized(null); setExtracted(null); setRecordDirty(false);
     setCatalog(null); setSelectedVersion(''); setTargetKey(''); setCloud(null); setSync('local'); setCapacity(DEFAULT_CAPACITY);
-    resetPlanning(); setScreen('start'); say('info', 'Started over. Nothing was saved.');
+    resetPlanning(); setScreen('start');
+  }
+
+  function startOver() {
+    clearWorkspace(); say('info', 'Started over. Nothing was saved.');
   }
 
   // ---- Screen 2 -------------------------------------------------------------
@@ -282,6 +288,7 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
   function loadWork(input: { record: AcademicRecord; plan: Plan }, cloudRef: { id: string; revision: number } | null) {
     const loaded = guard(() => academic.loadValidatedCatalog(input.plan.catalogRef), 'catalog_load_failed');
     if (!loaded.ok) return failed(loaded);
+    epoch.current += 1;
     setCatalog(loaded.value); setSelectedVersion(input.plan.catalogRef.catalogVersion); setCatalogError(null);
     setPlan(input.plan); setRecord(input.record); setRows(input.record.courseAttempts.map(attemptToRow));
     setTargetKey(termKey(input.plan.targetTerm)); setProposed(null); setLastNormalized(null); setExtracted(null); setRecordDirty(false);
@@ -289,7 +296,40 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
     setCloud(cloudRef); setSync(cloudRef ? 'saved' : 'local');
   }
 
-  const work = plan ? { record, plan } : null;
+  const work = useMemo(() => (plan ? { record, plan } : null), [record, plan]);
+  // Latest committed work for async account results; `epoch` changes whenever work is replaced.
+  const latest = useRef<Omit<WorkSnapshot, 'epoch'> | null>(null);
+  useLayoutEffect(() => { latest.current = plan ? { record, plan, cloud, sync } : null; }, [record, plan, cloud, sync]);
+  const currentWork = (): WorkSnapshot | null => (latest.current ? { ...latest.current, epoch: epoch.current } : null);
+
+  /**
+   * Applies a finished cloud save only to the work it was requested for. Later local edits
+   * are never overwritten and never labelled saved; a replaced workspace ignores the result.
+   */
+  function acceptSave(saved: SavedPlan, submitted: WorkSnapshot, kind: 'new' | 'update'): SaveAdoption {
+    const cur = currentWork();
+    if (!cur || cur.epoch !== submitted.epoch) return 'stale';
+    if (cur.plan === submitted.plan && cur.record === submitted.record) {
+      setPlan(saved.plan); setCloud({ id: saved.id, revision: saved.revision }); setSync('saved');
+      return 'adopted';
+    }
+    if (kind === 'update' && submitted.cloud && cur.cloud?.id === saved.id && cur.plan.planId === saved.id) {
+      // Same cloud identity: advance the CAS revision the next save must present; edits stay unsaved.
+      setCloud({ id: saved.id, revision: saved.revision }); setSync('unsynced');
+      return 'newer_local_kept';
+    }
+    // A new cloud identity exists only for the submitted snapshot. Rebinding newer local work
+    // to it would need a plan change outside L's commands, so the local work keeps its identity.
+    setSync(submitted.sync === 'conflict' ? 'conflict' : cur.cloud ? 'unsynced' : 'local');
+    return 'copy_only';
+  }
+
+  function saveFailed(submitted: WorkSnapshot, state: 'conflict' | 'failed'): boolean {
+    const cur = currentWork();
+    if (!cur || cur.epoch !== submitted.epoch) return false;
+    setSync(state);
+    return true;
+  }
   // Undo is offered only on the planner while the scenario still matches the checkpoint
   // (capacity, summer or re-evaluation changes would make L refuse it as stale_undo).
   const undoAvailable = screen === 'planner' && path !== null && undo !== null && undo.afterFingerprint === currentFp;
@@ -318,11 +358,11 @@ export function PathCheckWorkflow({ services }: { services: WorkflowServices }) 
               ))}
             </ol>
           </nav>
-          <AccountPanel ports={services.account} clock={clock} work={work} cloud={cloud} sync={sync} onSync={setSync}
-            onSaved={(saved: SavedPlan) => { setPlan(saved.plan); setCloud({ id: saved.id, revision: saved.revision }); setSync('saved'); }}
+          <AccountPanel ports={services.account} clock={clock} work={work} cloud={cloud} sync={sync} currentWork={currentWork}
+            onSaving={() => setSync('saving')} onSaved={acceptSave} onSaveFailed={saveFailed}
             onOpen={(saved: SavedPlan) => loadWork(saved, { id: saved.id, revision: saved.revision })}
             onRestoreDraft={(d: GuestDraft) => loadWork(d, null)}
-            onSignedOut={() => { setCloud(null); setSync('local'); }} />
+            onSignedOut={() => { clearWorkspace(); say('info', 'Signed out. Account and unsaved work were removed from this tab.'); }} />
         </div>
       </header>
       <main ref={mainRef} id="main-content" className="content" tabIndex={-1}>

@@ -1,6 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { AcademicRecord, GuestDraft, Plan, SavedPlan } from '../../contracts';
+import type { AcademicRecord, GuestDraft, Plan, Result, SavedPlan } from '../../contracts';
+// Lead-approved consumption of S's existing public, draft-scoped cleanup. It removes only
+// stored copies byte-identical to the given draft; the generic clear('save') port would
+// delete both slots (another tab's draft, or a newer edit stashed while a save was pending).
+import { clearSavedGuestDraft } from '../../persistence/guestRecovery';
 import { failureText, formatTimestamp } from '../labels';
 import { guard, guardAsync } from '../scenario';
 import type { AccountPorts, WorkflowClock } from '../services';
@@ -15,20 +19,46 @@ const SYNC_SHORT: Record<SyncState, string> = { local: 'Signed in, not saved', s
 
 const SESSION_DRAFT_HOURS = 6, CROSS_TAB_DRAFT_HOURS = 24;
 
+type Work = { record: AcademicRecord; plan: Plan };
+type CloudRef = { id: string; revision: number };
+
+/**
+ * The workflow's current work at one instant. `epoch` changes whenever the work is replaced
+ * (open, restore, start over, sign-out), so a late async result can be matched to the work
+ * it was requested for. record/plan are compared by identity: every L command returns new objects.
+ */
+export interface WorkSnapshot extends Work { epoch: number; cloud: CloudRef | null; sync: SyncState }
+
+/**
+ * How the workflow applied a finished save:
+ * - adopted: work unchanged since submit; the saved identity/revision is now current ("Saved").
+ * - newer_local_kept: update succeeded but newer local edits exist; only the CAS revision advanced.
+ * - copy_only: a new cloud copy exists of the submitted snapshot; newer local work keeps its identity, unsaved.
+ * - stale: the work was replaced (opened/started over/signed out); nothing was applied.
+ */
+export type SaveAdoption = 'adopted' | 'newer_local_kept' | 'copy_only' | 'stale';
+
 export interface AccountPanelProps {
   ports: AccountPorts | null;
   clock: WorkflowClock;
-  work: { record: AcademicRecord; plan: Plan } | null;
-  cloud: { id: string; revision: number } | null;
+  work: Work | null;
+  cloud: CloudRef | null;
   sync: SyncState;
-  onSync(state: SyncState): void;
-  onSaved(saved: SavedPlan): void;
+  /** Current work, read at call time (never a render-time closure). */
+  currentWork(): WorkSnapshot | null;
+  onSaving(): void;
+  onSaved(saved: SavedPlan, submitted: WorkSnapshot, kind: 'new' | 'update'): SaveAdoption;
+  /** Returns false when the submitted work was replaced meanwhile (the failure is then not shown as the current state). */
+  onSaveFailed(submitted: WorkSnapshot, state: 'conflict' | 'failed'): boolean;
   onOpen(saved: SavedPlan): void;
   onRestoreDraft(draft: GuestDraft): void;
+  /** Local session ended: the workflow removes account and unsaved work from this tab. */
   onSignedOut(): void;
 }
 
-export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved, onOpen, onRestoreDraft, onSignedOut }: AccountPanelProps) {
+type Stashed = { draft: GuestDraft; record: AcademicRecord; plan: Plan };
+
+export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, onSaving, onSaved, onSaveFailed, onOpen, onRestoreDraft, onSignedOut }: AccountPanelProps) {
   const emailId = useId(), otpId = useId(), optId = useId();
   const [user, setUser] = useState<{ userId: string } | null>(null);
   const [email, setEmail] = useState('');
@@ -39,15 +69,60 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
   const [recovered, setRecovered] = useState<GuestDraft | null>(null);
   const [plans, setPlans] = useState<Array<{ id: string; revision: number; updatedAt: string }> | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState<GuestDraft['mode']>('session');
+  const [recoveryIssue, setRecoveryIssue] = useState<string | null>(null);
+  // Latest draft this tab wrote to recovery storage, with the exact objects it was built from.
+  const stashed = useRef<Stashed | null>(null);
+  const draftId = useRef<string | null>(null);
+  // Login identity for async results: a result requested under another login is never applied.
+  const userRef = useRef<string | null>(null);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!ports) return;
     let live = true;
-    void guardAsync(() => ports.auth.currentUser(), 'auth_unavailable').then(r => { if (live && r.ok) setUser(r.value); });
+    void guardAsync(() => ports.auth.currentUser(), 'auth_unavailable').then(r => {
+      // A verify that finished first is authoritative; never replace it with the mount check.
+      if (live && r.ok && userRef.current === null && r.value) { userRef.current = r.value.userId; setUser(r.value); }
+    });
     const draft = guard(() => ports.recovery.recover(clock.now()), 'recovery_failed');
     if (draft.ok && draft.value) queueMicrotask(() => { if (live) setRecovered(draft.value); });
     return () => { live = false; };
   }, [ports, clock]);
+
+  /** Writes a session (or opted-in cross-tab) recovery draft of exactly `w`. No PDF, no tokens: S validates the projection. */
+  function stashWork(w: Work, mode: GuestDraft['mode']): Result<null> {
+    if (!ports) return { ok: true, value: null };
+    const now = clock.now();
+    const hours = mode === 'cross_tab_opt_in' ? CROSS_TAB_DRAFT_HOURS : SESSION_DRAFT_HOURS;
+    draftId.current ??= clock.newId('guest-draft');
+    const draft: GuestDraft = { schemaVersion: 1, draftId: draftId.current, mode, explicitRecoveryConsent: mode === 'cross_tab_opt_in', createdAt: now, expiresAt: new Date(Date.parse(now) + hours * 3_600_000).toISOString(), record: w.record, plan: w.plan };
+    const r = guard(() => ports.recovery.stash(draft), 'stash_failed');
+    if (r.ok) stashed.current = { draft, record: w.record, plan: w.plan };
+    return r;
+  }
+
+  // Unsaved guest work (no cloud identity) is kept in this tab's recovery draft after every
+  // accepted change, so a same-tab refresh, OTP round trip or failed sign-in loses nothing.
+  // When the work is discarded (start over), only this tab's own exact draft is removed.
+  useEffect(() => {
+    if (!ports) return;
+    if (!work) {
+      const own = stashed.current;
+      stashed.current = null; draftId.current = null;
+      if (own) {
+        const removed = clearSavedGuestDraft(ports.recovery, own.draft, clock.now());
+        queueMicrotask(() => setRecoveryIssue(removed === true ? null : 'PathCheck could not confirm the recovery draft of your previous work was removed from this device.'));
+      }
+      return;
+    }
+    if (cloud) return;
+    const s = stashed.current;
+    if (s && s.record === work.record && s.plan === work.plan && s.draft.mode === recoveryMode) return;
+    const r = stashWork(work, recoveryMode);
+    queueMicrotask(() => setRecoveryIssue(r.ok ? null : `Your latest changes could not be kept for refresh recovery: ${failureText(r)}`));
+  }, [ports, work, cloud, recoveryMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!ports) {
     return (
@@ -58,23 +133,32 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
   }
 
   const say = (text: string) => setMessage(text);
-  // S reports failed device cleanup as a typed result; never claim a draft was removed when it was not.
-  const clearRecovery = (event: 'save' | 'sign_out' | 'cancel'): string => {
-    const r = guard(() => ports.recovery.clear(event), 'recovery_clear_failed');
-    return r.ok ? '' : ` The recovery draft on this device could not be removed: ${failureText(r)}`;
-  };
+
+  /** Removes exactly `draft`'s stored copies after its contents reached the cloud. Truthful about leftovers. */
+  function cleanupSaved(draft: GuestDraft | null): string {
+    if (!ports) return '';
+    if (!draft) return stashed.current ? ' A recovery draft with newer unsaved changes is kept on this device.' : '';
+    const removed = clearSavedGuestDraft(ports.recovery, draft, clock.now());
+    if (removed === true) { if (stashed.current?.draft === draft) stashed.current = null; return ''; }
+    if (removed === undefined) return ' The recovery draft on this device was not removed (this build cannot remove only the saved draft).';
+    return ' A recovery draft on this device was kept: it holds other unsaved work or could not be removed.';
+  }
 
   async function requestOtp() {
     if (!ports) return;
     if (work) {
-      const now = clock.now();
-      const hours = crossTab ? CROSS_TAB_DRAFT_HOURS : SESSION_DRAFT_HOURS;
-      const draft: GuestDraft = { schemaVersion: 1, draftId: clock.newId('guest-draft'), mode: crossTab ? 'cross_tab_opt_in' : 'session', explicitRecoveryConsent: crossTab, createdAt: now, expiresAt: new Date(Date.parse(now) + hours * 3_600_000).toISOString(), record: work.record, plan: work.plan };
-      const stashed = guard(() => ports.recovery.stash(draft), 'stash_failed');
-      if (!stashed.ok) { say(`Your draft could not be protected for sign-in: ${failureText(stashed)}`); return; }
+      const mode: GuestDraft['mode'] = crossTab ? 'cross_tab_opt_in' : 'session';
+      const r = stashWork(work, mode);
+      if (!r.ok) {
+        say(r.code === 'conflict'
+          ? 'Another tab already keeps a cross-tab recovery draft on this device, so this one was not stored there. Turn off the 24-hour option to keep your draft in this tab only.'
+          : `Your draft could not be protected for sign-in: ${failureText(r)}`);
+        return;
+      }
+      setRecoveryMode(mode); setRecoveryIssue(null);
     }
     const r = await guardAsync(() => ports.auth.requestEmailOtp(email.trim()), 'otp_request_failed');
-    if (!r.ok) { say(failureText(r)); return; }
+    if (!r.ok) { say(`${failureText(r)} Your guest draft is unchanged.`); return; }
     setStage('otp_sent'); say('Check your email for a one-time code. Your guest draft is kept in this tab.');
   }
 
@@ -82,38 +166,69 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     if (!ports) return;
     const r = await guardAsync(() => ports.auth.verifyEmailOtp(email.trim(), otp.trim()), 'otp_verify_failed');
     if (!r.ok) { say(`${failureText(r)} Your guest draft is unchanged.`); return; }
+    userRef.current = r.value.userId;
     setUser(r.value); setStage('idle'); setOtp('');
     say('Signed in. Nothing has been saved yet — choose Save as new to create a cloud copy.');
   }
 
-  async function saveNew() {
-    if (!ports || !work) return;
-    onSync('saving');
-    const r = await guardAsync(() => ports.storage.createPlan(work.record, work.plan), 'save_failed');
-    if (!r.ok) { onSync(r.code === 'conflict' ? 'conflict' : 'failed'); say(failureText(r)); return; }
-    const cleanup = clearRecovery('save');
-    onSaved(r.value); say(`Saved as a new plan.${cleanup}`);
+  function cancelOtp() {
+    setStage('idle');
+    if (recoveryMode === 'cross_tab_opt_in') {
+      // Cancelling withdraws the 24-hour shared-device copy. S moves only this draft back to
+      // this tab (same draftId); another tab's draft is never touched.
+      const r = work ? stashWork(work, 'session') : { ok: true as const, value: null };
+      setRecoveryMode('session'); setCrossTab(false);
+      say(r.ok ? 'Sign-in cancelled. Your guest work is unchanged and kept in this tab only.' : `Sign-in cancelled. Your guest work is unchanged. The 24-hour recovery draft could not be withdrawn: ${failureText(r)}`);
+      return;
+    }
+    say('Sign-in cancelled. Your guest work is unchanged.');
   }
 
-  async function saveUpdate() {
-    if (!ports || !work || !cloud) return;
-    onSync('saving');
-    const r = await guardAsync(() => ports.storage.savePlan(cloud.id, cloud.revision, work.record, work.plan), 'save_failed');
-    if (!r.ok) { onSync(r.code === 'conflict' ? 'conflict' : 'failed'); say(failureText(r)); return; }
-    const cleanup = clearRecovery('save');
-    onSaved(r.value); say(`Changes saved.${cleanup}`);
+  async function save(kind: 'new' | 'update') {
+    if (!ports || savingRef.current) return;
+    const submitted = currentWork();
+    if (!submitted || (kind === 'update' && !submitted.cloud)) return;
+    const owner = userRef.current;
+    // The exact draft whose contents are being submitted; only it may be cleaned up afterwards.
+    const s = stashed.current;
+    const matching = s && s.record === submitted.record && s.plan === submitted.plan ? s.draft : null;
+    savingRef.current = true; setSaving(true); onSaving();
+    const r = kind === 'new'
+      ? await guardAsync(() => ports.storage.createPlan(submitted.record, submitted.plan), 'save_failed')
+      : await guardAsync(() => ports.storage.savePlan(submitted.cloud!.id, submitted.cloud!.revision, submitted.record, submitted.plan), 'save_failed');
+    savingRef.current = false; setSaving(false);
+    if (owner !== userRef.current) {
+      // Signed out or switched accounts meanwhile: nothing is applied to this tab.
+      if (r.ok) cleanupSaved(matching);
+      return;
+    }
+    if (!r.ok) {
+      const shown = onSaveFailed(submitted, r.code === 'conflict' ? 'conflict' : 'failed');
+      say(shown ? failureText(r) : `An earlier save did not complete (${r.reasonCode}). Your current work was not changed.`);
+      return;
+    }
+    const cleanup = cleanupSaved(matching);
+    const outcome = onSaved(r.value, submitted, kind);
+    if (outcome === 'adopted') say(`${kind === 'new' ? 'Saved as a new plan.' : 'Changes saved.'}${cleanup}`);
+    else if (outcome === 'newer_local_kept') say(`Saved the version from when you pressed Save. Your newer changes are not saved yet.${cleanup}`);
+    else if (outcome === 'copy_only') say(`Saved a new cloud copy of the plan as it was when you pressed Save. Your newer changes are not saved — choose Save as new again to keep them.${cleanup}`);
+    else say(`A save finished after you switched work, so it was not applied here. It is listed in My saved plans.${cleanup}`);
   }
 
   async function listPlans() {
     if (!ports) return;
+    const owner = userRef.current;
     const r = await guardAsync(() => ports.storage.listOwnedPlans(), 'list_failed');
+    if (owner !== userRef.current) return;
     if (!r.ok) { say(failureText(r)); return; }
     setPlans(r.value);
   }
 
   async function open(id: string) {
     if (!ports) return;
+    const owner = userRef.current;
     const r = await guardAsync(() => ports.storage.getOwnedPlan(id), 'open_failed');
+    if (owner !== userRef.current) return;
     if (!r.ok) { say(failureText(r)); return; }
     onOpen(r.value); say('Opened saved plan. Analysis is recalculated from the saved inputs.');
   }
@@ -122,17 +237,39 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     if (!ports) return;
     if (confirm !== `plan:${id}`) { setConfirm(`plan:${id}`); return; }
     setConfirm(null);
+    const owner = userRef.current;
     const r = await guardAsync(() => ports.storage.deleteOwnedPlan(id, revision), 'delete_failed');
+    if (owner !== userRef.current) return;
     say(r.ok ? 'Plan deleted from your account.' : failureText(r));
     await listPlans();
   }
 
+  /**
+   * Re-reads S's local session after sign-out/account deletion. S discards local credentials
+   * before contacting the server, so the UI follows currentUser(), not the server reply.
+   * Returns true when this tab is (or must be treated as) signed out.
+   */
+  async function endLocalSession(): Promise<{ signedOut: boolean; cleanup: string }> {
+    if (!ports) return { signedOut: true, cleanup: '' };
+    const who = await guardAsync(() => ports.auth.currentUser(), 'auth_unavailable');
+    if (who.ok && who.value) return { signedOut: false, cleanup: '' };
+    userRef.current = null;
+    const cleared = guard(() => ports.recovery.clear('sign_out'), 'recovery_clear_failed');
+    stashed.current = null; draftId.current = null;
+    setUser(null); setPlans(null); setStage('idle'); setRecoveryMode('session'); setCrossTab(false); setRecovered(null);
+    onSignedOut();
+    return { signedOut: true, cleanup: cleared.ok ? '' : ` The recovery draft on this device could not be removed: ${failureText(cleared)}` };
+  }
+
   async function signOut() {
     if (!ports) return;
+    if (sync !== 'saved' && work && confirm !== 'sign_out') { setConfirm('sign_out'); return; }
+    setConfirm(null);
     const r = await guardAsync(() => ports.auth.signOut(), 'sign_out_failed');
-    if (!r.ok) { say(failureText(r)); return; }
-    const cleanup = clearRecovery('sign_out');
-    setUser(null); setPlans(null); onSignedOut(); say(cleanup ? `Signed out.${cleanup}` : 'Signed out. Recovery drafts were cleared.');
+    const end = await endLocalSession();
+    if (!end.signedOut) { say(`Sign-out failed and you are still signed in. ${r.ok ? '' : failureText(r)}`.trim()); return; }
+    const base = r.ok ? 'Signed out. This tab no longer shows account data.' : `Signed out on this device, but the server did not confirm ending the session (${r.reasonCode}). This tab no longer shows account data.`;
+    say(end.cleanup ? `${base}${end.cleanup}` : `${base} Recovery drafts were cleared.`);
   }
 
   async function deleteAccount() {
@@ -141,15 +278,20 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
     setConfirm(null);
     const r = await guardAsync(() => ports.storage.deleteAccount(), 'delete_account_failed');
     if (!r.ok) { say(failureText(r)); return; }
-    const cleanup = clearRecovery('sign_out');
-    setUser(null); setPlans(null); onSignedOut(); say(`Account deletion requested.${cleanup}`);
+    // The account is gone; its local session must not stay usable in this tab.
+    const out = await guardAsync(() => ports.auth.signOut(), 'sign_out_failed');
+    const end = await endLocalSession();
+    if (!end.signedOut) { say(`Account deletion requested, but this browser could not end the session${out.ok ? '' : ` (${out.reasonCode})`}. Close this browser window.`); return; }
+    say(`Account deletion requested. You are signed out.${end.cleanup}`);
   }
 
+  const busySave = saving || sync === 'saving';
   const menuLabel = user ? SYNC_SHORT[sync] : 'Guest, not saved';
   return (
     <>
       <AccountMenu label={menuLabel} tone={sync}>
       <p className={`sync sync-${sync}`} data-testid="sync-state">{SYNC_TEXT[sync]}</p>
+      {recoveryIssue && <p className="warning" role="alert">{recoveryIssue}</p>}
       {!user && (
         <div className="sign-in">
           <h2 className="h3">Sign in to save (optional)</h2>
@@ -174,7 +316,7 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
               </div>
               <div className="button-row">
                 <button type="submit" disabled={otp.trim().length === 0}>Verify code</button>
-                <button type="button" className="secondary" onClick={() => { setStage('idle'); say(`Sign-in cancelled. Your guest work is unchanged.${clearRecovery('cancel')}`); }}>Cancel</button>
+                <button type="button" className="secondary" onClick={cancelOtp}>Cancel</button>
               </div>
             </form>
           )}
@@ -184,16 +326,16 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
         <div className="signed-in">
           <p>Signed in.</p>
           <div className="button-row">
-            <button type="button" disabled={!work || sync === 'saving'} onClick={saveNew}>Save as new</button>
-            {cloud && <button type="button" disabled={!work || sync === 'saving' || sync === 'conflict'} onClick={saveUpdate}>Save changes</button>}
+            <button type="button" disabled={!work || busySave} onClick={() => void save('new')}>Save as new</button>
+            {cloud && <button type="button" disabled={!work || busySave || sync === 'conflict'} onClick={() => void save('update')}>Save changes</button>}
             <button type="button" className="secondary" onClick={listPlans}>My saved plans</button>
-            <button type="button" className="secondary" onClick={signOut}>Sign out</button>
+            <button type="button" className="secondary" onClick={signOut}>{confirm === 'sign_out' ? 'Confirm sign out (unsaved work in this tab is cleared)' : 'Sign out'}</button>
           </div>
           {sync === 'conflict' && cloud && (
             <div className="conflict" role="alert">
               <p>The cloud copy changed elsewhere. Nothing was overwritten.</p>
               <div className="button-row">
-                <button type="button" onClick={saveNew}>Save my version as a new plan</button>
+                <button type="button" disabled={busySave} onClick={() => void save('new')}>Save my version as a new plan</button>
                 <button type="button" className="secondary" onClick={() => open(cloud.id)}>Open the cloud version (discard local changes)</button>
               </div>
             </div>
@@ -219,8 +361,18 @@ export function AccountPanel({ ports, clock, work, cloud, sync, onSync, onSaved,
         <div className="recovery-banner" role="region" aria-label="Recovered draft" data-testid="recovery-banner">
           <p>A guest draft from <time dateTime={recovered.createdAt}>{formatTimestamp(recovered.createdAt)}</time> was recovered on this device.</p>
           <div className="button-row">
-            <button type="button" onClick={() => { onRestoreDraft(recovered); setRecovered(null); say('Draft restored.'); }}>Restore draft</button>
-            <button type="button" className="secondary" onClick={() => { const cleanup = clearRecovery('cancel'); setRecovered(null); say(cleanup ? `Recovered draft hidden.${cleanup}` : 'Recovered draft discarded.'); }}>Discard</button>
+            <button type="button" onClick={() => {
+              // Continue the same draft: later edits re-stash under its draftId and mode.
+              draftId.current = recovered.draftId; stashed.current = { draft: recovered, record: recovered.record, plan: recovered.plan };
+              setRecoveryMode(recovered.mode); setCrossTab(recovered.mode === 'cross_tab_opt_in');
+              onRestoreDraft(recovered); setRecovered(null); say('Draft restored.');
+            }}>Restore draft</button>
+            <button type="button" className="secondary" onClick={() => {
+              // Remove only this recovered draft; this tab's current work draft is kept.
+              const removed = clearSavedGuestDraft(ports.recovery, recovered, clock.now());
+              setRecovered(null);
+              say(removed === true ? 'Recovered draft discarded.' : 'Recovered draft hidden. PathCheck could not confirm it was removed from this device.');
+            }}>Discard</button>
           </div>
         </div>
       )}
