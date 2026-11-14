@@ -884,3 +884,8 @@ PASS. Prior actual Docker10 and independent review remain applicable. A15 human
 NOT RUN; next eligible checkpoint is pinned local-parser test. Public entry, gateway,
 bot and ordinary-app extraction composition remain mandatory unfinished B/C tests,
 distinct from external real-data/hosting/deployment approval gates.
+
+A15 human update: pinned eac711c actual isolation.live.test.ts10/10 PASS reported
+by human; built image matches verified2f739c92573e. SEC-LOCAL-PDF-001 local
+resource/security behavior human PASS. VM cleanup confirmation and final current
+head merge-gate check pending; no hosted/public/real-transcript gate cleared.

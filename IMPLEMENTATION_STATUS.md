@@ -1653,3 +1653,13 @@ factory remains test-only. Hosting-specific parser equivalence, authorized real-
 terms/testing and deployment approval are separate external/release gates. G's
 read-only code-grounded handoff lists entry/config/gateway/bot tests that can proceed
 without real credentials. None is falsely waived as optional or reported complete.
+
+
+### PR15 human parser tests passed — cleanup pending
+
+At pinned eac711c8e727c8e7ed45e0951b8a5e4f5d005bba, human reported Stage1
+setup PASS, Stage2 parser image sha256:2f739c92573e01372ef19d2f6b8b81a2da0f0e2db62f3c9e7003133a4b69fefd,
+and Stage3 actual container suite10 PASS/0failed/0skipped (23:55:12 local start).
+Behavioral human acceptance PASS; final VM cleanup confirmation pending. No merge
+recommendation until current-head gates rechecked. No agent rerun or screenshot
+claim. Scope remains local synthetic parser, not hosted/real-data acceptance.
