@@ -1,15 +1,16 @@
-// Test entry only: actual E/U/L modules; only catalog and time are synthetic.
+// Test entry: actual E/U/L modules; catalog/time are synthetic. The upload entry
+// additionally uses explicitly simulated Google/bot transport with live local SQL.
 // No canned evaluation, normalization, recommendation or command responses.
 import { createElement } from 'react';
 import type { ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CatalogModelSchema, SEARCH_POLICY, fingerprint } from '../../../src/contracts';
-import type { AcademicService, AnalysisResult, CatalogModel, ExportService, PlanningScenario } from '../../../src/contracts';
+import type { AcademicService, AnalysisResult, CatalogModel, ExportService, PlanningScenario, TranscriptClient, TranscriptService } from '../../../src/contracts';
 import { createGuestWorkflow } from '../../../src/app/createGuestWorkflow';
 
 const load = (path: string) => import(/* @vite-ignore */ path);
 type CatalogPorts = Pick<AcademicService, 'listCatalogs' | 'loadValidatedCatalog'>;
-const engine = await load('/src/engine/index.ts') as { createAcademicService(registry: CatalogPorts): AcademicService; createCatalogRegistry(models: CatalogModel[]): CatalogPorts; ENGINE_VERSION: string };
+const engine = await load('/src/engine/index.ts') as { createAcademicService(registry: CatalogPorts): AcademicService; createCatalogRegistry(models: CatalogModel[]): CatalogPorts; academicService: AcademicService; ENGINE_VERSION: string };
 const exporter = await load('/src/export/index.ts') as { createPdfExportService(options: { now: () => string }): ExportService };
 const source = { sourceId: 'integration-synthetic', kind: 'synthetic', urlOrRef: null, observedAt: null, description: 'Invented academic graph for integration testing; not university policy', verificationStatus: 'synthetic' };
 const course = (id: string, prerequisite: string | null) => ({ courseId: id, displayCode: id.replace('-', ' '), title: `Synthetic ${id}`, credits: 3, prerequisite: prerequisite ? { kind: 'course', courseId: prerequisite, minGrade: null, timing: 'prior_term' } : { kind: 'all', children: [] }, sourceRefs: [source.sourceId], status: 'supported' });
@@ -22,7 +23,9 @@ const catalog = CatalogModelSchema.parse({
 });
 declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number; acceptanceCalls: number; acceptedFromRevision: number | null } } }
 window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0, acceptanceCalls: 0, acceptedFromRevision: null };
-const realAcademic = engine.createAcademicService(engine.createCatalogRegistry([catalog]));
+// Only the isolated upload test may select the actual approved catalog registry.
+const actualCatalogUpload = location.pathname === '/tests/e2e/upload/index.html' && new URLSearchParams(location.search).get('catalog') === 'actual';
+const realAcademic = actualCatalogUpload ? engine.academicService : engine.createAcademicService(engine.createCatalogRegistry([catalog]));
 const academic: AcademicService = {
   ...realAcademic,
   evaluate: scenario => {
@@ -32,8 +35,25 @@ const academic: AcademicService = {
   },
 };
 let id = 0;
-const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
-const services = Object.freeze({ ...realServices, commands: Object.freeze({
+const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: actualCatalogUpload ? 'conservative-v1' : 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
+const liveUploadTest = location.pathname === '/tests/e2e/upload/live.html';
+const uploadTest = liveUploadTest || location.pathname === '/tests/e2e/upload/index.html';
+const transcript = uploadTest ? {
+  client: ((await load('/src/transcript/browser.ts')) as { createTranscriptClient(): TranscriptClient }).createTranscriptClient(),
+  validate: ((await load('/src/transcript/validation.ts')) as { validateExtraction: TranscriptService['validate'] }).validateExtraction,
+  // Explicit integration-only bot proof. The test server verifies this exact prefix;
+  // actual production bot verification remains a separate gate.
+  obtainBotAttestation: async () => {
+    if (!liveUploadTest) return { ok: true as const, value: `synthetic-browser-${crypto.randomUUID()}` };
+    try {
+      const response = await fetch('/__live/attestation', { method: 'POST', credentials: 'same-origin', cache: 'no-store', redirect: 'error' });
+      const body = await response.json();
+      if (response.ok && body.ok === true && typeof body.value === 'string' && body.value.length <= 128) return { ok: true as const, value: body.value };
+    } catch { /* Local capability unavailable; no extraction starts. */ }
+    return { ok: false as const, code: 'unavailable' as const, reasonCode: 'local_capability_unavailable' };
+  },
+} : null;
+const services = Object.freeze({ ...realServices, transcript, commands: Object.freeze({
   ...realServices.commands,
   acceptRecord: ((...args) => {
     window.__integration.acceptanceCalls += 1;

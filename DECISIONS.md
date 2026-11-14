@@ -50,6 +50,10 @@ This is the canonical record of *why* a choice was made; precise contracts are i
 - A structured JSON response **does not** prove semantic accuracy or completeness. See https://ai.google.dev/gemini-api/docs/structured-output . Validate against ground truth, catalog, row/page counts when possible; explicitly report uncertainty and reject unsupported output.
 - **Unresolved:** paid-tier account/billing configuration, model choice/price as of actual implementation, data-processing eligibility, representative fixture set, and production extraction accuracy. None overrides ARCH-005.
 
+- **GEM-001 (2026-11-13, user direction):** Evaluate an accessible free-tier multimodal model first, with synthetic transcripts only. Verify actual project model access, billing tier and quotas before live calls. No paid billing, paid-only model or automatic paid fallback without separate human authorization. Quota exhaustion must preserve manual entry. This does not relax the real-transcript privacy gate or T-GEM accuracy requirements. Current research and unresolved project checks: `docs/testing/gemini-free-tier-verification.md`.
+- **GEM-002 (2026-11-13, user direction):** Temporary HTTP503 failures permit bounded, sequential transport retries with exponential backoff/jitter, Retry-After, elapsed/attempt caps, cancellation and per-attempt provider-quota accounting. Preserve successful benchmark cases and report failed requests separately from accuracy. Internal retries stay within one application admission/reservation; recheck current processing approval, consent and live lease before additional egress, reserve worst-case spend upfront, and never reconsume a ticket or charge another application admission. No automatic model/billing fallback. Exhaustion preserves manual entry and returns temporary unavailability. Benchmark and application retry deadlines are separate because the application must fit its existing lease and browser timeout.
+  User subsequently selected `gemini-3.5-flash-lite` and verified free-tier quotas in AI Studio: 15 RPM/250,000 TPM/500 RPD; `gemini-3.8-flash` 5 RPM/250,000 TPM/20 RPD; `gemini-2.5-flash-lite` 10 RPM/250,000 TPM/20 RPD. These are user-attested project observations, not authenticated API-access evidence. Compare 3.8 on the same synthetic corpus only after a measured 3.5 quality failure. Never enable billing or paid fallback.
+
 ## Build and collaboration decisions
 
 - **Five specific roles (locked):** Codex Agent 1 lead integrator; Claude Agent 1 academic engine; Claude Agent 2 frontend/UX; Claude Agent 3 Supabase authentication/persistence; Codex Agent 2 Gemini transcript extraction. Separate **four implementation worktrees plus lead worktree** and exclusive paths; the lead alone authors/finalizes shared TypeScript contracts and integration adapters. Agent-role assignment does not change the approved F01–F20 MVP.
@@ -108,3 +112,16 @@ Previews show both affected semesters and finding changes; they do not invent a
 projected outlook absent from CandidatePreview. Plain wording maps engine codes
 without reproducing academic logic. No shared contracts, academic policies, or
 mutation ownership change. This records the approved U handoff, not a new redesign.
+
+
+## EXEC-004 — Application-level final acceptance (2026-11-13)
+User reaffirmed the approved F01–F20 scope: component PR merge readiness is not
+application completion. All reproducible defects, missing implementations, broken
+integrations and incomplete security enforcement affecting supported workflows must
+be resolved; they cannot be relabeled final limitations. Verify actual integrated
+components/services and all applicable correctness/privacy/security/human gates.
+Unavailable university rules remain explicit, with conditional behavior and an
+advisor/official verification path; never invent policy. Track per-feature closure
+in IMPLEMENTATION_STATUS.md and exact tests in the coverage audit. Separately report
+implementation, integration, human acceptance and deployment readiness. Only the
+human merges; deployment retains separate authorization. No architecture/scope change.

@@ -1,0 +1,759 @@
+# PathCheck requirements-to-test audit — 2026-11-13
+
+## Corrected acceptance and merge sequence — includes PR8
+
+GitHub inspected on 2026-11-13. All six PR heads below have successful `foundation`
+checks. Active ruleset27097753 requires that check with strict up-to-date status,
+PR-only changes and no force-push/deletion. It requires zero GitHub approving
+reviews; the project's independent-review and human-acceptance gates still apply.
+There are no submitted GitHub reviews on these PRs. Independent static reviews
+are recorded in the ledger/PR evidence, not represented as GitHub approvals.
+
+| PR / exact inspected head | Scope and dependencies | Review and human evidence | Current gate |
+|---|---|---|---|
+| 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
+| 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
+| 6 `91c4bf27943135e325944f599cb001f78d6968b0` | Three screens, planner, PDF export and consent/upload UI | Independent review/CI43527776220/postmerge regressions PASS; human manual/export/upload/cleanup PASS retained | MERGED `6f255bcd68afb4a853aa212db21c5ab503d360b4` at2026-11-13T23:50:25Z |
+| 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; authoritative merged database baseline | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | MERGED `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`, verified 2026-11-13T22:09:33Z; local main synchronized |
+| 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload and human acceptance/cleanup PASS | MERGED `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e` at2026-11-13T23:30:29Z; accepted evidence retained |
+| 9 implementation `9214515c9461e1564cafcea04b37b7611ac8d81f` | Admission adapter/benchmark/live local upload and ordinary root composition; all feature dependencies now on main6f255bc | 669unit/65UI/13integration/2production-root and actualGoogle1 PASS; independent privacy assertion finding resolved; previous upload humanPASS retained | BLOCKED only on new ordinary-root human acceptance (NOT RUN) and final current-head CI verification; public/account/release gates remain separate |
+
+PR9 now contains merged main6f255bc. Noncommitting
+reconstruction of all three heads is conflict-free. That is
+conflict compatibility, not permission to merge. PR9 directly imports PR8's handler,
+admission and provider in its upload harness. PR8 is a code dependency of PR9;
+its omission from the earlier sequence was incorrect.
+
+**Execution and acceptance order:**
+
+1. COMPLETE: human passed PR7's pinned database/retry procedure and merged it as
+   1c0b8d3. Preserve this evidence; refresh dependent branches from the new main.
+2. COMPLETE: lead verified the live, local, synthetic-only browser composition
+   using PR6+PR8+PR9 on an uncommitted temporary integration branch. PR8 need not
+   merge before this test; waiting for mutually dependent acceptance would create
+   an unnecessary cycle. No fake paid approval, simulated Google acceptance or
+   real student records. Existing benchmark cases are not rerun.
+3. HUMAN PASS including cleanup: one pinned [human upload procedure](../acceptance/pr-9/PR_ACCEPTANCE_TEST.md) with explicit PR6 UI, PR8 extraction
+   and PR9 integration assertions. A human result may cover all three only when
+   each scope and exact source revisions are identified. Retain prior manual/PDF
+   acceptance; request only changed/new behavior unless a regression justifies more.
+4. Once applicable gates pass, proposed merge order is **PR7 → PR8 → PR6 → PR9**.
+   PR6 and PR8 have no strict code merge order relative to each other; this ordering
+   lands the extraction module before its UI integration. Both must precede PR9's
+   completed application integration. PR8 and PR6 are merged. PR9 is refreshed; its newly promoted ordinary root
+   needs scoped human acceptance after the final current-head CI passes.
+5. After each human merge, refresh dependent feature branches non-destructively,
+   rerun affected automated checks/strict CI, and assess acceptance impact. A
+   documentation-only or behavior-preserving baseline refresh does not itself
+   require repeating human acceptance. Resolve any new behavioral difference first.
+
+Public bot/gateway enforcement, PDF resource isolation and real-transcript privacy
+remain mandatory gates for their applicable runtime/release scope. Local live-upload wiring is verified; public runtime/account composition remains
+engineering work, not a Google503 blocker. No PR
+merge or synthetic test establishes full application or deployment readiness.
+
+## Current transcript checkpoint
+
+**Synthetic benchmark PASS:**18/18 cases (16 real Gemini PDF responses;2 preflight
+rejections),21/21 exact attempts,0 omissions/extras/critical mismatches. First10 cases
+preserved. Historical2corpus503 and5diagnostic400 retained; final13HTTPcalls all200,
+no retry needed.43 deterministic benchmark regressions PASS. Independent report/source
+review confirms provenance; live503 recovery itself is not demonstrated. No current
+provider blocker for this corpus. [Measured evidence](transcript-synthetic-benchmark.md).
+
+Runtime retry/normalization/security work remains distinct from synthetic accuracy.
+Lead serverRPC adapter9tests PASS (simulated transport); actual local PostgreSQL371
+assertions PASS,12-worker quota/replay races and6 retry/revoke races PASS. S head
+c394241 fixes the explicit newRPC static allowlist; CI43501794085 PASS. Earlier
+94cfeaa CI failed that missing test-list entry; no security assertion was removed.
+G review fixed processing approval expiry duringbackoff and stale body-read timestamps.
+Human transcript-upload acceptance remains NOT RUN; PR7 human security acceptance
+and cleanup PASS and PR7 is merged. Full real-data processing
+and deployment gates remain mandatory and are not satisfied by these tests.
+
+The historical matrix below retains its original inspected-source evidence.
+Superseding checkpoints above and at the end distinguish fixes from original gaps.
+
+**Historical audit decision (superseded by execution checkpoint below): BLOCKED for the next merge. PR #4 is the next candidate, but has a newly
+confirmed recovery data-loss defect and is BEHIND protected main.** Human PR#4 acceptance
+remains PASS for localhost isolation + SQL172 + real REST1; it is not a claim that every
+recovery path passed. No other open PR is currently safe to recommend for merge.
+
+## Interpretation and evidence
+
+Each row maps a mandatory requirement or a distinct acceptance layer. PASS applies only
+to what the assertions verify, not the entire product feature. MISSING TEST means the
+required assertion/scenario was not found; NOT RUN means a test/check exists but lacks
+current execution evidence. BLOCKED identifies an implementation/environment/authority
+dependency. FAIL denotes demonstrated incorrect behavior. A missing scenario may have
+an additional blocker; both are reported rather than conflated.
+
+Gates: **A** = before the owning PR merges (A4 means PR#4); **B** = dependent integration;
+**C** = deployment/real student use; **D** = optional additional assurance. B/C mandatory
+requirements are not optional. Layered partial passes do not waive missing higher layers.
+Source abbreviations: TP=TEST_PLAN.md; AR=ARCHITECTURE.md; PI=PARALLEL_IMPLEMENTATION.md;
+DEC=DECISIONS.md; PS=PROJECT_SPEC.md; AE=ACADEMIC_ENGINE.md. Local audit IDs below identify
+unnumbered source requirements; they do not introduce new academic/product policy.
+
+Exact evidence anchors (all tests below were inspected at these source heads):
+
+| Anchor | Commit / execution evidence |
+| --- | --- |
+| L | 37c2f0adb8972736cc31247df3ddc19339cd6cfa; lead103 units + lint/typecheck/build/1smoke PASS; test-observer final lint/typecheck PASS; code merged unchanged into main2bb6b3f |
+| E | 645111c43f65b21fc73b776a763360a8cbddb4a4; owner225 units/1smoke; integrated run and foundation CI43364798467 PASS |
+| U | f413d189f93b4cd9de4821b4b0118120b57d245b; owner99 units/48browser reported PASS; L independently40 screenshot-free cases PASS; CI43385867487 PASS |
+| S | 8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd; owner163 units/2conditional skips,1smoke; CI43355738416 PASS; human SQL172/REST1 PASS on main2bb6b3f+S |
+| G | fbe9374c40ba688be5c780f63eaf6a75e374864c; owner executed115 transcript tests and full218units/lint/typecheck/build/1smoke PASS; no remote PR/CI/independent approval yet |
+| I | L37c2f0a + E645111c/Uf413d18/S8d28602: L11 real-engine browser cases PASS and production root smoke1 PASS; 505 combined units included earlier Gb37f4c2, NOT current Gfbe9374 |
+| H3 | Human PASS of I manual Accept-and-continue/conflict/preview/Apply/Undo; screenshots human-managed on GitHub |
+| H4 | Human PASS main2bb6b3f+S8d28602:172SQL/3files, REST1passed/1expected guard skip; services subsequently stopped successfully |
+
+No tests were re-executed just to inflate counts. Historical execution evidence comes
+from the ledger/CI/human outputs, and assertions were inspected separately. Synthetic
+fixtures establish algorithm/module behavior, never official ASU policy. G links are
+local file references because that branch has not been published.
+
+## Current PR/base/CI audit
+
+| PR | Current head | Required foundation | Reviews / human | Current decision |
+| --- | --- | --- | --- | --- |
+| #3 |59d9253, merged2bb6b3f|PASS43391024826|E/U/S contracts + G lead tests reviewed; human PASS|Merged by human; no new gate |
+| #4 |8d28602|PASS43355738416 on existing head|Prior G NULL-check review; human H4 PASS; new save/recovery finding unresolved|BLOCKED: A4 defect + BEHIND main |
+| #5 |645111c|PASS43364798467|Prior fixes reviewed; human NOT RUN|MISSING positive T-ENG-5; main dependency now available |
+| #6 |f413d18|PASS43385867487|Prior export/recovery review; latest full UI acceptance NOT RUN|Final pdf-lib implementation/verification outstanding; dependency now available |
+| G |fbe9374 local|No PR/CI|Owner checks PASS, lead review/human NOT RUN|Draft preparation only; A/B/C gates below |
+
+GitHub PR4 reports MERGEABLE (no textual conflict) but BEHIND; ruleset27097753 requires
+strict up-to-date `foundation` from GitHub Actions15368. Actual main ref is2bb6b3f.
+The PR response's baseRefOid still showed the earlier de28a31 snapshot; do not use it
+instead of the actual main ref. Local main+S noncommitting reconstruction is clean and
+was H4's tested tree. Owner must incorporate main and rerun CI after corrections.
+There are no submitted GitHub review approvals; documented independent CLI reviews
+are separate evidence, not fabricated GitHub approvals.
+
+## Catalog, normalization and academic rules
+
+| Requirement / source | Owner | Exact test reference/name | Type | What it verifies / limitation | Evidence | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CAT-01 / TP§2; DEC CAT001–003 | E | [tests/engine/catalog.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/catalog.test.ts) — %s: schema-valid, 121 credits, every listed course mapped | unit/source | Every supplied JSON course represented, credits/root total; source handoff approval separate from official applicability | E | **PASS** | A/B |
+| CAT-02 / TP§2 | E | [tests/engine/catalog.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/catalog.test.ts) — %s keeps null year, unresolved prerequisites, no grade scale, blocking policy gaps | unit | Conflicts/current suspensions remain gaps rather than certified policy | E | **PASS** | A/B |
+| CAT-03 / TP§2 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 25 choose-N satisfied by appropriate alternatives; missing alternatives are not all mandatory | unit | Actual audit alternatives and recommendation findings, plus allocation tests for eligible/min-credit groups | E | **PASS** | A/B |
+| CAT-04 / TP§2 | E | [tests/engine/catalog.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/catalog.test.ts) — CAT-04 CIS 300 / CIS 351 cannot double count as electives | unit | Checks empty elective allocation and six applicable credits | E | **PASS** | A/B |
+| CAT-05 / TP§2 | E | [tests/engine/catalog.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/catalog.test.ts) — rejects unknown version, a claimed formal year, and altered source status | unit | Rejects unsupported reference rather than migrating | E | **PASS** | A/B |
+| CAT-06 / TP§2 | E | [tests/engine/catalog.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/catalog.test.ts) — historical CIS 304 work stays an unresolved possibility for CIS 300, never automatic credit | unit | Legacy equivalency not fabricated; transfer/minimum-grade gaps explicit | E | **PASS** | A/B |
+| CAT-07 model invalidation / TP§2 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 28 snapshot invalidation after catalog or record change | unit | Digest changes; no live saved-plan reopen/catalog-refresh journey | E | **PASS** | A/B |
+| CAT-07 persisted reopen / TP§2; F18 | L | No test found — Saved plan reload under changed catalog version | browser/integration | No actual account composition/reopen test; model tests do not prove persisted lifecycle | None | **MISSING TEST** | B/C |
+| CAT applicability / TP§2; DEC CAT002 | E | No test found — Official governing cohort/year and unresolved policies | source review | User approved provisional121-credit structure; missing official policies must remain unknown | Approved provisional baseline | **BLOCKED** | C for authoritative conclusions |
+| T-ENG-1 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 1 required course completed with earned credit satisfies | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-2 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 2 required course not attempted is unmet | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-3 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 3 in-progress is not earned credit (conditional only) | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-4 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 4 failed attempt does not satisfy | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-5 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 5 repeat passed after fail: BLOCKED for a sourced policy (contract gap) -> fail closed unresolved | unit | Existing test asserts unresolved only. Positive sourced-repeat allocation test and implementation absent; contract available on main | E negative fallback PASS; positive none | **MISSING TEST** | A5 |
+| T-ENG-6 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 6 repeat policy unknown -> unresolved; raw earned credit not double counted | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-7 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 7 unverified transfer course is unresolved (degree and prerequisite) | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-8 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 8 verified equivalency satisfies the appropriate requirement only | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-9 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 9 AND with all prerequisites satisfied | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-10 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 10 AND with one missing prerequisite | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-11 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 11 OR with one valid branch is satisfied (not two unmet prerequisites) | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-12 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 12 OR with both branches invalid | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-13 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 13 OR with one branch unresolved and no satisfied branch -> unresolved | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-14 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 14 nested AND(OR(...), ...) | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-15 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 15 minimum grade met | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-16 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 16 minimum grade not met | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-17 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 17 minimum grade unknown (missing grade, unknown letter, or no sourced scale) -> unresolved | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-18 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 18 prior-term prerequisite placed in the same term -> conflict | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-19 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 19 earlier future placement -> conditional eligibility depending on future pass | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-20 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 20 valid same-term corequisite when concurrency is authorized | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-21 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 21 unverified same-term corequisite (unresolved permission) -> unresolved | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-22 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 22 legitimate corequisite pair is not an impossible cycle | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-23 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 23 true prior-term cycle is flagged | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-24 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 24 restricted credit double count prevented | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-25 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 25 choose-N satisfied by appropriate alternatives; missing alternatives are not all mandatory | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-26 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 26 credit threshold counts earned, not attempted-but-unearned, credits | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-27 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 27 catalog discrepancy prevents certainty | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-ENG-28 / TP§5 | E | [tests/engine/rules.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/rules.test.ts) — 28 snapshot invalidation after catalog or record change | unit | Actual pure evaluator/audit assertions on labeled synthetic fixtures; not official ASU rules | E | **PASS** | A5/B |
+| T-DATA-1 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 1 duplicate identical rows are flagged, never collapsed | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-2 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 2 repeats in different terms remain distinct attempts | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-3 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 3 completed vs in-progress statuses | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-4 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 4 withdrawal | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-5 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 5 fail | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-6 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 6 unknown status word stays unknown and unresolved; grade letters never imply status | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-7 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 7 attempted vs earned credits kept separate; earned > attempted rejected | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-8 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 8 transfer work stays transfer_pending and unmapped even with a matching code | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-9 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 9 rejected/unmapped code retained as unresolved raw attempt | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-10 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 10 aliases: only a unique VERIFIED equivalency maps; unresolved/ambiguous stay unmapped | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-11 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 11 impossible / malformed credits become null with warnings | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-12 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 12 term chronology parsing uses canonical sortIndex; unparseable terms flagged | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-13 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 13 wrong schema version / invalid input rejected with typed failure | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA-14 / TP§3 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — 14 rejected extraction cannot enter normalization | unit | Asserts normalized rows/status/credits/term or rejection; raw IDs never confer authority | E | **PASS** | A5/B |
+| T-DATA JSON / TP§3 | L | [src/contracts/contracts.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/contracts/contracts.test.ts) — retains unknowns and distinct repeats through JSON round-trip | contract | Round-trip preserves repeats and uncertainty; not database persistence evidence | L | **PASS** | A/B |
+| T-SEC raw-to-E / AR§8 | E | [tests/engine/normalize.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/normalize.test.ts) — provisional Gemini course IDs are ignored and absurd fields never count | unit | Actual E normalization of schema-valid malicious rows; not actual G validator through L adapter | E | **PASS** | A/B |
+| T-SEC L routing / AR§8 | L | [src/app/normalizeExtraction.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/normalizeExtraction.test.ts) — routes raw rows to E without applying provisional mappings or invented credits | unit | Uses E spy; forwarding/rejection/review preservation only | L | **PASS** | A/B |
+| T-SEC G→L→E end-to-end / AR§8 | L | No test found — Actual G validate → L normalizeExtraction → actual E with malicious rows | integration | Pieces exist; no composed assertion found. Feasible with synthetic data, do not leave indefinitely as an external blocker | None | **MISSING TEST** | B |
+
+## Scheduling and plan transactions
+
+| Requirement / source | Owner | Exact test reference/name | Type | What it verifies / limitation | Evidence | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SCH-01 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-01 omitted time-sensitive chain start is identified with its downstream dependents | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-02 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-02 many dependents but ample slack is not ranked critical | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-03 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-03 OR prerequisite alternatives create no mandatory edge | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-04 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-04 an already-satisfied elective group gets no extra elective recommendation | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-05 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-05 a change that fixes one issue and causes another is a tradeoff, both shown | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-06 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-06 unknown offering yields a conditional placement with an explicit assumption | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-07 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-07 listed report is source-stamped conditional evidence, never a seat claim | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-08 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-08 not_listed is a hard conflict for that placement and the generator avoids that term | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-09 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-09 editing an availability report invalidates prior previews and recalculates | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-10 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-10 at most three high-impact questions, including unselected courses, never re-asking answered ones | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-11 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-11 preview leaves the scenario identical; stale base fingerprint is refused | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-12 / TP§6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — rejects the entire edit when a later operation fails; swaps atomically | unit | Two-operation rollback and swap; apply/undo test verifies new revision; E port doubled | L | **PASS** | A/B |
+| SCH-13 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-13 one multi-term draft, unadopted, judged by the same validator | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-14 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-14 exhausted bounds or an impossible horizon return no_valid_draft, never impossible | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-15 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-15/19 every fingerprint constituent changed independently makes a preview stale | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-16 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-16 capacity and summer offerings are explicit assumptions, not official facts | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-17 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-17 identical input -> identical draft, ranking, findings, expansions and stop reason (chunked too) | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-18 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-18 external cancellation is search_interrupted with the plan untouched | unit | Actual engine assertions; cancellation is direct gen.cancel(), not browser watchdog | E | **PASS** | A5/B |
+| SCH-19 pure / TP§6 | E | [tests/engine/scheduling.test.ts](https://github.com/Emichael8212/PathCheck/blob/645111c43f65b21fc73b776a763360a8cbddb4a4/tests/engine/scheduling.test.ts) — SCH-15/19 every fingerprint constituent changed independently makes a preview stale | unit | Actual synthetic search/evaluation assertions; unknown offerings remain conditional | E | **PASS** | A5/B |
+| SCH-20 isolated / TP§6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — requires acknowledgement, validates afresh, applies atomically and undoes at a new revision | unit/browser | L mutation + I Apply/Undo pass; S RPC CAS tested separately, not composed cloud-conflict UI | L/I/H3 | **PASS** | A/B |
+| SCH-18 actual browser watchdog / TP§6; AR§8 | L | No test found — Interrupt running search from actual worker/watchdog | browser/integration | Pure cancellation test exists; U interrupted-search test returns a service double; no runtime worker/watchdog implementation found | None | **MISSING TEST** | B/C |
+| SCH-19 apply all constituents / TP§3/6 | L | [src/contracts/contracts.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/contracts/contracts.test.ts) — invalidates %s | contract | 18 digest mutation cases and E14 validateCandidate cases pass. No exhaustive L applyPreview/no-mutation matrix per constituent | L/E | **MISSING TEST** | B; A next L mutation PR |
+| SCH-20 real cloud conflict / TP§6 | L | No test found — Actual preview/apply/undo + failed/conflicting S save and re-open | browser/live integration | L and S independent suites do not prove one composed journey | None | **MISSING TEST** | B/C |
+| CMD-reject / AR§8; TP§3/6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — reject leaves plan and revisions untouched, and discarded preview cannot apply | contract/unit | Reject never mutates; browser Cancel uses actual engine | L | **PASS** | A/B |
+| CMD-undo / AR§8; TP§3/6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — rejects forged undo history and intervening edits | contract/unit | Stale/forged checkpoint refused | L | **PASS** | A/B |
+| CMD-evidence / AR§8; TP§3/6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — student reports replace one authoritative entry and increment both revisions once; skip does neither | contract/unit | One mutable owner and timestamps; SQL shadow-rejection separately covered | L | **PASS** | A/B |
+| CMD-fresh / AR§8; TP§3/6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — rejects fresh hard conflicts and leaves input intact | contract/unit | Fresh validation cannot hide hard conflicts | L | **PASS** | A/B |
+| CMD-record / AR§8; TP§3/6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — accepts records as a new record revision without changing plan revision | contract/unit | Acceptance invalidates scenario without inventing plan revision | L | **PASS** | A/B |
+| CMD-draft / AR§8; TP§3/6 | L | [src/app/plannerCommands.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/app/plannerCommands.test.ts) — adopts exactly one draft through fresh preview/validation, preserving provenance and undo | contract/unit | No silent draft adoption | L | **PASS** | A/B |
+| CMD-identity / AR§8; TP§3/6 | L | [src/contracts/contracts.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/contracts/contracts.test.ts) — canonicalizes object keys, rejects non-JSON values, and reproduces fingerprints | contract/unit | Full canonical content hash, not revision-only | L | **PASS** | A/B |
+| CMD-single-owner / AR§8; TP§3/6 | L | [src/contracts/contracts.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/contracts/contracts.test.ts) — has only one availability owner and rejects raw PDFs on persisted inputs | contract/unit | Rejects scenario shadow array and PDF field | L | **PASS** | A/B |
+| REPEAT-contract / AR§8; TP§3/6 | L | [src/contracts/repeatPolicy.test.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/src/contracts/repeatPolicy.test.ts) — validates synthetic policy and fingerprints policy contents | contract/unit | Evidence-scoped field valid; field schema alone cannot satisfy ENG5 | L | **PASS** | A/B |
+
+## Supabase, recovery and PR #4 gates
+
+| Requirement / source | Owner | Exact test reference/name | Type | What it verifies / limitation | Evidence | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SEC-RLS / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — RLS enabled on public.plans; all policies scoped to authenticated only | live SQL | Only public.plans holds student data currently; checks all four policies and grants | S/H4 | **PASS** | A4 |
+| SEC-ANON / TP§7; AR§5/8 | S | [supabase/tests/database/002_plans_quota_amr_anon.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/002_plans_quota_amr_anon.test.sql) — anon save_plan denied; anon direct UPDATE denied; anon direct DELETE denied | live SQL | 001 also denies SELECT/INSERT/create; all four RPC execute privileges denied | S/H4 | **PASS** | A4 |
+| SEC-OWNER / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — B cannot read A plan by guessed id; B direct UPDATE affects 0 rows; B direct DELETE affects 0 rows | live SQL | Cross-owner SELECT/list/UPDATE/DELETE + RPC not_found, both directions | S/H4 | **PASS** | A4 |
+| SEC-SPOOF / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — owner spoofing on insert denied by column grant | live SQL | Owner/ID server-derived; owner update denied; supplied foreign planId gets fresh ID | S/H4 | **PASS** | A4 |
+| SEC-CAS / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — CAS save increments stored revision by exactly one; conflict did not overwrite newer state | live SQL | Persisted revision distinct from planRevision; blind/jump updates refused | S/H4 | **PASS** | A4 |
+| SEC-DELETE / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — account deletion removed all A plans; B data unaffected by A deletion | live SQL | Own identity+plans deleted, other owner unaffected; retention elsewhere not asserted | S/H4 | **PASS** | A4 |
+| SEC-RECENT / TP§7; AR§5/8 | S | [supabase/tests/database/002_plans_quota_amr_anon.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/002_plans_quota_amr_anon.test.sql) — stale amr (601s) refused even with a freshly issued (refreshed) token | live SQL | Missing/malformed/stale/future AMR denial and599s/+59s success; no exact600/+60 boundary assertion | S/H4 | **PASS** | A4 |
+| SEC-QUOTA / TP§7; AR§5/8 | S | [supabase/tests/database/002_plans_quota_amr_anon.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/002_plans_quota_amr_anon.test.sql) — 201st create_plan rejected with plan_quota_exceeded | live SQL | 200 allowed,201st RPC/direct denied, save allowed at limit, delete/refill, second owner independent | S/H4 | **PASS** | A4 |
+| SEC-JSON / TP§7; AR§5/8 | S | [supabase/tests/database/003_plans_null_shape.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/003_plans_null_shape.test.sql) — CHECK shape cases (missing/null/wrong types) and identity mismatch cases | live SQL | 53 assertions including setup; NULL-safe shape for required top-level fields, not full nested Zod parity | S/H4 | **PASS** | A4 |
+| SEC-SIZE / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — oversized payload rejected; shadow availability_json rejected | live SQL | 2MiB oversized payload and duplicate availability owner rejected | S/H4 | **PASS** | A4 |
+| SEC-PRIVILEGES / TP§7; AR§5/8 | S | [supabase/tests/database/001_plans_rls.test.sql](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/supabase/tests/database/001_plans_rls.test.sql) — private schema not exposed; anon cannot execute delete_my_account | live SQL | Grant denial complements RLS; definer/search_path static check separately | S/H4 | **PASS** | A4 |
+| SEC-REST / TP§7 | S | [tests/persistence/live.supabase.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/live.supabase.test.ts) — enforces owner isolation, CAS and Save-as-new end to end | live REST | Real two signups/JWTs, A/B/anon denial, concurrent same-revision saves exactly one winner, new identities, delete | H4 | **PASS** | A4 |
+| SEC-config guard / TP§1A/7 | S | [tests/persistence/live.supabase.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/live.supabase.test.ts) — is valid, publishable-only, and local (or an explicitly allowed disposable test project) | negative configuration | Runs only when requested config invalid. Valid local run skips this intentionally; prior invalid-env negative execution recorded PASS for refusing config | S prior ledger; H4 expected skip | **PASS** | A4 |
+| AUTH-OTP / TP§7; AR§5/8 | S | [tests/auth/supabaseAuth.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/auth/supabaseAuth.test.ts) — verifies, holds the session in memory and exposes currentUser | unit | Fake HTTP validates requests/session handling, NOT live email OTP | S | **PASS** | A4 |
+| AUTH-races / TP§7; AR§5/8 | S | [tests/auth/supabaseAuth.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/auth/supabaseAuth.test.ts) — verify resolving after signOut does not restore the session and revokes its tokens | unit | Controlled async promises test verify/signout/refresh/account-switch races | S | **PASS** | A4 |
+| AUTH-refresh / TP§7; AR§5/8 | S | [tests/auth/supabaseAuth.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/auth/supabaseAuth.test.ts) — refreshes near expiry exactly once for concurrent callers (rotation-safe) | unit | Deduplicates refresh in one client; no hosted auth assertion | S | **PASS** | A4 |
+| AUTH-signout / TP§7; AR§5/8 | S | [tests/auth/supabaseAuth.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/auth/supabaseAuth.test.ts) — discards local credentials even if server revocation fails | unit | Local session cleared; failed remote revocation surfaced | S | **PASS** | A4 |
+| STORE-secret / TP§7; AR§5/8 | S | [tests/persistence/config.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/config.test.ts) — fails closed on secret and service-role keys without echoing them | unit | Publishable-only configuration; does not scan deployed bundle | S | **PASS** | A4 |
+| STORE-projection / TP§7; AR§5/8 | S | [tests/persistence/supabaseStorage.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/supabaseStorage.test.ts) — rejects contract-invalid, raw-PDF and extraction-only payloads before sending | unit | Client rejects raw-content projection; SQL only partial shape validation | S | **PASS** | A4 |
+| STORE-response / TP§7; AR§5/8 | S | [tests/persistence/supabaseStorage.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/supabaseStorage.test.ts) — rejects responses for another owner or with corrupt content | unit | Schema and owner guards on returned content | S | **PASS** | A4 |
+| STORE-session / TP§7; AR§5/8 | S | [tests/persistence/supabaseStorage.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/supabaseStorage.test.ts) — withholds account A plans from the UI after switching to account B | unit | Late response cannot expose old login data | S | **PASS** | A4 |
+| REC-session / TP§7; AR§5/8 | S | [tests/persistence/guestRecovery.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/guestRecovery.test.ts) — survives refresh / failed OTP in sessionStorage only | unit | Simulates reload by new service over memory map, not browser refresh/auth | S | **PASS** | A4 |
+| REC-consent / TP§7; AR§5/8 | S | [tests/persistence/guestRecovery.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/guestRecovery.test.ts) — requires explicit opt-in; declined opt-in writes nothing to localStorage | unit | Opt-in false writes nothing; ≤24h enforced | S | **PASS** | A4 |
+| REC-expiry / TP§7; AR§5/8 | S | [tests/persistence/guestRecovery.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/guestRecovery.test.ts) — expired is still deleted (no TTL grace): boundary at expiresAt | unit | Expired/corrupt/wrong-version cleanups; storage failure surfaced | S | **PASS** | A4 |
+| REC-future / TP§7; AR§5/8 | S | [tests/persistence/guestRecovery.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/guestRecovery.test.ts) — keeps a future-dated otherwise-valid cross-tab draft and returns typed unavailable | unit | Conservative clock-skew handling, not usable success; retain rather than destroy valid foreign draft | S | **PASS** | A4 |
+| REC-clear / TP§7; AR§5/8 | S | [tests/persistence/guestRecovery.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/guestRecovery.test.ts) — clears both slots on save, cancel, expiry and sign_out | unit | Checks the generic clear port, not whether save caller is authorized to clear both drafts | S | **PASS** | A4 |
+| REC-stash / TP§7; AR§5/8 | S | [tests/persistence/guestRecovery.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/guestRecovery.test.ts) — returns typed conflict and preserves tab A's draft byte-for-byte and tab B's session copy | unit | Sequential preexisting shared draft protection; not simultaneous-tab atomicity | S | **PASS** | A4 |
+| SAVE-new / TP§7; AR§5/8 | S | [tests/persistence/saveFlows.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/saveFlows.test.ts) — always creates a new plan, then clears recovery | unit | Actual helper with fake HTTP checks create RPC, not overwrite | S | **PASS** | A4 |
+| SAVE-failure / TP§7; AR§5/8 | S | [tests/persistence/saveFlows.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/saveFlows.test.ts) — retains the guest draft when the cloud save fails | unit | Failed save retains recovery | S | **PASS** | A4 |
+| SAVE-inflight / TP§7; AR§5/8 | S | [tests/persistence/saveFlows.test.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/tests/persistence/saveFlows.test.ts) — does not clear a newer draft stashed while the save was in flight | unit | Covers one stored newer draft; does not cover valid sessionA plus unrelated localB | S | **PASS** | A4 |
+| REC-save-other-draft / TP§7 safe migration; AR§5/8 | S | [src/persistence/saveFlows.ts](https://github.com/Emichael8212/PathCheck/blob/8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd/src/persistence/saveFlows.ts) — saveGuestDraftAsNew → recover → clear(save); diagnostic below | in-memory real-module diagnostic | Saving sessionA deletes unrelated opted-in localB; missing permanent regression; not dependent on U/G/backend | S8d28602 diagnostic actual false | **FAIL** | A4 |
+| REC-concurrent-tabs / TP§7; AR§8 | S | No test found — Two actual browser tabs concurrently claim/update shared recovery slot | browser/integration | getItem then setItem is not an atomic cross-tab claim; sequential doubles do not establish race safety | None; source race risk | **MISSING TEST** | B/C; S/L/U must resolve before enabling |
+| AUTH-live journey / TP§7; F16–18 | L | No test found — Real OTP, refresh/failure, recovery, explicit Save-as-new, reopen on another browser, CAS conflict | live browser | REST passwords create principals for security testing; they do not exercise product OTP/recovery composition | None; account:null composition | **MISSING TEST** | B/C |
+| SEC-quota concurrency extra / TP§7 | S | No test found — Concurrent inserts at199/200 | live SQL/REST | Sequential boundary coverage and advisory lock inspected; additional race assurance beyond current declared PR quota cases | None | **MISSING TEST** | D; not a waiver for an observed defect |
+| SEC-exact AMR boundary extra / TP§7 | S | No test found — Exactly600s and+60s inclusive boundary | live SQL | 599/601 and59/61 cover sides; exact endpoints additional precision | None | **MISSING TEST** | D |
+| SEC-production / TP§7/10; AR§6 | L | No test found — Hosted grants/configuration, secret scanning and retention verification | deployment security | Local PASS cannot establish hosted settings, auth retention or absence of secrets in deployed assets | No deployment authorized | **BLOCKED** | C |
+
+## Browser, export and full journey
+
+| Requirement / source | Owner | Exact test reference/name | Type | What it verifies / limitation | Evidence | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| I-manual / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — real normalization, prerequisite recommendation, preview, apply and undo | browser/integration | Real E/U/L, synthetic catalog; revision/fingerprint and restored placements asserted | I/H3 | **PASS** | B |
+| I-generated / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — generated draft comes from real bounded search and adopts only after acknowledgement | browser/integration | Real search generates2courses; no active mutation until adopt | I | **PASS** | B |
+| I-availability / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — student offering report has one owner and invalidates the prior recommendation | browser/integration | Single evidence row, revisions and stale Apply verified | I | **PASS** | B |
+| I-reject / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — overlooked prerequisite addition can be previewed, rejected, then freshly applied | browser/integration | Real unselected course analysis; reject then new fingerprint before apply | I | **PASS** | B |
+| I-stale / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — capacity changes invalidate an open preview and retain current analysis | browser/integration | Actual assumption edit blocks stale Apply | I | **PASS** | B |
+| I-accept / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — incomplete record blocks acceptance, focuses the error and preserves the active record | browser/integration | Real command observation0before/1after, single revision, invalid status focuses error | I | **PASS** | B |
+| I-uncertainty / TP§8; AR§8 | L | [tests/e2e/integration/journey.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/journey.spec.ts) — completion search preserves unknown repeat credit after Failed | browser/integration | Also Withdrawn; no fake successful degree result | I | **PASS** | B |
+| I-root / TP§8; AR§8 | L | [tests/e2e/integration/application.spec.ts](https://github.com/Emichael8212/PathCheck/blob/37c2f0adb8972736cc31247df3ddc19339cd6cfa/tests/e2e/integration/application.spec.ts) — assembled application loads provisional curriculum without inventing catalog applicability | browser/integration | Real assembled production root, no external requests/pageerrors; main itself still scaffold | I | **PASS** | B |
+| UI-navigation / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — three-step navigation reflects reachability and the current step | browser | Three screens and disabled-unreachable navigation; fake services | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-keyboard / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — skip link is the first tab stop and moves focus to main content | browser | Actual focus/keyboard checks | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-fallback / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — glass falls back to opaque surfaces for reduced transparency, increased contrast and forced colors | browser | Style/media fallback, not comprehensive accessibility certification | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-errors / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — a refused Accept shows inline errors, announces an alert and focuses the first invalid field | browser | Control/error semantics; L equivalent real-engine test alsoPASS | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-courses / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — a horizon change never leaves Move or Add course pointing at a vanished term | browser | Real controls with fake service response | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-consent / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — transcript availability is checked once on open and sends nothing before explicit consent (approved double) | browser | No preconsent client request within U fixture; not server enforcement | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-auth / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — account menu: Save as new after OTP, Escape closes and restores focus | browser | Fake account service; not live OTP or persistence | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-PDF / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — export downloads a real PDF of the active plan | browser | Real current writer bytes/download; fake analysis input | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-error-recovery / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — a failed recovery-draft removal is reported, never claimed as cleared | browser | Failed clear surfaced in controls, not foreign draft preservation | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-layout / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — no horizontal overflow and 40px controls at ${width}px with long titles | browser | Desktop widths1024/1280/1440; retained responsive suite separately | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-focus / TP§8; DEC UX006 | U | [tests/ui/browser/journeys.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/journeys.spec.ts) — keyboard focus is never hidden under the sticky toolbar or the floating capsule | browser | Actual bounding boxes and focus | U; L40 subset where screenshot-free | **PASS** | A6/B |
+| UI-mobile / TP§8 | U | [tests/ui/browser/mobile.spec.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/browser/mobile.spec.ts) — @mobile preview opens as a modal sheet: focus, scroll, Escape and Cancel | browser | Retained basic375px regression, no new mobile scope | U; L4 responsive subset | **PASS** | A6/B |
+| EXPORT-content / TP§8 | U | [tests/ui/export.test.ts](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/tests/ui/export.test.ts) — minimum-data policy: no transcript history, free text, identifiers or fingerprint in text, metadata or raw bytes | unit | Current writer output inspected, grade/raw attempts/notes omitted; pagination/stale/conditional cases also present | U | **PASS** | A6 |
+| EXPORT-final-library / DEC DEP002; U handoff | U | [src/export/PDF_LIB_REPLACEMENT.md](https://github.com/Emichael8212/PathCheck/blob/f413d189f93b4cd9de4821b4b0118120b57d245b/src/export/PDF_LIB_REPLACEMENT.md) — Final maintained pdf-lib writer and independent actual-byte/open/download check | unit/browser | Current custom writer tested; final approved replacement absent despite dependency now merged | None for final implementation | **MISSING TEST** | A6 |
+| UI-contrast / DEC UX006; TP§8 | U | No test found — Computed contrast/readable text validation across component states | browser/manual | Token directions and style/focus checks exist; no comprehensive contrast assertion located | Not independently evidenced by current audit | **NOT RUN** | A6/B before final UI acceptance |
+| I-upload path / TP§1/8/10; F04 | L | No test found — Actual consent/upload → G → E → accepted record → plan | browser/integration | U fake transcript tests and G modules not a complete extraction journey | None; endpoint absent | **MISSING TEST** | B/C |
+
+## F01–F20 release traceability
+
+These roll-up rows reference the detailed exact tests above; partial component PASS does
+not turn a missing integrated feature into release PASS. All are mandatory.
+
+| Requirement / source | Owner | Relevant detailed test rows | Type | What is established / missing | Evidence | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F01 Three screens / PS; TP§9 | L/U | UI-navigation; I-manual | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F02 Both planning paths / PS; TP§9 | L/E/U | I-manual; I-generated | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F03 Manual entry/edit / PS; TP§9 | E/U | T-DATA; I-accept; UI-courses | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F04 Gemini/manual fallback / PS; TP§9 | G/L/U | UI-consent; I-upload path; G matrix below | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **MISSING TEST** | B/C |
+| F05 Normalized attempts / PS; TP§9 | E/L/G | T-DATA1–14; T-SEC G→L→E composed gap | component + integrated release | Manual path passes; actual extraction composition is missing | I/E/U/S as detailed | **MISSING TEST** | B/C |
+| F06 Degree audit / PS; TP§9 | E | T-ENG1–8/24–28; CAT; sourced-repeat missing | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **MISSING TEST** | B/C |
+| F07 Prerequisites/corequisites / PS; TP§9 | E | T-ENG9–23 | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F08 Unselected courses / PS; TP§9 | E/L | SCH01–04; I-reject | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F09 Evidence-aware outlook / PS; TP§9 | E/U | CAT fail-closed; SCH06/16; I-uncertainty | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F10 Student availability / PS; TP§9 | E/L/U | SCH07–10; I-availability | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F11 Sourced recommendations / PS; TP§9 | E/U | SCH05/10; I-manual; source uncertainty preserved | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F12 Editable timeline / PS; TP§9 | L/U | UI-courses; I-manual; command atomic edit | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F13 Preview/apply/reject/undo / PS; TP§9 | L/E/U | CMD; I-manual/I-reject/I-stale | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F14 One generated draft / PS; TP§9 | E/L/U | SCH13/14; I-generated | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F15 Full guest path / PS; TP§9 | L/U | I-manual; I-generated | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **PASS** | B/C |
+| F16 Supabase OTP/save / PS; TP§9 | S/L/U | SEC-REST PASS; AUTH-live journey missing | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **MISSING TEST** | B/C |
+| F17 Safe guest migration / PS; TP§9 | S/L/U | SAVE-new PASS; REC-save-other-draft FAIL | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **FAIL** | B/C |
+| F18 Returning recovery/update / PS; TP§9 | S/L/U | STORE-response/CAS PASS; live reopen missing | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **MISSING TEST** | B/C |
+| F19 PDF export / PS; TP§9 | U | EXPORT-content PASS; final-library outstanding | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **MISSING TEST** | B/C |
+| F20 Responsive accessible web / PS; TP§9 | U/L | UI-mobile/key/focus PASS; final visual/contrast evidence pending | component + integrated release | See referenced rows for passing assertions and missing coverage; this is candidate scope, not release certification | I/E/U/S as detailed | **NOT RUN** | B/C |
+
+## Cross-cutting governance and release gates
+
+| Requirement/source | Owner | Test/evidence | Type | Verifies/limitation | Latest SHA/result | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Protected main; no bypass / PI§2/7 | L | GitHub ruleset27097753 + rules/branches/main | governance | Strict foundation/app15368, PR-only, no bypass; main2bb6b3f | Current read PASS | PASS | A all |
+| PR4 fresh-base CI / PI§7 | S | GitHub mergeStateStatus BEHIND; foundation43355738416 | CI | Existing head green does not meet strict freshness | S8d28602 | BLOCKED | A4 |
+| Independent reviews / PI§2/7 | L/E/U/S/G | Ledger review checkpoints and new G corroboration | review | Earlier concerns resolved then; newly found recovery defect requires re-review after fix | Current PR4 finding unresolved | FAIL | A4 |
+| Human acceptance / AGENTS; TP§1A | human/L | Canonical guides3/4/5/6 | human | H3/H4 PASS; H4 limited to actual tested SQL/REST scope;5/6 NOT RUN | L37c2f0a/S8d28602 | PASS H3/H4; NOT RUN5/6 | A owning PR |
+| Every PR CI / TP§1A | L | .github/workflows/ci.yml | CI | Lint/typecheck/units/build/foundation, conditional UI/integration; no live SQL/provider runner | Merged main2bb6b3f | PASS configured, external gates separate | A/B |
+| F01–20 + both real journeys / TP§10 | L | Detailed roll-up above | integrated release | Guest synthetic manual/generated tested; cloud/extraction incomplete | I | BLOCKED | C |
+| Real ASU claims / DEC CAT002; TP§10 | E/human | Provisional source review + CAT conservative tests | academic authority | Governing cohort/prereqs/grade/repeat/offerings stay unresolved | Approved baseline only | BLOCKED authoritative conclusions | C |
+| Production processing terms / DEC privacy; TP§10 | G/L/human | No authorized live data verification | privacy | Paid tier/account/terms/consent/retention controls not verified | No production use | BLOCKED | C |
+| Explicit human production authorization / PI§8; TP§10 | human | No authorization given | governance | Cannot infer deploy from PR merge or tests | None | BLOCKED | C |
+
+## PR #4: what the 172 assertions and REST pass actually mean
+
+- SQL001 has68 TAP assertions, SQL002 has51, SQL003 has53. **34 are labeled setup**;
+  the count172 is not172 distinct security policies. Assertion bodies verify the
+  RLS/grants/identity/CAS/JSON/quota/recent-auth cases enumerated above.
+- Current student data table is public.plans; no hidden second student table was found
+  in the migration. Auth identities are exercised through account deletion/REST users;
+  Gemini admission tables do not exist yet and are not covered by these assertions.
+- SQL fixture changes are rolled back. H4 additionally exercised genuine HTTP requests
+  with two real local signed-in identities and anon access. Promise.all save requests
+  assert one winner/one conflict and protect against lost-update overwrites.
+- The valid local config intentionally skips the invalid-configuration guard. The actual
+  live authorization case executed. Prior negative invalid-config execution is recorded
+  in the ledger; no claim that the skipped guard ran in H4. No hidden mandatory skipped
+  live case was found. New post-fix head must retain this behavior.
+- SQL shape checks validate selected required top-level fields and identity, not every
+  nested AcademicRecord/Plan field. Full contract validation is client read/write code.
+  Do not describe SQL172 as proof of full nested schema/PII filtering or production privacy.
+- Human PASS remains unchanged. Cleanup output confirms containers/VM stopped; no DB
+  test rerun during audit. **PR4 still has an independently testable module defect**:
+  successful save can remove another recovery draft. That is A4, not deferred I3.
+
+## Confirmed save/recovery defect (A4, highest priority)
+
+At S8d28602, `src/persistence/saveFlows.ts` checks only the winning `recover()` result
+before calling `clear('save')`. `guestRecovery.ts` can return session draftA while
+leaving a valid unrelated opted-in local draftB; clear then removes both slots.
+`guestRecovery.test.ts` explicitly verifies B survives recover/stash, but saveFlows
+never combines that state with actual cleanup. The existing in-flight edit regression
+is a different case.
+
+Read-only in-memory diagnostic executed against the actual S modules in the existing
+main2bb6b3f+S8d28602 scratch (no database, browser or network; only cloud success is a
+stub to isolate cleanup). Used Vite module loading with `server.ws=false` and
+middleware mode. Initial loader invocation emitted a sandbox-blocked HMR socket attempt;
+final repeat explicitly disabled WS, completed cleanly, and confirmed the same result:
+
+```json
+{"expectedForeignDraftPreserved":true,"actualForeignDraftPreserved":false,"saveSucceeded":true,"recoveryCleared":true}
+```
+
+Input: sessionStorage has valid synthetic draftA; localStorage has valid opted-in
+draftB with a different draftId. Call actual `saveGuestDraftAsNew(A)` with actual recovery
+service and fake successful cloud create. It deletes B although B was not saved.
+G independently corroborated source flow without running tests.
+
+**Required correction:** make save-triggered cleanup conditional on the saved draft/slot
+content; preserve unrelated or newer recovery data. Add permanent real-helper +
+real-recovery unit regression, including same-slot newer edits and absent/session/foreign
+shared combinations. Generic user-directed cancel/sign-out behavior is a separate
+contract. If fixing cleanup requires changing GuestRecoveryService, submit the minimal
+L-owned contract change for review; do not silently change the frozen synchronous API.
+No production correction was made in this audit.
+
+## Only required next work, risk-ranked
+
+1. **A4 data loss:** fix/cover the composed save/foreign-draft case above; add deterministic
+   shared-slot interleaving coverage where executable, and retain real-tab B coverage.
+2. **A4 governance:** incorporate main2bb6b3f into the owner branch, rerun applicable
+   independent checks/CI, and obtain independent review of the correction. Preserve H4
+   security PASS for unchanged SQL/REST; assess changed recovery behavior separately.
+3. **A5 academic correctness:** implement scoped sourced-repeat rule and positive
+   fail→pass credit test; test unknown/out-of-scope/ambiguous/equivalent-course cases.
+   Existing conservative negative tests must remain. No ASU rule invention.
+4. **B integration:** actual G→L→E malicious-row path; real auth/OTP/recovery/reopen/
+   CAS-conflict journey; simultaneous recovery tabs; actual browser watchdog/cancel;
+   L applyPreview mutation matrix for every frozen fingerprint constituent.
+5. **A6 export/UI:** final pdf-lib output regression and browser download/readability/
+   minimum-data tests; final UI human/contrast evidence. Existing custom-writer tests
+   should be reused, not discarded or duplicated.
+6. **G A/B/C:** see detailed G matrix below. Implement executable missing denial/failure
+   tests now; atomic storage/HTTP ingress/provider corpus and real-data privacy gates
+   remain mandatory before their relevant integration/release boundaries.
+
+No blanket request to rerun H4 or provide screenshot paths. No new feature scope.
+Quota-concurrency/exact AMR endpoint rows marked D are additional assurance only;
+actual observed data loss and explicitly required integration cases are not optional.
+
+## Detailed Gemini/extraction coverage
+
+### G requirements-to-test audit — 2026-11-13
+
+Reviewed G `fbe9374c40ba688be5c780f63eaf6a75e374864c` on clean `feat/gemini-extraction`, incorporating human-merged main `2bb6b3f8e36039a243ea3af389380019256357b7`. This is an **author's static coverage audit**, not independent lead approval. No tests, providers, services, databases or screenshots were invoked for this audit. L owns the final ledger/report.
+
+Evidence at **fbe9374** means the actual earlier owner execution against the source subsequently committed at that SHA: `npm test -- tests/transcript` PASS 115/6 files; `npm run check` PASS lint/typecheck, 218 units/12 files, build and one capture-free foundation smoke. These counts are not requirements coverage. A PASS below applies only to the stated assertion. A missing test is not reclassified as an existing unrun test.
+
+Gate labels: **A** mandatory independently executable G PR/module checks, including required G benchmark preparation; **B** cross-component/runtime integration, with exact dependencies; **C** deployment/real-data processing approval; **D** optional proposal not yet an approved requirement. Missing A tests prevent a ready-to-merge recommendation. A draft can be reviewed without representing G1/F04 as complete. No PR4 SQL/REST rerun is requested; its user-reported PASS is preserved.
+
+## A — Existing assertions and what they establish
+
+| Requirement/source | Owner | Exact file + test name | Type | Proves / does not prove | Latest evidence SHA | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F04; T-GEM consent; ARCH §6.1–3 | G | `tests/transcript/browser.test.ts` — `makes no request when explicit consent is absent`; `makes no upload without a ticket obtained by this client`; `tests/transcript/admission.test.ts` — `rejects issuance %s before storage` (`false-consent`, `disclosure`, `disabled`, `expired`) | Unit, actual adapters with transport/store doubles | Rejects false/missing consent and untrusted browser admission; no send/store call on these paths. Does not prove actual disclosure UI or server-stored consent ownership. | fbe9374 | PASS, bounded claim | A |
+| ARCH §8 ticket issuance, once-only bot verification; `GuestAdmissionService` | G | `tests/transcript/admission.test.ts` — `verifies bot once, signs exact claims and requires private-store binding` | Unit + real WebCrypto | Checks signature-decoded session/audience/digest/receipt; one bot call across issuance+admission; one issue call; exact reservation/ceiling/lease arguments. Store is a double that always succeeds. Does not prove consumed attestation binding or replay exclusion. | fbe9374 | PASS, bounded claim | A |
+| ARCH §8 bot hostname/action/audience/age | G | `tests/transcript/admission.test.ts` — `validates %s` (`success`, `hostname`, `action`, `audience`, `expired`, `failed`, `timeout`) | HTTP adapter with synthetic fetch | Confirms fixed Siteverify URL and accepts only configured claims among these responses. Timeout is a thrown fetch error, not an elapsed abort test; no real Siteverify exchange. | fbe9374 | PASS, bounded claim | A |
+| ARCH §8 signed ticket binding, expiry, purpose | G | `tests/transcript/admission.test.ts` — `rejects ticket %s before atomic admission` (`signature`, `session`, `digest`, `receipt`, `expired`, `future`, `purpose`) | Unit + real signing | Rejects altered signatures, cross-purpose signatures and mismatched/expired claims before calling store.admit. Does not prove real atomic consumption. | fbe9374 | PASS | A |
+| `TicketClaimsSchema`, `AdmissionRequestSchema`, `ProcessingEligibilitySchema` | L | `src/contracts/contracts.test.ts` — `requires bounded ticket lifetime and denies browser consent-only shape` | Contract unit | 300s accepted; 301s rejected; consent-only request and approval lacking fields rejected. This is shape validation, not endpoint authorization. | fbe9374 (merged L source) | PASS | A |
+| ARCH §8 server-issued secure cookie | G | `tests/transcript/handler.test.ts` — `issues secure HttpOnly same-origin guest cookie` | In-process real handler | Asserts response200, `__Host-`/Secure/HttpOnly/SameSite=Strict cookie and no-store. Does not assert all cookie claims or real gateway cookie behavior. | fbe9374 | PASS, bounded claim | A |
+| T-GEM fail-closed environment/origin/file/auth | G | `tests/transcript/handler.test.ts` — `denies %s with zero provider calls` (`disabled`, `expired`, `unpriced`, `network`, `origin`, `cookie`, `mime`, `ticket`); `has no public synthetic bypass operation` | In-process handler, dependencies doubled | Non-200 and zero provider calls for listed negatives; unknown bypass operation names403. Does not establish a deployed gateway or prove every configuration path. | fbe9374 | PASS | A |
+| ARCH §8 store failures and cost settlement | G | `tests/transcript/admission.test.ts` — `fails closed on store outage and propagates replay/quota denial`; `tests/transcript/handler.test.ts` — `propagates atomic replay/quota denial without provider calls`; `fails closed when settlement store is unavailable`; `releases concurrency with full reservation charged on unknown provider failure` | Unit/in-process doubles | First test covers **only issue throwing**; handler tests cover returned admit quota failure, returned finish failure and finish arguments after provider throw. No actual concurrency release, replay prevention or settled cost is verified. | fbe9374 | PASS only for listed assertions | A |
+| ARCH §8 authenticated revocation; client cancellation | G | `tests/transcript/browser.test.ts` — `revocation clears local ticket even when server fails`; `revocation while the digest is computed prevents upload`; `revocation aborts an in-flight upload and discards a late proposal`; `concurrent extracts with one ticket upload exactly once` | Unit, actual browser client + fetch double | Local ticket consumption, abort signal, late-result discard and zero upload for digest/revoke race. Does not prove server revocation/atomicity or recall already transmitted bytes. | fbe9374 | PASS | A |
+| ARCH §8 revocation before dispatch / after disable | G | `tests/transcript/admission.test.ts` — `authenticates revocation through session context and retains store failure`; `tests/transcript/handler.test.ts` — `rechecks revocation before dispatch and settles zero cost`; `allows authenticated revocation after processing disabled` | Unit/in-process doubles | Checks session forwarded to revoke and empty session rejected; dispatch-denial prevents provider/settles0; disabled processing still permits authenticated revoke. Despite its title, admission test never injects a revoke-store failure. | fbe9374 | PASS only for listed assertions | A |
+| T-GEM byte/MIME/signature/page limits | G | `tests/transcript/handler.test.ts` — `blocks file %s before provider egress`; `tests/transcript/pdf.test.ts` — `rejects empty and oversized bytes before parsing`; `rejects %i actual pages` (0,21) | Handler doubles plus actual PDF parser | MIME, magic, declared Content-Length oversize, empty/oversized inspector input, zero/21 actual pages rejected. Handler malformed/encrypted cases in old suite use inspector doubles; real cases below cover them separately. | fbe9374 | PASS, bounded claim | A |
+| T-GEM real PDF structural checks | G | `tests/transcript/pdf.test.ts` — `counts %i pages in compressed object-stream PDFs without modifying bytes` (1,2,20); `accepts both ordinary xref tables and an independently authored page tree`; `rejects the encrypted trailer without ignoring encryption`; `rejects false magic, truncation, appended data and invalid xref offsets` | Real pdf-lib, synthetic bytes | Counts pages with compressed and ordinary xref; preserves caller bytes; rejects tested envelope/Encrypt negatives. Encrypted fixture has a Standard-security dictionary but no encrypted course content. No full PDF conformance, scanned-layout accuracy or decompression isolation claim. | fbe9374 | PASS, bounded claim | A |
+| T-GEM malformed file handling | G | `tests/transcript/pdf.test.ts` — `rejects malformed page tree: %s` (false/negative/fractional/missing count, missing child, duplicate page, cycle); `rejects broken parent links and a catalog with no pages root`; `does not copy input-derived parser errors into failures or logs` | Real parser | Rejects specified malformed tree shapes; one malformed object returns generic failure with no console.warn/error. No arbitrary-malformed corpus or all-runtime-log proof. | fbe9374 | PASS, bounded claim | A |
+| T-GEM no egress after actual file rejection | G | `tests/transcript/pdf.test.ts` — `rejects real %s fixture with zero provider calls` (`encrypted`, `malformed`, `truncated`, `excessive`); `dispatches a valid real PDF with the independently counted pages` | Real handler + parser; bot/store/provider doubles | Invalid actual bytes cause400, no dispatch/provider and finish0; valid2-page PDF passes counted2 to provider. Provider returns fixture extraction; this is not a Gemini extraction result. | fbe9374 | PASS | A |
+| ARCH §8 bounded inspection before dispatch | G | `tests/transcript/handler.test.ts` — `times out a hung PDF inspection before dispatch, freeing the lease with zero cost`; `refuses dispatch when slow inspection would let the provider outlive the lease`; `maps a throwing inspector to a manual-entry failure without dispatch` | Fake timers/clock and inspector double | Timeout/recheck prevents dispatch and passes0 cost to finish. Does not terminate CPU-bound parsing, enforce memory caps, or release a real lease. | fbe9374 | PASS, bounded claim | A |
+| T-DATA raw attempts/repeats; T-GEM uncertain fields | G | `tests/transcript/validation.test.ts` — `retains all labeled fields and attempts: $name` (15 cases in `tests/fixtures/transcripts/synthetic.ts`); `discards invented provisional matching, retains unknown raw rows` | Schema/validator unit | Preserves raw fields, provenance and repeated attempts; invented match for ALIEN999 cleared. These are already-extracted rows, not PDFs or model recall ground truth; no E credit allocation proof. | fbe9374 | PASS | A |
+| T-GEM coverage; `TranscriptExtractionSchema` | G + L | `tests/transcript/validation.test.ts` — `cannot trust schema-valid model claims of complete coverage`; `blocks invalid extraction %s`; `src/contracts/contracts.test.ts` — `rejects accepted output without all rows/pages accounted for` | Validator/contract unit | Downgrades claimed accepted/demonstrated output; rejects rejected/duplicate/invalid-page data; strict accepted metadata constraints. Cannot detect omitted source rows when model counts agree falsely. | fbe9374 | PASS, bounded claim | A |
+| ARCH §6 provider transport / no Files API | G | `tests/transcript/provider.test.ts` — `sends ephemeral inline PDF with strict schema and no files/tools/retries` | Actual HTTP adapter, fetch double | One fixed generateContent URL, inline PDF MIME, API-key header, candidateCount1, response schema, no tools; sums candidate+thought token usage. Does not independently prove real provider support, data handling or billing. | fbe9374 | PASS, bounded claim | A |
+| T-GEM malformed output, API failure/manual fallback | G | `tests/transcript/provider.test.ts` — `fails safely on %s without retries` (`malformed-json`, `extra-field`, `wrong-pages`, `duplicate-row`, `truncated`, `429`, `timeout`, `usage-bound`); `rejects unknown policy without egress`; `tests/transcript/browser.test.ts` — `turns malformed server data into a typed fallback` | HTTP adapter/validator units | Typed failures and one/no call as asserted; no optimistic acceptance. Timeout is synthetic throw; UI fallback usability and actual deadline abort remain separate. | fbe9374 | PASS, bounded claim | A |
+| ARCH privacy / no authoritative Gemini matches | G | `tests/transcript/provider.test.ts` — `scrubs provider quote and provisional course claims`; `tests/transcript/browser.test.ts` — `uploads once with credentials, no token URL and matching digest`; `rejects off-origin/config injection %s` | Unit | Clears quote/provisional IDs in output; same-origin endpoint URL/options; rejects configured off-origin/query paths. Does not scan browser bundles, traces, persistence or actual network requests. | fbe9374 | PASS, bounded claim | A |
+| ARCH §8 G→L→E boundary; explicit acceptance | L | `src/app/normalizeExtraction.test.ts` — `routes raw rows to E without applying provisional mappings or invented credits`; `does not call E on invalid rows and propagates E failures`; `blocks rejected extraction and preserves the review gate on incomplete proposals` | Adapter unit, E double | Preserves whole envelope, calls E port, propagates errors and exposes explicit review gate. Does not run actual E normalization or UI acceptance with G extraction. | fbe9374 (merged L source) | PASS, bounded claim | A |
+
+## A — Mandatory local gaps, not unavailable integration services
+
+These tests are absent in the inspected six G suites; their names below are **proposed acceptance cases, not existing tests or execution claims**. They can be written with synthetic data and doubles now. No extra permission/provider/SQL access is needed.
+
+| Requirement/source | Owner | Exact existing file + test / missing assertion | Type needed | What remains unproved | Latest evidence SHA | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| T-GEM dependency failure; ARCH §8 fail closed on storage errors | G | `tests/transcript/admission.test.ts` — existing `fails closed on store outage and propagates replay/quota denial` only tests issue throw; no admit/revoke/finish thrown-store tests. `tests/transcript/handler.test.ts` lacks thrown dispatch and thrown/rejected finish composition assertions. | Unit + actual handler composition | Each private-store failure must return typed failure and suppress provider/result as appropriate. Correct misleading titles and add the omitted paths; do not infer them from issue failure. | None; inspected fbe9374 | MISSING TEST | A |
+| ARCH §8 server-session/consent authentication | G | `tests/transcript/handler.test.ts` — cookie test covers issuance and `denies %s` covers absent cookie only. No expired/future/forged/duplicate cookie revocation tests. `admission.test.ts` revocation test does not simulate failure despite title. | Real signing + handler unit | Invalid server-session proof must not reach store.revoke; revocation must stay possible after expiry of processing approval, while denial/store failure remains visible. | None; inspected fbe9374 | MISSING TEST | A |
+| T-GEM streaming file bounds | G | `tests/transcript/handler.test.ts` — `blocks file %s before provider egress` uses oversized declared length, not chunked input. `pdf.test.ts` tests oversized inspector array, not streamed handler upload. | Real Request/ReadableStream unit | Missing/misleading Content-Length, chunk crossing10MiB, stream read failure/cancel must fail before parser/provider; no sensitive error response. | None; inspected fbe9374 | MISSING TEST | A |
+| T-GEM bounded output/timeouts; ARCH §8 bounded dispatch | G | `tests/transcript/provider.test.ts`, `tests/transcript/browser.test.ts` — no 2MB stream-boundary/read-cancel assertions; timeout cases throw immediately instead of observing expiry of the attached AbortSignal. | Controlled streams/fake clock transport | Real signal cancellation and bounded response consumption; no retry/late successful output after failure. These are existing implementation guards, not established by a synthetic thrown timeout. | None; inspected fbe9374 | MISSING TEST | A |
+| ARCH §8 no spend beyond reservation / fail-closed budget config | G | `tests/transcript/provider.test.ts` — `rejects unknown policy without egress` tests input-limit0 and empty key; `handler.test.ts` only unpriced=null and unknown-provider charge. No negative/unsafe/over-reservation reported cost or changed approval during parse tests. | Policy and handler unit | Reject invalid/overflow prices/limits; suppress result when reported cost exceeds reservation; recheck changed/expired approval before dispatch and preserve full unknown cost. No real billing proof intended. | None; inspected fbe9374 | MISSING TEST | A |
+| T-GEM file bounds; implemented PDF tree resource guards | G | `tests/transcript/pdf.test.ts` — no depth32/33 or node-limit boundary case; existing cycle test does not exercise depth/node ceiling. | Small real synthetic object PDFs | Bounded traversal branches added by fbe9374 need boundary regression; this still cannot establish parser decompression/CPU isolation. | None; inspected fbe9374 | MISSING TEST | A |
+| T-GEM corpus and ground truth | G | `tests/fixtures/transcripts/synthetic.ts` has15 raw-row cases; `tests/fixtures/transcripts/pdf.ts` creates structural labeled pages only. No15–20 labeled course-attempt PDF corpus or benchmark comparator/test file exists. | Fixture preparation + metric tests | Need source-attempt denominator, code/term/credits/grade/status labels, multipage/repeats/transfer/totals/scanned/order/empty/truncated/unsupported cases; independently test omission/hallucination/critical-field scoring. Preparing these is not blocked by API credentials. | None; inspected fbe9374 | MISSING TEST | A |
+| T-GEM actual synthetic PDF benchmark | G + authorized test environment | No actual-provider benchmark runner/test name exists at fbe9374; `provider.test.ts` uses generated JSON fetch responses only. | Authorized synthetic live benchmark | Must execute real provider against labeled corpus, retain non-sensitive model/latency/token/cost/results. Model, approved synthetic environment and corpus are missing. Always needs_review does not yield a vacuous100% accepted-recall PASS. This mandatory G benchmark is not downgraded to optional or solely production work. | None | BLOCKED (runner/corpus also missing) | A |
+| AGENTS human PR acceptance | G + L + human | No G PR or lead-owned G `PR_ACCEPTANCE_TEST.md` yet. | Independent review/human checkpoint | Current code has owner tests only. Lead review, current-head PR CI and human acceptance cannot be inferred from owner fullcheck or unrelated PRs. | None | NOT RUN | A |
+
+## B / C / D — Integrated behavior and deployment boundaries
+
+| Requirement/source | Owner | Exact file + test name / absent implementation | Type needed | Proves / does not prove; exact dependency | Latest evidence SHA | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ARCH §8 atomic ticket/bot/receipt binding | S + G + L | `supabase/functions/extract-transcript/admission.ts` `AdmissionStore` is a proposal; `tests/fixtures/transcripts/server.ts` `storeDouble` always succeeds. No private admission migration/RPC/security suite. | Real private SQL/RPC + handler | Requires reviewed store/RPC semantics then SQL privileges, one-use attestation binding, ticket/consent/session/digest integrity and concurrent replay tests across separate service instances. Existing signed-claim units cannot prove storage. | None | BLOCKED (implementation and tests absent) | B |
+| ARCH §8 exact quotas/concurrency | S + G + L | No real test; `handler.test.ts` `propagates atomic replay/quota denial without provider calls` supplies a preselected quota error. | Real store race/boundary suite | Verify3/session/hour,20/network/hour,1/session concurrent,3/network concurrent, rolling-window boundaries and simultaneous instances. Requires atomic admission store; do not cite PR4 plan-RLS tests as this evidence. | None | BLOCKED (implementation/tests absent) | B |
+| ARCH §8 cost/day/lease recovery | S + G + L | No actual store tests; `admission.test.ts` checks reservation/lease arguments only; `handler.test.ts` checks finish arguments only. | Real transactional race/recovery tests | Daily ceiling under contention, UTC-day attribution, idempotent finish, expired dispatched vs undispatched leases, crash recovery and full reservation retained for unknown dispatched costs. Requires store and reviewed runtime time source. | None | BLOCKED (implementation/tests absent) | B |
+| ARCH §8 network-key rotation/privacy | L + S + G | `supabase/functions/extract-transcript/crypto.ts` `networkKey`; no named test uses it. Handler tests inject an arbitrary trusted network key. | Gateway identity + store window tests | Authenticate/strip spoofed forwarded identity; keyed identifiers must not expose raw IP and rotation must preserve quota windows. Requires L gateway plus S store semantics; HMAC unit alone would not prove quota continuity. | None | BLOCKED | B |
+| ARCH §8 authenticated revoke prevents future dispatch | S + G + L | `admission.test.ts` and `handler.test.ts` revocation tests use store doubles; no store ownership/revoke race suite. | Real SQL/handler race tests | Wrong session/forged receipt cannot revoke another; revoke invalidates unused tickets; issuance/admit/dispatch races must not permit future provider call after successful revoke. Requires atomic store. | None | BLOCKED (tests absent) | B |
+| ARCH §8 file/abuse bounds; fbe9374 documented runtime limitation | L + G | `supabase/functions/extract-transcript/pdf.ts` performs in-process load; handler `withDeadline` races but does not terminate it. No worker/process resource-limit tests. | Actual chosen Edge/worker runtime | Need memory/CPU/decompression amplification/deep-object fixtures under enforceable runtime limits, cancellation and lease behavior. Page-tree count occurs after pdf-lib decompression; current fake-timer test proves only no dispatch, not termination. Requires runtime isolation design/composition; public processing blocked. | None | BLOCKED (implementation/tests absent) | B, prerequisite to C |
+| ARCH §6/§8 secure Edge function and same-origin ports | L + G | Handler factory exists; no `supabase/functions/extract-transcript/index.ts` deployed entry or gateway integration tests. | Local Edge/module/gateway integration | Verify Deno resolution, server-only secrets, exact origin/method routes, HttpOnly cookie forwarding, trusted network identity, eligibility and disabled-by-default composition. Node/Vite foundation build does not compile/serve an Edge endpoint. | None | BLOCKED | B |
+| T-SEC real G→L→E normalization | L + G + E | `src/app/normalizeExtraction.test.ts` uses E double; G validation tests stop at raw rows. No combined G validation→real L→real E malicious-row test in this G branch. | Actual module integration, synthetic rows | Preserve unknown credits/grades/transfers/repeats, discard forged provisional IDs, no false requirement satisfaction, retain review status. E and L implementations now exist on their branches: this is a missing integration test to author/run on L's temporary combined checkout, not a claim E is unavailable. | None for this combined path | MISSING TEST | B |
+| F04/T-UI/T-SEC upload consent, fallback, review | U + G + L | G `browser.test.ts` uses fetch double; no browser journey connecting real U controls to G handler/validation and E normalization. | Actual integrated browser path | Show disclosure first, refusal/manual path, unavailable service fallback, correcting incomplete/malicious extraction, explicit acceptance, revoke/upload races. Requires composition; provider can be isolated for failure behavior, while real-provider accuracy stays separate. | None for G-composed path | BLOCKED | B |
+| ARCH §5/§8 no raw PDF/quotes in cloud/recovery | L + S + G + E + U | Provider quote scrub unit exists; no integrated extraction→record→save/recover projection test here. | Actual module projection + browser/network audit | Verify no original PDF, raw quote, secret, token URL or sensitive logs through actual persistence/recovery/error paths. Existing no-quote provider assertion and foundation bundle are insufficient. PR4 SQL/REST PASS remains valid for its separate security scope. | None for G-composed path | MISSING TEST | B |
+| T-GEM paid eligibility and privacy/consent release gate | Human + L + G | `ProcessingEligibilitySchema` plus synthetic approval in `tests/fixtures/transcripts/server.ts`; no verified live processing evidence. | Configuration/data-handling review + authorized tests | Current terms, suitable paid project, retention/logging, consent disclosure, secret manager, model/pricing/context/thinking-token bounds must be verified. A structurally approved object does not certify billing/privacy. | None | BLOCKED | C |
+| T-GEM authorized real-format/real transcript acceptance | Human + G + L | No authorized real-data tests or representative benchmark evidence; no personal source files in G fixtures. | Authorized private benchmark after C approval | Real unredacted records remain disabled; synthetic or deidentified success cannot satisfy this separate gate. No request to share credentials or commit originals. | None | BLOCKED | C |
+| ARCH no premature public enabling/deployment | L + human | README explicitly says nondeployable; no deployment evidence/test. | Release review | All relevant A/B/C gates must pass before public processing; user separately authorizes deployment. No unreviewed synthetic bypass permitted. | fbe9374 static README only | NOT RUN | C |
+| Pending proposal: suppress server response after post-dispatch revoke | L + S + G | README `finish` proposal; current frozen `GuestAdmissionService.finish` returns `Result<null>`; browser late-result discard is tested. | Optional contract amendment + new tests if adopted | Already-transmitted data cannot be recalled. Frozen rule prevents future dispatch; browser discards revoked proposals. Stronger server-result withholding is not silently promoted to an approved mandatory policy in this audit. | None for proposal | NOT RUN (not adopted) | D |
+
+## Static review and lead-review limitation
+
+The fbe9374 change adds a real pdf-lib default inspector rather than presenting a fake inspector as functioning parsing. Real malformed/encrypted/over-limit handler tests assert zero provider calls. The source and README explicitly leave runtime resource isolation, real admission storage, gateway composition and provider accuracy unverified. This audit is not a claim the parser is a sandbox or a complete malformed-PDF validator.
+
+The current L ledger explicitly records **L static review pending before first draft PR**. No independent approval of fbe9374 has been received; this G-authored matrix cannot fill that gate. L should independently assess the limits above and the A gaps. Broad earlier owner PASS counts do not clear missing tests or external gates.
+
+Two existing test titles overstate their assertions and should be corrected with the missing tests: the issue-outage test does not test replay/quota denial; the revocation-context test does not test store failure. Likewise `releases concurrency...` proves finish arguments only, and the hung-inspector test does not actually free a stored lease. An existing test being narrow is not a failing result; it is insufficient evidence for the broader requirement.
+
+## Separate corroborated PR4 data-loss finding (not a G test result)
+
+At S `8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd`, L reported an actual in-memory reproduction: valid session draft A plus unrelated valid local cross-tab draft B; `saveGuestDraftAsNew(A)` saves A then deletes both and returns `recoveryCleared:true`. This reviewer **corroborated source only**, did not reproduce or run tests.
+
+| Requirement/source | Owner | Exact file + test evidence | Type | What proves / does not prove | Latest evidence SHA | Status | Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| T-AUTH guest migration preserves unsaved draft; no data loss | S + L for any port amendment | `src/persistence/saveFlows.ts` verifies only `recover()`'s selected record before `clear('save')`; `src/persistence/guestRecovery.ts` returns session A but `clear` unconditionally deletes session and local. `tests/persistence/saveFlows.test.ts` uses a recovery double; `guestRecovery.test.ts` separately tests `keeps a still-valid cross-tab copy for other tabs when the session draft wins` and `clears both slots on save, cancel, expiry and sign_out`; no combined real-module A/B regression. | L-executed in-memory reproduction + G static corroboration | Known deterministic unrelated-draft deletion; independent of simultaneous browser tabs or database access. Requires fix plus actual save/recovery composition regression retaining B, verifying exact cleanup target and truthful recoveryCleared; keep cleanup failures and same-draft edits covered. Coordinate frozen clear semantics with L. | S8d28602; L diagnostic reported this session | MISSING TEST; **known defect reproduced by L, PR blocker** | A (PR4) |
+| T-AUTH simultaneous shared-slot read/write/clear safety | S + L + U | No new browser race evidence established by this audit. | Real concurrent browser contexts | Distinct from deterministic A/B deletion; conditional cleanup must also be checked against intervening edits and shared-slot races in actual integration. | None in this audit | BLOCKED / integration pending | B |
+
+PR4's user-executed SQL172 and REST1 PASS (plus intentional invalid-config guard skip) remain valid for the pinned tested scope. They neither cover nor disprove the draft-clear defect. Do not ask the human to rerun the database acceptance for this in-memory failure. No overall PR4-ready or G-ready recommendation follows from this audit.
+
+## Execution update — 2026-11-13 (supersedes affected audit rows)
+
+| Requirement | New evidence | Result / gate |
+|---|---|---|
+| A4 scoped save/recovery | S aeaee0b; `tests/persistence/saveFlows.test.ts`, group `save-triggered recovery cleanup is scoped to the saved draft (A4)`;13 cases | PASS agent regression; L70 actual save/recovery tests PASS. Independent review pending; human changed-behavior test NOT RUN. |
+| A4 fresh baseline/CI | S aeaee0b contains main2bb6b3f; foundation43473452035 | PASS CI; no merge recommendation yet |
+| SCH19 apply constituents | L pending commit `src/app/plannerCommands.test.ts`, `rejects stale ${name} independently without mutation`;23 variants including horizon/capacity, evaluatedAt, beam, source, repeat policy | PASS; isolated mutation boundary, not full cloud journey |
+| G→L→E malformed proposal | L `tests/e2e/normalization.integration.mjs` actual Gfbe9374/E645111c/L merged adapter | PASS forged mapping/credit withholding, unknown status, rejected/wrong-schema input and review-required result. Transfer/repeat/projection integration still pending. |
+| Combined regressions | Local main2bb6b3f + E645111c/Uf413d18/Gfbe9374/Saeaee0b and L test edits | PASS556units,2live skips;11desktop browser cases. No new human acceptance inferred. |
+
+Correction: old saveFlows tests already composed real modules for single-draft cases;
+the specific missing case was saving session A while unrelated valid shared B exists.
+Other unchanged rows retain their audit evidence/limitations. No live SQL/REST rerun
+or extraction provider calls in this execution checkpoint.
+
+Independent static review completed with no blocker in S recovery fix or L test
+changes; reviewer ran no tests. PR4 now HUMAN ACCEPTANCE REQUIRED for scoped cleanup,
+not READY TO MERGE. Existing database human PASS remains valid for unchanged code.
+
+### Human recovery result — 2026-11-13
+User reports expected70tests/2files PASS on S aeaee0b. Head unchanged; foundation
+43473452035 SUCCESS; CLEAN against main2bb6b3f. A4 regression, review, CI and human
+gates PASS. **PR4 READY TO MERGE**; historical audit blocker resolved for deterministic
+A/B cleanup. Concurrent-tab integration and other B/C gates remain open.
+
+## Post-PR4 merge execution — 2026-11-13
+PR4 MERGED9f46d23, human security/recovery PASS. E T-ENG5 now implemented097ed76,
+positive/negative/ambiguous/prerequisite/determinism33new tests and updated rule5;
+independent static review no blocker. L unfiltered repeat/rules/scheduling PASS106
+at refreshed5344bc2; human NOT RUN. U maintained pdf-lib implementation9acad56 now
+exists with actual output tests,53browser cases including computed contrast; owner
+PASS and static review no blocker. B3 zero-main-growth criterion still under correction.
+L combined595units PASS/2live skips and12desktop journeys PASS including
+`tests/e2e/integration/journey.spec.ts` → `real engine outlook exports a readable conditional PDF without transcript details`.
+This closes real E/U PDF composition for that synthetic case; human visual/export
+acceptance and other cloud/upload integration gates remain pending.
+
+### PR5 human gate — 2026-11-13
+Human PASS106tests/3files at5344bc2; unchanged head, requiredCI43475690184 PASS,
+GitHub CLEAN and independent review no blocker. PR5 READY TO MERGE. Actual ASU
+policy uncertainties and remaining cross-component/release gates remain unchanged.
+
+### Full-application acceptance clarification
+DECISIONS EXEC-004 and the live F01–F20 checklist govern final closure. Component
+PASS does not close unimplemented workflows or missing integration/security tests.
+U7c17d49 renderer delta: independent review no blocker; currentCI43476512604 PASS;
+combined lint/typecheck595units,12desktop journeys and production smoke PASS. Initial
+scratch omitted matching Utest imports; corrected reconstruction and rerun resolved
+those failures. Human PDF readability/PR6 acceptance remain NOT RUN.
+
+### PR5 merged / frontend acceptance candidate
+PR5 human-merged4f74a67; engine106test human PASS retained. Post-merge L435units
+PASS/2live skips/fullcheck. PR6 Uimplementation7c17d49 refreshed to bbea54d without
+Usource changes. Prepared main4f74a67+U7c17d49+L3a734d2 candidate passes480units,
+12desktop journeys including actual engine export and1production smoke. Live checks
+skipped, not claimed rerun. PR6 human NOT RUN; currentCI43478299682 pending.
+
+PR6 current foundation43478299682 PASS atbbea54d; independent source review retained
+(no Uowned diff). Human browser/PDF acceptance NOT RUN; eligibility ready.
+
+## Transcript workflow execution boundary
+Full transcript upload human acceptance NOT RUN; user completed only currently
+available PR6 manual/export flows and withholds merge. Missing endpoint/admission/
+provider composition remains engineering incompleteness. U consent/file controls
+exist but Ltranscript:null prevents real flow; S atomic store now assigned for
+implementation. Provider benchmark/credentials/runtime/privacy remain BLOCKED, not
+PASS from doubles. New L `tests/e2e/normalization.integration.mjs` actual validation
+→ E matching → Sprojection assertions PASS for repeat/transfer/incomplete/quote/PDF
+cases in combined tree. This is raw-row integration, not real PDF extraction.
+
+## Superseding live synthetic integration evidence — 2026-11-13
+
+Pins: main/PR7 merge `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`;
+L `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba`;
+G `6e29425404a7a53bf7e7a6da19d477b49e89469a`;
+U `52a72dac5844e471c2957305105f4f344402abec`.
+All rows below use these exact executable pins. The fresh noncommitting reproduction
+matched 180 executable/config files and started the documented human server without
+another Google request. Documentation-only updates do not change these source pins.
+
+| Requirement / source | Owner | Exact test / type | Verified result | Gate and limitation |
+|---|---|---|---|---|
+| F04/ARCH guest admission and G→L→E normalization | L/G/S/E/U | `tests/e2e/upload/live.spec.ts` — `LIVE synthetic PDF through real Google, SQL, normalization, acceptance and planning`; live browser | PASS: real Google200, 1/1 independently labeled attempt, SQL issue/admit/dispatch/finish once; private report run-1794609673676.json | B local synthetic composition closes; human NOT RUN; does not certify public bot enforcement or real-data privacy |
+| F01/F03 explicit academic-record acceptance | L/U/E | Same live browser: zero accepted records before Accept and continue, one afterward, normalized SYN-101/current analysis | PASS | B scoped upload-to-record integration; human NOT RUN |
+| F07/F11/F13 real conflict, preview, atomic apply and undo | E/L/U | Same live browser: SYN201/SYN301 same-term conflict, fall move preview, apply, undo, revisions and fingerprints | PASS | B scoped upload-to-planner path; account/cloud conflict composition remains separate |
+| GEM-002 final consent/permit check on every egress | G/L/S | `tests/transcript/localRuntime.test.ts`, `local synthetic factory using real handler/admission/provider, simulated Google/store`; consent, expiry, retry/replay cases; live spec RPC retry/reservation/attempt equality | PASS: final check follows quota awaits; 20 factory cases within157 extraction tests; live one first-egress check, no live503 | A8/A9; simulated error tests do not claim real Google503 occurred |
+| Free-only synthetic privacy/egress | L | `liveEgress.node.mjs`: `pins model/destination/document and forces redirects to fail`; `refuses additional documents, remote files and malformed payloads`; unit | PASS2 | A9; exact digest/model URL, no redirects/remote or extra PDF; no real transcript approval |
+| Free-tier quota and replay coordination | L | `liveBudget.node.mjs`: six named tests for serialized reservations, benchmark lock, existing/exhausted ledger, run cap, Pacific midnight and shutdown bounds; unit | PASS6 | A9; counts every transport attempt; other clients' project usage cannot be observed |
+| Independent synthetic fixture labels | L | `liveFixture.node.mjs`: `produces a reproducible single-page synthetic fixture independent of provider output`; unit + independent native PDF text inspection | PASS1; digest c078a421891a21be6b8391a7ddfbebafdcd3856fd5fe7c70dc8f0db4712d2dd9 | A9/B; fixture is explicitly synthetic, not ASU policy |
+| Server key isolation and endpoint request boundaries | L/G | Same live browser: no egress before consent; private env/@fs/keys denied; forged Origin and Host rejected; provider result and safe evidence assertions | PASS | A9 local-only; deployment/public gateway remains mandatory C |
+| PR7 durable admission/RPC quotas/concurrency | S/L | `supabase/tests`5 SQL files, `supabase/tests/admission/concurrency.sh`; live SQL/races | PASS371; races12 workers,6 dispatch/revoke and6 retry/revoke pairs;22 reservations cleaned | A7 MERGED, human isolation/SQL/concurrency/cleanup PASS preserved at c394241; agent rerun after clean local reset is separate |
+| Malformed/503/cancel fallback regressions | L/G/U/S | `tests/e2e/upload/upload.spec.ts`; real HTTP/UI/SQL with explicitly simulated Google transport | PASS5 | A/B error handling; not live Google acceptance |
+| Cross-component regressions | All owners | `npm run check`; UI Playwright; `npm run test:integration` | PASS669 unit,43 benchmark,9 guards,lint/type/build,1smoke;65 UI;11 real-engine journeys;2 documented liveDB skips | Applicable A/B checks; real SQL passed separately; no hosted-production claim |
+| Combined mandatory human upload | Human, L prepares | `docs/acceptance/pr-9/PR_ACCEPTANCE_TEST.md`, Stages1–5 and cleanup | NOT RUN; ready for human verification at exact pins | A6/A8/A9 human gate; no merge recommendation until report and final-head review |
+
+Initial local SQL rerun failed four empty-database assertions because live test rows
+remained. Restoring its documented disposable clean-DB prerequisite yielded371 PASS;
+no policy assertion was weakened. Two actual new Google calls during browser development
+both returned200: the first then hit a test-only locator timeout, the second completed
+the whole scenario. The earlier private-path assertion and local-cost429 failures
+made zero provider calls. Those failures remain recorded; the18-case benchmark was
+not repeated. No remaining external Google blocker was observed in the final run.
+
+Still mandatory: public trusted gateway/bot enforcement, resource-isolated PDF
+processing, real-transcript privacy/processing approval, final account/cloud and
+other integrated F01–F20 closure. Local synthetic acceptance does not waive them.
+
+### Human combined acceptance and next merge — 2026-11-13
+
+Human reports Stage4 upload/explicit acceptance, Stage5 planner/provider-evidence
+checks, and "Combined upload cleanup PASS". Stages1–3 and the disposable local
+reset also passed. Scoped combined human acceptance is PASS for U52a72da,
+G6e29425 and Lf1b03b4 on main1c0b8d3. No screenshot path requested, no agent capture,
+no invented human request/retry counts. Earlier NOT RUN rows are historical and
+superseded for this exact local synthetic procedure only.
+
+GitHub reverified: PR8 head6e29425404a7a53bf7e7a6da19d477b49e89469a,
+base main1c0b8d3, CLEAN; required foundation43521373169 SUCCESS. Independent
+findings resolved, 157 extraction tests/578 owner units and composed live evidence
+retained. No implementation change since acceptance. PR8 READY TO MERGE for the
+extraction component. PR6/9 are human accepted for the pinned combined scope but
+must refresh/revalidate in dependency order after each human merge. Public runtime,
+account composition and real-transcript/release gates remain mandatory and open;
+none is represented as complete by this component merge recommendation.
+
+## Post-PR8 merge coverage — 2026-11-13
+
+PR8 merged d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e. Preserved humanPASS at accepted
+G6e294/U52a72/Lf1b03b4. CurrentU91c4bf27943135e325944f599cb001f78d6968b0 has exactly
+the same tree as locally testedUbdd932c15b11d068adb1f1436df4e666566cc61d; both merge
+52a72+d47. L refreshed ef097d56a1be7ca085b79737280b61cc388c3378. All180 executable/config
+files of composed source match the prior accepted candidate. Independent impact
+review preserves humanPASS; no retest requested. PR6 foundation43527776220 PASS/CLEAN.
+
+| Requirement/source | Owner | Current test evidence at these pins | Status / gate |
+|---|---|---|---|
+| F04/T-GEM/T-SEC actual upload | G/S/L/U | `tests/e2e/upload/live.spec.ts`, `LIVE synthetic PDF through real Google, SQL, normalization, acceptance and planning`: 1/1course,1Google200,1admission/settlement; report run-1794612857331.json | PASS postmerge B; scoped humanPASS retained; public real-data gates open |
+| F01/F03/F07/F13 record→planner | U/E/L | Same live case: consent, explicit acceptance, conflict, preview/apply/undo and fingerprints; `npm run test:integration`12PASS | PASS B; no hardcoded provider or engine results |
+| F19/T-EXPORT | U/L/E | `journey.spec.ts`: `real engine outlook exports a readable conditional PDF without transcript details`; UI export tests within65 browser/669unit PASS | PASS postmerge A6/B; prior human exportPASS retained |
+| F20/T-UI | U/L | UI Playwright65PASS (60desktop,5responsive), composed production application.spec1PASS | PASS A6/B scoped controls/accessibility/browser checks |
+| T-GEM failures/consent | G/S/U/L | `upload.spec.ts`5PASS actualSQL/HTTP/UI, explicitly simulated503/malformed/revocation provider responses | PASS postmerge B; no live503 claim |
+| T-DATA normalization | E/G/L/S | `normalization.integration.mjs`2PASS: unresolved transfer/repeat/incomplete/provenance projections; npm test669PASS/2documentedliveDBskips | PASS postmerge B; unknown ASU policy remains unknown |
+| Free-tier fixture/egress guard | L | `test:upload-guards`9PASS; `test:transcript-benchmark`43PASS; original live corpus not rerun | PASS A9/B, not real-transcript privacy approval |
+| Component vs root composition | U/L | Owner standalone test:integration application.spec FAIL on unchanged Lscaffold;10journeysPASS. Existing Lapplication.patch assembled with all modules:12/12PASS plusproduction1PASS | Standalone FAIL preserved; specific B composition dependency verified PASS. Final ordinary root wiring still required, not a Uregression or waived executable check |
+| Current PR6 CI/review/human | U/L/Human | head91c4bf2, foundation43527776220 PASS; independent source-impact review no blocker; U code unchanged from humanaccepted52a72 | READY TO MERGE component A6; only human merges |
+
+No SQL policy change: previous371SQL/concurrency and humanPR7PASS remain evidence,
+not claimed rerun. Services used only isolated synthetic data; no secrets/screenshots
+or original transcripts committed. Final account/root/public-runtime and release
+gates remain mandatory engineering/privacy work; component readiness does not close them.
+
+## PR6 merged / actual PR9 root verification — 2026-11-13
+
+Main6f255bcd68afb4a853aa212db21c5ab503d360b4 contains acceptedU91c4bf2 andG6e294.
+PR9 refresh4f590521035436c7b602ec0d8dd5ae537fcec3d0; new implementation
+9214515c9461e1564cafcea04b37b7611ac8d81f. Ordinary App now composes actual merged
+modules directly; no temporary application.patch. Existing component and live-upload
+humanPASS retained. Newroot humanNOTRUN is separate, not an invalidation of priorwork.
+
+| Requirement/source | Owner | Exact test / current result | Gate |
+|---|---|---|---|
+| F01/F03/T-UI real ordinary entry | L/U/E | application.spec: `ordinary application accepts a manual record and exports an uncertainty-preserving plan`; production2/dev13 PASS, plus explicit no-planner-before-Accept | A9 automaticPASS; new root humanNOTRUN |
+| CAT applicability / F09 | E/L | application.spec: `assembled application loads provisional curriculum without inventing catalog applicability`; real provisional catalog/unresolved year/insufficient outlook | A9/B PASS; no inventedASUrule |
+| F19/T-EXPORT actual root | U/L | New ordinary-root test independently inspects PDF bytes/page count, plannedCIS351/conditions/unknowns, no recordterm/grade; productionPASS | A9 automaticPASS; componenthumanPASS retained |
+| T-SEC ordinary-build disabled services | L/U/G/S | application.spec asserts upload-unavailable, no filepicker, account-unavailable, no externalrequests/pageerrors | A9 PASS; restored after independentreview finding; not publicruntime approval |
+| T-GEM/ARCH normalization actual upload | G/L/E/U/S | live.spec unchanged; realGoogle200/1750ms,oneattempt/oneadmission/settlement,1/1course; explicitaccept/preview/apply/undo PASS; report run-1794614359501.json | A9/B PASS; priorhumanPASS retained |
+| T-SEC SQL/RLS/admission | S/L | Mounted source identical11files; supabase test db371/5files PASS; initial unmountedlead pathNOTESTS preserved as environmentfailure | A9 applicable local checkPASS; no hosted claim |
+| T-SEC race/consent | S/L | concurrency.sh:12workers winners1/1/3/5; dispatch/revoke6pairs6/0; retry/revoke6pairs2/4;22reservationscleanup0 | A9 PASS; both serialization outcomes covered by retained tests, not asserted observed in every newrun |
+| T-AUTH real REST/CAS/owner | S/L | live.supabase.test.ts `enforces owner isolation, CAS and Save-as-new end to end`: PASS1/configguard skip1 | A9 localPASS; OTP/browseraccount still incomplete |
+| Live configuration failclosed | S/L | Samefile fake remote URL/publishable placeholder: expected nonzero/remote_host_refused; no REST | NegativeguardPASS, no secret or remote call |
+| Full applicable regressions | All | npmcheck669unit/2documentedliveDBskips,43benchmark,9guards,lint/type/build,production2; UI65; integration13; normalization2 PASS | ApplicableA9/B PASS; liveDB testedseparately above |
+| Human new normal-root entry | Human/L | docs/acceptance/pr-9/PR_ACCEPTANCE_TEST.md new top section at9214515 | NOT RUN; blocksA9 merge recommendation, not earlieracceptedupload |
+
+Independent Codex and Claude reviews find no academic/provider/runtime blocker.
+Claude noted missing old no-filepicker privacy assertion; it was restored with
+account-unavailable and explicitURLguard, and production2/integration13 reranPASS.
+Final account/publicgateway/resource-isolation/real-data privacy gates remain
+mandatory unfinished engineering/approval work; the ordinary-root defect is fixed.
+
+Final error-path closure at9214515: tests/e2e/upload/upload.spec.ts5PASS (realSQL/HTTP/UI,
+simulated provider503/malformed/withdrawal/exhaustion); no live503 falselyclaimed.
+Final independent review confirms restoredprivacyassertions and guideaccuracy.
+Fresh pinned checkoutnpmci/build/previewHTTP200PASS; alltestservices stopped.
+Root humanNOTRUN remains the specificA9 merge blocker after automatedCI closure.
+
+Current-head CI closure: PR9 7893d31ee9d9994e1d71c10075b0b1354c118c6e, foundation43531838223 PASS including all available UI/engine/normalization steps. Newroot humanNOTRUN remains A9 blocker; prior combinedupload humanPASS retained.
+
+
+## Current/historical curriculum identity correction — 2026-11-13
+
+Pins: L `ad2b1b9231a31753fdc32efeff276dfecf91a7cb`; U PR10
+`3e5a092c59aad43e6a542a37e6a2df70d4d5d0d5`. Combined scratch is noncommitting.
+
+| Requirement/source | Owner | Test and verified evidence | Status / gate |
+|---|---|---|---|
+| F01 / CAT-001–003 distinguish curriculum provenance | U/L | application.spec `current and historical ASU curriculum choices have distinct visible labels`: reproduced FAIL before U fix, PASS combined; real historical CIS304 matched, CIS300 unmatched | PASS combined; PR9 standalone dependency BLOCKED A9/B |
+| F03 academic normalization | E/L/U | application.spec `ordinary application accepts a manual record and exports an uncertainty-preserving plan`: current CIS300 In catalog + All found, explicit acceptance, CIS351 planner/PDF | PASS combined A9/B; corrected human NOT RUN |
+| F19 / uncertainty-preserving export | U/L | tests/ui/catalogIdentity.test.ts plus ordinary-root PDF assertions; UI labels only, no academic changes | PASS automated A10/B; human NOT RUN |
+| F01 accessible curriculum selection | U | UI browser68 PASS (3 new identity tests); owner unit650/2 live skips; independent source review no blocker | PASS A10 automated; foundation43546609647 PASS at3e5a092 |
+| Shared regression checks | L | Combined npmcheck674/2 live skips,43 benchmark,9 guards,production3; integration14; normalization2; UI68 PASS | PASS B, no new live API/SQL claim |
+| Mandatory human gate | Human/L | docs/acceptance/pr-10/PR_ACCEPTANCE_TEST.md pinned combined procedure | NOT RUN A10/A9; prior upload/security PASS retained |
+
+The missing-CIS300 report exposed ambiguous visible catalog choices; the user's exact
+selection remains unconfirmed. Historical data and unresolved academic policies are
+unchanged. PR10 must land through personal merge, then PR9 refresh/current CI must
+PASS before recommendation. No mandatory test is waived for this dependency.
+
+
+Human update: current CIS300 matching checkpoint **PASS**, explicitly reported as
+"CIS 300 shows In catalog" for the corrected procedure (L ad2b1b9 + U 3e5a092).
+This is scoped F03 evidence only. Remaining corrected root/planner/PDF human checks
+are **NOT RUN**; full A9/A10 human gates remain pending. No automated result was
+substituted for human acceptance.
+
+
+### Human acceptance closure for curriculum correction
+
+At L ad2b1b9 + U3e5a092, human PASS now covers CIS300 matching, explicit record
+acceptance, CIS351 Spring2027 planning, PDF current identity/conditions and privacy
+omissions. Supplementary historical-option/disabled-service assertions retain their
+automated PASS, without asserting separate human execution. Scoped A10 human gate
+PASS; PR10 CI43546609647 PASS/current3e5a092, independent review no blocker.
+PR10 READY TO MERGE personally. A9 human workflow PASS but A9 merge remains BLOCKED:
+CI43547679816 at0a3feae FAIL on duplicate-label regression; 2 other root tests PASS.
+Refresh and revalidate after PR10 merge; no waiver or full-MVP completion claim.
+
+
+## PR10 merge / PR9 refreshed evidence
+
+Human merge21097eb7d434e879e7dd8368db0ac786eea8deec contains U3e5a092. Main clean
+and synchronized; PR9 refresh8daea48, test head d74555b0a8b7e3255202e4d99c9755c0b2794486.
+
+| Requirement/source | Owner | Exact test/command and verified result | Status and gate |
+|---|---|---|---|
+| F01/CAT-001–003 curriculum identity | U/L | application.spec distinct labels/current-vs-history; human CIS300 matching and PDF identity accepted; PR10 merged21097eb | PASS A10 closed |
+| F03/G→L→E normalization | L/E/G | normalization.integration.mjs third assertion group: actual validation and normalization, fictional CIS300 current exact match/history null, no CIS304 equivalence, explicit acceptance | PASS3 CLI atd74555b A9/B |
+| F04/F03 upload catalog matching | L/E/U/G/S | upload.spec `fictional CIS300 upload uses current catalog without inventing equivalency (Gemini simulated)` and historical variant; real SQL/handler/engine; after fixture correction targeted2PASS | PASS A9/B; provider simulated, not liveCIS300 recall |
+| T-GEM/T-SEC extraction failure/privacy paths | L/G/S/U | run.mjs upload suite7PASS; 503 retry/exhaustion, malformed, revocation, manual fallback; unit674/2 documented DB skips,43benchmark/9guards | PASS A9; live transport separated below |
+| F05–F19 integration/preview/PDF | L/E/U | test:integration14PASS; production3PASS; UI68PASS incl keyboard/contrast/mobile regressions | PASS A9/B; fixture UI tests not engine proof |
+| T-SEC SQL/RLS | S/L | supabase test db371/5filesPASS; mounted sources byte-equal9files | PASS A9 local, no hosted security claim |
+| T-SEC replay/concurrency/revocation | S/L | concurrency.sh12workers winners1/1/3/5; dispatch-revoke0/6, retry-revoke4/2;22reservations/cleanup0 | PASS A9 |
+| T-AUTH owner/CAS | S/L | live.supabase.test.ts real two-user test1PASS/configguard1documentedskip | PASS A9; previous negativeguard retained |
+| Real provider upload/accept/planner | G/L/E/U/S | live.spec actual Gemini3.5Flash-Lite1PASS, fixtureSYN1011/1, HTTP2002016ms/oneadmission/no retry; report run-1794625739039.json | PASS A9/B atd74555b; no liveCIS300 extraction claim |
+| Human/independent review applicability | Human/L/reviewer | Production comparisons identical to accepted ad2b1b9+3e5a092; only test additions, reviewer fixture-title finding fixed/closed | PASS A9; no repeat human run |
+| Current implementation CI | L/GitHub | foundation43550171780 PASS atd74555b, all steps including real engine/UI/normalization | PASS A9 implementation; final documentation-head CI also required and recorded on PR9 |
+
+Prior duplicate-label CI failure is resolved by mergedPR10; do not delete its historical
+evidence. Remaining account/public-runtime/real-data privacy requirements are mandatory
+unfinished B/C work, not waived requirements or an assertion of MVP completion.

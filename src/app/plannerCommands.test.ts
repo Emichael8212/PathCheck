@@ -58,13 +58,30 @@ describe('explicit plan commands', () => {
     engine: (s: PlanningScenario) => { s.engineVersion = 'new'; },
     search: (s: PlanningScenario) => { s.searchOptions.maxExpansions = 500; },
     placements: (s: PlanningScenario) => { s.plan.activePlacements[0]!.termId = term(2030, 'spring'); },
-  })) it(`rejects stale ${name} content even with unchanged revisions`, () => {
+    catalogVersion: (s: PlanningScenario) => { s.catalog.catalogRef.catalogVersion = s.plan.catalogRef.catalogVersion = 'v2'; },
+    catalogApplicability: (s: PlanningScenario) => { s.catalog.catalogRef.catalogYearId = s.plan.catalogRef.catalogYearId = null; },
+    recordRevision: (s: PlanningScenario) => { s.record.recordRevision++; },
+    planRevision: (s: PlanningScenario) => { s.plan.planRevision++; },
+    availabilityRevision: (s: PlanningScenario) => { s.plan.availabilityRevision++; },
+    availabilitySource: (s: PlanningScenario) => { s.plan.availabilityEvidence[0]!.sourceRef = 'changed'; },
+    availabilityObservation: (s: PlanningScenario) => { s.plan.availabilityEvidence[0]!.observedAt = '2030-01-02T00:00:00Z'; },
+    evaluationPolicy: (s: PlanningScenario) => { s.assumptions.evaluationPolicy = 'other'; },
+    futureCompletion: (s: PlanningScenario) => { s.assumptions.assumeFuturePass = true; },
+    sourceProvenance: (s: PlanningScenario) => { s.catalog.catalogRef.sources[0]!.description = s.plan.catalogRef.sources[0]!.description = 'changed evidence'; },
+    terms: (s: PlanningScenario) => { s.assumptions.terms.push(term(2031, 'spring')); s.assumptions.creditCapacity.push({ termId: term(2031, 'spring'), maximum: 12, source: 'scenario_assumption' }); },
+    evaluatedAt: (s: PlanningScenario) => { s.assumptions.evaluatedAt = '2030-01-02T00:00:00Z'; },
+    searchHorizon: (s: PlanningScenario) => { s.searchOptions.horizonTerms = 7; },
+    searchBeam: (s: PlanningScenario) => { s.searchOptions.beamWidth = 23; },
+    repeatPolicy: (s: PlanningScenario) => { s.catalog.repeatCreditPolicy = null; },
+  })) it(`rejects stale ${name} independently without mutation`, () => {
     const { commands, action, candidate, s, validateCandidate } = setup();
+    const originalCandidate = structuredClone(candidate);
     change(s);
     const before = structuredClone(s);
     expect(commands.applyPreview(s, candidate, action('apply', ['future-pass']))).toMatchObject({ ok: false, code: 'stale_preview' });
     expect(s).toEqual(before);
     expect(validateCandidate).not.toHaveBeenCalled();
+    expect(candidate).toEqual(originalCandidate);
   });
   it('reject leaves plan and revisions untouched, and discarded preview cannot apply', () => {
     const { commands, action, candidate, s } = setup();

@@ -1,63 +1,68 @@
 # PR Acceptance Test
 
+## Merged frontend checkpoint — 2026-11-13
+
+Current PR #6 head: `91c4bf27943135e325944f599cb001f78d6968b0`, refreshed from human PR #8 merge `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e`.
+Required CI `foundation` 43527776220 PASS. The refreshed baseline does not change
+U-owned code. Prior human manual-entry/PDF-export acceptance is retained.
+The combined live synthetic upload is now agent-verified with real Google and SQL;
+human upload status is **PASS**, including planner/provider checks and cleanup.
+U-owned files are unchanged from accepted `52a72da`; independent impact review
+preserves human PASS. Post-merge composed regressions pass: 669 units,65 UI,12
+engine/application browser tests including PDF,1 production smoke,5 simulated-provider
+upload cases and1 actual Google/local SQL upload. No human rerun is needed.
+**MERGED by the human** as `6f255bcd68afb4a853aa212db21c5ab503d360b4` at
+2026-11-13T23:50:25Z. Accepted evidence is preserved.
+The previously missing ordinary-root composition is now implemented in PR9;
+its new scoped root acceptance is recorded separately. Account/public-processing
+gates remain mandatory unfinished work.
+Use the single [combined PR #6/#8/#9 procedure](../pr-9/PR_ACCEPTANCE_TEST.md).
+It pins all component heads and assigns the consent, file controls, extraction summary,
+explicit acceptance and planner controls to this PR. Do not repeat the already
+accepted manual/export procedure below. The historical blocked wording is superseded
+by this checkpoint. Only the human may merge, in the reviewed dependency order.
+
+## Historical manual/export acceptance procedure
+
 ## PR Information
 - PR number: #6
 - Title: Frontend UX: three screens, planner timeline, previews, PDF export (draft)
-- Commit SHA: `f413d189f93b4cd9de4821b4b0118120b57d245b`; integration dependency L 37c2f0a, E645111c, S8d28602
+- Commit SHA: `bbea54d9645d284f4b3dcff71320387441eb1011`; reviewed UI implementation7c17d49, merged engine/persistence baseline4f74a67, lead tests3a734d2
 - Test type: real integrated browser workflow
 - Feature being verified: three screens, course controls, contextual preview and minimum-data PDF
-- Human acceptance status: **NOT RUN**. Agent verification is separate.
-- Eligibility: **BLOCKED for final PR acceptance** until #3 is merged and the owner completes pdf-lib replacement. Current interaction scenario is reproducible but is not permission to merge.
+- Human acceptance status: available manual/export workflows completed by user; full transcript workflow **NOT RUN**. User withholds PR6 merge pending upload integration. Agent verification is separate.
+- Eligibility: **BLOCKED for requested complete workflow** by missing transcript endpoint/admission/provider composition. Previous CI43478299682 PASS does not cover upload integration; U corrections now in progress.
 
 ## Before You Begin
-Required: this repository, Git, Node24–26/npm, Chrome; no account, cloud service or
-credentials. Use synthetic data only. Do not upload transcripts. Dependencies are
-pinned to E645111c/Uf413d18/S8d28602, not mutable branch tips. A fresh clone can use
-its local repository path instead of `/Users/_eman5michael/PathCheck`.
+Required: Git, Node24–26/npm, Chrome and macOS Preview. No account or credentials.
+Use synthetic data only. The lead prepared `/private/tmp/pathcheck-pr6-human` from
+merged main4f74a67 with reviewed U7c17d49 and lead3a734d2, without committing or
+pushing the candidate. U's refreshed head bbea54d has identical U-owned source/tests;
+it only incorporates the same merged main. Existing worktrees are preserved.
+
+Validate the prepared checkout (no installation or startup assumed):
 
 ```sh
 (
 set -eu
-cd /Users/_eman5michael/PathCheck
-git fetch origin
-test ! -e /private/tmp/pathcheck-pr3-renewed
-git worktree add /private/tmp/pathcheck-pr3-renewed -b integration/pr3-renewed 37c2f0adb8972736cc31247df3ddc19339cd6cfa
-cd /private/tmp/pathcheck-pr3-renewed
-git merge --no-commit --no-ff 645111c43f65b21fc73b776a763360a8cbddb4a4 f413d189f93b4cd9de4821b4b0118120b57d245b 8d286023513df00b8eb6d41a6cf8ee9ad5ddcedd
-git apply tests/e2e/integration/application.patch
-npm ci
+cd /private/tmp/pathcheck-pr6-human
+test "$(git rev-parse HEAD)" = 4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39
+test "$(sort "$(git rev-parse --git-path MERGE_HEAD)")" = "$(printf '%s\n' 7c17d49bc93b3a6209fa1369da08a8a843eb64d8 3a734d20475a4ab649a53390472089888fedde73 | sort)"
+npm ci --ignore-scripts
+npm run dev -- --port 5181 --strictPort
 )
 ```
 
-Stop if any command fails. Do not reuse an unknown existing directory or resolve a
-merge conflict by guessing. Expected: merge stops before committing; npm installs
-the lockfile. These commands never merge into main or push anything. If the
-checkout was prepared by the lead and left for your test, verify its recorded SHAs
-before reusing it; otherwise use the fresh procedure above. The Git history remains
-at 37c2f0a with the three pinned feature heads recorded in the linked worktree's merge-state file. To inspect it safely, run:
+Expected Vite URL: `http://127.0.0.1:5181/`. Leave this terminal running. If the
+head check or port binding fails, stop; do not reset or delete the checkout.
 
-```sh
-(
-set -eu
-cd /private/tmp/pathcheck-pr3-renewed
-git rev-parse HEAD
-git rev-parse --git-path MERGE_HEAD
-)
-```
-
-The second command prints the actual merge-state file path (`.git` is a file in a linked worktree). Open that path in your editor and confirm the three pinned SHAs above before reusing an existing prepared checkout.
+Reproduction from a fresh clone: create a new empty worktree at4f74a67, run
+`git merge --no-commit --no-ff 7c17d49bc93b3a6209fa1369da08a8a843eb64d8 3a734d20475a4ab649a53390472089888fedde73`, then
+`git apply tests/e2e/integration/application.patch` and `npm ci --ignore-scripts`.
+This is local-only candidate assembly, never a main merge.
 
 ## Step-by-Step Test
-1. Start the server (leave this terminal running):
-   ```sh
-   (
-   set -eu
-   cd /private/tmp/pathcheck-pr3-renewed
-   npm run dev -- --port 5181 --strictPort
-   )
-   ```
-   Expected: Vite prints `http://127.0.0.1:5181/`. A port error is a setup failure;
-   stop the other test server rather than changing URLs silently.
+1. Start the server with the command above.
 2. Open Chrome at **http://127.0.0.1:5181/tests/e2e/integration/index.html**.
    Use a desktop window at least 1280px wide. The root `/` is the provisional ASU
    application; use the explicit synthetic test URL for this acceptance scenario.
@@ -85,7 +90,7 @@ The second command prints the actual merge-state file path (`.git` is a file in 
 11. Click **Undo**. Expect **Undone**, both courses back in Spring 2027, and the
     prerequisite conflict restored. Capture checkpoint B.
 
-12. After restoring the plan, apply the move again with acknowledgement. Click **Export PDF**. Open the downloaded PDF in Chrome or Preview. Confirm only active semester placements, the target/catalog and applicable conditions appear. Grades, raw record rows, private notes, plan/draft IDs and fingerprints must not appear. Save a screenshot of its timeline and conditions yourself. This checks the current writer only; repeat on the final pdf-lib head before acceptance.
+12. After restoring the plan, apply the move again with acknowledgement. Click **Export PDF**. Open the downloaded PDF in Chrome or Preview. Confirm only active semester placements, the target/catalog and applicable conditions appear. Grades, raw record rows, private notes, plan/draft IDs and fingerprints must not appear. Save a screenshot of its timeline and conditions yourself. This uses the maintained pdf-lib renderer. Open the PDF in both Chrome and macOS Preview: text must be selectable, line wrapping readable, and page footers correct.
 
 ## Expected Result
 Real normalization accepts SYN101. The engine detects same-term SYN201→SYN301 as
@@ -107,26 +112,21 @@ PASS only if all interactions match, Apply requires acknowledgement, the conflic
 clears after the move, and Undo restores both placement and warning. FAIL if controls
 are inert, a prerequisite conflict is hidden, the move is wrong, Undo fails, or a
 synthetic/conditional plan is presented as verified graduation. Report the tested
-SHA, PASS/FAIL, and your screenshots. A blocked setup is BLOCKED, not PASS.
+SHA and PASS/FAIL; attach your screenshots directly to GitHub. A blocked setup is BLOCKED, not PASS.
 
 ## Cleanup
-Stop the dev server with Ctrl-C. Close the test browser tab. From another terminal:
-
-```sh
-(
-set -eu
-cd /Users/_eman5michael/PathCheck
-git worktree remove --force /private/tmp/pathcheck-pr3-renewed
-git branch -D integration/pr3-renewed
-)
-```
-
-Only run this after finishing the test; it discards the dedicated uncommitted test
-checkout, not the feature worktrees. Save your own screenshots outside the repository.
+Stop the server with Ctrl-C and close the browser tab. Keep the candidate worktree
+for follow-up; no force deletion, database cleanup or cloud operation is needed.
 
 ## Known Limitations
-This is a candidate assembled from unmerged PRs, not current main. Cloud auth/save,
-transcripts and final PDF acceptance are separate. Synthetic-only catalog applicability
-is intentional; actual ASU applicability remains unresolved. This test does not clear
-T-ENG-5 or production release gates. Human PASS applies to these pinned implementations;
-a behavior-changing head update requires impact review and renewed human verification.
+This verifies actual E/L/U planning and PDF export using a clearly synthetic catalog.
+It does not certify unavailable ASU rules, cloud-auth workflows, transcript endpoints,
+or application/release completion. These remain mandatory separate gates. PDF text
+outside the supported WinAnsi range is sanitized; no arbitrary Unicode fidelity claim.
+Human visual PDF acceptance cannot be inferred from agent byte assertions.
+
+## Agent preparation evidence
+Candidate main4f74a67 + U7c17d49 + L3a734d2: lint/typecheck PASS,480units PASS,
+2live tests skipped,12real-engine desktop journeys PASS including PDF download and
+independent byte parsing; production-build smoke1 PASS. No screenshots captured.
+Independent U7c17d49 review no blocker; bbea54d changes no U-owned source/tests.
