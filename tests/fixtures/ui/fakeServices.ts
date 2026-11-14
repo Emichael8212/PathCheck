@@ -10,7 +10,7 @@ import type {
 import type { WorkflowServices } from '../../../src/ui/services';
 import { createPdfExportService } from '../../../src/export';
 import { termFromIndex } from '../../../src/ui/terms';
-import { syntheticCatalog, SYNTHETIC_REF } from './syntheticCatalog';
+import { identityPairCatalogs, syntheticCatalog, SYNTHETIC_REF } from './syntheticCatalog';
 
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const fail = (code: Extract<Result<never>, { ok: false }>['code'], reasonCode: string) => ({ ok: false as const, code, reasonCode });
@@ -368,9 +368,12 @@ export function fakeTranscript(mode: 'disabled' | 'approved' | 'rejected', calls
   });
 }
 
-export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; transcriptOptions?: FakeTranscriptOptions; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean } = {}) {
+export function fakeServices(options: { blockingGap?: boolean; longTitles?: boolean; draft?: 'ok' | 'none' | 'interrupted'; transcript?: 'disabled' | 'approved' | 'rejected' | 'none'; transcriptGate?: TranscriptGate; transcriptOptions?: FakeTranscriptOptions; account?: boolean; conflictOnSave?: boolean; clearFails?: boolean; exportFails?: boolean; staleAnalysis?: boolean; catalogPair?: 'provisional' | 'synthetic' } = {}) {
   const clock = fakeClock();
-  const base = fakeAcademic([syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })], { draft: options.draft ?? 'ok' });
+  const catalogs = options.catalogPair
+    ? identityPairCatalogs({ synthetic: options.catalogPair === 'synthetic' })
+    : [syntheticCatalog({ blockingGap: options.blockingGap ?? false, longTitles: options.longTitles ?? false })];
+  const base = fakeAcademic(catalogs, { draft: options.draft ?? 'ok' });
   // staleAnalysis: the double answers with an analysis for a different fingerprint, which the
   // UI's validation must refuse (no outlook, no export).
   const academic: AcademicService = options.staleAnalysis

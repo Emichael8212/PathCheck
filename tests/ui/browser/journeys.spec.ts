@@ -80,6 +80,54 @@ test.describe('shell and keyboard basics', () => {
     await expect(page.getByTestId('catalog-chip')).toBeVisible();
   });
 
+  test('two catalogs that share program and status stay distinguishable by visible label and keep their identity on every screen', async ({ page }) => {
+    // Presentation-only pair (catalogs=pair): synthetic course content under the two approved
+    // version ids. Real CIS 300/304 assertions are in the lead's real-catalog regression.
+    await open(page, 'catalogs=pair');
+    const program = page.getByLabel('University and program');
+    const current = 'B.S. Computer Information Systems — Current departmental curriculum · Provisional catalog';
+    const historical = 'B.S. Computer Information Systems — Historical 2019–2021 curriculum guide · Provisional catalog';
+    await expect(program.locator('option')).toHaveText(['Choose a supported program…', current, historical]);
+
+    await program.selectOption({ label: current });
+    await expect(program.locator('option:checked')).toHaveText(current);
+    await expect(page.getByTestId('catalog-edition')).toContainText('Current departmental curriculum');
+    await expect(page.getByTestId('catalog-chip')).toHaveText(/^Current curriculum · Provisional catalog/);
+
+    await program.selectOption({ label: historical });
+    await expect(program.locator('option:checked')).toHaveText(historical);
+    await expect(page.getByTestId('catalog-edition')).toContainText('Historical 2019–2021 curriculum guide');
+    await expect(page.getByTestId('catalog-edition')).toContainText('printed guide years are not a confirmed catalog year');
+    await expect(page.getByTestId('catalog-year')).toHaveText('Not confirmed — governing catalog year unresolved');
+    await expect(page.getByTestId('catalog-banner')).toBeVisible();
+    await expect(page.getByTestId('catalog-chip')).toHaveText(/^2019–2021 guide · Provisional catalog/);
+    await expect(page.getByText('asu-cis-guide-2019-2021-v1')).toBeHidden();
+
+    await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2028' });
+    await page.getByRole('button', { name: 'Continue as guest' }).click();
+    await expect(page.getByTestId('catalog-chip')).toHaveText(/^2019–2021 guide · Provisional catalog/);
+    await toPlanner(page, 'selected');
+    await expect(page.getByTestId('catalog-chip')).toHaveText(/^2019–2021 guide · Provisional catalog/);
+    await expect(page.locator('.insp-disclosure > summary', { hasText: /^Catalog/ })).toContainText('2019–2021 guide · Provisional catalog');
+    // Going back to Get started: the selection is locked and still shows the chosen curriculum.
+    await page.getByRole('navigation', { name: 'PathCheck steps' }).getByRole('button', { name: 'Get started' }).click();
+    await expect(program).toBeDisabled();
+    await expect(program.locator('option:checked')).toHaveText(historical);
+    await expect(page.getByTestId('catalog-edition')).toContainText('Historical 2019–2021 curriculum guide');
+  });
+
+  test('synthetic catalogs under approved version ids are never given an institutional curriculum name', async ({ page }) => {
+    await open(page, 'catalogs=pair-synthetic');
+    const program = page.getByLabel('University and program');
+    await expect(program.locator('option')).toHaveText(['Choose a supported program…',
+      'B.S. Computer Information Systems · Test catalog (option 1 of 2)', 'B.S. Computer Information Systems · Test catalog (option 2 of 2)']);
+    await program.selectOption({ label: 'B.S. Computer Information Systems · Test catalog (option 2 of 2)' });
+    await expect(page.getByTestId('catalog-banner')).toHaveText(/Test catalog: synthetic data, not university policy/);
+    await expect(page.getByTestId('catalog-chip')).toHaveText(/^Test catalog/);
+    await expect(page.getByTestId('catalog-edition')).toHaveCount(0);
+    await expect(page.getByText(/departmental curriculum|curriculum guide/)).toHaveCount(0);
+  });
+
   test('glass falls back to opaque surfaces for reduced transparency, increased contrast and forced colors', async ({ page }) => {
     await open(page);
     const header = page.locator('.app-header');

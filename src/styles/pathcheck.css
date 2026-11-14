@@ -171,6 +171,7 @@ details[open] > summary::before { transform: rotate(45deg); }
 .setup-row { display: flex; justify-content: space-between; gap: var(--s3); align-items: baseline; padding: var(--s2) 0; border-bottom: 1px solid var(--sep); font-size: var(--fs-label); }
 .setup-label { color: var(--text-2); }
 .setup-value { font-weight: 500; text-align: right; }
+.setup-value .edition-detail { display: block; margin-top: 2px; font-weight: 400; color: var(--text-2); }
 .disclosure-row { border-bottom: 1px solid var(--sep); }
 .disclosure-row[open] { padding-bottom: var(--s3); }
 .facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s1) var(--s4); margin: var(--s1) 0 var(--s3); font-size: var(--fs-label); }

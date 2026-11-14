@@ -5,6 +5,20 @@ import { expect, test } from '@playwright/test';
 import { LONG_SYNTHETIC_TITLE } from '../../fixtures/ui/syntheticCatalog';
 import { capture, addCourse, addThreeConflicting, boxAtTop, enterCompletedAttempt, expectAccessibleNames, expectNoHorizontalOverflow, expectTouchTargets, open, startGuest, termCard, toPlanner } from './helpers';
 
+test('@mobile longer catalog identity labels fit 375px on setup and planner', async ({ page }) => {
+  await open(page, 'catalogs=pair');
+  await page.getByLabel('University and program').selectOption({ label: 'B.S. Computer Information Systems — Historical 2019–2021 curriculum guide · Provisional catalog' });
+  await expect(page.getByTestId('catalog-edition')).toBeVisible();
+  await expect(page.getByTestId('catalog-chip')).toBeVisible();
+  await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2028' });
+  await expectNoHorizontalOverflow(page);
+  await expectTouchTargets(page);
+  await page.getByRole('button', { name: 'Continue as guest' }).click();
+  await toPlanner(page, 'selected');
+  await expect(page.getByTestId('catalog-chip')).toHaveText(/^2019–2021 guide/);
+  await expectNoHorizontalOverflow(page);
+});
+
 test('@mobile every screen fits 375px with long titles and 44px targets', async ({ page }) => {
   await open(page, 'long=1&transcript=approved');
   await page.getByLabel('University and program').selectOption({ index: 1 });
