@@ -10,7 +10,7 @@ import { createGuestWorkflow } from '../../../src/app/createGuestWorkflow';
 
 const load = (path: string) => import(/* @vite-ignore */ path);
 type CatalogPorts = Pick<AcademicService, 'listCatalogs' | 'loadValidatedCatalog'>;
-const engine = await load('/src/engine/index.ts') as { createAcademicService(registry: CatalogPorts): AcademicService; createCatalogRegistry(models: CatalogModel[]): CatalogPorts; ENGINE_VERSION: string };
+const engine = await load('/src/engine/index.ts') as { createAcademicService(registry: CatalogPorts): AcademicService; createCatalogRegistry(models: CatalogModel[]): CatalogPorts; academicService: AcademicService; ENGINE_VERSION: string };
 const exporter = await load('/src/export/index.ts') as { createPdfExportService(options: { now: () => string }): ExportService };
 const source = { sourceId: 'integration-synthetic', kind: 'synthetic', urlOrRef: null, observedAt: null, description: 'Invented academic graph for integration testing; not university policy', verificationStatus: 'synthetic' };
 const course = (id: string, prerequisite: string | null) => ({ courseId: id, displayCode: id.replace('-', ' '), title: `Synthetic ${id}`, credits: 3, prerequisite: prerequisite ? { kind: 'course', courseId: prerequisite, minGrade: null, timing: 'prior_term' } : { kind: 'all', children: [] }, sourceRefs: [source.sourceId], status: 'supported' });
@@ -23,7 +23,9 @@ const catalog = CatalogModelSchema.parse({
 });
 declare global { interface Window { __integration: { scenario: PlanningScenario | null; analysis: AnalysisResult | null; fingerprint: string | null; evaluations: number; acceptanceCalls: number; acceptedFromRevision: number | null } } }
 window.__integration = { scenario: null, analysis: null, fingerprint: null, evaluations: 0, acceptanceCalls: 0, acceptedFromRevision: null };
-const realAcademic = engine.createAcademicService(engine.createCatalogRegistry([catalog]));
+// Only the isolated upload test may select the actual approved catalog registry.
+const actualCatalogUpload = location.pathname === '/tests/e2e/upload/index.html' && new URLSearchParams(location.search).get('catalog') === 'actual';
+const realAcademic = actualCatalogUpload ? engine.academicService : engine.createAcademicService(engine.createCatalogRegistry([catalog]));
 const academic: AcademicService = {
   ...realAcademic,
   evaluate: scenario => {
@@ -33,7 +35,7 @@ const academic: AcademicService = {
   },
 };
 let id = 0;
-const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
+const realServices = createGuestWorkflow(academic, exporter.createPdfExportService({ now: () => '2026-11-12T12:00:00Z' }), { engineVersion: engine.ENGINE_VERSION, evaluationPolicy: actualCatalogUpload ? 'conservative-v1' : 'integration-synthetic', assumeFuturePass: true, searchOptions: SEARCH_POLICY }, { now: () => '2026-11-12T12:00:00Z', newId: (prefix: string) => `${prefix}-${++id}` });
 const liveUploadTest = location.pathname === '/tests/e2e/upload/live.html';
 const uploadTest = liveUploadTest || location.pathname === '/tests/e2e/upload/index.html';
 const transcript = uploadTest ? {

@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-async function start(page: Page, mode: string) {
+async function start(page: Page, mode: string, catalogLabel?: RegExp) {
   const reset = await page.request.post(`/__test/reset?mode=${mode}`); expect(reset.status()).toBe(204);
-  await page.goto('/tests/e2e/upload/index.html');
-  await page.getByLabel('University and program').selectOption({ index: 1 });
+  await page.goto(`/tests/e2e/upload/index.html${catalogLabel ? '?catalog=actual' : ''}`);
+  const select = page.getByLabel('University and program');
+  if (catalogLabel) {
+    const label = await select.getByRole('option', { name: catalogLabel }).innerText();
+    await select.selectOption({ label });
+  } else await select.selectOption({ index: 1 });
   await page.getByLabel('Target graduation term').selectOption({ label: 'Fall 2027' });
   await page.getByRole('button', { name: 'Continue as guest' }).click();
   await expect(page.getByTestId('disclosure')).toBeVisible();
@@ -73,3 +77,26 @@ test('withdrawal during backoff cancels further egress and preserves the academi
   await expect(page.getByTestId('extraction-summary')).toHaveCount(0);
   expect(await page.evaluate(() => window.__integration.acceptanceCalls)).toBe(0);
 });
+
+for (const current of [true, false]) {
+  test(`fictional CIS300 upload uses ${current ? 'current' : 'historical'} catalog without inventing equivalency (Gemini simulated)`, async ({ page }) => {
+    const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+    await start(page, 'cis300', current ? /Current departmental curriculum/ : /Historical 2019–2021 curriculum guide/);
+    await expect(page.getByTestId('extraction-summary')).toContainText('1 proposed row(s) of 1 detected');
+    expect(await page.evaluate(() => window.__integration.acceptanceCalls)).toBe(0);
+    await page.getByRole('button', { name: 'Show all proposed rows' }).click();
+    await expect(page.getByRole('table', { name: 'Proposed rows (raw values, not yet interpreted)' })).toContainText('CIS 300');
+    await page.getByRole('button', { name: 'Accept and continue' }).click();
+    await expect(page.getByTestId('screen-planner')).toBeVisible();
+    const result = await page.evaluate(() => window.__integration);
+    expect(result.acceptanceCalls).toBe(1);
+    expect(result.scenario?.record.courseAttempts).toHaveLength(1);
+    expect(result.scenario?.record.courseAttempts[0]?.normalizedCourseId).toBe(current ? 'CIS-300' : null);
+    expect(result.scenario?.record.courseAttempts.some(a => a.normalizedCourseId === 'CIS-304')).toBe(false);
+    expect(result.scenario?.catalog.catalogRef.catalogYearId).toBeNull();
+    expect(result.analysis?.inputFingerprint).toBe(result.fingerprint);
+    expect(result.analysis?.outlook.kind).toBe('insufficient_evidence');
+    expect(await (await page.request.get('/__test/metrics')).json()).toMatchObject({ providerCalls: 1, issue: 1, admit: 1, dispatch: 1, finish: 1, simulatedProvider: true, liveDatabase: true });
+    expect(errors).toEqual([]);
+  });
+}

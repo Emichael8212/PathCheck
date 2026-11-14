@@ -22,12 +22,19 @@ node tests/e2e/upload/run.mjs
 npm run check
 ```
 
-Expected:371 SQL assertions PASS, all race checks PASS with cleanup0, five browser
+Expected:371 SQL assertions PASS, all race checks PASS with cleanup0, seven browser
 tests PASS. The browser launcher obtains only isolated local Supabase credentials
 in a child environment, verifies the exact local URL and redacts output. HTTPS binds
 127.0.0.1:5184; the generated local certificate key is0600 under/private/tmp, never
 Git. No screenshots, videos or traces are captured. Test-only controls, synthetic
 eligibility and fake bot proof are never part of the application build/public route.
+
+The two CIS300 cases upload a fictional generated PDF through the real handler,
+local SQL and G→L→E normalization against the actual current and historical catalogs.
+Google responses are simulated: current matches CIS-300, historical remains unmatched;
+neither case invents a CIS304 equivalency or a governing catalog year. The separate
+live Google fixture remains SYN101, so these cases do not establish live CIS300
+extraction accuracy.
 
 Scenarios: proposal→explicit acceptance→real planner; two503s→one admission with
 two consent/lease checks; retry exhaustion→manual-entry success; malformed output

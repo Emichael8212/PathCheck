@@ -59,6 +59,26 @@ try {
   assert.equal(projection.ok, true);
   assert.equal(JSON.stringify(projection.value).includes('SYNTHETIC_PRIVATE_QUOTE'), false);
   assert.equal(checkPersistableProjection({ ...record, rawPdf: '%PDF-synthetic' }, scenario.plan).ok, false);
+  // Fictional extracted attempt; approved catalog data is loaded unchanged.
+  const refs = academicService.listCatalogs();
+  assert.equal(refs.ok, true);
+  for (const [version, expectedId] of [['asu-cis-department-provisional-v1', 'CIS-300'], ['asu-cis-guide-2019-2021-v1', null]]) {
+    const loaded = academicService.loadValidatedCatalog(refs.value.find(ref => ref.catalogVersion === version));
+    assert.equal(loaded.ok, true);
+    const envelope = { ...input, rows: [{ ...baseRow, rawCourseCode: 'CIS 300', rawTitle: 'Programming in Python', rawInstitution: null }], detectedRowCount: 1, unrecognizedRows: [] };
+    const before = structuredClone(envelope);
+    const checked = validateExtraction(envelope, loaded.value);
+    assert.equal(checked.ok, true);
+    const result = normalizeExtraction(checked.value, loaded.value, academicService);
+    assert.equal(result.ok, true);
+    assert.equal(result.value.record.courseAttempts.length, 1);
+    assert.equal(result.value.record.courseAttempts[0].normalizedCourseId, expectedId);
+    assert.notEqual(result.value.record.courseAttempts[0].normalizedCourseId, 'CIS-304');
+    assert.equal(result.value.requiresExplicitRecordAcceptance, true);
+    assert.equal(loaded.value.catalogRef.catalogYearId, null);
+    assert.deepEqual(envelope, before);
+  }
+  console.log('PASS: fictional extracted CIS300 matches current catalog only; historical remains unmatched, no CIS304 equivalence or catalog-year claim.');
   console.log('PASS: real normalization/projection preserves distinct repeats, unresolved transfer/incomplete rows and review; excludes original PDF and provenance quote.');
   console.log('PASS: actual extraction validation → lead routing → engine normalization; forged mapping and credit rejected, review-required proposal returned.');
 } finally { await server.close(); }

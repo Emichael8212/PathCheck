@@ -14,13 +14,17 @@ await mkdir(cert, { recursive: true, mode: 0o700 });
 try { await readFile(`${cert}/cert.pem`); await readFile(`${cert}/key.pem`); }
 catch { execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', `${cert}/key.pem`, '-out', `${cert}/cert.pem`, '-days', '2', '-subj', '/CN=localhost', '-addext', 'subjectAltName=IP:127.0.0.1,DNS:localhost'], { stdio: 'ignore' }); }
 await chmod(`${cert}/key.pem`, 0o600);
-const pdf = await PDFDocument.create({ updateMetadata: false });
-pdf.setCreationDate(new Date('2026-01-01T00:00:00Z')); pdf.setModificationDate(new Date('2026-01-01T00:00:00Z'));
-const font = await pdf.embedFont(StandardFonts.Helvetica);
-const page = pdf.addPage([612, 792]);
-page.drawText('SYNTHETIC INTEGRATION FIXTURE - NOT A STUDENT TRANSCRIPT', { x: 30, y: 740, font, size: 10 });
-page.drawText('SYN 101 | Fall 2026 | attempted 3 | earned 3 | B | completed', { x: 30, y: 710, font, size: 10 });
-const pdfBytes = await pdf.save({ useObjectStreams: false });
+async function syntheticPdf(code) {
+  const pdf = await PDFDocument.create({ updateMetadata: false });
+  pdf.setCreationDate(new Date('2026-01-01T00:00:00Z')); pdf.setModificationDate(new Date('2026-01-01T00:00:00Z'));
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const page = pdf.addPage([612, 792]);
+  page.drawText('SYNTHETIC INTEGRATION FIXTURE - NOT A STUDENT TRANSCRIPT', { x: 30, y: 740, font, size: 10 });
+  page.drawText(`${code} | Fall 2026 | attempted 3 | earned 3 | B | completed`, { x: 30, y: 710, font, size: 10 });
+  return pdf.save({ useObjectStreams: false });
+}
+const pdfBytes = await syntheticPdf('SYN 101');
+const cisPdfBytes = await syntheticPdf('CIS 300');
 let handler;
 let metrics;
 let mode = 'success';
@@ -47,7 +51,7 @@ async function reset(nextMode) {
   const provider = createGeminiProvider(policy, async () => {
     metrics.providerCalls++;
     if (mode === 'unavailable' || (mode === 'retry' && metrics.providerCalls < 3)) return new Response('{}', { status: 503 });
-    const rows = mode === 'malformed' ? [{ invalid: true }] : [{ rowId: 'synthetic-1', rawCourseCode: 'SYN 101', rawTitle: 'Synthetic SYN-101', rawTerm: 'Fall 2026', rawAttemptedCredits: '3', rawEarnedCredits: '3', rawGrade: 'B', rawStatus: 'completed', rawInstitution: null, provisionalCourseId: null,
+    const rows = mode === 'malformed' ? [{ invalid: true }] : [{ rowId: 'synthetic-1', rawCourseCode: mode === 'cis300' ? 'CIS 300' : 'SYN 101', rawTitle: mode === 'cis300' ? null : 'Synthetic SYN-101', rawTerm: 'Fall 2026', rawAttemptedCredits: '3', rawEarnedCredits: '3', rawGrade: 'B', rawStatus: 'completed', rawInstitution: null, provisionalCourseId: null,
       provenance: [{ field: 'code', page: 1, row: 1, quote: null }], uncertainty: [] }];
     const raw = { documentPageCount: 1, detectedRowCount: 1, coveredPages: [1], unrecognizedRows: [], rows };
     return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(raw) }] } }], usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 200 } });
@@ -62,11 +66,11 @@ async function reset(nextMode) {
 server = await createServer({ configFile: false, plugins: [react(), { name: 'isolated-upload-test', configureServer(vite) {
   vite.middlewares.use(async (req, res, next) => {
     const path = req.url?.split('?')[0];
-    if (path === '/__test/fixture.pdf') { res.writeHead(200, { 'Content-Type': 'application/pdf', 'Cache-Control': 'no-store' }); res.end(pdfBytes); return; }
+    if (path === '/__test/fixture.pdf') { res.writeHead(200, { 'Content-Type': 'application/pdf', 'Cache-Control': 'no-store' }); res.end(mode === 'cis300' ? cisPdfBytes : pdfBytes); return; }
     if (path === '/__test/metrics') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(metrics)); return; }
     if (path === '/__test/reset' && req.method === 'POST') {
       const selected = new URL(req.url, origin).searchParams.get('mode');
-      if (!['success', 'retry', 'unavailable', 'malformed'].includes(selected)) { res.writeHead(400); res.end(); return; }
+      if (!['success', 'retry', 'unavailable', 'malformed', 'cis300'].includes(selected)) { res.writeHead(400); res.end(); return; }
       await reset(selected); res.writeHead(204); res.end(); return;
     }
     if (!path?.startsWith('/api/transcript/')) return next();
