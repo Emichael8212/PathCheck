@@ -674,6 +674,17 @@ test.describe('single-draft Restore re-validates the stored copy first', () => {
   });
 });
 
+test.describe('a recovery port S cannot list', () => {
+  test('several drafts from a non-S recovery service are disclosed as kept, not as an outage', async ({ page }) => {
+    await open(page, 'recovery=foreignconflict');
+    const alert = problemBanner(page).getByRole('alert');
+    await expect(alert).toContainText('Several guest drafts were found on this device, but they could not be listed. None was restored and all are kept.');
+    await expect(alert).toContainText('This recovery service cannot list them (recovery_choices_unsupported).');
+    await expect(alert).not.toContainText('unavailable right now');
+    await expect(problemBanner(page).getByRole('button', { name: 'Delete stored recovery drafts…' })).toBeVisible();
+  });
+});
+
 test.describe('no usable choices left', () => {
   test('expired copies S still retains are described as unavailable, not absent, with cleanup offered', async ({ page }) => {
     await open(page, 'recovery=real');
@@ -713,5 +724,13 @@ test.describe('real multi-tab recovery (three tabs, one browser profile)', () =>
     await expect(tabC.getByTestId('recovery-banner')).toHaveCount(0);
     await choices.first().getByRole('button', { name: 'Restore this draft' }).click();
     await expect(tabC.getByRole('heading', { level: 1, name: 'Graduation planner' })).toBeVisible();
+    // Exactly the chosen draft came back; the other tab's draft is still stored.
+    const placed = await termCard(tabC, 'Spring 2027').getByTestId('placement').allTextContents();
+    expect(placed).toHaveLength(1);
+    const restored = placed[0]!.includes('SYN 201') ? 'SYN-201' : 'SYN-202';
+    const other = restored === 'SYN-201' ? 'SYN-202' : 'SYN-201';
+    expect(placed[0]).toContain(restored.replace('-', ' '));
+    const stored = (await slots(tabC)).shared.map(v => courses(JSON.parse(v) as Draft)!.join(','));
+    expect(stored).toContain(other);
   });
 });

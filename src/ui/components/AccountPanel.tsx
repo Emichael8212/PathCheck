@@ -29,11 +29,8 @@ type RecoveryProblem =
   | { kind: 'choices'; choices: GuestRecoveryChoice[]; error: string | null }
   | { kind: 'notice'; text: string; canClearAll: boolean };
 
-const MULTIPLE_NO_CHOICE = 'Several guest drafts were found on this device. None was restored and all are kept.';
-
 function problemFor(f: Extract<Result<never>, { ok: false }>): RecoveryProblem {
   switch (f.reasonCode) {
-    case 'recovery_multiple_shared_drafts': return { kind: 'notice', text: MULTIPLE_NO_CHOICE, canClearAll: true };
     case 'recovery_cleanup_failed': return { kind: 'notice', text: 'A recovery draft on this device could not be removed and is still stored here. Nothing was restored.', canClearAll: true };
     case 'recovery_storage_unavailable': return { kind: 'notice', text: 'Recovery drafts on this device could not be read. Nothing was restored or removed.', canClearAll: false };
     case 'recovery_cross_tab_unsupported': return { kind: 'notice', text: 'This browser cannot read cross-tab recovery drafts. Nothing was restored.', canClearAll: false };
@@ -184,7 +181,10 @@ export function AccountPanel({ ports, clock, work, cloud, sync, currentWork, wor
   function recoveryProblem(f: Extract<Result<never>, { ok: false }>, error: string | null = null): RecoveryProblem {
     if (!ports || f.reasonCode !== 'recovery_multiple_shared_drafts') return problemFor(f);
     const r = guard(() => listGuestRecoveryChoices(ports.recovery, clock.now()), 'recovery_choices_failed');
-    if (!r.ok) return { kind: 'notice', text: `Several guest drafts were found on this device, but they could not be listed. None was restored and all are kept. ${failureText(r)}`, canClearAll: true };
+    if (!r.ok) {
+      const why = r.reasonCode === 'recovery_choices_unsupported' ? `This recovery service cannot list them (${r.reasonCode}).` : failureText(r);
+      return { kind: 'notice', text: `Several guest drafts were found on this device, but they could not be listed. None was restored and all are kept. ${why}`, canClearAll: true };
+    }
     // S omits expired, future-dated or invalid copies it still retains: "none usable", not "none stored".
     if (r.value.length === 0) return { kind: 'notice', text: `${error ? `${error} ` : ''}No recovery drafts are currently available to restore. Expired or unreadable copies may still be stored in this browser; you can delete stored recovery drafts below.`, canClearAll: true };
     return { kind: 'choices', choices: r.value, error };

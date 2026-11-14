@@ -45,6 +45,13 @@ const harness = fakeServices({
     ...(realAuth ? { auth: realAuth } : {}),
     signOut: pick('signout', ['ok', 'unconfirmed', 'stuck'] as const, 'ok'),
     ...(realRecovery ? { recovery: createGuestRecoveryService({ session: window.sessionStorage, local: window.localStorage }) } : {}),
+    // recovery=foreignconflict: a non-S recovery port that reports several drafts; S's choice
+    // helpers must answer recovery_choices_unsupported and the UI must say so.
+    ...(q.get('recovery') === 'foreignconflict' ? { recovery: Object.freeze({
+      stash: () => ({ ok: true as const, value: null }),
+      recover: () => ({ ok: false as const, code: 'conflict' as const, reasonCode: 'recovery_multiple_shared_drafts' }),
+      clear: () => ({ ok: true as const, value: null }),
+    }) } : {}),
   },
   // Shared by the tabs of this profile (like a real clock); tests clear it with localStorage.
   ...(realRecovery ? { clockStore: window.localStorage } : {}),
