@@ -1,6 +1,6 @@
 # PR Acceptance Test
 
-## Current upload checkpoint — 2026-11-13
+## Merged frontend checkpoint — 2026-11-13
 
 Current PR #6 head: `91c4bf27943135e325944f599cb001f78d6968b0`, refreshed from human PR #8 merge `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e`.
 Required CI `foundation` 43527776220 PASS. The refreshed baseline does not change
@@ -11,10 +11,11 @@ U-owned files are unchanged from accepted `52a72da`; independent impact review
 preserves human PASS. Post-merge composed regressions pass: 669 units,65 UI,12
 engine/application browser tests including PDF,1 production smoke,5 simulated-provider
 upload cases and1 actual Google/local SQL upload. No human rerun is needed.
-**READY TO MERGE** for the frontend component at this exact head.
-The standalone root application test requires L composition and fails on the
-scaffold; the assembled check passed on the lead candidate. Final application/root,
-account and public-processing gates remain separate unfinished work.
+**MERGED by the human** as `6f255bcd68afb4a853aa212db21c5ab503d360b4` at
+2026-11-13T23:50:25Z. Accepted evidence is preserved.
+The previously missing ordinary-root composition is now implemented in PR9;
+its new scoped root acceptance is recorded separately. Account/public-processing
+gates remain mandatory unfinished work.
 Use the single [combined PR #6/#8/#9 procedure](../pr-9/PR_ACCEPTANCE_TEST.md).
 It pins all component heads and assigns the consent, file controls, extraction summary,
 explicit acceptance and planner controls to this PR. Do not repeat the already

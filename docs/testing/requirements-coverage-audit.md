@@ -13,12 +13,12 @@ are recorded in the ledger/PR evidence, not represented as GitHub approvals.
 |---|---|---|---|
 | 4 `aeaee0bfb245bf1d5ef16c0ae6d9a31395e9992e` | Auth, persistence, RLS and scoped recovery; PR3 baseline | Independent review no blocker; human SQL172/REST1 and recovery70 PASS; CI43473452035 PASS | MERGED `9f46d2323825ea6b222075c538d33701f3d19b4b`; no retest requested |
 | 5 `5344bc24be2628e253376e2b279e834bf937337a` | Deterministic academic engine and sourced synthetic repeat policy; merged PR3/4 baseline | Independent review no blocker; human106 PASS; CI43475690184 PASS | MERGED `4f74a679f1f6ae0cf8e00a681d5214d77b1a9c39`; obsolete PR-body NOT RUN line is superseded by human PASS |
-| 6 `91c4bf27943135e325944f599cb001f78d6968b0` | Three screens, planner, PDF export and consent/upload UI; engine/PR8 on maind47; full composition uses PR9 | U independent findings resolved; baseline-only refresh; CI43527776220 PASS; prior human manual/export retained, combined upload and cleanup human PASS | READY TO MERGE frontend component; postmerge regressions and independent acceptance-impact review PASS |
+| 6 `91c4bf27943135e325944f599cb001f78d6968b0` | Three screens, planner, PDF export and consent/upload UI | Independent review/CI43527776220/postmerge regressions PASS; human manual/export/upload/cleanup PASS retained | MERGED `6f255bcd68afb4a853aa212db21c5ab503d360b4` at2026-11-13T23:50:25Z |
 | 7 `c394241922a7513b9101561426d2979a0f1c0a17` | Private admission/retry SQL RPCs; authoritative merged database baseline | Independent review no blocker; live SQL371 and real races PASS; CI43501794085 PASS; human setup, SQL, concurrency and cleanup PASS | MERGED `1c0b8d3bb3af6a1fcc2184d5f8a5c94e87dc25bc`, verified 2026-11-13T22:09:33Z; local main synchronized |
 | 8 `6e29425404a7a53bf7e7a6da19d477b49e89469a` | Extraction client/validation, handler/provider and bounded retries; PR7 admission through PR9; PR6 browser | Independent findings resolved; 157 extraction tests/578 owner units PASS; CI43521373169 PASS; live composed upload and human acceptance/cleanup PASS | MERGED `d47ded6c51d1ffe60d2ff701dfa8fc8f64fd132e` at2026-11-13T23:30:29Z; accepted evidence retained |
-| 9 implementation `f1b03b4f456d81d281f0cd3dd3aeafe29da0d6ba` | Lead RPC adapter, benchmark, real local synthetic upload composition; requires PR6/8, merged PR7 | Independent L/G findings resolved; CI43521594660 PASS; composed 669 units,65 UI,11 journeys,5 simulated upload and1 live Google browser PASS; human combined acceptance/cleanup PASS | Human accepted; depends on PR6/8 merges and subsequent revalidation; later docs-only changes preserve tested implementation |
+| 9 implementation `9214515c9461e1564cafcea04b37b7611ac8d81f` | Admission adapter/benchmark/live local upload and ordinary root composition; all feature dependencies now on main6f255bc | 669unit/65UI/13integration/2production-root and actualGoogle1 PASS; independent privacy assertion finding resolved; previous upload humanPASS retained | BLOCKED only on new ordinary-root human acceptance (NOT RUN) and final current-head CI verification; public/account/release gates remain separate |
 
-Current open implementation heads contain merged maind47ded6. Noncommitting
+PR9 now contains merged main6f255bc. Noncommitting
 reconstruction of all three heads is conflict-free. That is
 conflict compatibility, not permission to merge. PR9 directly imports PR8's handler,
 admission and provider in its upload harness. PR8 is a code dependency of PR9;
@@ -40,8 +40,8 @@ its omission from the earlier sequence was incorrect.
 4. Once applicable gates pass, proposed merge order is **PR7 → PR8 → PR6 → PR9**.
    PR6 and PR8 have no strict code merge order relative to each other; this ordering
    lands the extraction module before its UI integration. Both must precede PR9's
-   completed application integration. PR8 is merged; PR6 is refreshed, independently reviewed and postmerge tested,
-   and is the next recommended personal merge. Revalidate PR9 afterward.
+   completed application integration. PR8 and PR6 are merged. PR9 is refreshed; its newly promoted ordinary root
+   needs scoped human acceptance after the final current-head CI passes.
 5. After each human merge, refresh dependent feature branches non-destructively,
    rerun affected automated checks/strict CI, and assess acceptance impact. A
    documentation-only or behavior-preserving baseline refresh does not itself
@@ -658,3 +658,37 @@ No SQL policy change: previous371SQL/concurrency and humanPR7PASS remain evidenc
 not claimed rerun. Services used only isolated synthetic data; no secrets/screenshots
 or original transcripts committed. Final account/root/public-runtime and release
 gates remain mandatory engineering/privacy work; component readiness does not close them.
+
+## PR6 merged / actual PR9 root verification — 2026-11-13
+
+Main6f255bcd68afb4a853aa212db21c5ab503d360b4 contains acceptedU91c4bf2 andG6e294.
+PR9 refresh4f590521035436c7b602ec0d8dd5ae537fcec3d0; new implementation
+9214515c9461e1564cafcea04b37b7611ac8d81f. Ordinary App now composes actual merged
+modules directly; no temporary application.patch. Existing component and live-upload
+humanPASS retained. Newroot humanNOTRUN is separate, not an invalidation of priorwork.
+
+| Requirement/source | Owner | Exact test / current result | Gate |
+|---|---|---|---|
+| F01/F03/T-UI real ordinary entry | L/U/E | application.spec: `ordinary application accepts a manual record and exports an uncertainty-preserving plan`; production2/dev13 PASS, plus explicit no-planner-before-Accept | A9 automaticPASS; new root humanNOTRUN |
+| CAT applicability / F09 | E/L | application.spec: `assembled application loads provisional curriculum without inventing catalog applicability`; real provisional catalog/unresolved year/insufficient outlook | A9/B PASS; no inventedASUrule |
+| F19/T-EXPORT actual root | U/L | New ordinary-root test independently inspects PDF bytes/page count, plannedCIS351/conditions/unknowns, no recordterm/grade; productionPASS | A9 automaticPASS; componenthumanPASS retained |
+| T-SEC ordinary-build disabled services | L/U/G/S | application.spec asserts upload-unavailable, no filepicker, account-unavailable, no externalrequests/pageerrors | A9 PASS; restored after independentreview finding; not publicruntime approval |
+| T-GEM/ARCH normalization actual upload | G/L/E/U/S | live.spec unchanged; realGoogle200/1750ms,oneattempt/oneadmission/settlement,1/1course; explicitaccept/preview/apply/undo PASS; report run-1794614359501.json | A9/B PASS; priorhumanPASS retained |
+| T-SEC SQL/RLS/admission | S/L | Mounted source identical11files; supabase test db371/5files PASS; initial unmountedlead pathNOTESTS preserved as environmentfailure | A9 applicable local checkPASS; no hosted claim |
+| T-SEC race/consent | S/L | concurrency.sh:12workers winners1/1/3/5; dispatch/revoke6pairs6/0; retry/revoke6pairs2/4;22reservationscleanup0 | A9 PASS; both serialization outcomes covered by retained tests, not asserted observed in every newrun |
+| T-AUTH real REST/CAS/owner | S/L | live.supabase.test.ts `enforces owner isolation, CAS and Save-as-new end to end`: PASS1/configguard skip1 | A9 localPASS; OTP/browseraccount still incomplete |
+| Live configuration failclosed | S/L | Samefile fake remote URL/publishable placeholder: expected nonzero/remote_host_refused; no REST | NegativeguardPASS, no secret or remote call |
+| Full applicable regressions | All | npmcheck669unit/2documentedliveDBskips,43benchmark,9guards,lint/type/build,production2; UI65; integration13; normalization2 PASS | ApplicableA9/B PASS; liveDB testedseparately above |
+| Human new normal-root entry | Human/L | docs/acceptance/pr-9/PR_ACCEPTANCE_TEST.md new top section at9214515 | NOT RUN; blocksA9 merge recommendation, not earlieracceptedupload |
+
+Independent Codex and Claude reviews find no academic/provider/runtime blocker.
+Claude noted missing old no-filepicker privacy assertion; it was restored with
+account-unavailable and explicitURLguard, and production2/integration13 reranPASS.
+Final account/publicgateway/resource-isolation/real-data privacy gates remain
+mandatory unfinished engineering/approval work; the ordinary-root defect is fixed.
+
+Final error-path closure at9214515: tests/e2e/upload/upload.spec.ts5PASS (realSQL/HTTP/UI,
+simulated provider503/malformed/withdrawal/exhaustion); no live503 falselyclaimed.
+Final independent review confirms restoredprivacyassertions and guideaccuracy.
+Fresh pinned checkoutnpmci/build/previewHTTP200PASS; alltestservices stopped.
+Root humanNOTRUN remains the specificA9 merge blocker after automatedCI closure.

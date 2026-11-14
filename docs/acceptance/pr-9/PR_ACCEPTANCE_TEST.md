@@ -1,3 +1,105 @@
+# PR #9 — Ordinary application entry acceptance
+
+## PR Information
+
+- PR: #9 — transcript admission and application integration.
+- Implementation SHA: `9214515c9461e1564cafcea04b37b7611ac8d81f`.
+- Base: human PR #6 merge `6f255bcd68afb4a853aa212db21c5ab503d360b4`.
+- Test type: Chrome against the built ordinary `/` entry, real engine/UI/PDF.
+- New behavior: the ordinary URL now loads the working guest application instead
+  of the foundation placeholder. No temporary application patch is needed.
+- Human status: **NOT RUN for this new entry**. Previous combined live synthetic
+  upload/acceptance/planner/cleanup is **PASS** and is preserved below.
+- Merge status: **BLOCKED pending this scoped human acceptance** and final-head CI.
+
+## Before You Begin
+
+Git, Node24–26/npm, Chrome and a PDF viewer. No account, database, Gemini key,
+paid billing or external service is required. The course attempt below is fictional;
+it is not a student record or a certification of ASU academic policy. Do not rerun
+previously accepted Google upload or database procedures for this new entry check.
+
+## Step-by-Step Test
+
+1. Create the pinned checkout and start the production preview:
+
+```sh
+(
+set -eu
+cd /Users/_eman5michael/PathCheck
+git fetch origin
+test ! -e /private/tmp/pathcheck-pr9-root-human
+git worktree add /private/tmp/pathcheck-pr9-root-human -b integration/pr9-root-human 9214515c9461e1564cafcea04b37b7611ac8d81f
+cd /private/tmp/pathcheck-pr9-root-human
+test "$(git rev-parse HEAD)" = 9214515c9461e1564cafcea04b37b7611ac8d81f
+npm ci --ignore-scripts
+npm run build
+npm run preview -- --port 5186 --strictPort
+)
+```
+
+Expected Vite readiness URL: `http://127.0.0.1:5186/`. Keep this terminal open.
+A pre-existing path/branch or occupied port means stop and report it; preserve work.
+Do not apply `application.patch` on this version.
+
+2. Open **http://127.0.0.1:5186/** in Chrome. Expect **Plan your path to graduation**,
+   not the old foundation placeholder. Select the provisional ASU CIS program and
+   **Fall 2027** target. Confirm the catalog-year status remains unresolved/unverified.
+3. Click **Continue as guest**. Confirm transcript import is explicitly unavailable
+   and there is no PDF file picker. Open **Guest, not saved**: sign-in/cloud save must
+   say unavailable. Close that menu. This entry does not enable real transcript use;
+   the separately accepted synthetic-only endpoint remains the approved upload test.
+4. Click **Add course attempt**. Enter fictional **CIS 300**, **Fall 2026**,
+   **Completed**, attempted credits **3**, earned credits **3**, grade **B**.
+   Expect **1 course checked**. Click **Accept and continue**, then expect
+   **Record accepted** and Graduation Planner.
+5. Choose **I already selected courses**. Add **CIS 351** in **Spring 2027**.
+   Expect **Course added**, a visible timeline placement and an outlook that remains
+   insufficient/unknown because required academic information is missing. Do not
+   interpret a selected course or a submitted grade as verified graduation eligibility.
+6. Click **Export PDF**, open the downloaded document, and confirm it includes the
+   planned CIS 351, **Important conditions**, and unresolved/uncertain information.
+   It must not expose the record's **Fall 2026** term or a **Grade:** field.
+
+## Expected Result
+
+The ordinary built app supports explicit manual-record acceptance, deterministic
+planning and real PDF export. It preserves provisional curriculum uncertainty and
+keeps unapproved public transcript/account services disabled. No Google call occurs.
+
+## Screenshot Checkpoint
+
+Capture the normal app's timeline/outlook and the exported PDF's conditions. You
+attach screenshots directly to GitHub; no agent captures or requests their paths.
+Only the fictional values above are used. No credentials or personal data are needed.
+
+## Pass/Fail Criteria
+
+PASS: all steps work at the pinned revision, no premature acceptance, no fabricated
+graduation guarantee, PDF conditions are preserved, and unavailable services remain
+clearly unavailable. Any contrary behavior or browser error is FAIL. Missing local
+tools or an occupied port is BLOCKED. Report **PR9 root acceptance PASS/FAIL/BLOCKED**.
+This result is separate from the already accepted synthetic upload procedure.
+
+## Cleanup
+
+Press Ctrl-C in the preview terminal. Keep the worktree; no database or VM was started.
+Do not commit/push this acceptance branch or change any hosted data.
+
+## Known Limitations
+
+Account/cloud composition, public trusted gateway/bot protection, PDF resource
+isolation and real-transcript privacy/processing remain mandatory unfinished work.
+This is incremental guest application integration, not full MVP or deployment approval.
+The 559.58kB main-chunk build warning is known and nonblocking for this check.
+
+---
+
+## Preserved completed combined upload acceptance
+
+The following original pinned procedure is historical evidence: human PASS including
+cleanup. Do not rerun it for the ordinary-entry change above.
+
 # Combined PR #6 / PR #8 / PR #9 Human Acceptance Test
 
 ## PR Information

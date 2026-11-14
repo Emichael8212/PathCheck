@@ -33,12 +33,12 @@ requirement/test/commit evidence is in docs/testing/requirements-coverage-audit.
 | F19 PDF export | Maintained library, privacy tests, real-engine download and human manual/export workflow PASS | Final merged application baseline regression / U,L | No |
 | F20 Accessible desktop web | Keyboard, computed contrast,65 UI browser regressions PASS | Final integrated accessibility/errors and human usability; retain basic responsive tests / U,L | No |
 
-**Engineering incompleteness:** final application/account composition, public admission
+**Engineering incompleteness:** final account composition, public admission
 gateway/bot enforcement, resource-isolated PDF processing, simultaneous-tab safeguards
 and remaining integration gates must be completed. They are not acceptable final
 limitations. Atomic admission storage is now on main; the real provider benchmark and
-local synthetic upload composition pass. The ordinary production composition still
-has disabled services; the live fixture-only entry does not close those remaining
+local synthetic upload composition pass. The ordinary root now uses real guest planning/export; account and public transcript
+services stay disabled. The live fixture-only entry does not close those remaining
 engineering or real-data release gates. No complete-application claim.
 
 **Unavailable academic information:** formal catalog/cohort applicability; prerequisite
@@ -1213,3 +1213,60 @@ real-transcript privacy/release gates remain unfinished; no fullMVP/deployment c
 Next human action: personally review/mergePR6, then Lrefresh/revalidatePR9.
 
 Postmerge live server exited, shared benchmark lock released, and dedicated local Supabase/Colima services stopped successfully. Human acceptance environment/worktree and prior results preserved.
+
+
+### PR6 merged; PR9 normal application integration — 2026-11-13
+
+Verified human PR6 merge6f255bcd68afb4a853aa212db21c5ab503d360b4 at
+2026-11-13T23:50:25Z; acceptedU91c4bf2. Local main fast-forwarded cleanly, PR9
+refreshed without conflicts in4f590521035436c7b602ec0d8dd5ae537fcec3d0.
+All prior human manual/export and combined live upload/planner/cleanup PASS retained.
+
+Resolved lead-owned integration gap: ordinary src/app/App.tsx was still foundation
+placeholder. Implementation9214515c9461e1564cafcea04b37b7611ac8d81f promotes the
+already-tested application.patch composition to the actual root, preserving exact
+engine/SEARCH_POLICY/conservative-v1/future-pass assumption/services. No new
+academic policy or state owner. Account/publictranscript remain explicitly unavailable;
+local live fixture-only entry unchanged. Default CI smoke now tests the real built
+application; obsolete scaffold test removed. Added meaningful ordinary-root manual
+acceptance→uncertainplan→PDF test. Claude independent review caught removed no-file-
+picker assertion; restored upload-unavailable/file-count0 and account-unavailable
+assertions and reran affected browser tests successfully. Independent Codex source
+review found no authority/privacy/runtime blocker. Historical patch instructions kept
+only for old pins; current README says no patch required.
+
+Automated verification on the actual PR9 tree (not a patched scratch): npm run check
+PASS669units/2liveDBskips,43benchmarkregressions,9uploadguards,lint/typecheck/build,
+2productionroot tests. UI65PASS; npm run test:integration13PASS (2root+11journeys);
+normalization CLI2PASS. Repeat production2/integration13 after privacyassertion fix
+PASS; lint/typecheck/diffcheckPASS. All screenshots/traces/videos off.
+
+Local security: initial leadcwd supabase test db returned NOTESTS because that
+private-env directory is intentionally not mounted into the VM. Verified byte equality
+of11SQL/migration/config files with mounted /private/tmp/pathcheck-after-pr8; rerun
+there PASS371/5files. No security assertion changed. Races12workers PASSwinners1/1/3/5;
+dispatch/revoke6pairs6/0, retry/revoke6pairs2/4,22reservations cleaned0left. Real two-user
+REST owner/CAS/save-as-new PASS1, configurationguard skipped as documented. Separately
+fake remote config guard yielded expected remote_host_refused failure before REST:
+negative guard PASS. No production credentials or data used.
+
+Actual post-PR6 live Google browser PASS1: private report run-1794614359501.json,
+1HTTP200/1750ms,1quota/admit/dispatch/finish,1/1correctattempt,0retries,explicit
+acceptance+real preview/apply/undo. Approved model/free-only/fixture unchanged;
+original18-case corpus not rerun. Prior human acceptance not replaced by agentresult.
+
+New normal-root behavior requires only a scoped browser acceptance, documented at
+top of docs/acceptance/pr-9/PR_ACCEPTANCE_TEST.md, implementation9214515. StatusNOTRUN;
+prior liveupload humanPASS preserved. PR9 BLOCKED pending this human gate and final
+current-headCI/review closure; no automatic merge. Public gateway/resourceisolation,
+account composition and real-transcript privacy remain mandatory unfinished gates.
+
+Final PR9 evidence: simulated-provider actualHTTP/SQL/UI upload suite PASS5 after
+clean local reset (49.5s), distinct from actualGooglePASS. Final independent Codex
+review confirms privacyassertion fix closed and currenthuman guide correct; Claude
+read-only review found no authority/runtime issue beyond that resolved testgap and
+updateddocs. Fresh pinned9214515 worktree /private/tmp/pathcheck-pr9-root-repro:
+npmci/buildPASS, documentedpreview5186 starts and servesbuiltassetsHTTP200, then
+stopped. Local Supabase/Colima stopped successfully; benchmark lock released.
+Newroot acceptanceNOTRUN is the only new human check; no provider/database repetition
+requested. Documentation-only follow-up records pins and evidence; no newcodechange.
