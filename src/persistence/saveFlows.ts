@@ -18,7 +18,9 @@ export async function saveGuestDraftAsNew(draft: GuestDraft, deps: { storage: St
   // while the request was in flight. Only stored copies byte-identical to the submitted
   // draft are removed; unrelated/newer drafts are preserved. The cloud copy already exists,
   // so any read/remove failure or a non-S recovery port still reports a successful save,
-  // with recoveryCleared:false — never a false "cleared" claim.
+  // with recoveryCleared:false. recoveryCleared:true means this tab's post-removal check saw
+  // no copy of the draft; another tab's write not yet visible to this tab cannot be excluded
+  // (it is never deleted, and the next recover() finds it). See clearSavedGuestDraft.
   let cleared: boolean | undefined;
   try {
     const now = (deps.now ?? (() => new Date().toISOString()))();
