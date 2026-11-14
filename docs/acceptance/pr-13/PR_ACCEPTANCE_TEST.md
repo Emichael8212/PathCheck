@@ -6,7 +6,8 @@
 - Base: main `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e`; no feature dependency.
 - Test type: actual two-tab Chromium storage races plus persistence contract tests.
 - Feature: preserve concurrent guest drafts, scoped cleanup and explicit recovery selection.
-- Human status: **NOT RUN**. Eligibility: **HUMAN ACCEPTANCE REQUIRED**.
+- Human status: **PASS**, reported by the human for pinned head `a7fa58d` after all three stages.
+- Eligibility: **READY TO MERGE** for the human; no agent merge authorized.
 - Current-head CI: foundation43559926987 PASS. Independent static review: no remaining S-code blocker; code/test source unchanged by final comment correction.
 
 # Before You Begin
@@ -102,3 +103,13 @@ and test the recovery-choice UI; PR12 composes actual accounts. A true scoped-cl
 result means no matching copy is visible to this tab now, not that a concurrent write
 is globally impossible. Unknown university policies and real-transcript/hosted release
 gates remain separate. No merge, deployment or complete-application approval is implied.
+
+# Recorded Human Result
+
+Human reported Stage1 pinned setup PASS, Stage2 one file /10 tests PASS, and
+Stage3 seven files PASS /one skipped;148 tests PASS /two expected live-database
+skips. This establishes scoped recovery acceptance at the pinned head. Screenshots
+are attached directly by the human; no file paths requested. Current head remains
+unchanged; required foundation CI43559926987 PASS, merge state CLEAN/MERGEABLE,
+independent code review has no remaining blocker and no GitHub review threads are
+unresolved. Final application acceptance remains separate.

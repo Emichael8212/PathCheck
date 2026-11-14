@@ -1593,3 +1593,20 @@ pending (previous implementation CI FAIL recorded above). PR13/15 guides committ
 PR12 guide explicitly BLOCKED until dependency refresh yields a reproducible pin.
 Agent-owned local Supabase and Colima stopped successfully; no parser containers
 remained, images/volumes/worktrees preserved. No user screenshots or secrets captured.
+
+
+### PR13 human acceptance closure
+
+Human reported all stages at `a7fa58d67e386ffe54b1e13bf37991de4713d86b`: pinned
+setup PASS; real two-tab10/10 PASS; persistence148 PASS/2 expected liveDB skips
+(7files PASS/1skipped). Human status PASS, not inferred from agent tests.
+Current GitHub head unchanged, base mainc6ab714, CLEAN/MERGEABLE; required foundation
+CI43559926987 PASS. Independent S review previously closed every blocking finding;
+GitHub has no unresolved threads or changes-requested reviews (no formal GitHub
+approvals claimed). Active main ruleset27097753 requires PR+strict foundation CI,
+blocks deletion/force-push; no protection changed. PR13 READY TO MERGE personally.
+Acceptance guide and PR evidence updated. No rerun of accepted SQL tests needed:
+this change touches recovery storage, not SQL/REST policies. No running services
+from this human test; preserve worktree. Next after human merge: verify actual
+merge, synchronize main, refresh PR11/14 and revalidate combined integration.
+Full application still incomplete; this scoped PASS does not close final gates.

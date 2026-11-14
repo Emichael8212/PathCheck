@@ -849,3 +849,14 @@ composition and real local Auth/REST. Tests two sessions, saved record/evidence,
 revision conflict/local preservation, explicit remote reopen, active-plan PDF and
 plan/account deletion. Status PASS B automated; A12/final human NOT RUN. This does
 not make old main account composition complete or assert hosted security.
+
+
+### A13 human gate closed — recovery
+
+Human executed the pinned PR13 guide at a7fa58d67e386ffe54b1e13bf37991de4713d86b:
+real Chromium recoveryTwoTab10 PASS; persistence148 PASS/2 documented liveDBskips.
+T-AUTH recovery/cross-tab/expiry/choice/scoped-cleanup: **PASS A13 human**. Required
+current-head foundation43559926987 PASS; independent review clear; head/base clean
+and merge-compatible. PR13 **READY TO MERGE**, not merged. No SQL/REST behavior
+change; prior database human acceptance remains valid. B integration evidence
+retained; A11/A12/A14/A15 and whole-application human gates are not cleared by A13.
