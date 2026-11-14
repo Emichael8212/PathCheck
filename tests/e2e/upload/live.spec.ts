@@ -71,6 +71,8 @@ test('LIVE synthetic PDF through real Google, SQL, normalization, acceptance and
   expect(undone.analysis?.inputFingerprint).toBe(undone.fingerprint);
   const evidence = await (await page.request.get('/__live/evidence')).json();
   expect(evidence).toMatchObject({ liveGoogle: true, liveDatabase: true, rpc: { issue: 1, admit: 1, dispatch: 1, finish: 1 } });
+  expect(evidence.pdfIsolation).toHaveLength(1);
+  expect(evidence.pdfIsolation[0]).toMatchObject({ exitCode: 0, oomKilled: false, terminated: 'completed', cleanupConfirmed: true });
   expect(evidence.providerAttempts.length).toBeGreaterThan(0);
   expect(evidence.providerAttempts.length).toBeLessThanOrEqual(3);
   expect(evidence.rpc.retry).toBe(evidence.providerAttempts.length);
@@ -80,5 +82,5 @@ test('LIVE synthetic PDF through real Google, SQL, normalization, acceptance and
   expect(evidence.providerAttempts.at(-1).status).toBe(200);
   expect(externalBrowserRequests).toEqual([]);
   expect(errors).toEqual([]);
-  console.log(`LIVE PASS: 1/1 actual course attempt; real Google HTTP200; ${evidence.providerAttempts.length} provider attempt(s); explicit acceptance and deterministic preview/apply/undo passed.`);
+  console.log(`LIVE PASS: isolated parser cleanup verified; 1/1 actual course attempt; real Google HTTP200; ${evidence.providerAttempts.length} provider attempt(s); explicit acceptance and deterministic preview/apply/undo passed.`);
 });

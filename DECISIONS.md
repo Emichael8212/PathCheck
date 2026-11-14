@@ -125,3 +125,21 @@ advisor/official verification path; never invent policy. Track per-feature closu
 in IMPLEMENTATION_STATUS.md and exact tests in the coverage audit. Separately report
 implementation, integration, human acceptance and deployment readiness. Only the
 human merges; deployment retains separate authorization. No architecture/scope change.
+
+## SEC-LOCAL-PDF-001 — Approved local parser isolation (2026-11-13)
+
+User explicitly approved the proposed separate PDF parser boundary for **local
+implementation and synthetic testing** during the final integrated audit. Proposal
+and required evidence: docs/reviews/pdf-isolation-decision.md. Hosted Supabase Edge
+worker limitations must not be mislabeled as verified per-request parser isolation.
+
+Implement a disposable constrained process/container per PDF inspection, with actual
+memory/CPU/wall limits, cancellation termination, no parser network, no retained
+original PDFs/text, and bounded results. Supabase admission, one-use tickets,
+quotas/leases, consent, deterministic normalization/academic authority and existing
+shared contracts remain unchanged. Resource failures deny provider dispatch; no
+implicit retry/admission/quota reset. Hosted equivalence remains to be verified.
+
+This approval authorizes no deployment, paid billing, hosting vendor commitment,
+public endpoint exposure or real student transcript processing. Those gates retain
+separate human approval and security/privacy requirements.

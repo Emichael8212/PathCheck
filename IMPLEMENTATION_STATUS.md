@@ -1,6 +1,6 @@
 # PathCheck implementation status
 
-Owner: Codex Agent 1 (L). Updated: 2026-11-13. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
+Owner: Codex Agent 1 (L). Updated: 2026-11-13 (UTC audit 2026-11-14). Current main: c6ab714, PRs1–10 merged; final application acceptance BLOCKED. Gate 0 COMPLETE: human merged PR #2; all four feature worktrees originate at that merge. Feature implementation IN PROGRESS; no F01–F20 feature is complete.
 
 ## Application completion checklist (current)
 
@@ -1408,3 +1408,396 @@ waived. PR10 MERGED. PR9 human/independent/local gates PASS; no agent merge/depl
 Full account/cloud composition, public gateway and PDF resource isolation, and
 real-transcript privacy approval remain mandatory unfinished application/release
 work, distinct from this scoped integration PR. No full-MVP completion claim.
+
+
+### PR9 merged / final integrated audit in progress
+
+Human PR9 merge verified: `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e` at
+2026-11-14T03:40:17Z; accepted headab72400. Local main fast-forwarded cleanly.
+All existing PRs1–10 are MERGED. Explicit workflow_dispatch on exact mainc6ab714:
+foundation43553584601 PASS. No automatic main push/deploy. New isolated lead branch
+feat/integration-03 starts at c6ab714; old integration worktree/branches preserved.
+
+Current-main verification: npmcheck674unit/2documentedDBskips,43benchmark,9guards,
+3productionbrowser PASS; exact main installed lockfile and integration14/normalization3
+PASS. These cover actual manual record, conditional ASU outlook/PDF, synthetic
+prerequisite/recommendation/preview/apply/reject/undo/generator, and student-reported
+availability invalidation. Live main SYN101 upload PASS1 via actualGoogle/SQL/G/L/E,
+one correctattempt/HTTP200/no retry; no real transcript or paid processing.
+Live SQL371/5files PASS in isolated localhost stack, unchanged migrations. No claim
+that every mandatory security/integration requirement is satisfied.
+
+Audit blockers are implementation gaps, not acceptable final limitations:
+- F16–18 ordinary main account:null; realOTP/save/reopen/browserCAS/recovery tests
+  absent. L is composing existing S ports using approved public VITE config only.
+- U AccountPanel generic clear('save') bypasses S scoped cleanup, risking unrelated
+  draft loss; async save completion can overwrite newer edits. Existing Claude U
+  actually resumed in original worktree, assigned feat/frontend-account-safety.
+  DraftPR11 head1950804 adds guards/realS recovery tests81UI PASS, CI43554809787PASS.
+  Independent review still found stale open response race; correction pending.
+- Main browser generation remains synchronous; mandatory SCH18 runtime interruption
+  lacks integration/test. E pure chunk/cancel is implemented, not yet wired.
+- Reopened plans inherit current capacity/summer assumptions; must reset/disclose or
+  explicitly restore validated settings, with regression. No new academic policy.
+- Cross-tab shared-slot read/write cleanup has no proven atomic coordination.
+- Actual Edge entry, authenticated gateway/network identity, genuine bot flow and
+  terminating PDF resource isolation remain unfinished G/L/U engineering. Local
+  fixture-only Node runtime is not the production endpoint. Separate release gates:
+  real-data terms/authorized representative validation, hosted config/security,
+  paid billing if needed and separate deployment approval. None authorized here.
+
+L account test required a numeric OTP email template. Initial test failures also
+exposed an obsolete inbox API and an unmounted Colima template path: the local
+gateway served a directory listing. Mailpit API and mounted template setup corrected;
+no external email or auth-policy weakening. Browser tests use syntheticmail/localDB
+and never print OTP/tokens. This and account composition are unmerged work; not counted
+as complete. Final full-application human acceptance is BLOCKED until engineering
+and mandatory integration gaps close. Existing scoped human PASS remains valid.
+
+### Final audit correction checkpoint — account and recovery
+
+U PR11 head `7beea3f4dd005147af933fb3e0b87c09abfa2827`, CI43555931750 PASS.
+Independent static re-review: no remaining blocking finding in U delta. Slow open
+cannot overwrite edits/new workspace; canceled realS OTP verification cannot sign
+in later; reopen/restore resets/discloses 15-credit/no-summer assumptions. Owner
+UI87 (19 account) PASS; actual negative controls fail on old implementation.
+Human acceptance NOT RUN. No U merge; main retains these defects.
+
+L unmerged `feat/integration-03` composes actual S auth/storage/recovery using
+existing public config. Actual two-browser local email OTP→save→list→reopen PASS;
+stronger record-field assertions also PASS (CIS300/Completed/B/3/3). Email resend limit retained
+(61-second wait), no auth-policy bypass. Template must reside on Colima's mounted
+scratch path; do not mount the lead secret directory. Port5188 browser/mail55434,
+DB/API still127.0.0.1 only. Raw mail/code/tokens are never printed. Build-time
+public-config guard rejects secret/service_role keys before Vite embeds them;
+forced OTP-failure guard verifies stdout and actual Playwright artifacts are clean.
+L `npm run check`:679unit/2expectedDBskips,43benchmark,9uploadguards,3newaccountguards,
+3productionbrowser PASS; lint/type/build PASS. Attempted .ts import cleanup failedTS5097 and was reverted; original working
+configuration retained. Filled-input privacy probe added and affected guards rerun. This does not close full account tests.
+
+Actual current-source REST owner-isolation/CAS/Save-as-new PASS1; config guard1
+expected skip on valid local setup. Main admission concurrency PASS:12queuedworkers,
+winners1/1/3/5; dispatch/revoke6pairs2/4 and retry/revoke6pairs2/4;22reservations,
+cleanup0. No human acceptance rerun/claim. SQL371 remains verified unchanged source.
+
+S independently reproduced actual localStorage loss in two Chromium tabs:
+300/300 simultaneous stashes both reported success;100/100 session-first races
+left the losing tab without a stored recovery copy. Sequential control50/50
+correctly rejected conflict. Scope: new account integration blocked, not imaginary
+risk or release-only limitation. Existing S session unavailable; preserved worktree
+and handoff recovered into actual Claude sessionea69c35b. S is implementing a
+contract-compatible immutable snapshot namespace on assigned feat/recovery-atomicity;
+ambiguous candidates must return conflict, never silently choose/overwrite. Legacy,
+same-ID newer edits, expiry and scoped save cleanup require regression/race evidence.
+This is NOT verified fixed. Separate human acceptance required when ready.
+
+Final human E2E procedure remains ineligible until these engineering gates close.
+Do not request repetitions of already accepted PR4–10 scopes. Remaining next work:
+S recovery correction→independent review; compose U/L/S on noncommitting scratch;
+real OTP/CAS/recovery/PDF journeys; SCH18 browser interruption; secure extraction
+runtime/gateway/bot/resource isolation. Existing unknown ASU policies remain
+conditional and separate from engineering defects. No merge/deploy/billing change.
+
+### Mandatory runtime/correctness follow-up
+
+Draft LPR12 https://github.com/Emichael8212/PathCheck/pull/12 implementationd0dab52,
+CI43557228112 PASS. Local noncommitting candidate d0dab52 + U7beea3f: fullcheck679,
+43benchmark,9uploadguards,4accountguards,3production,87UI,14integration and3normalization
+PASS. ActualOTP/save/reopen PASS including persisted record. Extended real REST-backed
+browserCAS test also PASS: remote save changes, stale first-device save rejected,
+local edits retained, explicit cloud reopen restores latest version. Initial extension
+failed on wrong test navigation (already accepted record has no Accept button);
+corrected to Graduation planner navigation, not production logic.
+
+SCH18 L worker adapter now uses E's pure incremental generator in an actual Worker;
+unit5 and realChromium2 PASS for identical output, watchdog/cancel not_evaluated and
+unchanged plan. UI controls on UPR14head4a011bd (dependsPR11) require composition and
+independent final review. No fullSCH18PASS before actual controls are tested together.
+
+S PR13head9eec311 implements immutable snapshots; actual2tab6cases x3 PASS and
+per-ID-only mutation3fail demonstrates same-ID race coverage. Independent review
+found legacy consent withdrawal, cleanup-success semantics and partialclear blockers;
+S actually resumed to correct them. U must adapt recovery fixture and surface typed
+multiple-draft conflicts rather than silently ignore them. HumanNOT RUN.
+
+Runtime decision: docs/reviews/pdf-isolation-decision.md records official hosted
+Supabase limitation and proposed separately constrained parser boundary. User
+approval requested; no change to approved architecture made. Public processing stays
+blocked. Root/account/search/recovery correction PRs are not full application
+completion, and no final human acceptance test is eligible yet.
+
+
+### Local parser approval and final-audit correction integration — 2026-11-13
+
+This checkpoint supersedes the stale approval-request and pending-review statements
+above without deleting their history. Human approved SEC-LOCAL-PDF-001. PR9 merge
+verified again: `c6ab714bf5004bcc99d0c47e123e5c4750cfc09e`, 2026-11-14T03:40:17Z;
+local main clean at that merge. Current-main CI43553584601 PASS. No further merges.
+
+| PR / owner | Current implementation head | Evidence / remaining gate |
+|---|---|---|
+| 13 / S recovery | a7fa58d67e386ffe54b1e13bf37991de4713d86b | CI43559926987 PASS; code de92df6 unchanged except comment; real two-tab10 PASS x3, persistence148 PASS/2 documented DB skips; independent review no blocker; human NOT RUN, HUMAN ACCEPTANCE REQUIRED |
+| 11 / U account safety | a23b04ca0d0f9240378a0b4500d8ac88eb6d7557 | CI43561192741 PASS; latest independent review no blocker; with S helpers UI100 PASS; standalone5 dependent tests skipped/BLOCKED until PR13 merge; human NOT RUN |
+| 14 / U cancellable search | dd275b3bd3d867670e9f3d947567985aab6a075c | CI43561305797 PASS; depends PR11/13; composed UI112 PASS; independent review no blocker; human NOT RUN |
+| 15 / G local parser | ba2e325e06b20d8f8229495fd165ac7d0e07da9c | CI43560174182 PASS; actual Docker10 PASS/all16containers removed; independent review no blocker; human NOT RUN |
+| 12 / L integration | 80230f6 plus pending lead tests/docs | CI43559127505 FAIL: actual new cancellation UI tests depend on unmerged PR14; combined tests PASS below. Remains BLOCKED, never ready from older CI. Also live parser launcher depends PR15. |
+
+Reproducible local-only candidate `/private/tmp/pathcheck-account-candidate`: HEAD
+d0dab52, noncommitting U7beea3f merge, exact U delta through dd275b3, L delta through
+80230f6 plus current lead E2E changes, S a7fa58d owned paths, G ba2e325 owned paths.
+No scratch commits/push. `npm run check` PASS: lint/type/build,741unit PASS/12skips
+(10 actual-Docker opt-in cases separately PASS,2 liveDB cases separately tested),
+43benchmark,9uploadguards,4accountprivacyguards,3productionbrowser.
+`node node_modules/@playwright/test/cli.js test -c tests/ui/browser/playwright.ui.config.ts`
+112 PASS/0skip; `npm run test:integration`18 PASS. These include real engine Worker
+work before cancel/watchdog, unchanged active plan and honest interrupted outcome.
+
+G actual isolation: pinned base image,256MiB memory/no swap,CPU and wall limits,
+nonroot/read-only/no network/no mounts/no core/no log driver,bounded output and
+cancellation cleanup; failed cleanup quarantines capacity. G Docker tests10 PASS.
+Lead live synthetic browser/SQL/Gemini3.5Flash-Lite1 PASS: actual isolated parsing
+cleanup confirmed,1/1 course attempt,one HTTP200,explicit record acceptance,real
+normalization/planner/preview/apply/undo. No paid fallback or corpus rerun.
+
+U latest fixes refuse expired/removed/replaced cached recovery on Restore, preserve
+TTL, disclose current-session re-stash and concurrent deletion limitations, and
+describe retained but unusable drafts accurately. S immutable snapshots preserve
+concurrent distinct drafts and same-ID revisions; explicit choices validate current
+content without deleting others. Fresh human verification required for changed
+recovery behavior, not repetition of prior SQL acceptance.
+
+Human procedures: docs/acceptance/pr-13/PR_ACCEPTANCE_TEST.md and pr-15 equivalent.
+Next eligible checkpoint is PR13 focused recovery human test, initial NOT RUN.
+Dependency order: PR13→refresh/revalidate PR11→PR14; PR15 can proceed independently;
+PR12 requires those corrections, current-head CI and combined human acceptance.
+No PR is READY TO MERGE without its human PASS. Final whole-application acceptance
+remains BLOCKED: pending correction integration/human gates and actual public
+extraction entry/gateway/bot implementation. Local synthetic factory is not public
+production runtime. Hosted isolation, authorized real-data terms/testing and separate
+deployment approval remain release gates. No architecture/academic-rule change beyond
+the explicitly approved local parser boundary. Implementation/integration incomplete;
+prior scoped human PASS retained, final human NOT RUN; deployment NOT READY.
+
+Final composed account verification: `node tests/e2e/accounts/run.mjs --test`
+PASS1 on the latest candidate (1.1min; actual local OTP resend delay preserved).
+Exact test `real OTP persists record and availability, resolves conflicts, exports
+and deletes`: two real browser sessions, actual Supabase Auth/REST, CIS300/B/3/3
+record and student not_listed evidence persisted, stale save conflict preserves
+local work, explicit reopen loads remote changes, exported active-plan section
+excludes rejected local changes and retains uncertainty, plan/account deletion
+returns to guest state. No mocked account services or captured screenshots.
+
+Lead evidence committed/pushed only to feat/integration-03: `d0aa51ea5715d28f95b772549a79cea4d83c6678`.
+PR12 description updated with candidate evidence and explicit blockers; new-head CI
+pending (previous implementation CI FAIL recorded above). PR13/15 guides committed;
+PR12 guide explicitly BLOCKED until dependency refresh yields a reproducible pin.
+Agent-owned local Supabase and Colima stopped successfully; no parser containers
+remained, images/volumes/worktrees preserved. No user screenshots or secrets captured.
+
+
+### PR13 human acceptance closure
+
+Human reported all stages at `a7fa58d67e386ffe54b1e13bf37991de4713d86b`: pinned
+setup PASS; real two-tab10/10 PASS; persistence148 PASS/2 expected liveDB skips
+(7files PASS/1skipped). Human status PASS, not inferred from agent tests.
+Current GitHub head unchanged, base mainc6ab714, CLEAN/MERGEABLE; required foundation
+CI43559926987 PASS. Independent S review previously closed every blocking finding;
+GitHub has no unresolved threads or changes-requested reviews (no formal GitHub
+approvals claimed). Active main ruleset27097753 requires PR+strict foundation CI,
+blocks deletion/force-push; no protection changed. PR13 READY TO MERGE personally.
+Acceptance guide and PR evidence updated. No rerun of accepted SQL tests needed:
+this change touches recovery storage, not SQL/REST policies. No running services
+from this human test; preserve worktree. Next after human merge: verify actual
+merge, synchronize main, refresh PR11/14 and revalidate combined integration.
+Full application still incomplete; this scoped PASS does not close final gates.
+
+
+### PR13 merged — post-merge verification in progress
+
+GitHub confirms human merge `ef6ba14ae69986f8fbdeb4e55f930b25482f2cd8` at
+2026-11-14T05:36:42Z, containing accepted head a7fa58d. Local main fast-forwarded
+cleanly; L feat/integration-03 merged origin/main without conflict. Human acceptance
+remains PASS (two-tab10, persistence148/2 expected DB skips). PR13 status MERGED.
+Main CI43562527368 and current-main check/integration running; not yet PASS.
+Existing U Claude session resumed for PR11/14 refresh and zero dependency-skip
+verification. Existing G owner resumed for PR15 refresh. No worktrees discarded.
+
+Post-merge main ef6ba14 automated results: `npm run check` PASS (724unit including
+all148 persistence tests /2 documented liveDB skips;43benchmark;9uploadguards;
+lint/type/build;3productionbrowser), `npm run test:integration`14 PASS. Recovery
+suite includes real two-tab10 cases; no regression found. Lead refreshed branch
+`node tests/e2e/normalization.integration.mjs`3 assertion groups PASS. No SQL policy
+change or live provider test was implied by these commands. Current-main CI still
+in progress; owner branch refreshes in progress, no merge recommendation yet.
+
+Post-merge CI closure: current-main foundation43562527368 PASS at exact ef6ba14.
+PR15 refreshed head `eac711c8e727c8e7ed45e0951b8a5e4f5d005bba` includes ef6ba14;
+owned parser/tests/contracts/dependencies byte-identical to reviewed ba2e325.
+Owner fullcheck730 PASS/12explicit skips (10Docker prior actualPASS,2liveDB),
+58 targeted isolation/handler/localRuntime PASS; CI43562622863 PASS. Prior Docker10
+and independent review retained, no unnecessary Google or Docker rerun. PR15 human
+NOT RUN, HUMAN ACCEPTANCE REQUIRED; guide updated with exact pin and non-activating
+Colima flags/socket verification. Next human checkpoint is PR15 Stage1 setup only.
+
+U actually resumed session74d5fd17 (process79166) and refreshed PR11/14 onto main.
+Latest owner evidence: PR11 named S helper imports, no dependency skips,101UI PASS
+including real three-tab recovery,724unit/2liveDBskips; revised owned human guide.
+Review/PR14 final refresh still underway; do not infer final readiness. Worktrees
+and temporary test candidate retained. L remains blocked on these PRs and PR15
+plus combined human acceptance; no feature PR merged by agents.
+
+Remaining mandatory engineering: actual extraction entry/module-resolution tests;
+trusted same-origin gateway identity producer/verifier; real browser bot-attestation
+adapter and integration; configured ordinary-app transcript ports. Local synthetic
+factory remains test-only. Hosting-specific parser equivalence, authorized real-data
+terms/testing and deployment approval are separate external/release gates. G's
+read-only code-grounded handoff lists entry/config/gateway/bot tests that can proceed
+without real credentials. None is falsely waived as optional or reported complete.
+
+
+### PR15 human parser tests passed — cleanup pending
+
+At pinned eac711c8e727c8e7ed45e0951b8a5e4f5d005bba, human reported Stage1
+setup PASS, Stage2 parser image sha256:2f739c92573e01372ef19d2f6b8b81a2da0f0e2db62f3c9e7003133a4b69fefd,
+and Stage3 actual container suite10 PASS/0failed/0skipped (23:55:12 local start).
+Behavioral human acceptance PASS; final VM cleanup confirmation pending. No merge
+recommendation until current-head gates rechecked. No agent rerun or screenshot
+claim. Scope remains local synthetic parser, not hosted/real-data acceptance.
+
+
+### PR15 human acceptance closed — ready for personal merge
+
+Human confirmed successful Colima stop after10/10 actual parser tests. A15 human
+acceptance PASS including cleanup at eac711c8e727c8e7ed45e0951b8a5e4f5d005bba.
+Current head unchanged, required foundationCI43562622863 PASS, CLEAN/MERGEABLE
+against mainef6ba14; no unresolved review threads/changes-requested review. Prior
+independent local-scope review remains valid because refresh changed no G code.
+PR15 READY TO MERGE personally; not merged. Images/worktree retained. Local parser
+acceptance does not clear public runtime, hosted isolation or real-data gates.
+
+
+### PR15 merged — current-main verification running
+
+GitHub confirms human merge `8fab5bfae66d38b5970db4d601f8325655962922` at
+2026-11-14T06:01:44Z, including accepted parser head eac711c. Local clean main
+fast-forwarded and L feature branch refreshed without conflict. PR15 MERGED;
+human10-test/container-build/cleanup PASS retained. Main CI43564375085 dispatched.
+Requested post-merge npmcheck/integration/normalization and actual Docker parser
+regressions running against main8fab5bf; no live Google or real transcript requests.
+U existing session resumed for PR11/14 refresh; previous finalized reviewed UI
+heads36c0624/21eb8fe preserved. Final acceptance guide next: PR11 UI behavior,
+separate from real-service account integration in PR12. No human retest of PR15.
+
+Post-merge main8fab5bf tests PASS: npmcheck730unit/12explicit skips,43benchmark,
+9uploadguards,lint/type/build/3production; actual `PATHCHECK_PDF_ISOLATION_LIVE=1
+npm test -- tests/transcript/isolation.live.test.ts`10 PASS in41.4s;
+`npm run test:integration`14 PASS; normalization CLI3 PASS. MainCI43564375085 PASS.
+The10opt-in Docker skips in genericcheck are separately closed by the actual run;
+2liveDBskips retain existing evidence (SQL unchanged). Parser containers removed;
+agent-owned Colima stopped successfully. No real transcripts/Google rerun.
+
+New local-only candidate /private/tmp/pathcheck-post15-integration: HEAD8e4cf8d
+(L branch after mergedmain8fab5bf), noncommitting merge UPR14 21eb8fe (contains
+reviewed PR11 36c0624). npmcheck741unit/12explicit skips,43benchmark,9uploadguards,
+4accountguards,3production PASS; integration18 PASS, UI114 PASS/0skip. No scratch
+commit/push. This composes actual engine/worker/command/account ports, but no new
+live Auth/REST or Google assertion is implied. Prior live evidence preserved where
+source unchanged; final combined human acceptance still NOT RUN.
+
+Next eligible checkpoint: PR11 currenthead2a96a7763061a9657b72d462f2526e06a1e80fa4
+includes main8fab5bf; foundationCI43564599936 PASS. Owned UI code/tests byte-identical
+to independently reviewed36c0624; only acceptance-guide counts changed after base
+merge. PR11 agent UI102/0skip (account34), currentunit730/12explicit environment
+skips; composed candidateUI114/engine18 PASS above. Human NOT RUN, HUMAN ACCEPTANCE
+REQUIRED. Canonical index docs/acceptance/pr-11/PR_ACCEPTANCE_TEST.md reuses owner's
+eight-case browser guide, exact pin and one-stage-at-a-time commands. Auth/cloud
+doubles are explicit: this accepts UI race/recovery logic, not real cloud integration.
+PR14 refreshed049996f pending finalCI; PR12 still depends on11/14 and combinedhuman
+acceptance, not ready. Previous A13/A15 human evidence remains closed.
+
+G existing extraction owner actually resumed next approved runtime-entry work on
+assigned feat/extraction-runtime-entry, preserving merged parser branch; no credentials
+or public processing authorized. Scope: actual boot/module-resolution/config tests,
+fail closed without trusted gateway/hosted parser adapters. No fake network identity
+or hosted-isolation claim, no stub-only completion/PR. Remaining gateway/bot/hosted
+verification and final integrated human gates still mandatory.
+
+PR11 human progress at2a96a776: Stage1 pinned setup PASS; Stage2 account/recovery
+UI suite34 PASS reported by human. Eight interactive browser cases and cleanup
+remain NOT RUN; overall A11 human acceptance is not yet PASS.
+
+PR11 human progress correction: browser cases1–5 explicitly reported PASS by
+human (restore, expired rejection, late-save preservation, unconfirmed signout,
+canceled verification). Case6 instructions issued, result not yet reported;
+cases7–8 and cleanup pending. Overall human gate remains incomplete.
+
+
+### PR11 human acceptance complete; authorized agent cleanup
+
+Human reported all eight manual cases PASS plus34 account UI assertions at
+2a96a7763061a9657b72d462f2526e06a1e80fa4. Cases6–8: late-open preserves edits;
+two drafts remain separate and need explicit selection; deletion requires confirm,
+Keep them preserves copies, final key check empty. Case8 reused current two-draft
+fixture rather than recreating it. A11 human PASS.
+User explicitly asked lead to execute cleanup. Actual Chrome5179 DevTools showed
+no local keys and empty session storage; prior harness tabs were already closed.
+Temporary account-disabled cleanup tab closed. Browser blocked console paste;
+used storage UI without bypass. Confirmed PID74444 Vite cwd/path/port, SIGINT sent,
+no5179listener afterward. Other5187 application tab/server untouched, no screenshots.
+Cleanup agent PASS under user authorization; not relabeled human execution.
+
+Current PR11 head unchanged; foundation43564599936 PASS, CLEAN; independent review
+no remaining blocker, GitHub no unresolved threads/change-requested review (no formal
+approval claimed). PR11 READY TO MERGE personally, not merged. After human merge,
+refresh/retest14 then12; their remaining human gates are not waived.
+
+G runtime-entry handoff: owner finished/pushed15c38d5fbc8546a71980a3e7f3b5003b40d450e2
+on feat/extraction-runtime-entry, independently reviewed bounded boot/bundle scope.
+Reported752unit/12environment skips,12actualDenoHTTP assertions,22entry/bundle tests;
+no public processing/provider call. No PR opened. Lead has not yet integrated this
+work; precise handoff /private/tmp/pathcheck-g-runtime-entry-progress.md. Actual
+hosted ports/gateway/bot/SQL composition remain mandatory pending integration.
+
+
+### PR11 merged — PR14 then PR12 dependency verification
+
+Human merge `b419682b83ecfa6d632bc8086b75737382e36496` at2026-11-14T06:58:11Z
+verified on GitHub, includes accepted2a96a776. Local main fast-forwarded cleanly;
+L refreshed main at c023b00. A11 human PASS retained (34assertions/eightmanualcases);
+cleanup lead-executed with explicit authorization. PR11 MERGED. MainCI43568936023
+dispatched; local regression checks running. Existing U session resumed to refresh
+PR14 and verify cancellation/interruption. PR12 CI cannot pass its mandatory UI
+tests until PR14's implementation is incorporated; no tests disabled or downgraded.
+Reproducible noncommitting candidate will verify exact PR14/12 combination before
+its human checkpoint. Public entry/G runtime branch remains separate, no scope change.
+
+Post-PR11 main b419682 regression closure: npmcheck730unit/12 documented environment
+skips,43benchmark/9uploadguards,lint/type/build,3production PASS;14 engine integration
+PASS. MainCI43568936023 PASS. PR14 refreshed cbbf0df100e733543073120000ef8a0db4b53054
+contains mergedmain; currentCI43569084094 PASS, CLEAN. Owner UI114 PASS incl12
+generation cases, no dependency skips; reviewed7-file U delta unchanged.
+
+PR12/14 candidate /private/tmp/pathcheck-pr14-verification: c023b00 lead baseline
+plus noncommitting U049996f. Verified refreshed c023+cbbf merge-tree and actual
+candidate index BOTH8bccb542f8914c74a2a2e1b277ba87ba43448412, so exact source tree
+matches new head combination without replaying unchanged code. npmcheck741unit/12
+environment skips,43benchmark,9uploadguards,4accountguards,3production PASS;
+integration18 PASS and UI114 PASS. Exact human CLI `npm run test:integration --
+--grep 'actual.*worker|real UI'`4 PASS. Both previously failing real UI cancellation
+and watchdog tests pass with real E work and byte-identical active Plan.
+Independent dependency re-review: no source/contract blocker; no tests weakened.
+
+PR12 standalone red CI is an unmet PR14 dependency, not a waived test or a claimed
+fixed standalone head. Actual integration fix is inclusion of U's generation port
+consumer; temporary composition is verified but not committed/pushed. After human
+PR14 merge, refresh PR12 and require current-head standalone CI plus human acceptance.
+Pinned PR14 procedure uses actual engine/worker with test-only held continuation,
+not fake academic responses. Human NOT RUN; exact Stage1 composition/Stage2 four
+assertions/two manual interrupted-search cases/cleanup documented under pr-14.
+
+PR14 source and human-procedure independent re-review PASS; headCI43569084094
+confirmed PASS. A14 HUMAN ACCEPTANCE REQUIRED, initial NOT RUN. Guide finalized
+with exact c023+cbbf/tree pins and tested4-case command. PR12 guide updated to
+remove completed PR11/13/15 dependencies; only14 remains unmerged. G boot work
+continues separately from this accepted dependency order. No additional merge,
+deployment, paid billing or real transcript processing occurred.

@@ -9,6 +9,7 @@ let child;
 const baseEnvironment = Object.fromEntries(Object.entries(process.env).filter(([name]) =>
   ['PATH', 'HOME', 'TMPDIR', 'TEMP', 'TMP', 'USER', 'LOGNAME', 'SHELL', 'LANG', 'LC_ALL', 'CI', 'FORCE_COLOR', 'NO_COLOR', 'PLAYWRIGHT_BROWSERS_PATH'].includes(name)));
 try {
+  if (!/^sha256:[a-f0-9]{64}$/.test(process.env.PATHCHECK_LOCAL_PDF_IMAGE ?? '')) throw Error('isolated_parser_image_required');
   if (process.env.PATHCHECK_GEMINI_FREE_TIER_CONFIRMED !== '1' || !process.env.GEMINI_API_KEY
     || process.env.PATHCHECK_GEMINI_MODEL !== 'gemini-3.5-flash-lite') throw Error('server_configuration_required');
   const status = JSON.parse(execFileSync('supabase', ['status', '-o', 'json'], {
@@ -18,7 +19,7 @@ try {
   const redact = text => secrets.reduce((value, secret) => value.split(secret).join('[REDACTED]'), text).replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '[REDACTED JWT]');
   child = spawn(process.execPath, ['tests/e2e/upload/liveServer.mjs'], { env: { ...baseEnvironment,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY, PATHCHECK_GEMINI_MODEL: 'gemini-3.5-flash-lite', PATHCHECK_GEMINI_FREE_TIER_CONFIRMED: '1',
-    PATHCHECK_LIVE_SYNTHETIC: '1', PATHCHECK_LOCAL_API_URL: status.API_URL, PATHCHECK_LOCAL_ROLE_KEY: status.SERVICE_ROLE_KEY }, stdio: ['ignore', 'pipe', 'pipe'] });
+    PATHCHECK_LOCAL_PDF_IMAGE: process.env.PATHCHECK_LOCAL_PDF_IMAGE, PATHCHECK_LIVE_SYNTHETIC: '1', PATHCHECK_LOCAL_API_URL: status.API_URL, PATHCHECK_LOCAL_ROLE_KEY: status.SERVICE_ROLE_KEY }, stdio: ['ignore', 'pipe', 'pipe'] });
   let logs = '';
   for (const stream of [child.stdout, child.stderr]) stream.on('data', bytes => { if (logs.length < 100000) logs += bytes.toString(); });
   const closed = new Promise(resolve => child.once('exit', code => resolve(code)));
