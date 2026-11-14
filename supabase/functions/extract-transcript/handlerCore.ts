@@ -7,7 +7,7 @@ import type { PdfProvider } from './provider';
 import { createPdfInspector } from './pdf';
 import { abortable } from './lifecycle';
 
-export interface PdfInspector { inspect(bytes: Uint8Array): Promise<Result<{ pageCount: number }>> }
+export interface PdfInspector { inspect(bytes: Uint8Array, execution?: { signal?: AbortSignal }): Promise<Result<{ pageCount: number }>> }
 export interface CoreEndpointOptions<E> {
   allowedOrigin: string;
   disclosureVersion: string;
@@ -122,7 +122,9 @@ export function createTranscriptHandlerCore<E>(options: CoreEndpointOptions<E>, 
       let result: Result<unknown> = fail('external_failure', 'extraction_failed_manual_entry');
       try {
         let inspected: Result<{ pageCount: number }> | null = null;
-        try { inspected = await abortable(withDeadline(pdf.inspect(bytes), INSPECTION_DEADLINE_MS), signal); }
+        // Cancellable isolated inspectors complete termination before resolving.
+        // Do not settle/release admission by racing request abort ahead of cleanup.
+        try { inspected = await withDeadline(pdf.inspect(bytes, { signal }), INSPECTION_DEADLINE_MS); }
         catch (error) { if (!(error instanceof Error && error.message === 'deadline')) throw error; }
         // Also catches synchronous/CPU-bound inspection that a timer race cannot preempt.
         const elapsed = Date.parse(now()) - admittedAt;
