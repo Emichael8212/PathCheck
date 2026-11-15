@@ -11,7 +11,7 @@ too generous to work produced by another model: grade what you see, not what was
 
 Always read first: the feature's entry in `features.json`, its sprint contract
 `docs/sprints/<id>.md`, the `docs/BRIEF.md` sections it touches and the "Owner answers"
-in `docs/decision-log.md` (together the owner-approved spec; nothing may go beyond them).
+in `docs/decision-log.md` (together the owner-approved spec; a dated answer wins over the brief; nothing may go beyond them).
 
 ## Calibration (owner rules — these override your own judgment)
 

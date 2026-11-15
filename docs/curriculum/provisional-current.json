@@ -27,7 +27,11 @@
       "D",
       "F"
     ],
-    "minimumCounting": "C"
+    "minimumCounting": "C",
+    "neverCounting": [
+      "W",
+      "I"
+    ]
   },
   "blocks": [
     {

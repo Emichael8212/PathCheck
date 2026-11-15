@@ -12,13 +12,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 | CI runs one job named `check` (lint, typecheck, tests, build). No browser tests in CI yet. | Nothing to test in a browser until the first feature. | Add steps to `.github/workflows/ci.yml`. |
 | Feature IDs are `F01`–`F26` in `features.json`, each with a `milestone` field (M0–M3). | Hooks and `/next-task` need to know the current milestone and when to stop. | Edit `features.json` (owner approval needed for ids, descriptions and steps). |
 | Curriculum file keeps its name `docs/curriculum/provisional-current.json`; "CIS 300/400-level" is stored as course numbers 300–499. | Name kept as carried over. 300–499 is the plain reading of "300/400-level". | Rename the file / edit `electives.subjectRule`. |
-| The curriculum keeps titles for the four legacy electives and FIN 201 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
+| The curriculum keeps titles for FIN 201, FLS 161, MGT 203 and MGT 220 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
 | `lastReviewed` in the curriculum file is `null`. | The owner provides the date of the last curriculum review before M3 (brief §12). | Set the date. |
 | Evaluator calibration lives in `.claude/agents/evaluator.md`; there is no separate status or calibration document. | Fewer files to keep in sync. | Move the section to its own file. |
 
 ## Owner answers
 
-These refine the brief and carry the same authority. `features.json` and the curriculum
+These refine the brief. Where a dated answer here differs from the brief, the answer wins. `features.json` and the curriculum
 data follow them.
 
 ### 2026-11-15 — answers on PR #1
@@ -70,8 +70,14 @@ this layout only, never real data) → F10:
 - `npm audit` (7 moderate, development-only lint tooling): left as is.
 
 **One reading by the agent, to confirm:** the rule-matched elective answer in Flow A
-without a transcript keeps the brief's condition "unless you've already passed it or
-filled this slot" after the owner's wording in answer 2 (brief §1 priority 1).
+without a transcript keeps the brief's condition after the owner's wording in answer 2
+(brief §1 priority 1). Full sentence: "Counts toward CIS: elective (300/400-level MKT) —
+unless you've already passed it or filled this slot".
+
+**Where these answers differ from the brief:** §5 and §10 (the sequence rule is no longer
+an M0 item); §8 "everything else stays hidden until asked for" (F13: remaining courses of
+Still needed / In progress blocks are shown directly); §4 Flow A (a rule-matched elective
+has no title).
 
 ## Milestone checks
 

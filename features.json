@@ -1,6 +1,6 @@
 {
   "_rules": [
-    "Source: docs/BRIEF.md sections 4-9 (owner-approved) and the owner's answers recorded in docs/decision-log.md. If an entry disagrees with either, stop and tell the owner.",
+    "Source: docs/BRIEF.md sections 4-9 (owner-approved) and the owner's answers in docs/decision-log.md; where a dated answer differs from the brief, the answer wins. If an entry disagrees with them, stop and tell the owner.",
     "Never change id, milestone, description or steps without the owner's approval. Only passes, evidence and tests change.",
     "passes may become true only when tests names the automated test(s) that prove every step, the evaluator's verdict is PASS, and evidence points to docs/sprints/<id>.md. Steps starting with \"Stop:\" are the owner's milestone check: they happen after the feature passes and are recorded in docs/decision-log.md.",
     "Work in order. Do not start a milestone's features until the owner has checked the previous milestone."
@@ -85,7 +85,7 @@
         "Each course fills exactly one requirement, placed where it helps most",
         "A course not in a curriculum list and not matching the elective rule does not count",
         "CIS electives need 3 courses (9 credits): FIN 201, or any 300/400-level MGT, FIN, CIS, MKT, ACT or ECO course not already required",
-        "A choice slot (for example 1 of ENG 131 / ENG 140) is filled by one course; a second course from the same list does not count there (\"This slot is already filled\")",
+        "A choice slot (for example 1 of ENG 131 / ENG 140) is filled by one course; a second course from the same list does not count there",
         "Sequence rule: the student must complete a history sequence (HIS 131 + HIS 132) or a literature sequence (ENG 209 + ENG 210) inside the 42 core hours (Orientation, Composition, Humanities, Social sciences, Science & math). HIS 132 fills the Social sciences pick and ENG 210 fills the Humanities pick; the sequence adds no credits",
         "An automated test checks that the core blocks total 42 hours",
         "Each of these rules has an automated test, including no double counting"
@@ -142,7 +142,7 @@
       "description": "Flow A without a transcript: one answer per course that never over-promises",
       "steps": [
         "A course in a curriculum list shows \"Counts toward CIS — unless you've already passed it or filled this slot\", with its requirement block",
-        "A course that only matches the elective rule (for example MKT 410) shows \"Counts toward CIS: elective (300/400-level MKT)\" with no title, and still carries the \"unless you've already passed it or filled this slot\" condition",
+        "A course that only matches the elective rule (for example MKT 410) shows \"Counts toward CIS: elective (300/400-level MKT) — unless you've already passed it or filled this slot\", with no title",
         "Two typed courses for the same \"pick one\" slot (for example ENG 131 + ENG 140): the first counts; the second shows \"Doesn't count — it fills the same requirement as ENG 131.\"",
         "If neither HIS 132 nor ENG 210 is among the typed courses, one line is added: \"Remember: you need HIS 132 or ENG 210 for the history/literature sequence.\"",
         "Anything not in a curriculum list and not matching the elective rule shows \"Doesn't count toward CIS — not in the CIS curriculum\"",

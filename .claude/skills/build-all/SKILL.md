@@ -3,7 +3,7 @@ name: build-all
 description: Work through the current milestone's features in features.json without waiting, stopping at the milestone and for logins/secrets, money and academic-rule questions.
 disable-model-invocation: true
 ---
-Build the current milestone of `docs/BRIEF.md` §10 without waiting for me.
+Build the current milestone (`node scripts/status.mjs`; brief §10) without waiting for me.
 
 - Repeat the `/next-task` workflow, one feature per PR, until every `features.json`
   entry of the current milestone passes with evidence.

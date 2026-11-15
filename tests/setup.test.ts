@@ -57,8 +57,8 @@ describe('curriculum data (docs/BRIEF.md §5)', () => {
     ]);
   });
 
-  it('counts C or better on a letters-only scale', () => {
-    expect(curriculum.grades).toEqual({ letters: ['A', 'B', 'C', 'D', 'F'], minimumCounting: 'C' });
+  it('counts C or better on a letters-only scale; W and I never count', () => {
+    expect(curriculum.grades).toEqual({ letters: ['A', 'B', 'C', 'D', 'F'], minimumCounting: 'C', neverCounting: ['W', 'I'] });
   });
 
   it('has a history and a literature sequence that add no credits', () => {

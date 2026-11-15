@@ -8,7 +8,8 @@ is not BLOCKED: a line starting with BLOCKED under "## Result" in its `docs/spri
 milestone before the owner has checked the current one.
 
 You build. The `evaluator` subagent is QA. The `reviewer` subagent reviews code. They
-talk through files in `docs/sprints/`. The spec is `docs/BRIEF.md`; if it does not
+talk through files in `docs/sprints/`. The spec is `docs/BRIEF.md` plus the owner answers in `docs/decision-log.md` (a dated
+answer wins over the brief); if it does not
 answer something, choose the simplest option and record it in `docs/decision-log.md` —
 except academic rules, which you never invent: stop and ask the owner.
 
@@ -40,6 +41,6 @@ except academic rules, which you never invent: stop and ask the owner.
 11. `gh pr checks --watch`. Green CI on the exact head and no reviewer blocker →
     `gh pr merge --squash --delete-branch`. Red CI → fix and repeat. Never use `--admin`.
 12. If `node scripts/status.mjs` now shows the milestone is complete, **stop**: give the
-    owner the URL and a 3–5 step checklist of what the brief says they check (§10).
+    owner the URL and a 3–5 step checklist of what `features.json` `milestones` says they check.
     Record their answer in `docs/decision-log.md` and any disagreement with QA in the
     evaluator's Calibration section. Otherwise report in two lines and continue.
