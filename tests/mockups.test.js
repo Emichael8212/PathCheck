@@ -164,8 +164,8 @@ describe.each(directions)('direction %s', direction => {
       expect(text).toContain(expected);
     }
     for (const figure of [/\b27\b[^.]{0,20}counted|Counted[^.]{0,12}27/i, /\b13\b[^.]{0,20}in progress|In progress[^.]{0,24}13/i, /\b121\b[^.]{0,12}total|Total[^.]{0,24}121/i]) expect(text).toMatch(figure);
-    expect(html).toMatch(/<label>Target semester\s*<select>[\s\S]*<option selected>Spring 2029<\/option>/);
-    expect(html).toMatch(/<legend>Credits per term<\/legend>\s*<input type="number" value="12"[^>]*aria-label="Fewest credits per term" \/>[\s\S]*<input type="number" value="18"[^>]*aria-label="Most credits per term" \/>/);
+    expect(html).toMatch(/<label>Target semester\s*<select><option selected>Spring 2029<\/option><\/select>/);
+    expect(html).toMatch(/<legend>Credits per term<\/legend>\s*<input type="number" value="12" aria-label="Fewest credits per term" \/>[\s\S]*<input type="number" value="18" aria-label="Most credits per term" \/>/);
     expect(html).toMatch(/<label class="switch"><input type="checkbox" role="switch" \/> <span>Summers<\/span> <span class="switch-state">off<\/span><\/label>/);
     // The headline comes before everything else on the page.
     expect(html.indexOf('81 credits left')).toBeLessThan(html.indexOf('class="pace-controls"'));
@@ -187,8 +187,12 @@ describe.each(directions)('direction %s', direction => {
       expect(heading).toContain(fraction);
       expect(heading).toContain(status);
     });
-    // Done blocks show name, credits and "Done" only: no course list is invented for them.
-    for (const section of sections.slice(0, 3)) expect(section).not.toContain('class="group');
+    // Done blocks are collapsed with a control to open them (F13); no course list is invented for them.
+    sections.forEach((section, i) => {
+      const collapsed = i < 3;
+      expect(section.includes('class="group'), expected[i][0]).toBe(!collapsed);
+      expect(/<button type="button" class="ghost show" aria-label="Show courses in [^"]+">Show courses<\/button>/.test(section), expected[i][0]).toBe(collapsed);
+    });
     for (const expectedText of [
       'HIS 131 World History',
       'ECO 251 Principles of Macroeconomics (repeat; the earlier D doesn’t count)',
@@ -204,7 +208,7 @@ describe.each(directions)('direction %s', direction => {
       '3 courses: FIN 201, or any 300/400-level MGT, FIN, CIS, MKT, ACT or ECO course not already required.',
       'Still needed: HIS 132 or ENG 210 to complete a history or literature sequence.',
     ]) expect(text, expectedText).toContain(expectedText);
-    // Nothing is hidden behind a disclosure.
+    // What is in progress or still needed is never hidden behind a disclosure.
     expect(html).not.toMatch(/<details/);
   });
 

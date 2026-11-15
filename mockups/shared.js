@@ -140,6 +140,8 @@ const group = (label, state, items) => (items?.length ? `
     </div>` : '');
 
 // `extra` lets a direction add its own element to the block heading (for example a meter).
+// A Done block is collapsed and can be opened (F13). The brief names no courses for the
+// three Done blocks, so the mockup shows the control and no list.
 export const block = (b, extra = () => '') => {
   const state = statusClass[b.status];
   return `
@@ -151,6 +153,7 @@ export const block = (b, extra = () => '') => {
     <span class="status">${esc(b.status)}</span>
   </h3>
   ${extra(b)}
+  ${b.status === 'Done' ? `<p><button type="button" class="ghost show" aria-label="Show courses in ${esc(b.name)}">Show courses</button></p>` : ''}
   ${group('Done', 'done', b.done)}${group('In progress', 'progress', b.progress)}${group('Still needed', 'needed', b.still)}
 </section>`;
 };
@@ -158,13 +161,13 @@ export const block = (b, extra = () => '') => {
 export const paceControls = () => `
 <form class="pace-controls" aria-label="Adjust the pace">
   <label>Target semester
-    <select><option>Fall 2028</option><option selected>Spring 2029</option><option>Fall 2029</option></select>
+    <select><option selected>Spring 2029</option></select>
   </label>
   <fieldset>
     <legend>Credits per term</legend>
-    <input type="number" value="12" min="1" max="21" aria-label="Fewest credits per term" />
+    <input type="number" value="12" aria-label="Fewest credits per term" />
     <span aria-hidden="true">–</span>
-    <input type="number" value="18" min="1" max="21" aria-label="Most credits per term" />
+    <input type="number" value="18" aria-label="Most credits per term" />
   </fieldset>
   <label class="switch"><input type="checkbox" role="switch" /> <span>Summers</span> <span class="switch-state">off</span></label>
 </form>`;
