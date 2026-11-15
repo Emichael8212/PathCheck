@@ -13,9 +13,22 @@
     {
       "id": "owner-updates",
       "description": "Owner-approved updates recorded in docs/BRIEF.md section 5 (v2, 2026-11-15)."
+    },
+    {
+      "id": "catalog-2025-2027",
+      "description": "ASU 2025-2027 undergraduate catalog (alasu.smartcatalogiq.com): titles and credits of FIN 201, FLS 161, MGT 203 and MGT 220, provided by the owner on 2026-11-15."
     }
   ],
-  "minimumGrade": "C",
+  "grades": {
+    "letters": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "F"
+    ],
+    "minimumCounting": "C"
+  },
   "blocks": [
     {
       "id": "orientation",
@@ -393,16 +406,32 @@
   "sequence": {
     "choose": 1,
     "alternatives": [
-      [
-        "HIS-131",
-        "HIS-132"
-      ],
-      [
-        "ENG-209",
-        "ENG-210"
-      ]
+      {
+        "id": "history",
+        "name": "history sequence",
+        "courses": [
+          "HIS-131",
+          "HIS-132"
+        ]
+      },
+      {
+        "id": "literature",
+        "name": "literature sequence",
+        "courses": [
+          "ENG-209",
+          "ENG-210"
+        ]
+      }
     ],
-    "additionalCredits": 0
+    "additionalCredits": 0,
+    "coreBlocks": [
+      "orientation",
+      "composition",
+      "humanities",
+      "social-sciences",
+      "science-math"
+    ],
+    "coreCredits": 42
   },
   "electives": {
     "id": "cis-electives",
@@ -410,7 +439,11 @@
     "credits": 9,
     "courseCount": 3,
     "namedCourses": [
-      "FIN-201"
+      {
+        "courseId": "FIN-201",
+        "title": "Personal Finance",
+        "credits": 3
+      }
     ],
     "subjectRule": {
       "prefixes": [
@@ -422,14 +455,31 @@
         "ECO"
       ],
       "minCourseNumber": 300,
-      "maxCourseNumber": 499
+      "maxCourseNumber": 499,
+      "creditsPerCourse": 3
     },
     "excludeRequiredCourses": true,
     "legacyOnlyCourses": [
-      "PSY-251",
-      "FLS-161",
-      "MGT-220",
-      "MGT-203"
+      {
+        "courseId": "PSY-251",
+        "title": "General Psychology",
+        "credits": 3
+      },
+      {
+        "courseId": "FLS-161",
+        "title": "Spanish I",
+        "credits": 3
+      },
+      {
+        "courseId": "MGT-220",
+        "title": "Systems Approach to Business",
+        "credits": 3
+      },
+      {
+        "courseId": "MGT-203",
+        "title": "Special Topics: Business Communications",
+        "credits": 3
+      }
     ]
   }
 }

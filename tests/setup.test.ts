@@ -41,17 +41,49 @@ describe('curriculum data (docs/BRIEF.md §5)', () => {
 
   it('has the elective rule: FIN 201 plus 300/400-level MGT, FIN, CIS, MKT, ACT, ECO', () => {
     expect(curriculum.electives.courseCount).toBe(3);
-    expect(curriculum.electives.namedCourses).toEqual(['FIN-201']);
+    expect(curriculum.electives.namedCourses).toEqual([{ courseId: 'FIN-201', title: 'Personal Finance', credits: 3 }]);
     expect([...curriculum.electives.subjectRule.prefixes].sort()).toEqual(['ACT', 'CIS', 'ECO', 'FIN', 'MGT', 'MKT']);
     expect(curriculum.electives.subjectRule.minCourseNumber).toBe(300);
     expect(curriculum.electives.subjectRule.maxCourseNumber).toBe(499);
-    expect(curriculum.electives.legacyOnlyCourses).toEqual(['PSY-251', 'FLS-161', 'MGT-220', 'MGT-203']);
+    expect(curriculum.electives.subjectRule.creditsPerCourse).toBe(3);
   });
 
-  it('has sequence alternatives made of curriculum courses', () => {
-    const ids = new Set(blockCourses.map(course => course.courseId));
-    expect(curriculum.sequence.alternatives).toEqual([['HIS-131', 'HIS-132'], ['ENG-209', 'ENG-210']]);
-    for (const id of curriculum.sequence.alternatives.flat()) expect(ids.has(id), id).toBe(true);
+  it('has the four legacy-only electives, each with a title and 3 credits', () => {
+    expect(curriculum.electives.legacyOnlyCourses).toEqual([
+      { courseId: 'PSY-251', title: 'General Psychology', credits: 3 },
+      { courseId: 'FLS-161', title: 'Spanish I', credits: 3 },
+      { courseId: 'MGT-220', title: 'Systems Approach to Business', credits: 3 },
+      { courseId: 'MGT-203', title: 'Special Topics: Business Communications', credits: 3 },
+    ]);
+  });
+
+  it('counts C or better on a letters-only scale', () => {
+    expect(curriculum.grades).toEqual({ letters: ['A', 'B', 'C', 'D', 'F'], minimumCounting: 'C' });
+  });
+
+  it('has a history and a literature sequence that add no credits', () => {
+    expect(curriculum.sequence.alternatives.map(alternative => alternative.courses)).toEqual([
+      ['HIS-131', 'HIS-132'],
+      ['ENG-209', 'ENG-210'],
+    ]);
+    expect(curriculum.sequence.additionalCredits).toBe(0);
+  });
+
+  it('has core blocks that total 42 hours', () => {
+    const core = curriculum.blocks.filter(block => curriculum.sequence.coreBlocks.includes(block.id));
+    expect(core.map(block => block.id)).toEqual(['orientation', 'composition', 'humanities', 'social-sciences', 'science-math']);
+    expect(core.reduce((sum, block) => sum + block.credits, 0)).toBe(42);
+    expect(curriculum.sequence.coreCredits).toBe(42);
+  });
+
+  it('completes each sequence with a pick inside a core block: HIS 132 in Social sciences, ENG 210 in Humanities', () => {
+    const pickBlock = (courseId: string) =>
+      curriculum.blocks.find(block => block.choices.some(choice => choice.courses.some(course => course.courseId === courseId)))?.id;
+    expect(pickBlock('HIS-132')).toBe('social-sciences');
+    expect(pickBlock('ENG-210')).toBe('humanities');
+    const required = (blockId: string) => curriculum.blocks.find(block => block.id === blockId)?.required.map(course => course.courseId);
+    expect(required('social-sciences')).toContain('HIS-131');
+    expect(required('humanities')).toContain('ENG-209');
   });
 });
 

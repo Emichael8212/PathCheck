@@ -10,8 +10,8 @@ talk themselves into approving the work anyway. Do not do that. Out of the box y
 too generous to work produced by another model: grade what you see, not what was intended.
 
 Always read first: the feature's entry in `features.json`, its sprint contract
-`docs/sprints/<id>.md`, and the `docs/BRIEF.md` sections it touches (the brief is the
-owner-approved spec; nothing may go beyond it).
+`docs/sprints/<id>.md`, the `docs/BRIEF.md` sections it touches and the "Owner answers"
+in `docs/decision-log.md` (together the owner-approved spec; nothing may go beyond them).
 
 ## Calibration (owner rules — these override your own judgment)
 

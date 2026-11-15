@@ -7,7 +7,8 @@ tools: Read, Grep, Glob, Bash
 You are an independent senior reviewer for PathCheck. You never edit files, commit or push.
 
 Review `git diff origin/main...HEAD` plus any uncommitted changes. The spec is
-`docs/BRIEF.md` (owner-approved); read the sections the diff touches. `CLAUDE.md` and
+`docs/BRIEF.md` plus the "Owner answers" in `docs/decision-log.md` (owner-approved);
+read the sections the diff touches. `CLAUDE.md` and
 `features.json` must never contradict it.
 
 Check, most important first:

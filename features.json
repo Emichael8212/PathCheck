@@ -1,6 +1,6 @@
 {
   "_rules": [
-    "Source: docs/BRIEF.md sections 4-9 (owner-approved). If an entry and the brief disagree, the brief wins: stop and tell the owner.",
+    "Source: docs/BRIEF.md sections 4-9 (owner-approved) and the owner's answers recorded in docs/decision-log.md. If an entry disagrees with either, stop and tell the owner.",
     "Never change id, milestone, description or steps without the owner's approval. Only passes, evidence and tests change.",
     "passes may become true only when tests names the automated test(s) that prove every step, the evaluator's verdict is PASS, and evidence points to docs/sprints/<id>.md. Steps starting with \"Stop:\" are the owner's milestone check: they happen after the feature passes and are recorded in docs/decision-log.md.",
     "Work in order. Do not start a milestone's features until the owner has checked the previous milestone."
@@ -9,7 +9,7 @@
     {
       "id": "M0",
       "delivered": "3 design mockups",
-      "ownerChecks": "picks one; confirms the sequence rule"
+      "ownerChecks": "picks one"
     },
     {
       "id": "M1",
@@ -39,7 +39,7 @@
         "None uses a banned element: pill tab steppers, frosted glass, a card around everything, icon-in-circle feature lists, uppercase grey table headers, a default blue primary button, toasts, legends, multiple side panels",
         "All colors are CSS tokens with light and dark mode, contrast meets WCAG AA, and at 375px wide nothing is hidden or overlapping",
         "Each shows the name PathCheck and \"Not affiliated with Alabama State University\", with no ASU logo or school colors",
-        "Stop: the owner picks one mockup and confirms the sequence rule (one of HIS 131 + HIS 132 or ENG 209 + ENG 210, adding no credits); both answers are recorded in docs/decision-log.md"
+        "Stop: the owner picks one mockup; the answer is recorded in docs/decision-log.md"
       ],
       "passes": false,
       "evidence": "",
@@ -66,7 +66,7 @@
       "milestone": "M1",
       "description": "Which transcript rows count: grades, W and I, repeats, in progress, and transfer/AP/CLEP",
       "steps": [
-        "A grade below C never counts and the course is flagged \"must be repeated\"",
+        "Grades are letters only (A, B, C, D, F), with no plus/minus and no pass-type grades: C or better counts; D and F never count and the course is flagged \"must be repeated\"",
         "W and I don't count",
         "When a course is repeated, the highest grade counts",
         "A row with no grade yet is In progress: assumed to pass, shown as \"In progress\", never marked Done",
@@ -86,7 +86,8 @@
         "A course not in a curriculum list and not matching the elective rule does not count",
         "CIS electives need 3 courses (9 credits): FIN 201, or any 300/400-level MGT, FIN, CIS, MKT, ACT or ECO course not already required",
         "A choice slot (for example 1 of ENG 131 / ENG 140) is filled by one course; a second course from the same list does not count there (\"This slot is already filled\")",
-        "The sequence rule needs one two-course sequence, HIS 131 + HIS 132 or ENG 209 + ENG 210, and adds no credits (as confirmed by the owner at M0)",
+        "Sequence rule: the student must complete a history sequence (HIS 131 + HIS 132) or a literature sequence (ENG 209 + ENG 210) inside the 42 core hours (Orientation, Composition, Humanities, Social sciences, Science & math). HIS 132 fills the Social sciences pick and ENG 210 fills the Humanities pick; the sequence adds no credits",
+        "An automated test checks that the core blocks total 42 hours",
         "Each of these rules has an automated test, including no double counting"
       ],
       "passes": false,
@@ -140,10 +141,13 @@
       "milestone": "M1",
       "description": "Flow A without a transcript: one answer per course that never over-promises",
       "steps": [
-        "A course in the curriculum or matching the elective rule shows \"Counts toward CIS — unless you've already passed it or filled this slot\", with its requirement block",
+        "A course in a curriculum list shows \"Counts toward CIS — unless you've already passed it or filled this slot\", with its requirement block",
+        "A course that only matches the elective rule (for example MKT 410) shows \"Counts toward CIS: elective (300/400-level MKT)\" with no title, and still carries the \"unless you've already passed it or filled this slot\" condition",
+        "Two typed courses for the same \"pick one\" slot (for example ENG 131 + ENG 140): the first counts; the second shows \"Doesn't count — it fills the same requirement as ENG 131.\"",
+        "If neither HIS 132 nor ENG 210 is among the typed courses, one line is added: \"Remember: you need HIS 132 or ENG 210 for the history/literature sequence.\"",
         "Anything not in a curriculum list and not matching the elective rule shows \"Doesn't count toward CIS — not in the CIS curriculum\"",
         "Without a transcript, a plain \"Counts toward CIS\" with no condition is never shown",
-        "Automated tests cover counts-with-condition and not-in-the-curriculum"
+        "Automated tests cover counts-with-condition, the rule-matched elective answer, the same-slot answer, the sequence reminder and not-in-the-curriculum"
       ],
       "passes": false,
       "evidence": "",
@@ -154,7 +158,7 @@
       "milestone": "M1",
       "description": "Flow A credit total with neutral notes under 12 and over 18",
       "steps": [
-        "The total credits of the entered courses are shown",
+        "The total credits of the entered courses are shown; a course that only matches the elective rule adds 3 credits",
         "Under 12 credits shows \"below full-time; may affect scholarships\"",
         "Over 18 credits shows \"may cost extra\"",
         "From 12 to 18 credits shows no note"
@@ -171,7 +175,10 @@
         "The reader's output is checked by plain code (shape, course code, credits, grade) before use; an invalid row is never counted and is shown for the student to fix",
         "Each valid row is matched to the curriculum by ASU course code; an unmatched row never fills a requirement",
         "Synthetic transcripts only: the tests and the localhost upload use synthetic transcript PDFs and rows, with no real student data in the repository",
-        "At M1 there is no Gemini call: synthetic reader output (fixture rows for each synthetic transcript) goes through this validation and matching"
+        "At M1 there is no Gemini call: synthetic reader output (fixture rows for each synthetic transcript) goes through this validation and matching",
+        "Rows are matched by prefix + number only, never by title: transcript descriptions are abbreviated and differ from catalog titles (ORI 100 appears as \"First Year Experience\", CIS 206 as \"Bus Programming Languages\"); labs use their own prefix (BIOL 127)",
+        "The synthetic transcripts copy the layout of the real unofficial transcript and never its data: abbreviated term headings (\"Fall 2023\", \"Spr 2024\"); course rows of prefix, number, description, attempted, earned, grade, points; per-term Term GPA / Transfer Term GPA / Combined GPA totals and an \"Academic Standing\" line; transfer credit with separate transfer totals and rows under ASU course codes",
+        "The GPA totals and the \"Academic Standing\" line are ignored: never read as courses, never shown"
       ],
       "passes": false,
       "evidence": "",
@@ -216,7 +223,8 @@
         "After the review step, each requirement block from brief section 5 is marked Done, In progress or Still needed",
         "A block with an in-progress course is not marked Done",
         "A course below C is flagged \"must be repeated\" and its requirement is Still needed",
-        "What is still needed inside a block is hidden until the student asks for it"
+        "Blocks that are Still needed or In progress show the remaining courses directly; Done blocks are collapsed and can be opened",
+        "If neither HIS 132 nor ENG 210 is completed or planned, the checklist shows \"Still needed: HIS 132 or ENG 210 to complete a history or literature sequence.\""
       ],
       "passes": false,
       "evidence": "",

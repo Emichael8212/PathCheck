@@ -1,7 +1,8 @@
 # PathCheck — Claude Code instructions
 
 `docs/BRIEF.md` is the owner-approved spec. Read it before building anything. If this
-file and the brief disagree, the brief wins. If the brief doesn't answer something:
+file and the brief disagree, the brief wins. The owner's later answers are in
+`docs/decision-log.md` ("Owner answers") and carry the same authority. If the brief doesn't answer something:
 choose the simplest option and record it in `docs/decision-log.md` — except academic
 rules, which you never invent: stop and ask the owner.
 
@@ -65,7 +66,7 @@ changes; fix what it reports. Keep state in files (sprint file, `features.json`,
 
 | | Delivered | Owner checks |
 |---|---|---|
-| M0 | 3 design mockups | Picks one; confirms the sequence rule |
+| M0 | 3 design mockups | Picks one (sequence rule confirmed 2026-11-15) |
 | M1 | Flow A + Flow B with synthetic transcripts, on localhost | Both flows on phone and desktop |
 | M2 | Real upload on a staging address | Uploads their own transcript |
 | M3 | Public site | Final check, then launch |
