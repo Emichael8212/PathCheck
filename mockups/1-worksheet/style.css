@@ -101,7 +101,7 @@ h3 { font-size: 1.0625rem; font-weight: 700; }
 .hint { margin-top: 0.25rem; }
 summary { cursor: pointer; list-style: none; }
 summary::-webkit-details-marker { display: none; }
-summary::before { content: "\25B8"; flex: none; width: 1em; }
+summary::before { content: "\25B8"; display: inline-block; flex: none; width: 1.1em; }
 details[open] > summary::before { content: "\25BE"; }
 .already { margin-top: 0.25rem; font-size: 0.9375rem; color: var(--muted); }
 .already .course { color: var(--text); }

@@ -78,7 +78,7 @@ h2 { font-size: 1.75rem; line-height: 1.2; margin-top: 2.5rem; margin-bottom: 0.
 .flag { font-style: normal; font-weight: 700; border-bottom: 2px solid var(--text); white-space: nowrap; }
 summary { cursor: pointer; list-style: none; }
 summary::-webkit-details-marker { display: none; }
-summary::before { content: "\25B8"; flex: none; width: 1em; }
+summary::before { content: "\25B8"; display: inline-block; flex: none; width: 1.1em; }
 details[open] > summary::before { content: "\25BE"; }
 .slim summary { display: flex; flex-wrap: wrap; gap: 0.15rem 0.75rem; align-items: baseline; }
 .slim .list { margin: 0.4rem 0 0.2rem 1.75rem; }
