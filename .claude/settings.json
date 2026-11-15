@@ -1,0 +1,206 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh run *)",
+      "Bash(gh issue *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(mkdir *)",
+      "mcp__playwright",
+      "Bash(gh pr merge *)",
+      "Bash(./scripts/init.sh)",
+      "Bash(netlify *)",
+      "Bash(npx netlify *)",
+      "Bash(curl -s http://127.0.0.1*)",
+      "Bash(curl -sI http://127.0.0.1*)",
+      "Bash(curl -s http://localhost*)",
+      "Bash(curl -sI https://*.netlify.app*)",
+      "Bash(curl -s https://*.netlify.app*)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(mv *)",
+      "Bash(sed *)",
+      "Bash(lsof -i*)",
+      "Bash(pkill -f vite*)",
+      "Bash(rm -rf dist*)",
+      "Bash(rm -rf test-results*)",
+      "Bash(rm -rf playwright-report*)",
+      "Bash(rm -f .claude/.last-passing-check*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Edit(**/.env)",
+      "Read(**/.env.local)",
+      "Edit(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Edit(**/.env.*.local)",
+      "Read(**/.env.production)",
+      "Edit(**/.env.production)",
+      "Read(**/.env.prod)",
+      "Edit(**/.env.prod)",
+      "Read(**/.env.staging)",
+      "Edit(**/.env.staging)",
+      "Read(**/.env.development)",
+      "Edit(**/.env.development)",
+      "Read(**/.env.test)",
+      "Edit(**/.env.test)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Bash(gh api *)",
+      "Bash(gh repo edit *)",
+      "Bash(gh ruleset *)",
+      "Bash(gh secret *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force*)",
+      "Bash(git push origin main*)",
+      "Bash(git push origin HEAD:main*)",
+      "Bash(git push * main)",
+      "Bash(git push --delete *)",
+      "Bash(git push origin --delete *)",
+      "Bash(git push origin :*)",
+      "Bash(git reset --hard origin/*)",
+      "Bash(git worktree remove *)",
+      "Bash(git branch -D *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(gh pr merge * --admin*)",
+      "Bash(gh pr merge --admin*)",
+      "Bash(netlify env:set *)",
+      "Bash(netlify env:unset *)",
+      "Bash(netlify env:import *)",
+      "Bash(netlify sites:delete *)",
+      "Bash(npx netlify env:set *)",
+      "Bash(npx netlify env:unset *)",
+      "Bash(npx netlify sites:delete *)",
+      "Bash(git push *:main*)",
+      "Bash(git push *:refs/heads/main*)",
+      "Bash(git push *+*)",
+      "Bash(git push --mirror*)",
+      "Bash(git push * --mirror*)",
+      "Bash(git push --all*)",
+      "Bash(git push * --all*)",
+      "Bash(git push -d *)",
+      "Bash(git push * -d *)",
+      "Bash(git push * -f*)",
+      "Bash(git clean *)",
+      "Bash(netlify env*)",
+      "Bash(npx netlify env*)",
+      "Bash(netlify api *)",
+      "Bash(npx netlify api *)",
+      "Bash(npx netlify sites:delete*)",
+      "Bash(npx netlify env:import *)",
+      "Bash(gh repo delete *)",
+      "Bash(gh repo rename *)",
+      "Bash(gh repo archive *)",
+      "Bash(gh release delete *)",
+      "Bash(gh variable *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check.sh",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-context.sh",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-context.sh",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-context.sh",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-context.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/precompact.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
+  },
+  "model": "claude-opus-5-5"
+}
