@@ -82,6 +82,21 @@ has no title).
 
 - F01 does not pass, and its PR is not merged, until the owner approves a design for PathCheck.
   The evaluator's PASS is not enough on its own.
+- The owner approved none of the first three designs (Worksheet, Credit map, Plain answers).
+- New round: three directions built to `docs/M0-DESIGN-BRIEF.md` (the owner's brief, copied as
+  written), with Apple's interface guidance applied, including Liquid Glass. Where that brief
+  differs from `docs/BRIEF.md`, it wins:
+  - "Frosted glass" comes off the banned list in brief §8. The rest of the list stays.
+  - M0 now covers three pages (Start, "Check my courses" result, "See what I have left"
+    result), not two.
+  - No-transcript answer for a curriculum course: "Counts toward CIS — <block>" with
+    "unless you've already passed it or filled this slot" as a second line. The elective
+    sentence stays "Counts toward CIS: elective (300/400-level MKT)" with the same second line.
+  - A course outside the curriculum is shown with its credits (BIO 230, 3 cr) and is included
+    in the credit total.
+  - A block with courses in progress and courses missing reads "In progress" (Social
+    sciences, Humanities, Pre-professional in the brief's example).
+  - Do not merge or move ahead with the design until the owner approves.
 
 ## Milestone checks
 

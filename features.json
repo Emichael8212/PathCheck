@@ -31,21 +31,22 @@
     {
       "id": "F01",
       "milestone": "M0",
-      "description": "Three visually distinct static mockups of Flow A's result and Flow B's checklist + plan, for the owner to pick one",
+      "description": "Three visually distinct static mockups of the Start page, the \"Check my courses\" result and the \"See what I have left\" result, for the owner to pick one",
       "steps": [
-        "Open each of the 3 mockups from one index page; each shows Flow A's result and Flow B's degree checklist + draft plan, using synthetic data only",
-        "The three are visually distinct directions, and each reads as the student's CIS degree checklist (Done / In progress / Still needed) without copying any vendor's look",
-        "Each shows one question and one big answer per screen, with everything else hidden until asked for",
-        "None uses a banned element: pill tab steppers, frosted glass, a card around everything, icon-in-circle feature lists, uppercase grey table headers, a default blue primary button, toasts, legends, multiple side panels",
-        "All colors are CSS tokens with light and dark mode, contrast meets WCAG AA, and at 375px wide nothing is hidden or overlapping",
-        "Each shows the name PathCheck and \"Not affiliated with Alabama State University\", with no ASU logo or school colors",
-        "Stop: the owner picks one mockup; the answer is recorded in docs/decision-log.md"
+        "Open each of the 3 mockups from one index page; each shows the three pages in docs/M0-DESIGN-BRIEF.md (Start, the \"Check my courses\" result, the \"See what I have left\" result) with the brief's content and wording, using synthetic student data only",
+        "The three are visually distinct directions, each with its own short rationale, each designed for this problem and these students and not a generic web-app or SaaS template",
+        "Apple's interface guidance is applied, including Liquid Glass: glass only on floating controls and navigation, never on content, with opaque fallbacks",
+        "On the \"Check my courses\" result, \"Doesn't count\" is unmistakable without being alarming, and no course is shown as counting without its condition",
+        "On the \"See what I have left\" result, what's left and the pace answer are obvious at a glance on a phone",
+        "None uses a banned element: pill tab steppers, a card around everything, icon-in-circle feature lists, uppercase grey table headers, a default blue primary button, toasts, legends, multiple side panels",
+        "Each page works at 1440px and 375px wide, in light and dark mode; all colors are named variables; contrast meets WCAG AA; every status has a word and a non-color cue; course codes never break and 0/O, 1/l are distinct; touch targets are at least 44px on real, labelled controls",
+        "Each shows the name PathCheck and \"Not affiliated with Alabama State University\", with no university logo or school colors",
+        "Content questions that could not be resolved are listed for the owner, not guessed",
+        "Stop: the owner approves one design; F01 passes and its PR is merged only then; the answer is recorded in docs/decision-log.md"
       ],
       "passes": false,
-      "evidence": "docs/sprints/F01.md — evaluator QA round 2 PASS; not passing until the owner approves a design",
-      "tests": [
-        "tests/mockups.test.js"
-      ]
+      "evidence": "",
+      "tests": []
     },
     {
       "id": "F02",
