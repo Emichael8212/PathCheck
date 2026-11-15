@@ -3,10 +3,16 @@
 // (`git -C . push --force`, `npx netlify env:set ...`, `cat .env.local`), so this checks the
 // whole command text with regexes. Exit 2 blocks the call and tells Claude why.
 // This is defense in depth, not a sandbox: code run by node/npm can still read files.
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 let cmd = '';
-try { cmd = JSON.parse(readFileSync(0, 'utf8'))?.tool_input?.command ?? ''; } catch { process.exit(0); }
+let cwd = process.cwd();
+try {
+  const input = JSON.parse(readFileSync(0, 'utf8'));
+  cmd = input?.tool_input?.command ?? '';
+  if (typeof input?.cwd === 'string' && input.cwd) cwd = input.cwd;
+} catch { process.exit(0); }
 if (typeof cmd !== 'string' || cmd === '') process.exit(0);
 
 const block = why => {
@@ -23,8 +29,29 @@ const forEachArgs = (re, fn) => { for (const m of cmd.matchAll(re)) fn(m[1] ?? '
 // Messages may mention ".env"; allow that only when nothing in the command executes.
 const messageOnly = /^\s*(git\s+commit|gh\s+pr\s+(create|edit|comment))\b/.test(cmd) && !/\$\(|`|<|\||;|&|\n/.test(cmd) && !/(^|\s)(--body-file|-F)(?=[\s=]|$)/.test(cmd);
 if (!messageOnly && /(^|[\s'"`=:/(<])\.env(\.(?!example\b)[\w.-]+)?(?=$|[\s'"`;|&)>/*])/.test(cmd)) block('reads or touches a .env secret file');
+// Spellings the shell would turn into a secret file name: quotes or backslashes inside the
+// name (.e"nv"), and globs or braces on a dotfile name (.e*, .en?, .[e]nv, .{env,x}).
+const unquoted = cmd.replace(/['"\\]/g, '');
+if (!messageOnly && unquoted !== cmd && /(^|[\s=:/(<])\.env(\.(?!example\b)[\w.-]+)?(?=$|[\s;|&)>/*])/.test(unquoted)) block('reads or touches a .env secret file');
+const secretNames = ['.env', '.env.local', '.env.production', '.env.development', '.env.staging', '.env.test'];
+const globToRegex = glob => new RegExp('^' + glob
+  .replace(/[.+^$()|]/g, '\\$&')
+  .replace(/\{([^{}]*)\}/g, (_, list) => '(' + list.split(',').join('|') + ')')
+  .replace(/\*/g, '.*')
+  .replace(/\?/g, '.') + '$');
+if (!messageOnly) {
+  for (const token of unquoted.split(/[\s;|&()<>=]+/)) {
+    const name = token.slice(token.lastIndexOf('/') + 1);
+    if (!name.startsWith('.') || !/[*?[{]/.test(name)) continue;
+    let matches = false;
+    try { const re = globToRegex(name); matches = secretNames.some(secret => re.test(secret)); } catch { matches = true; }
+    if (matches) block('uses a wildcard that matches a .env secret file');
+  }
+}
 if (/\.(pem|key)\b(?=$|[\s'"`;|&)])/.test(cmd)) block('touches a private key file');
 if (/(^|[|;&]\s*|\$\(\s*)(printenv|env|export\s+-p|set)(?=\s*($|[|;&>)]))/.test(cmd)) block('prints environment variables');
+if (/(^|[|;&]\s*|\$\(\s*)(printenv|declare\s+-p|typeset\s+-p)\b/.test(cmd)) block('prints an environment variable');
+if (/\$\{?!?\w*(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)\w*/i.test(cmd)) block('reads a secret-named environment variable');
 if (/\.config\/gh\/hosts|\.netlify\/|\.config\/netlify|Library\/Preferences\/netlify|\bsecurity\s+find-(generic|internet)-password\b|\bgh\s+auth\s+token\b/.test(cmd)) block('reads a stored login token');
 
 // --- Git ---------------------------------------------------------------------------
@@ -32,6 +59,14 @@ forEachArgs(gitSub('push'), args => {
   if (/(^|\s|:)['"]?(refs\/heads\/)?(main|master)['"]?(?=\s|$)/.test(args)) block('pushes to main');
   if (/(^|\s)(-[a-zA-Z]*[fd][a-zA-Z]*|--force\S*|--mirror|--all|--delete|--prune)(?=\s|$)/.test(args)) block('force/mirror/delete push');
   if (/\s['"]?[+:]\S/.test(args)) block('force (+) or delete (:) refspec push');
+  // A push that names no branch (or HEAD) pushes the current branch: not allowed on main.
+  const refspecs = args.trim().split(/\s+/).filter(word => word && !word.startsWith('-')).slice(1);
+  if (refspecs.length === 0 || refspecs.some(ref => /^['"]?(HEAD|@)['"]?$/.test(ref))) {
+    if (/\bgit\b[^|;&]*\b(checkout|switch)\b[^|;&]*\b(main|master)\b/.test(cmd)) block('pushes the current branch after switching to main');
+    let branch = '';
+    try { branch = execFileSync('git', ['branch', '--show-current'], { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { /* not a repository */ }
+    if (branch === 'main' || branch === 'master') block('pushes the current branch, which is main');
+  }
 });
 if (gitSub('clean|filter-branch|filter-repo').test(cmd)) block('git clean or history rewrite');
 if (gitSub(String.raw`reset\s+--hard|branch\s+-D|worktree\s+remove|update-ref\s+-d`).test(cmd)) block('destructive git operation');
