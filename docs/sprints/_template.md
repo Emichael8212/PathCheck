@@ -23,4 +23,4 @@ Milestone: <M0–M3> · Branch: `feat/<ID>-<short-name>` · Brief sections: §<n
 <!-- Round N: VERDICT, scores (Functionality / Clarity / Visual / Truthfulness), defects. Max 5. -->
 
 ## Result
-<!-- PASS (PR link) or BLOCKED (remaining defects / question for the owner). -->
+<!-- First line: one word for the outcome, then the PR link, or the remaining defects / question for the owner. -->

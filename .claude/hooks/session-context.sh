@@ -9,7 +9,7 @@ id=$(printf '%s' "$branch" | sed -n 's|^feat/\([A-Za-z0-9]*\)-.*|\1|p')
 echo "PathCheck state (from disk — trust this over any summary):"
 echo "- Branch: ${branch:-unknown}; HEAD: $(git log --oneline -1 2>/dev/null)"
 echo "- Uncommitted files: $(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
-node scripts/status.mjs 2>/dev/null | sed 's/^/- /' || echo "- Features: unknown (node missing or features.json unreadable)"
+node scripts/status.mjs 2>/dev/null | sed 's/^/- /'
 echo "- Rules: docs/BRIEF.md is the spec; re-read CLAUDE.md before acting; hard limits are enforced by .claude/hooks/guard.mjs."
 if [ -n "$id" ]; then
   [ -f "docs/sprints/$id.md" ] && echo "- Current sprint contract: docs/sprints/$id.md — re-read it and resume from its last recorded step."

@@ -17,7 +17,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 
 ## Open questions for the owner
 
-Asked in the setup PR; answers get recorded here.
+Asked in the setup PR (#1); answers get recorded here.
+
+1. Titles and credits for FIN 201, FLS 161, MGT 220 and MGT 203 (the data has only their codes).
+2. Elective courses matched only by the rule (e.g. a 400-level MKT course): what title and credits does Flow A show without a transcript?
+3. Two typed courses for the same slot without a transcript (e.g. ENG 131 and ENG 140): what does the second one say?
+4. "Below C": does the transcript show plus/minus grades (is C− below C), and do pass-type grades (P, S, CR) count?
+5. Sequence rule reading (M0).
 
 ## Milestone checks
 

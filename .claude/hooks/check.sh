@@ -8,7 +8,7 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 [ -f package.json ] || exit 0
 [ -t 0 ] || cat >/dev/null 2>&1   # hook input JSON is not needed; drain stdin
 
-paths=(src tests netlify docs/curriculum features.json index.html package.json package-lock.json tsconfig.json tsconfig.*.json vite.config.ts vitest.config.ts eslint.config.js)
+paths=(src tests scripts netlify docs/curriculum features.json index.html package.json package-lock.json tsconfig.json tsconfig.*.json vite.config.ts vitest.config.ts eslint.config.js)
 h() { shasum | cut -c1-12; }
 tracked=$(git diff HEAD -- "${paths[@]}" 2>/dev/null | h)
 untracked=$(git ls-files -o --exclude-standard -z -- "${paths[@]}" 2>/dev/null | xargs -0 shasum 2>/dev/null | h)

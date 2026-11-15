@@ -2,7 +2,7 @@
   "_rules": [
     "Source: docs/BRIEF.md sections 4-9 (owner-approved). If an entry and the brief disagree, the brief wins: stop and tell the owner.",
     "Never change id, milestone, description or steps without the owner's approval. Only passes, evidence and tests change.",
-    "passes may become true only when tests names the automated test(s) that prove every step, the evaluator's verdict is PASS, and evidence points to docs/sprints/<id>.md.",
+    "passes may become true only when tests names the automated test(s) that prove every step, the evaluator's verdict is PASS, and evidence points to docs/sprints/<id>.md. Steps starting with \"Stop:\" are the owner's milestone check: they happen after the feature passes and are recorded in docs/decision-log.md.",
     "Work in order. Do not start a milestone's features until the owner has checked the previous milestone."
   ],
   "milestones": [
@@ -48,7 +48,7 @@
     {
       "id": "F02",
       "milestone": "M1",
-      "description": "Curriculum loaded as data: the one B.S. CIS curriculum (121 credits), with nothing CIS-specific in code",
+      "description": "Curriculum loaded as data: the one B.S. CIS curriculum (121 credits), stored so other majors can be added later",
       "steps": [
         "The app reads the curriculum from the data file in docs/curriculum/, so another College of Business major could be added later as data; there is no multi-major UI",
         "The blocks, credits, required courses and choices match the table in brief section 5 exactly, and the block credits total 121",
@@ -171,7 +171,7 @@
         "The reader's output is checked by plain code (shape, course code, credits, grade) before use; an invalid row is never counted and is shown for the student to fix",
         "Each valid row is matched to the curriculum by ASU course code; an unmatched row never fills a requirement",
         "Synthetic transcripts only: the tests and the localhost upload use synthetic transcript PDFs and rows, with no real student data in the repository",
-        "The reader passes on the synthetic transcripts (expected rows equal actual rows)"
+        "At M1 there is no Gemini call: synthetic reader output (fixture rows for each synthetic transcript) goes through this validation and matching"
       ],
       "passes": false,
       "evidence": "",
@@ -328,7 +328,7 @@
         "The Gemini key stays server-side: it is not in the repository, the built site or any browser request",
         "The PDF is never stored, and no transcript contents appear in logs",
         "The function's output goes through the same validation and curriculum matching as F10 before anything counts",
-        "Automated tests use synthetic transcripts only"
+        "The transcript reader passes on the synthetic transcripts: the function returns the expected rows for each synthetic PDF (tests use synthetic transcripts only)"
       ],
       "passes": false,
       "evidence": "",

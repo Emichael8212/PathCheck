@@ -4,7 +4,7 @@ description: Implement, verify, merge and record the next failing feature in fea
 ---
 Feature: $ARGUMENTS (if empty, the "Next feature" printed by `node scripts/status.mjs`:
 the first entry of the current milestone in `features.json` with `"passes": false` that
-is not BLOCKED in its `docs/sprints/<id>.md` "Result"). Never start a feature of a later
+is not BLOCKED: a line starting with BLOCKED under "## Result" in its `docs/sprints/<id>.md`). Never start a feature of a later
 milestone before the owner has checked the current one.
 
 You build. The `evaluator` subagent is QA. The `reviewer` subagent reviews code. They
@@ -27,7 +27,7 @@ except academic rules, which you never invent: stop and ask the owner.
    milestone. Commit.
 5. Implement with real behavior and tests; synthetic data only. Prefer deleting and
    simplifying over adding. Commit at each working step.
-6. Self-check: `npm run check` (lint, typecheck, tests), plus any browser tests the
+6. Self-check: `npm run check` (lint, typecheck, tests, build), plus any browser tests the
    change affects.
 7. **QA.** Run the `evaluator` (Mode 2) against the contract. Record the round in the
    sprint file (verdict, scores, defects). On FAIL, fix and re-run. After 5 FAIL rounds,

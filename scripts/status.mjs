@@ -15,7 +15,11 @@ try {
 }
 
 const blocked = id => {
-  try { return /##\s*Result[\s\S]*BLOCKED/.test(read(`docs/sprints/${id}.md`)); } catch { return false; }
+  // BLOCKED = a line starting with that word inside the sprint file's "## Result" section.
+  try {
+    const result = read(`docs/sprints/${id}.md`).split(/^## /m).find(section => section.startsWith('Result'));
+    return /^\s*BLOCKED\b/m.test(result ?? '');
+  } catch { return false; }
 };
 
 const { features, milestones } = data;

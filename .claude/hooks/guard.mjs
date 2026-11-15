@@ -15,17 +15,17 @@ const block = why => {
   process.exit(2);
 };
 
-// `git [-C dir] [-c k=v] <sub> <args...>` — args captured up to the next shell separator.
-const gitSub = sub => new RegExp(String.raw`\bgit(?:\s+-[Cc]\s+\S+)*\s+(?:${sub})\b([^|;&]*)`, 'g');
+// `git [-C dir] [-c k=v] [--any-global-option] <sub> <args...>` — args captured up to the next shell separator.
+const gitSub = sub => new RegExp(String.raw`\bgit(?:\s+(?:-[Cc]\s+\S+|--?[\w-]+(?:=\S+)?))*\s+(?:${sub})\b([^|;&]*)`, 'g');
 const forEachArgs = (re, fn) => { for (const m of cmd.matchAll(re)) fn(m[1] ?? ''); };
 
 // --- Secrets -------------------------------------------------------------------------
 // Messages may mention ".env"; allow that only when nothing in the command executes.
-const messageOnly = /^\s*(git\s+commit|gh\s+pr\s+(create|edit|comment))\b/.test(cmd) && !/\$\(|`|<|\|/.test(cmd);
+const messageOnly = /^\s*(git\s+commit|gh\s+pr\s+(create|edit|comment))\b/.test(cmd) && !/\$\(|`|<|\||;|&|\n/.test(cmd) && !/(^|\s)(--body-file|-F)(?=[\s=]|$)/.test(cmd);
 if (!messageOnly && /(^|[\s'"`=:/(<])\.env(\.(?!example\b)[\w.-]+)?(?=$|[\s'"`;|&)>/*])/.test(cmd)) block('reads or touches a .env secret file');
 if (/\.(pem|key)\b(?=$|[\s'"`;|&)])/.test(cmd)) block('touches a private key file');
 if (/(^|[|;&]\s*|\$\(\s*)(printenv|env|export\s+-p|set)(?=\s*($|[|;&>)]))/.test(cmd)) block('prints environment variables');
-if (/\.config\/gh\/hosts|\.netlify\/|\.config\/netlify|\bsecurity\s+find-(generic|internet)-password\b|\bgh\s+auth\s+token\b/.test(cmd)) block('reads a stored login token');
+if (/\.config\/gh\/hosts|\.netlify\/|\.config\/netlify|Library\/Preferences\/netlify|\bsecurity\s+find-(generic|internet)-password\b|\bgh\s+auth\s+token\b/.test(cmd)) block('reads a stored login token');
 
 // --- Git ---------------------------------------------------------------------------
 forEachArgs(gitSub('push'), args => {
@@ -40,6 +40,8 @@ if (gitSub(String.raw`reset\s+--hard|branch\s+-D|worktree\s+remove|update-ref\s+
 if (/\bgh\s+(api|secret|ruleset|variable)\b/.test(cmd)) block('GitHub API/secret/ruleset access');
 if (/\bgh\s+(repo\s+(edit|delete|rename|archive)|release\s+delete)\b/.test(cmd)) block('changes GitHub repository settings');
 if (/\bgh\s+pr\s+merge\b[^|;&]*--admin\b/.test(cmd)) block('admin merge bypass');
+if (/\bgh\s+(workflow\s+(disable|enable)|run\s+(cancel|delete))\b/.test(cmd)) block('disables or cancels CI');
+if (/\[(skip[ -](ci|actions)|(ci|actions)[ -]skip|no[ -]ci)\]/i.test(cmd)) block('skips CI');
 
 // --- Netlify (bare or via npx) ---------------------------------------------------------
 if (/\bnetlify\s+(env(:\S*)?|api|sites:delete)(?=\s|$)/.test(cmd)) block('Netlify env/secret or admin API');
