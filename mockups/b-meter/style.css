@@ -145,17 +145,18 @@ h3 { font-size: 1.125rem; font-weight: 700; }
 .no-summary .mark { width: 2rem; height: 2rem; }
 .meter-note { font-size: 0.9375rem; }
 .rows { display: grid; gap: 0.75rem; }
-/* Each row hangs from its own piece of the meter. */
 .rows > li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.15rem 0.75rem; align-items: start; padding: 0 0 0.9rem; }
-.rows > li::before { content: ""; grid-column: 1 / -1; height: 0.9rem; margin-bottom: 0.6rem; border: 2px solid var(--line); border-radius: 0.35rem; }
-.rows .mark { grid-row: 2 / span 3; margin-top: 0.15rem; }
+.rows > li { border-top: 2px solid var(--line); padding-top: 0.75rem; }
+.rows > li::before { content: none; }
+.rows .mark { grid-row: 1 / span 3; margin-top: 0.15rem; }
+.rows > li.no > .mark { grid-row: 2 / span 3; }
 .what .cr { color: var(--muted); white-space: nowrap; }
 .verdict, .remove { grid-column: 2; }
 .answer { font-weight: 700; }
 .remove { justify-self: start; margin-top: 0.4rem; }
 /* Doesn't count: the row is outlined heavily and tinted, with the octagon and bold words. */
-.row.no { background: var(--no-fill); outline: 3px solid var(--no); color: var(--on-no); padding: 0 0.75rem 0.9rem; border-radius: 0.35rem; }
-.rows > li.no::before { margin: 0 -0.75rem 0.6rem; border: 0; border-bottom: 3px solid var(--no); border-radius: 0; background: repeating-linear-gradient(90deg, var(--no) 0 3px, var(--no-fill) 3px 12px); }
+.row.no { background: var(--no-fill); outline: 3px solid var(--no); color: var(--on-no); padding: 0 0.75rem 0.9rem; border-radius: 0.35rem; border-top: 0; }
+.rows > li.no::before { content: ""; grid-column: 1 / -1; height: 0.9rem; margin: 0 -0.75rem 0.6rem; border: 0; border-bottom: 3px solid var(--no); border-radius: 0; background: repeating-linear-gradient(90deg, var(--no) 0 3px, var(--no-fill) 3px 12px); }
 .row.no > .mark { color: var(--on-no); width: 1.9rem; height: 1.9rem; }
 .row.no .cr { color: var(--on-no); }
 .row.no .answer { font-size: 1.125rem; }
