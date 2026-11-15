@@ -1,24 +1,29 @@
 /* The chooser page is deliberately plain so it doesn't compete with the three designs. */
 :root {
   --bg: #ffffff;
-  --text: #1c2430;
-  --muted: #4d5866;
-  --focus: #7a3cc4;
+  --text: #17202a;
+  --muted: #4c5a67;
+  --line: #6a7783;
+  --focus: #6d28d9;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14181d;
-    --text: #e8ecf1;
-    --muted: #a7b1bd;
-    --focus: #c9a2ff;
+    --bg: #11161b;
+    --text: #e9eef2;
+    --muted: #a9b5c0;
+    --line: #8795a2;
+    --focus: #c4a5ff;
   }
 }
-body { margin: 0; background: var(--bg); color: var(--text); font: 1.0625rem/1.5 system-ui, sans-serif; }
-main { max-width: 38rem; margin: 0 auto; padding: 2rem 1rem 3rem; }
-h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 0.75rem; }
-h2 { font-size: 1.25rem; margin: 0; }
-p { margin: 0 0 0.5rem; }
-ol { padding-left: 1.5rem; margin: 2rem 0; display: grid; gap: 1.5rem; }
-a { color: var(--text); margin-right: 1.25rem; text-underline-offset: 0.2em; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 1.0625rem/1.55 system-ui, sans-serif; }
+main { max-width: 44rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 0.75rem; }
+h2 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+h3 { font-size: 1.0625rem; margin: 1rem 0 0.2rem; }
+p { margin: 0 0 0.6rem; }
+section { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 2px solid var(--line); }
+ul, ol { padding-left: 1.4rem; margin: 0.5rem 0; display: grid; gap: 0.5rem; }
+.links { display: flex; flex-wrap: wrap; gap: 0 1.5rem; }
+a { color: var(--text); text-underline-offset: 0.2em; display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.small { font-size: 0.875rem; color: var(--muted); }
+.small { font-size: 0.875rem; color: var(--muted); margin-top: 2.5rem; }

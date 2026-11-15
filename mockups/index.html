@@ -3,33 +3,143 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PathCheck mockups</title>
+    <title>PathCheck designs</title>
     <link rel="stylesheet" href="index.css" />
   </head>
   <body>
     <main>
-      <h1>PathCheck: three designs to choose from</h1>
+      <h1>PathCheck: three design directions</h1>
       <p>
-        Each design shows the same two screens with the same made-up student. Open them on your
-        phone and your computer, in light and dark mode, and pick one. The buttons don't work yet.
+        Each direction shows the same three pages with the same content from your design brief.
+        Open them on a phone and on a desktop, in light and in dark mode. The student is made up,
+        and most buttons don't work yet. Nothing here is approved until you say so.
       </p>
-      <ol>
-        <li>
-          <h2>Worksheet</h2>
-          <p>An advising sheet marked by hand: tick boxes and highlighter.</p>
-          <p><a href="1-worksheet/check.html">Check my courses</a> <a href="1-worksheet/left.html">See what I have left</a></p>
-        </li>
-        <li>
-          <h2>Credit map</h2>
-          <p>The degree as 121 squares, one per credit, filling in as you go.</p>
-          <p><a href="2-credit-map/check.html">Check my courses</a> <a href="2-credit-map/left.html">See what I have left</a></p>
-        </li>
-        <li>
-          <h2>Plain answers</h2>
-          <p>Wide bands of color and large type: one answer per band.</p>
-          <p><a href="3-plain-answers/check.html">Check my courses</a> <a href="3-plain-answers/left.html">See what I have left</a></p>
-        </li>
-      </ol>
+
+      <section id="a">
+        <h2>A. Receipt</h2>
+        <p class="links">
+          <a href="a-receipt/start.html">Start</a>
+          <a href="a-receipt/check.html">Check my courses</a>
+          <a href="a-receipt/left.html">See what I have left</a>
+        </p>
+        <h3>Why this direction</h3>
+        <p>
+          The harm in this problem is paying for a course that doesn't count. So the result is
+          drawn as the thing people already check before they pay: a receipt. Courses are line
+          items on a strip of paper with credits in a mono face, and the total sits where a total
+          sits. Students who are anxious about money read a receipt without being taught how.
+          Page 3 is the matching statement: 121 total, minus 27 counted, minus 13 in progress,
+          leaves 81. The type is IBM Plex Sans with IBM Plex Mono for codes and figures, whose
+          zero is dotted so MGT 201 can't be misread.
+        </p>
+        <h3>How page 2 makes "Doesn't count" impossible to miss</h3>
+        <p>
+          Three ways at once. The two courses are named in a ruled box before the list starts
+          ("2 don't count: BIO 230, ENG 140"). In the list, each is a voided line: a hatched band
+          with a heavy edge that no other row has. And each carries the octagon-with-a-cross mark
+          and the words in bold. It reads as a line struck from a receipt, which is information,
+          not an alarm.
+        </p>
+        <h3>How page 3 makes "what's left" obvious on a phone</h3>
+        <p>
+          "81 credits left" is the heading and "On pace for Spring 2029" is the line under it, so
+          both are on the first screen. The subtraction beside it shows where 81 comes from
+          without a chart to decode.
+        </p>
+      </section>
+
+      <section id="b">
+        <h2>B. Meter</h2>
+        <p class="links">
+          <a href="b-meter/start.html">Start</a>
+          <a href="b-meter/check.html">Check my courses</a>
+          <a href="b-meter/left.html">See what I have left</a>
+        </p>
+        <h3>Why this direction</h3>
+        <p>
+          The fear behind the problem is graduating late, which is a question of distance. This
+          direction draws the degree as one bar, 121 credits long, and shows where the student is
+          on it. Solid is counted, striped is being taken now, open is still to do, and each part
+          has its number and its word written on it, so there is no key to look up. The same bar
+          returns smaller on every requirement and above every course. The type is Atkinson
+          Hyperlegible, a face drawn so that look-alike characters differ, in one weight pair
+          for everything: friendly for a first-year, and course codes stay unambiguous.
+        </p>
+        <h3>How page 2 makes "Doesn't count" impossible to miss</h3>
+        <p>
+          The strip at the top has one cell per course. Four are striped; two are crossed out and
+          labelled "Doesn't count" with the course code, so the answer is visible before reading
+          a single row. Below, those two rows are the only tinted, outlined ones on the page, with
+          the octagon mark and larger words. The other rows never say "counts" without the
+          condition under it.
+        </p>
+        <h3>How page 3 makes "what's left" obvious on a phone</h3>
+        <p>
+          The first screen is the number, the pace, and the bar. The open part of the bar is by
+          far the longest, and it is labelled "81 left". A student sees how far there is to go
+          before reading anything else.
+        </p>
+      </section>
+
+      <section id="c">
+        <h2>C. Signs</h2>
+        <p class="links">
+          <a href="c-signs/start.html">Start</a>
+          <a href="c-signs/check.html">Check my courses</a>
+          <a href="c-signs/left.html">See what I have left</a>
+        </p>
+        <h3>Why this direction</h3>
+        <p>
+          Students use this for a minute, on a phone, during registration week, and nobody reads
+          instructions. Road signs are built for exactly that: a shape and a few large words,
+          understood at a glance. Each answer here is a sign. The type is Barlow, a family drawn
+          from highway signage, set large and condensed, with JetBrains Mono for course codes.
+          The page is black on white with almost no color, so it prints cleanly when an advisor
+          wants a copy. On a desktop the signs line up as a table that two people can scan
+          together.
+        </p>
+        <h3>How page 2 makes "Doesn't count" impossible to miss</h3>
+        <p>
+          It is the only inverted thing on the page. A black band at the top names the two
+          courses, and their rows are black bands too, with the octagon mark and the largest
+          words in the list. It doesn't rely on color at all, and there is no red: it reads as a
+          sign, not a warning light.
+        </p>
+        <h3>How page 3 makes "what's left" obvious on a phone</h3>
+        <p>
+          "81 credits left" fills the first screen in the largest type in the design, with the
+          pace answer directly under it. Each requirement then leads with a large shape: a solid
+          disc for Done, a half disc for In progress, an empty ring for Still needed.
+        </p>
+      </section>
+
+      <section id="shared">
+        <h2>What all three take from Apple's guidelines</h2>
+        <ul>
+          <li>Liquid Glass is only on the things that float above the page: the bar at the top, the bar at the bottom, and the suggestion menu. The content itself is never glass, and glass is never stacked on glass.</li>
+          <li>The page scrolls under the bars.</li>
+          <li>Buttons are capsule-shaped and at least 44 pixels tall. Each screen has one tinted action; on Start the two ways in are equal.</li>
+          <li>Every status has a word and its own shape: open circle with a tick (Counts), octagon with a cross (Doesn't count), solid disc (Done), half disc (In progress), dashed ring (Still needed).</li>
+          <li>If the device has Reduce Transparency or Increase Contrast on, the bars turn solid. With Reduce Motion on, the "How it works" demo doesn't move.</li>
+          <li>Apple doesn't allow its own fonts and icons to be embedded on a website, so each direction ships open-licence fonts and draws its own marks.</li>
+        </ul>
+      </section>
+
+      <section id="questions">
+        <h2>Questions I could not resolve from the brief</h2>
+        <ol>
+          <li><strong>"15 count toward CIS."</strong> The four courses marked as counting are 3 credits each, which is 12. Fifteen would need BIO 230 or ENG 140 to count. The mockups show 12. Which is right?</li>
+          <li><strong>The condition on the count line.</strong> I added "unless you've already passed them or filled their slots" beside "12 count toward CIS", so the summary never promises more than the rows do. Keep it?</li>
+          <li><strong>Credit notes at 18 credits.</strong> Neither note applies at exactly 18. The mockups show both as quiet lines under the total. In the app, should a note appear only when it applies?</li>
+          <li><strong>"2 don't count: BIO 230, ENG 140."</strong> I added this line at the top of page 2 in all three directions. It isn't in the brief. Keep it?</li>
+          <li><strong>Done blocks.</strong> The brief names no courses for Orientation, Composition and Science &amp; math, so they show only the name, credits and "Done". In the app, should a Done block open to list its courses?</li>
+          <li><strong>The suggestion example.</strong> Typing "mgt 3" suggests MGT 321, which is already in the list. In the app, should a course that is already added still be suggested?</li>
+          <li><strong>"Open choice".</strong> I used this tag on the plan's pick and elective entries to show they aren't real courses. Is the wording right?</li>
+          <li><strong>The bar labels.</strong> The top bar says "Check courses" and "What's left" to fit a phone. The Start page uses the full names. Acceptable?</li>
+          <li><strong>The demo.</strong> "How it works" is three still frames that fade in turn, with a pause control. Do you want that, a recorded video, or nothing?</li>
+        </ol>
+      </section>
+
       <p class="small">Not affiliated with Alabama State University.</p>
     </main>
   </body>

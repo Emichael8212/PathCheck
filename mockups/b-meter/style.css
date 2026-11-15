@@ -1,0 +1,205 @@
+/* Direction B — Meter. Deep teal ink on pale sea-glass green, violet for the one action.
+   Atkinson Hyperlegible throughout: a face drawn so that similar characters differ. */
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 400; font-display: swap; src: url("../fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-weight: 700; font-display: swap; src: url("../fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  --bg: #e6f2ef;
+  --surface: #ffffff;
+  --text: #0f2a33;
+  --muted: #3f5a64;
+  --line: #5a757f;
+  --accent: #5a36c9;
+  --on-accent: #ffffff;
+  --focus: #b0005a;
+  --counts: #1a654a;
+  --done: #0f2a33;
+  --progress: #754b00;
+  --needed: #3f5a64;
+  --no: #a3123f;
+  --no-fill: #ffe3ea;
+  --on-no: #5e0a24;
+  --done-fill: #cfe4df;
+  --progress-fill: #ffedc0;
+  --glass: #ffffffcc;
+  --glass-solid: #ffffff;
+  --glass-edge: #ffffffcc;
+  --glass-shadow: #0f2a332e;
+  --glass-shine: #ffffffe6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1d22;
+    --surface: #152e37;
+    --text: #e6f2f0;
+    --muted: #a8c0c5;
+    --line: #86a0a6;
+    --accent: #b9a4ff;
+    --on-accent: #1a0f47;
+    --focus: #ff8fc0;
+    --counts: #7fd9b6;
+    --done: #e6f2f0;
+    --progress: #f0c35a;
+    --needed: #a8c0c5;
+    --no: #ff9ab5;
+    --no-fill: #4d1326;
+    --on-no: #ffd6e0;
+    --done-fill: #1f3d47;
+    --progress-fill: #4a3a08;
+    --glass: #152e37e6;
+    --glass-solid: #152e37;
+    --glass-edge: #ffffff24;
+    --glass-shadow: #00000080;
+    --glass-shine: #ffffff1f;
+  }
+}
+@media print {
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --text: #0f2a33;
+    --muted: #3f5a64;
+    --line: #5a757f;
+    --accent: #5a36c9;
+    --on-accent: #ffffff;
+    --focus: #b0005a;
+    --counts: #1a654a;
+    --done: #0f2a33;
+    --progress: #754b00;
+    --needed: #3f5a64;
+    --no: #a3123f;
+    --no-fill: #ffe3ea;
+    --on-no: #5e0a24;
+    --done-fill: #cfe4df;
+    --progress-fill: #ffedc0;
+    --glass: #ffffffcc;
+    --glass-solid: #ffffff;
+    --glass-edge: #ffffffcc;
+    --glass-shadow: #0f2a332e;
+    --glass-shine: #ffffffe6;
+  }
+}
+
+html {
+  --code-font: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --code-weight: 700;
+  --bar-width: 36rem;
+  font: 1.0625rem/1.5 "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+main { max-width: 80rem; margin: 0 auto; padding: 0 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+h1 { font-size: clamp(2rem, 7vw, 4rem); line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.5rem; font-weight: 700; }
+h3 { font-size: 1.125rem; font-weight: 700; }
+.term-name, .cond, .pace-detail, .way-note, .note, .seg-extra, .meter-total, .meter-note { color: var(--muted); }
+
+/* ---- The meter ---- */
+.meter { display: flex; gap: 4px; }
+.seg { flex: 1 1 0; min-width: 0; display: grid; gap: 0.35rem; align-content: start; }
+.seg-bar { height: 1.75rem; border-radius: 0.5rem; border: 2px solid var(--text); }
+.seg.done .seg-bar { background: var(--done); }
+.seg.progress .seg-bar { background: repeating-linear-gradient(135deg, var(--progress) 0 3px, var(--bg) 3px 8px); border-color: var(--progress); }
+.seg.needed .seg-bar { border-style: dashed; border-color: var(--needed); }
+.seg.counts .seg-bar { background: repeating-linear-gradient(135deg, var(--counts) 0 3px, var(--bg) 3px 8px); border-color: var(--counts); }
+/* Doesn't count: an empty cell with a cross through it. */
+.seg.no .seg-bar {
+  border-color: var(--no);
+  border-width: 3px;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1.5px), var(--no) calc(50% - 1.5px), var(--no) calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+    linear-gradient(to bottom right, transparent calc(50% - 1.5px), var(--no) calc(50% - 1.5px), var(--no) calc(50% + 1.5px), transparent calc(50% + 1.5px)),
+    var(--no-fill);
+}
+.seg-label { font-size: 0.875rem; line-height: 1.25; }
+.seg-word { display: block; }
+.seg.no .seg-word { color: var(--no); font-weight: 700; }
+.degree-meter .seg-bar { height: 2.75rem; }
+.degree-meter .seg-label { font-size: 1rem; }
+.degree-meter strong { font-size: 1.5rem; display: block; line-height: 1.1; }
+.degree-meter .seg.progress { min-width: 5.25rem; }
+.meter-total { text-align: right; font-size: 0.875rem; }
+.mini { flex: 1 1 100%; height: 0.6rem; border: 2px solid var(--text); border-radius: 999px; overflow: hidden; display: block; }
+.mini-fill { display: block; height: 100%; background: var(--done); }
+
+/* ---- Start ---- */
+.start h1 { font-size: clamp(1.75rem, 5.2vw, 3.25rem); max-width: 24ch; }
+.ways { display: grid; gap: 1rem; }
+.way { display: grid; gap: 0.3rem; text-decoration: none; background: var(--surface); border: 2px solid var(--text); border-radius: 1.5rem; padding: 1.1rem 1.25rem; }
+.way-name { font-size: 1.5rem; font-weight: 700; }
+.way-name::after { content: ""; display: block; height: 0.6rem; margin-top: 0.4rem; border: 2px solid var(--text); border-radius: 999px; background: repeating-linear-gradient(135deg, var(--counts) 0 3px, var(--surface) 3px 8px); }
+.ways li:last-child .way-name::after { background: linear-gradient(to right, var(--done) 33%, var(--surface) 33%); }
+.demo { display: grid; gap: 0.5rem; }
+.demo-frame { display: grid; gap: 0.5rem; min-height: 10rem; align-content: start; }
+.demo-step { display: inline-block; font-weight: 700; border-bottom: 3px solid var(--text); }
+.demo-shot { display: grid; gap: 0.4rem; border-left: 4px solid var(--text); padding-left: 0.9rem; }
+.demo-typed { border-bottom: 2px solid var(--line); padding-right: 1.5rem; font-weight: 700; }
+.demo-suggest { display: block; margin-top: 0.4rem; }
+.demo-big { font-size: 2rem; font-weight: 700; line-height: 1.1; }
+
+/* ---- Check my courses ---- */
+.head { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; align-items: baseline; }
+.no-summary { display: flex; gap: 0.6rem; align-items: center; font-size: 1.375rem; line-height: 1.25; }
+.no-summary .mark { width: 2rem; height: 2rem; }
+.meter-note { font-size: 0.9375rem; }
+.rows { display: grid; gap: 0.75rem; }
+/* Each row hangs from its own piece of the meter. */
+.rows > li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.15rem 0.75rem; align-items: start; padding: 0 0 0.9rem; }
+.rows > li::before { content: ""; grid-column: 1 / -1; height: 0.9rem; margin-bottom: 0.6rem; border: 2px solid var(--counts); border-radius: 0.35rem; background: repeating-linear-gradient(135deg, var(--counts) 0 3px, var(--bg) 3px 8px); }
+.rows .mark { grid-row: 2 / span 3; margin-top: 0.15rem; }
+.what .cr { color: var(--muted); white-space: nowrap; }
+.verdict, .remove { grid-column: 2; }
+.answer { font-weight: 700; }
+.remove { justify-self: start; margin-top: 0.4rem; }
+/* Doesn't count: the row is outlined heavily and tinted, with the octagon and bold words. */
+.row.no { background: var(--no-fill); outline: 3px solid var(--no); color: var(--on-no); padding: 0 0.75rem 0.9rem; border-radius: 0.35rem; }
+.rows > li.no::before { margin: 0 -0.75rem 0.6rem; border: 0; border-bottom: 3px solid var(--no); border-radius: 0; background: repeating-linear-gradient(90deg, var(--no) 0 3px, var(--no-fill) 3px 12px); }
+.row.no > .mark { color: var(--on-no); width: 1.9rem; height: 1.9rem; }
+.row.no .cr { color: var(--on-no); }
+.row.no .answer { font-size: 1.125rem; }
+.after { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.total strong { font-size: 2.25rem; line-height: 1.1; }
+.notes { color: var(--muted); font-size: 0.9375rem; }
+.reminder { border-left: 4px solid var(--text); padding-left: 0.9rem; }
+
+/* ---- See what I have left ---- */
+.pace { font-size: 1.375rem; font-weight: 700; }
+.pace-detail { font-weight: 400; font-size: 1.0625rem; }
+.checklist { display: grid; gap: 1rem; }
+.block-grid { display: grid; gap: 0.75rem; }
+.block { padding: 0.25rem 0 0.9rem; display: grid; gap: 0.6rem; align-content: start; }
+.block > h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 0.2rem 0.6rem; }
+.bname { flex: 1 1 auto; }
+.frac { font-weight: 700; white-space: nowrap; }
+.status { font-size: 0.9375rem; }
+.block.needed > .mini { border-style: dashed; border-color: var(--needed); }
+.group h4 { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9375rem; font-weight: 700; }
+.group h4 .mark { width: 1.1rem; height: 1.1rem; }
+.group li { padding: 0.15rem 0 0.15rem 1.5rem; }
+.group li.open { color: var(--muted); }
+.sequence { display: flex; gap: 0.6rem; font-weight: 700; }
+.plan { display: grid; gap: 0.75rem; }
+.plan-label { border: 2px dashed var(--line); border-radius: 0.75rem; padding: 0.5rem 0.75rem; font-weight: 700; }
+.terms { display: grid; gap: 1rem; }
+.term { border-top: 0.6rem solid var(--text); border-radius: 0.3rem; padding-top: 0.5rem; }
+.term > h3 { display: flex; justify-content: space-between; }
+.term li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.2rem; padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+.term li .later { justify-self: start; }
+.term li.open .entry { color: var(--muted); }
+.pick-name { font-weight: 700; }
+.pick-tag { font-size: 0.8125rem; border: 1.5px dashed var(--line); border-radius: 999px; padding: 0 0.5rem; white-space: nowrap; }
+
+.facts { max-width: 80rem; margin: 2rem auto 0; padding: 0 1rem; display: flex; flex-wrap: wrap; gap: 0 1.5rem; font-size: 0.9375rem; color: var(--muted); }
+.facts p { display: flex; align-items: center; min-height: 2rem; }
+.facts .mock { flex-basis: 100%; gap: 0.5rem; flex-wrap: wrap; }
+.facts a { color: var(--text); }
+
+@media (min-width: 62rem) {
+  .start { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem 3rem; align-items: start; }
+  .start h1 { grid-column: 1 / -1; }
+  .check { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem 2rem; }
+  .check > .head, .check > .no-summary, .check > .course-meter, .check > .meter-note, .check > .after { grid-column: 1 / -1; }
+  .rows { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
+  .after { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+  .left { gap: 1.25rem; }
+  .block-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
+  .terms { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
