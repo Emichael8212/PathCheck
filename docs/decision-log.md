@@ -78,6 +78,11 @@ an M0 item); §8 "everything else stays hidden until asked for" (F13: remaining 
 Still needed / In progress blocks are shown directly); §4 Flow A (a rule-matched elective
 has no title).
 
+### 2026-11-15 — M0 mockups
+
+- F01 does not pass, and its PR is not merged, until the owner approves a design for PathCheck.
+  The evaluator's PASS is not enough on its own.
+
 ## Milestone checks
 
 | Milestone | Date | Owner's answer |

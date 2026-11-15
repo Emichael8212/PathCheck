@@ -41,8 +41,8 @@
         "Each shows the name PathCheck and \"Not affiliated with Alabama State University\", with no ASU logo or school colors",
         "Stop: the owner picks one mockup; the answer is recorded in docs/decision-log.md"
       ],
-      "passes": true,
-      "evidence": "docs/sprints/F01.md — evaluator QA round 2 PASS (Functionality 4, Clarity 4, Visual 4, Truthfulness 5); owner's pick pending",
+      "passes": false,
+      "evidence": "docs/sprints/F01.md — evaluator QA round 2 PASS; not passing until the owner approves a design",
       "tests": [
         "tests/mockups.test.js"
       ]
