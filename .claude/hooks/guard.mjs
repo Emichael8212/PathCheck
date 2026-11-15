@@ -118,6 +118,9 @@ if (/\[(skip[ -](ci|actions)|(ci|actions)[ -]skip|no[ -]ci)\]/i.test(cmd)) block
 
 // --- Netlify (bare or via npx) ---------------------------------------------------------
 if (/\bnetlify\s+(env(:\S*)?|api|sites:delete)(?=\s|$)/.test(cmd)) block('Netlify env/secret or admin API');
+// Production deploys happen only at M3, after the owner's check; the owner runs them.
+// Staging/preview deploys (no --prod) stay allowed.
+if (/\bnetlify\s+deploy\b[^|;&\n]*\s(--prod[\w-]*|-[a-zA-Z]*p[a-zA-Z]*)(?=[\s=]|$)/.test(cmd)) block('deploys to production');
 
 // --- Network: remote code and data leaving the machine -----------------------------------
 const fetches = /\b(curl|wget)\b/.test(cmd);
