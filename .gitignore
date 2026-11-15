@@ -147,3 +147,12 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# PathCheck
+.claude/.last-passing-check
+.claude/.last-failed-check
+.claude/settings.local.json
+.netlify
+test-results
+playwright-report
+.playwright-mcp
