@@ -1,0 +1,24 @@
+/* The chooser page is deliberately plain so it doesn't compete with the three designs. */
+:root {
+  --bg: #ffffff;
+  --text: #1c2430;
+  --muted: #4d5866;
+  --focus: #7a3cc4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181d;
+    --text: #e8ecf1;
+    --muted: #a7b1bd;
+    --focus: #c9a2ff;
+  }
+}
+body { margin: 0; background: var(--bg); color: var(--text); font: 1.0625rem/1.5 system-ui, sans-serif; }
+main { max-width: 38rem; margin: 0 auto; padding: 2rem 1rem 3rem; }
+h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 0.75rem; }
+h2 { font-size: 1.25rem; margin: 0; }
+p { margin: 0 0 0.5rem; }
+ol { padding-left: 1.5rem; margin: 2rem 0; display: grid; gap: 1.5rem; }
+a { color: var(--text); margin-right: 1.25rem; text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.small { font-size: 0.875rem; color: var(--muted); }

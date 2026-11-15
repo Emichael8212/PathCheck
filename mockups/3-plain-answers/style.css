@@ -1,0 +1,110 @@
+/* Direction 3 — Plain answers. White page, full-width bands of green, amber and rose,
+   large serif type. */
+:root {
+  --bg: #ffffff;
+  --surface: #f1f4f1;
+  --text: #17211b;
+  --muted: #4a564f;
+  --line: #647068;
+  --accent: #0f5132;
+  --on-accent: #ffffff;
+  --focus: #7a1fd0;
+  --done: #17603a;
+  --progress: #6f5200;
+  --needed: #9c2b20;
+  --done-fill: #c3e9cb;
+  --progress-fill: #f7e3a1;
+  --needed-fill: #f8cfc8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101412;
+    --surface: #1a201c;
+    --text: #eef2ee;
+    --muted: #a9b4ad;
+    --line: #98a49c;
+    --accent: #8fe0a8;
+    --on-accent: #101412;
+    --focus: #d4a8ff;
+    --done: #86d9a0;
+    --progress: #e8c65a;
+    --needed: #ff9d90;
+    --done-fill: #1d4a2c;
+    --progress-fill: #4f4005;
+    --needed-fill: #5a2019;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 1.0625rem/1.55 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+.wrap, .top, .foot { max-width: 56rem; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
+p, ul, h1, h2, h3 { margin: 0; }
+ul { padding: 0; list-style: none; }
+a { color: var(--text); text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.top { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: baseline; justify-content: space-between; padding-top: 1rem; padding-bottom: 1rem; }
+.brand { font-weight: 700; font-size: 1.25rem; text-decoration: none; font-style: italic; }
+.unaffiliated, .small, .foot { font-size: 0.875rem; color: var(--muted); font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; font-weight: 400; }
+
+.lead { padding-top: 0.5rem; padding-bottom: 1.5rem; }
+.question { font-size: 1.125rem; font-weight: 400; font-style: italic; color: var(--muted); }
+.answer { font-size: clamp(1.9rem, 7.5vw, 3.5rem); line-height: 1.12; font-weight: 700; letter-spacing: -0.015em; margin: 0.25rem 0 0.75rem; max-width: 22ch; }
+h2 { font-size: 1.75rem; line-height: 1.2; margin-top: 2.5rem; margin-bottom: 0.75rem; }
+.aside { font-style: italic; margin: 0.75rem 0; }
+
+.band { padding: 1.1rem 0; border-bottom: 3px solid var(--bg); }
+.band.done { background: var(--done-fill); }
+.band.progress { background: var(--progress-fill); }
+.band.needed { background: var(--needed-fill); }
+.band.slim { padding: 0.55rem 0; }
+.pair { display: grid; gap: 0.15rem 1.5rem; align-items: baseline; }
+@media (min-width: 40rem) { .pair { grid-template-columns: 13rem 1fr; } }
+.heads { display: contents; }
+.pair > .body { grid-column: -2 / -1; }
+.big { font-size: clamp(1.5rem, 5.5vw, 2.1rem); line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+.slim .big { font-size: 1.25rem; }
+.title { font-style: italic; }
+.verdict { font-weight: 700; }
+.block-name { font-size: 1.1875rem; font-weight: 700; }
+.list > li { padding: 0.25rem 0; }
+.flag { font-style: normal; font-weight: 700; border-bottom: 2px solid var(--text); white-space: nowrap; }
+summary { cursor: pointer; }
+.already { margin-top: 0.35rem; font-size: 0.9375rem; }
+.total { margin: 1rem 0; }
+
+.plan { display: grid; gap: 1.25rem; margin-top: 1rem; }
+@media (min-width: 52rem) { .plan { grid-template-columns: repeat(3, 1fr); } }
+.term { border-top: 4px solid var(--text); padding-top: 0.6rem; }
+.term h3 { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.term .list > li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 1rem; border-bottom: 1px solid var(--line); padding: 0.45rem 0; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.75rem 1.4rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+}
+.quiet {
+  background: none;
+  border: 0;
+  padding: 0.3rem 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+}
+
+.foot { margin-top: 3rem; padding-top: 1rem; padding-bottom: 3rem; display: grid; gap: 0.3rem; background: var(--surface); max-width: none; }
+.foot > * { width: 100%; max-width: 54rem; margin-left: auto; margin-right: auto; }
+.foot nav { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: 0.5rem; }
+.foot a, .foot .quiet { color: var(--text); font-size: 0.875rem; }

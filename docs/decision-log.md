@@ -69,10 +69,9 @@ this layout only, never real data) → F10:
   follow-up PR.
 - `npm audit` (7 moderate, development-only lint tooling): left as is.
 
-**One reading by the agent, to confirm:** the rule-matched elective answer in Flow A
-without a transcript keeps the brief's condition after the owner's wording in answer 2
-(brief §1 priority 1). Full sentence: "Counts toward CIS: elective (300/400-level MKT) —
-unless you've already passed it or filled this slot".
+**Confirmed by the owner (2026-11-15):** in Flow A without a transcript, a rule-matched
+elective shows "Counts toward CIS: elective (300/400-level MKT) — unless you've already
+passed it or filled this slot".
 
 **Where these answers differ from the brief:** §5 and §10 (the sequence rule is no longer
 an M0 item); §8 "everything else stays hidden until asked for" (F13: remaining courses of
