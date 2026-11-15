@@ -3,8 +3,13 @@
    content. Every color comes from the direction's own variables. */
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+/* The page knows about the floating bars: nothing scrolls to rest underneath them, and
+   keyboard focus is never hidden behind glass. */
+html { -webkit-text-size-adjust: 100%; scroll-padding: 5.5rem 0 7rem; }
+html:has(.page-check) { scroll-padding-bottom: 12.5rem; }
 body { margin: 0; background: var(--bg); color: var(--text); padding: 5.25rem 0 7.5rem; }
+body.page-start { padding-bottom: 3rem; }
+body.page-check { padding-bottom: 12.5rem; }
 h1, h2, h3, h4, p, ul, ol, fieldset { margin: 0; padding: 0; }
 ul, ol { list-style: none; }
 fieldset { border: 0; min-width: 0; }

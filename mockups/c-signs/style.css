@@ -4,7 +4,6 @@
 @font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
 @font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url("../fonts/barlow-latin-400-normal.woff2") format("woff2"); }
 @font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url("../fonts/barlow-latin-600-normal.woff2") format("woff2"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-display: swap; src: url("../fonts/jetbrains-mono-latin-500-normal.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 700; font-display: swap; src: url("../fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2"); }
 
 :root {
@@ -97,14 +96,16 @@ h1 { font-size: clamp(3rem, 15vw, 7rem); letter-spacing: -0.01em; }
 h2 { font-size: 2rem; }
 h3 { font-size: 1.5rem; }
 .code { font-size: 0.94em; }
-.term-name, .cond, .pace-detail, .way-note, .note { color: var(--muted); }
+.term-name, .pace-detail, .way-note, .note { color: var(--muted); }
+/* The condition is part of the answer, not fine print. */
+.cond { font-weight: 600; font-size: 1.0625rem; }
 .bar-top a { font-family: var(--display); font-weight: 700; font-size: 1.1875rem; }
 
 /* ---- Start ---- */
 .start h1 { font-size: clamp(2rem, 8.4vw, 4.5rem); max-width: 20ch; }
 .ways { display: grid; gap: 0; border-top: 4px solid var(--text); }
 .way { display: grid; gap: 0.25rem; text-decoration: none; padding: 1rem 0; border-bottom: 4px solid var(--text); }
-.way-name { font-size: clamp(2rem, 9vw, 3.25rem); }
+.way-name { font-size: clamp(2rem, 9vw, 3.25rem); text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 0.12em; }
 .demo { display: grid; gap: 0.5rem; background: var(--surface); padding: 1rem; }
 .demo-frame { display: grid; gap: 0.5rem; min-height: 10.5rem; align-content: start; }
 .demo-caption { font-family: var(--display); font-weight: 500; font-size: 1.375rem; line-height: 1.15; }

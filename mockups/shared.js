@@ -53,7 +53,7 @@ const demoFrame = kind => ({
   answers: `
     <p class="demo-row counts">${marks.counts}<span>${code(check.courses[0].code)} ${t(check.courses[0].answer)}, ${t(check.courses[0].condition)}</span></p>
     <p class="demo-row no">${marks.no}<span>${code(check.courses[3].code)} ${t(check.courses[3].answer)}</span></p>`,
-  left: `<p class="demo-big">${esc(left.creditsLeft)}</p><p>${esc(left.pace)}</p>`,
+  left: `<p class="demo-big">${esc(left.creditsLeft)}</p><p>${esc(left.pace)}</p><p class="demo-caveat">${esc(left.caveat)}</p>`,
 })[kind];
 
 export const demo = () => `

@@ -87,6 +87,8 @@ describe.each(directions)('direction %s', direction => {
     expect(demo).toContain(`Counts toward CIS — Pre-professional, ${CONDITION}`);
     expect(demo.split('Counts toward CIS')).toHaveLength(2);
     expect(demo).not.toMatch(/\bDone\b/);
+    // The pace answer in the demo keeps its caveat.
+    expect(demo).toContain('On pace for Spring 2029 Credits only \u2014 course order may add semesters.');
     expect(base).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.demo-frame \{ animation: none;/);
     expect(base).toMatch(/\.demo:has\(\.demo-toggle:checked\) \.demo-frame \{ animation-play-state: paused; \}/);
   });
@@ -253,7 +255,7 @@ describe.each(directions)('direction %s', direction => {
     expect({ ...print, '--bg': light['--bg'], '--surface': light['--surface'] }).toEqual(light);
     expect(print['--bg']).toBe('#ffffff');
     for (const [, name] of (css + base).matchAll(/var\((--[\w-]+)/g)) {
-      expect([...TOKENS, '--code-font', '--code-weight', '--bar-width', '--display', '--i'], name).toContain(name);
+      expect([...TOKENS, '--code-font', '--code-weight', '--bar-width', '--display', '--i', '--n'], name).toContain(name);
     }
   });
 

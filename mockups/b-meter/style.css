@@ -41,8 +41,8 @@
     --done: #e6f2f0;
     --progress: #f0c35a;
     --needed: #a8c0c5;
-    --no: #ff9ab5;
-    --no-fill: #4d1326;
+    --no: #f0b3c2;
+    --no-fill: #3d1a26;
     --on-no: #ffd6e0;
     --done-fill: #1f3d47;
     --progress-fill: #4a3a08;
@@ -99,7 +99,7 @@ h3 { font-size: 1.125rem; font-weight: 700; }
 .seg.done .seg-bar { background: var(--done); }
 .seg.progress .seg-bar { background: repeating-linear-gradient(135deg, var(--progress) 0 3px, var(--bg) 3px 8px); border-color: var(--progress); }
 .seg.needed .seg-bar { border-style: dashed; border-color: var(--needed); }
-.seg.counts .seg-bar { background: repeating-linear-gradient(135deg, var(--counts) 0 3px, var(--bg) 3px 8px); border-color: var(--counts); }
+.seg.counts .seg-bar { border-color: var(--line); }
 /* Doesn't count: an empty cell with a cross through it. */
 .seg.no .seg-bar {
   border-color: var(--no);
@@ -115,7 +115,12 @@ h3 { font-size: 1.125rem; font-weight: 700; }
 .degree-meter .seg-bar { height: 2.75rem; }
 .degree-meter .seg-label { font-size: 1rem; }
 .degree-meter strong { font-size: 1.5rem; display: block; line-height: 1.1; }
-.degree-meter .seg.progress { min-width: 5.25rem; }
+/* Phone: three bars under each other, each as long as its share of the largest. */
+.degree-meter { flex-direction: column; gap: 0.6rem; }
+.degree-meter .seg { grid-template-columns: minmax(0, 1fr); }
+.degree-meter .seg-bar { width: max(0.75rem, calc(var(--n) / 81 * 100%)); height: 1.5rem; order: 2; }
+.degree-meter strong { display: inline; }
+.course-meter { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem 6px; }
 .meter-total { text-align: right; font-size: 0.875rem; }
 .mini { flex: 1 1 100%; height: 0.6rem; border: 2px solid var(--text); border-radius: 999px; overflow: hidden; display: block; }
 .mini-fill { display: block; height: 100%; background: var(--done); }
@@ -125,8 +130,7 @@ h3 { font-size: 1.125rem; font-weight: 700; }
 .ways { display: grid; gap: 1rem; }
 .way { display: grid; gap: 0.3rem; text-decoration: none; background: var(--surface); border: 2px solid var(--text); border-radius: 1.5rem; padding: 1.1rem 1.25rem; }
 .way-name { font-size: 1.5rem; font-weight: 700; }
-.way-name::after { content: ""; display: block; height: 0.6rem; margin-top: 0.4rem; border: 2px solid var(--text); border-radius: 999px; background: repeating-linear-gradient(135deg, var(--counts) 0 3px, var(--surface) 3px 8px); }
-.ways li:last-child .way-name::after { background: linear-gradient(to right, var(--done) 33%, var(--surface) 33%); }
+.way-name { text-decoration: underline; text-decoration-thickness: 2px; }
 .demo { display: grid; gap: 0.5rem; }
 .demo-frame { display: grid; gap: 0.5rem; min-height: 10rem; align-content: start; }
 .demo-step { display: inline-block; font-weight: 700; border-bottom: 3px solid var(--text); }
@@ -143,7 +147,7 @@ h3 { font-size: 1.125rem; font-weight: 700; }
 .rows { display: grid; gap: 0.75rem; }
 /* Each row hangs from its own piece of the meter. */
 .rows > li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.15rem 0.75rem; align-items: start; padding: 0 0 0.9rem; }
-.rows > li::before { content: ""; grid-column: 1 / -1; height: 0.9rem; margin-bottom: 0.6rem; border: 2px solid var(--counts); border-radius: 0.35rem; background: repeating-linear-gradient(135deg, var(--counts) 0 3px, var(--bg) 3px 8px); }
+.rows > li::before { content: ""; grid-column: 1 / -1; height: 0.9rem; margin-bottom: 0.6rem; border: 2px solid var(--line); border-radius: 0.35rem; }
 .rows .mark { grid-row: 2 / span 3; margin-top: 0.15rem; }
 .what .cr { color: var(--muted); white-space: nowrap; }
 .verdict, .remove { grid-column: 2; }
@@ -192,6 +196,13 @@ h3 { font-size: 1.125rem; font-weight: 700; }
 .facts .mock { flex-basis: 100%; gap: 0.5rem; flex-wrap: wrap; }
 .facts a { color: var(--text); }
 
+@media (min-width: 40rem) {
+  /* Room for one bar: the three parts side by side, in proportion. */
+  .degree-meter { flex-direction: row; gap: 4px; }
+  .degree-meter .seg { flex: var(--n) 1 0; }
+  .degree-meter .seg-bar { width: auto; height: 2.75rem; order: 0; }
+  .degree-meter strong { display: block; }
+}
 @media (min-width: 62rem) {
   .start { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem 3rem; align-items: start; }
   .start h1 { grid-column: 1 / -1; }
@@ -200,6 +211,7 @@ h3 { font-size: 1.125rem; font-weight: 700; }
   .rows { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
   .after { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
   .left { gap: 1.25rem; }
+  .course-meter { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .block-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem 2rem; }
   .terms { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }

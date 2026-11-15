@@ -11,9 +11,9 @@ const startPage = () => s.shell('start', 'Start', `
   ${s.demo()}
 </main>`);
 
-// One segment per typed course, in order. A crossed-out segment says "Doesn't count";
-// the others are striped and carry only the course code, because "counts" is only ever
-// said in the rows below, next to its condition.
+// One cell per typed course, in order. A crossed-out cell says "Doesn't count". The
+// others are plain and carry only the course code: "counts" is only ever said in the
+// rows below, next to its condition, never by a graphic on its own.
 const courseMeter = () => `
 <ol class="meter course-meter" aria-label="Your ${check.courses.length} courses">
   ${check.courses.map(course => `
@@ -41,7 +41,7 @@ const checkPage = () => s.shell('check', 'Check my courses, Spring 2027', `
 ${s.addCourse()}`);
 
 const part = (state, n, label, extra = '') => `
-  <li class="seg ${state}" style="flex-grow: ${n}">
+  <li class="seg ${state}" style="--n: ${n}">
     <span class="seg-bar" aria-hidden="true"></span>
     <span class="seg-label"><strong>${n}</strong> ${label}${extra}</span>
   </li>`;
