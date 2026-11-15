@@ -180,6 +180,31 @@ describe('pushing', () => {
   });
 });
 
+describe('production deploys (owner only, at M3)', () => {
+  it.each([
+    'netlify deploy --prod',
+    'npx netlify deploy --prod',
+    'netlify deploy --dir dist --prod',
+    'netlify deploy --prod --dir dist',
+    'netlify deploy -p',
+    'npx netlify deploy --build -p',
+    'netlify deploy --prod-if-unlocked',
+    'netlify deploy --prodIfUnlocked',
+    'npm run build && npx netlify deploy --prod',
+    'npx netlify-cli deploy --prod',
+    'npx -y netlify-cli@latest deploy --prod',
+    'ntl deploy --prod',
+    'netlify --debug deploy --prod',
+    'netlify deploy --prod; echo done',
+    'netlify deploy --prod&&echo done',
+    'netlify deploy --prod>deploy.log',
+    '(netlify deploy --prod)',
+    'bash -c "netlify deploy --prod"',
+    'netlify deploy "--prod"',
+    'netlify deploy --dir dist \\\n  --prod',
+  ])('blocks %s', command => expect(run(command)).toBe(2));
+});
+
 describe('CI, admin and destructive commands', () => {
   it.each([
     'gh pr merge 3 --squash --admin',
@@ -190,6 +215,8 @@ describe('CI, admin and destructive commands', () => {
     'gh auth token',
     'netlify env:list',
     'npx netlify env:get NAME',
+    'npx netlify-cli env:list',
+    'ntl env:list',
     'git reset --hard HEAD~1',
     'git clean -fdx',
     'rm -rf ~',
@@ -204,6 +231,12 @@ describe('CI, admin and destructive commands', () => {
     'npm run check',
     './scripts/init.sh',
     'netlify deploy --dir dist',
+    'npx netlify deploy --dir dist --message "preview of F21"',
+    'netlify deploy --build',
+    'netlify deploy --alias staging',
+    'netlify deploy --dir dist --message "prep for prod"',
+    'ntl deploy --dir dist',
+    'npx netlify-cli deploy --build',
     'curl -s http://127.0.0.1:5173/',
     'rm -rf dist',
   ])('allows %s', command => expect(run(command)).toBe(0));
