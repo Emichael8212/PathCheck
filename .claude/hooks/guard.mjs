@@ -117,10 +117,15 @@ if (/\bgh\s+(workflow\s+(disable|enable)|run\s+(cancel|delete))\b/.test(cmd)) bl
 if (/\[(skip[ -](ci|actions)|(ci|actions)[ -]skip|no[ -]ci)\]/i.test(cmd)) block('skips CI');
 
 // --- Netlify (bare or via npx) ---------------------------------------------------------
-if (/\bnetlify\s+(env(:\S*)?|api|sites:delete)(?=\s|$)/.test(cmd)) block('Netlify env/secret or admin API');
+// The CLI under any of its names (netlify, netlify-cli@version, ntl), with optional global
+// flags before the subcommand. Quotes and line continuations are removed first so
+// `bash -c "..."` and a flag on the next line are seen too.
+const flat = cmd.replace(/\\\n/g, ' ').replace(/['"]/g, '');
+const netlify = String.raw`\b(?:netlify(?:-cli)?(?:@\S+)?|ntl)(?:\s+--?[\w-]+(?:=\S+)?)*\s+`;
+if (new RegExp(netlify + String.raw`(env(:\S*)?|api|sites:delete)(?![\w-])`).test(flat)) block('Netlify env/secret or admin API');
 // Production deploys happen only at M3, after the owner's check; the owner runs them.
 // Staging/preview deploys (no --prod) stay allowed.
-if (/\bnetlify\s+deploy\b[^|;&\n]*\s(--prod[\w-]*|-[a-zA-Z]*p[a-zA-Z]*)(?=[\s=]|$)/.test(cmd)) block('deploys to production');
+if (new RegExp(netlify + String.raw`deploy\b[^|;&\n]*[\s(](--prod[\w-]*|-[a-zA-Z]*p[a-zA-Z]*)(?![\w-])`).test(flat)) block('deploys to production');
 
 // --- Network: remote code and data leaving the machine -----------------------------------
 const fetches = /\b(curl|wget)\b/.test(cmd);
