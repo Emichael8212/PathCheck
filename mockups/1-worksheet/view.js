@@ -4,7 +4,9 @@ import { check, left } from '../data.js';
 import { esc, footer, header, sum } from '../shared.js';
 
 const cls = { 'Done': 'done', 'In progress': 'progress', 'Still needed': 'needed' };
-const tick = { done: '✓', progress: '•', needed: '' };
+// "maybe" is Flow A's mark for "counts, unless...": a dashed, empty box, never the tick
+// that means Done on the checklist.
+const tick = { done: '✓', progress: '•', needed: '', maybe: '', no: '✕' };
 const box = state => `<span class="box ${state}" aria-hidden="true">${tick[state]}</span>`;
 const hl = (state, text) => `<mark class="hl ${state}">${esc(text)}</mark>`;
 const credits = n => `${n} credit${n === 1 ? '' : 's'}`;
@@ -17,7 +19,7 @@ ${header()}
   <ul class="rows">
     ${check.courses.map(c => `
     <li>
-      ${box(c.counts ? 'done' : 'needed')}
+      ${box(c.counts ? 'maybe' : 'no')}
       <div>
         <p class="course"><strong>${esc(c.code)}</strong> ${esc(c.title)}</p>
         <p class="verdict">${hl(c.counts ? 'done' : 'needed', c.text)}</p>
@@ -44,7 +46,7 @@ const block = b => {
   if (b.status === 'Done') {
     return `
   <details class="block">
-    <summary>${heading}</summary>
+    <summary>${heading} <span class="small">Show courses</span></summary>
     <ul class="rows inner">${doneCourses.map(courseLine).join('')}</ul>
   </details>`;
   }
@@ -83,7 +85,7 @@ ${header()}
         <li>
           ${box('needed')}
           <p class="course"><strong>${esc(c.code)}</strong> ${esc(c.title)}</p>
-          <button type="button" class="quiet">Move later</button>
+          <button type="button" class="quiet" aria-label="Move later: ${esc(c.code)}">Move later</button>
         </li>`).join('')}
       </ul>
     </section>`).join('')}

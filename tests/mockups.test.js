@@ -157,6 +157,20 @@ describe.each(directions)('mockup %s', direction => {
     }
   });
 
+  it('Flow A marks are provisional, never the Done mark', async () => {
+    const { html } = await page('check');
+    // No tick, no "done" box and no earned square next to a course that only counts "unless...".
+    expect(html).not.toMatch(/\u2713|class="(box|sq|band) done"/);
+  });
+
+  it('Done blocks say they can be opened', async () => {
+    const { html } = await page('left');
+    const summaries = html.match(/<details class="(?:block|wrap)">\s*<summary[\s\S]*?<\/summary>/g);
+    expect(summaries).toHaveLength(3);
+    for (const summary of summaries) expect(decode(summary)).toContain('Show courses');
+    expect(css).toMatch(/summary::before/);
+  });
+
   it('no banned CSS', () => {
     expect(css).not.toMatch(/backdrop-filter|text-transform:\s*uppercase|box-shadow|filter:\s*blur/);
   });

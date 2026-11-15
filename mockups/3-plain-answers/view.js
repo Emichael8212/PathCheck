@@ -1,5 +1,6 @@
 // Direction 3 — Plain answers. Each answer is a full-width band of color with the
-// course code set large, read top to bottom like a list of spoken answers.
+// course code set large, read top to bottom like a list of spoken answers. In Flow A a
+// course that counts "unless..." gets a green edge, never the solid green of Done.
 import { check, left } from '../data.js';
 import { esc, footer, header, sum } from '../shared.js';
 
@@ -11,11 +12,11 @@ ${header()}
 <main>
   <div class="wrap lead">
     <h1 class="question">${esc(check.question)}</h1>
-    <p class="answer">${esc(check.answerCounts)} ${esc(check.answerDoesnt)}</p>
+    <p class="answer">${esc(check.answerCounts)} <span class="nowrap">${esc(check.answerDoesnt)}</span></p>
   </div>
   <ul class="bands">
     ${check.courses.map(c => `
-    <li class="band ${c.counts ? 'done' : 'needed'}">
+    <li class="band ${c.counts ? 'maybe' : 'needed'}">
       <div class="wrap pair">
         <p class="big">${esc(c.code)}</p>
         <div>
@@ -43,7 +44,7 @@ const block = b => {
     return `
     <li class="band done slim">
       <details class="wrap">
-        <summary class="pair"><span class="big">${esc(b.status)}</span><span class="block-name">${esc(b.name)} <span class="small">${credits(b.credits)}</span></span></summary>
+        <summary><span class="big">${esc(b.status)}</span> <span class="block-name">${esc(b.name)}</span> <span class="small">${credits(b.credits)}. Show courses</span></summary>
         <ul class="list">${doneCourses.map(courseLine).join('')}</ul>
       </details>
     </li>`;
@@ -87,7 +88,7 @@ ${header()}
         <h3><span class="big">${esc(term.term)}</span> <span class="small">${credits(sum(term.courses))}</span></h3>
         <ul class="list">
           ${term.courses.map(c => `
-          <li><span><strong>${esc(c.code)}</strong> ${esc(c.title)}</span> <button type="button" class="quiet">Move later</button></li>`).join('')}
+          <li><span><strong>${esc(c.code)}</strong> ${esc(c.title)}</span> <button type="button" class="quiet" aria-label="Move later: ${esc(c.code)}">Move later</button></li>`).join('')}
         </ul>
       </section>`).join('')}
     </div>

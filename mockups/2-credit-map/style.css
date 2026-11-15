@@ -56,7 +56,8 @@ a { color: var(--text); text-underline-offset: 0.2em; }
 main > .answer { max-width: 26ch; }
 h2 { font-size: 1.5rem; margin: 2.75rem 0 0.75rem; }
 h3 { font-size: 1rem; }
-.note { margin: 0.75rem 0; padding: 0.5rem 0.75rem; background: var(--progress-fill); color: var(--text); border-radius: 4px; }
+.note { margin: 0.75rem 0; padding-left: 0.75rem; border-left: 4px solid var(--line); }
+.nowrap { white-space: nowrap; }
 
 /* Squares: one per credit */
 .squares { display: inline-flex; flex-wrap: wrap; gap: 3px; vertical-align: middle; }
@@ -66,15 +67,18 @@ h3 { font-size: 1rem; }
   border-color: var(--progress);
   background: repeating-linear-gradient(135deg, var(--progress) 0 2px, transparent 2px 4px);
 }
+.sq.maybe { border-color: var(--done); background: linear-gradient(135deg, var(--done) 50%, transparent 50%); }
 .sq.unknown { border-style: dashed; }
 
 .hero { display: grid; gap: 1.5rem; align-items: center; }
-.map { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; width: min(100%, 19rem); }
+.map-figure { margin: 0; width: min(100%, 19rem); }
+.map-figure figcaption { margin-top: 0.5rem; }
+.map { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
 .map .squares { display: contents; }
 .map .sq { width: auto; height: auto; aspect-ratio: 1; border-radius: 3px; }
 @media (min-width: 46rem) {
   .hero { grid-template-columns: 1fr auto; }
-  .map { width: 21rem; }
+  .map-figure { width: 21rem; }
 }
 
 .courses > li { display: grid; grid-template-columns: 2.9rem 1fr; gap: 0.15rem 0.75rem; padding: 0.7rem 0; border-top: 1px solid var(--line); align-items: start; }
@@ -95,7 +99,10 @@ h3 { font-size: 1rem; }
 .status.progress, .tag.progress { background: var(--progress-fill); }
 .status.needed, .tag.needed { background: var(--needed-fill); }
 .block > .courses, .block > .small, .already { margin-top: 0.5rem; }
-summary { cursor: pointer; }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\25B8"; flex: none; width: 1em; }
+details[open] > summary::before { content: "\25BE"; }
 .already { font-size: 0.9375rem; color: var(--muted); }
 .already .course { color: var(--text); }
 

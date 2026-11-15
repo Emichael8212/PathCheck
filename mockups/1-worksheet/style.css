@@ -84,6 +84,8 @@ h3 { font-size: 1.0625rem; font-weight: 700; }
 }
 .box.done { color: var(--done); border-color: var(--done); }
 .box.progress { color: var(--progress); border-color: var(--progress); }
+.box.maybe { border-style: dashed; border-color: var(--done); }
+.box.no { color: var(--needed); border-color: var(--needed); }
 
 .rows > li { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.6rem 0; }
 .rows > li > div, .rows > li > .course { flex: 1; min-width: 0; }
@@ -97,7 +99,10 @@ h3 { font-size: 1.0625rem; font-weight: 700; }
 .block-name { margin-right: 0.15rem; }
 .block > .rows, .block > .hint, .already { margin-left: 2rem; }
 .hint { margin-top: 0.25rem; }
-summary { cursor: pointer; }
+summary { cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "\25B8"; flex: none; width: 1em; }
+details[open] > summary::before { content: "\25BE"; }
 .already { margin-top: 0.25rem; font-size: 0.9375rem; color: var(--muted); }
 .already .course { color: var(--text); }
 

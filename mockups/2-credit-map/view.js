@@ -1,6 +1,7 @@
 // Direction 2 — Credit map. The degree is 121 squares, one per credit. A filled square
 // is earned, a striped one is being taken now, an empty one is still to do. Every row
-// also says its status in words, so the squares never have to be decoded.
+// also says its status in words, so the squares never have to be decoded. In Flow A a
+// course that counts "unless..." gets a half-filled square, never the earned one.
 import { check, left } from '../data.js';
 import { esc, footer, header, sum } from '../shared.js';
 
@@ -12,18 +13,18 @@ const checkPage = () => `
 ${header()}
 <main>
   <h1 class="question">${esc(check.question)}</h1>
-  <p class="answer">${esc(check.answerCounts)} ${esc(check.answerDoesnt)}</p>
+  <p class="answer">${esc(check.answerCounts)} <span class="nowrap">${esc(check.answerDoesnt)}</span></p>
   <ul class="courses">
     ${check.courses.map(c => `
     <li class="${c.counts ? 'yes' : 'no'}">
-      ${c.credits ? squares(c.counts ? 'done' : 'needed', c.credits) : '<span class="squares" aria-hidden="true"><i class="sq unknown"></i></span>'}
+      ${c.credits ? squares(c.counts ? 'maybe' : 'needed', c.credits) : '<span class="squares" aria-hidden="true"><i class="sq unknown"></i></span>'}
       <p class="course"><strong>${esc(c.code)}</strong> ${esc(c.title)}</p>
       <p class="verdict">${esc(c.text)}</p>
     </li>`).join('')}
   </ul>
   <p class="note">${esc(check.reminder)}</p>
   <div class="total">
-    ${squares('done', 9)}${squares('needed', 3)}
+    ${squares('maybe', 9)}${squares('needed', 3)}
     <p><strong>${esc(check.total)}</strong> this semester. ${esc(check.totalNote)}</p>
   </div>
   <p><button type="button" class="primary">${esc(check.transcript)}</button></p>
@@ -49,7 +50,7 @@ const block = b => {
   if (b.status === 'Done') {
     return `
   <details class="block">
-    <summary>${head}</summary>
+    <summary>${head.replace('<span class="block-squares">', '<span class="small">Show courses</span>\n      <span class="block-squares">')}</summary>
     <ul class="courses inner">${doneCourses.map(courseLine).join('')}</ul>
   </details>`;
   }
@@ -76,7 +77,10 @@ ${header()}
       <p class="small">${left.pace.inputs.map(esc).join(', ')}. <button type="button" class="quiet">Change</button></p>
       <p class="note">${esc(left.pace.caveat)}</p>
     </div>
-    <div class="map" role="img" aria-label="121 credits: 64 done, 12 in progress, 45 left">${left.blocks.map(blockSquares).join('')}</div>
+    <figure class="map-figure">
+      <div class="map" aria-hidden="true">${left.blocks.map(blockSquares).join('')}</div>
+      <figcaption class="small">One square is one credit. Of 121, you have 64 done, 12 in progress and 45 left.</figcaption>
+    </figure>
   </div>
 
   <h2>Your CIS degree checklist</h2>
@@ -93,7 +97,7 @@ ${header()}
         <li>
           ${squares('needed', c.credits)}
           <p class="course"><strong>${esc(c.code)}</strong> ${esc(c.title)}</p>
-          <button type="button" class="quiet">Move later</button>
+          <button type="button" class="quiet" aria-label="Move later: ${esc(c.code)}">Move later</button>
         </li>`).join('')}
       </ul>
     </section>`).join('')}
