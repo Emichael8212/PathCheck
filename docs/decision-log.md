@@ -11,6 +11,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | Tooling: Vite, TypeScript, Vitest, ESLint; Node 24 (`.nvmrc`). No UI framework chosen yet. | The carried-over hooks, `scripts/init.sh` and CI already expect `npm run lint / typecheck / test` and a dev server on port 5173. A framework is only needed once there is UI, so it is decided with the first feature that needs one. | Replace the dev dependencies and scripts in `package.json`. |
 | CI runs one job named `check` (lint, typecheck, tests, build). No browser tests in CI yet. | Nothing to test in a browser until the first feature. | Add steps to `.github/workflows/ci.yml`. |
 | Feature IDs are `F01`–`F26` in `features.json`, each with a `milestone` field (M0–M3). | Hooks and `/next-task` need to know the current milestone and when to stop. | Edit `features.json` (owner approval needed for ids, descriptions and steps). |
+| (2026-11-16, F02) The app's code lives in `src/` as plain TypeScript modules; the curriculum model is `src/curriculum.ts`. A UI framework is still not chosen; that is decided with F06, the first screen. | Rules and data need no framework, and keeping them free of one makes every academic rule testable on its own. | Move the files. |
 | Curriculum file keeps its name `docs/curriculum/provisional-current.json`; "CIS 300/400-level" is stored as course numbers 300–499. | Name kept as carried over. 300–499 is the plain reading of "300/400-level". | Rename the file / edit `electives.subjectRule`. |
 | The curriculum keeps titles for FIN 201, FLS 161, MGT 203 and MGT 220 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
 | `lastReviewed` in the curriculum file is `null`. | The owner provides the date of the last curriculum review before M3 (brief §12). | Set the date. |
@@ -250,6 +251,14 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   Transcript upload", "M3: Public launch". Each PR is attached to its milestone when it is
   opened. The owner closes a milestone themselves, once the agent has given proof that it is
   ready to be closed. `features.json` stays the source of truth.
+
+### 2026-11-16 — M1 started
+
+- The owner closed the GitHub milestone "M0: Design" and said: "Start implementing M1".
+- M1 features (F02–F20) are built one per branch and pull request, each attached to the
+  GitHub milestone "M1: Working prototype". As brief §11 says, the agent merges its own
+  pull request when CI is green and the reviewer finds no blocker, and stops at the end of
+  M1 for the owner's check.
 
 ## Milestone checks
 
