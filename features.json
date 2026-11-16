@@ -289,7 +289,10 @@
       ],
       "passes": false,
       "evidence": "",
-      "tests": []
+      "tests": [
+        "tests/pace.test.ts",
+        "tests/left-page.test.ts"
+      ]
     },
     {
       "id": "F15",

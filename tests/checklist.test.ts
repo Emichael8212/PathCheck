@@ -120,7 +120,7 @@ describe('the requirements', () => {
     expect(html).toContain('<span class="bar-label is-counted" style="min-width: 33.058%">');
     expect(html).toContain('<span class="item-note">Repeat; the earlier D doesn’t count.</span>');
     // What belongs to later features is not drawn.
-    expect(text).not.toMatch(/On pace|Looking ahead|Target semester|Draft plan|Move later|Print|Clear my data/);
+    expect(text).not.toMatch(/Draft plan|Move later|Print|Clear my data/);
   });
 
   it('does not call a block with a course in progress done', () => {

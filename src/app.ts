@@ -122,6 +122,7 @@ export function startApp(win: AppWindow): App {
         redraw: () => show(false),
         correct: (line, correction) => { if (left.transcript) left.transcript = correctRow(left.transcript, line, correction, curriculum); },
         say,
+        answer: () => courses.legacy,
         // One legacy answer for both flows, remembered in the browser.
         legacy: answer => {
           courses.legacy = answer;
