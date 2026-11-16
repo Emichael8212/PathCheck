@@ -563,6 +563,19 @@ stand-in until the owner answers; it is not an owner decision.
   it is listed in F11's pull request. Does the owner want to change it, or design it?
   Status: no reply yet.
 
+- **2026-11-16 (F12; an academic question, asked in chat the same day).** A student's
+  transcript already fills the Social sciences pick with another course (for example GEO
+  206 passed), and neither HIS 132 nor ENG 210 is passed, in progress or typed. They type
+  HIS 132 in "Check my courses". The sequence rule says they still need it; the rule also
+  says the sequence adds no credits, and with the pick already filled its 3 credits fill
+  no place. What should the answer say, and do its credits go under "Count toward CIS"?
+  Options put to the owner: (a) "Counts toward CIS — history sequence", credits counted;
+  (b) "Needed for the history sequence. Its credits don’t add to your degree total.",
+  credits in neither number; (c) the owner's own words. Until the answer the app shows
+  (b) and never "This slot is already filled" (agent's stand-in, not an owner decision).
+  The same answer is needed for ENG 210 and for the checklist (F13).
+  Status: no reply yet.
+
 Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
 F08 step 5; the new F09 step; the last-reviewed line; the semester in the heading of
