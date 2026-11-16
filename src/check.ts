@@ -6,12 +6,14 @@
 // What the student types is never put into the page as it is: only a course code worked
 // out from it.
 import { answersFor, legacyMatters, reminderFor, type Answer } from './answers';
+import { FULL_TIME, MOST_UNKNOWN_CREDITS, USUAL_MOST, noteFor, totalsOf } from './credits';
 import { type Course, type Curriculum } from './curriculum';
-import { addCourse, removeCourse, suggest, type Entry } from './entries';
+import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entries';
 import { code, esc, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { FLOW_NAME, foot, top } from './shell';
 import { countsExample } from './start';
+import { COUNT_CONDITION, COUNT_TOWARD, DO_NOT_COUNT, TOTAL_CREDITS, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
 
 const TEXT = {
   addLabel: 'Add a course',
@@ -27,7 +29,9 @@ const TEXT = {
   noneMarkedNo: 'No course in your list is marked “Doesn’t count”.',
   legacyLine: 'Legacy CIS student:',
   change: 'Change',
+  summary: 'Credits',
 };
+const creditsFor = (courseCode: string): string => `Credits for ${courseCode}`;
 // The example code in this message is the Start page's example course, from the curriculum.
 export const notACourse = (curriculum: Curriculum): string => `Type a course code like ${countsExample(curriculum).course.code}, or pick a course from the list.`;
 export const alreadyThere = (courseCode: string): string => `${courseCode} is already in your list.`;
@@ -78,19 +82,45 @@ const answerCell = (answer: Answer): string => {
         </div>`;
 };
 
+// A course PathCheck knows shows its credits. One it doesn't know starts at the default and
+// the student can change it: a dropdown, which cannot hold a wrong value.
+const creditsCell = (entry: Entry): string => (entry.kind !== 'unknown' ? String(entry.credits)
+  : `<select class="credits-select" aria-label="${esc(creditsFor(entry.code))}" data-credits="${esc(entry.code)}">${
+    Array.from({ length: MOST_UNKNOWN_CREDITS + 1 }, (_, credits) => `<option value="${credits}"${credits === entry.credits ? ' selected' : ''}>${credits}</option>`).join('')}</select>`);
+
 const row = (entry: Entry, answer: Answer): string => `
     <div role="row" class="row${answer.kind === 'no' ? ' is-no' : ''}">
       <div role="cell" class="cell-name">
         ${code(entry.code, 'strong')}${entry.title ? `
         <p>${esc(entry.title)}</p>` : ''}
       </div>
-      <span role="cell" class="cell-cr num">${entry.credits}<span class="cr-unit"> cr</span></span>
+      <span role="cell" class="cell-cr num">${creditsCell(entry)}<span class="cr-unit"> cr</span></span>
       <div role="cell" class="cell-answer">${answerCell(answer)}
       </div>
       <div role="cell" class="cell-remove">
         <button type="button" class="remove" aria-label="Remove ${esc(entry.code)}" data-remove="${esc(entry.code)}">${icons.x()}</button>
       </div>
     </div>`;
+
+/** The neutral note that goes with the list's total, or nothing. */
+export function noteText(list: CourseList): string | null {
+  if (list.entries.length === 0) return null;
+  const note = noteFor(list.entries.reduce((credits, entry) => credits + entry.credits, 0));
+  return note === 'under' ? belowFullTime(FULL_TIME) : note === 'over' ? overUsualMost(USUAL_MOST) : null;
+}
+
+/** The three numbers above the list: total credits, those that count and those that don't. Nothing for an empty list. */
+export function summaryHtml(list: CourseList, curriculum: Curriculum): string {
+  if (list.entries.length === 0) return '';
+  const totals = totalsOf(list.entries, answersFor(list.entries, curriculum, list.legacy));
+  const note = noteText(list);
+  const waiting = totals.waiting > 0 ? `<span class="summary-condition">${esc(WAITING_FOR_LEGACY)}</span>` : '';
+  return `<div class="summary" role="group" aria-label="${esc(TEXT.summary)}">
+    <div><span class="num">${totals.total}</span><span class="summary-label">${esc(TOTAL_CREDITS)}</span>${note ? `<span class="summary-condition">${esc(note)}</span>` : ''}</div>
+    <div><span class="num is-counts">${totals.counts}</span><span class="summary-label">${esc(COUNT_TOWARD)}</span><span class="summary-condition">${esc(COUNT_CONDITION)}</span>${waiting}</div>
+    <div><span class="num is-no">${totals.doesNotCount}</span><span class="summary-label">${esc(DO_NOT_COUNT)}</span>${waiting}</div>
+  </div>`;
+}
 
 /** The two filter buttons; nothing while the list is empty. */
 export const filtersHtml = (list: CourseList): string => (list.entries.length === 0 ? '' : `<div class="filters" role="group" aria-label="${esc(TEXT.filterLabel)}">
@@ -122,6 +152,8 @@ export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList()
     </div>
   </div>
 
+  <div data-summary>${summaryHtml(list, curriculum)}</div>
+
   <div class="toolbar">
     <div class="search">
       <label for="add-course">${esc(TEXT.addLabel)}</label>
@@ -146,10 +178,11 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const add = root.querySelector<HTMLButtonElement>('[data-add]');
   const menu = root.querySelector<HTMLElement>('#suggestions');
   const message = root.querySelector<HTMLElement>('#add-message');
+  const summary = root.querySelector<HTMLElement>('[data-summary]');
   const filters = root.querySelector<HTMLElement>('[data-filters]');
   const region = root.querySelector<HTMLElement>('[data-entries]');
   const said = root.querySelector<HTMLElement>('[data-said]');
-  if (!input || !add || !menu || !message || !filters || !region || !said) throw new Error('The "Check my courses" page is missing a part it needs.');
+  if (!input || !add || !menu || !message || !summary || !filters || !region || !said) throw new Error('The "Check my courses" page is missing a part it needs.');
 
   // What is suggested for the text in the field, which of them is highlighted, and whether
   // the list is showing. Leaving the field hides the list but keeps the highlight, so that
@@ -182,8 +215,17 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const drawList = (): void => {
     // The filters go with the list: an empty list has none, and the next one starts with all its rows.
     if (list.entries.length === 0) list.filter = 'all';
+    summary.innerHTML = summaryHtml(list, curriculum);
     filters.innerHTML = filtersHtml(list);
     region.innerHTML = entriesHtml(list, curriculum);
+  };
+  // What changed is read out; a note about the total is added when it appears or changes,
+  // not every time the list changes under it.
+  let lastNote = noteText(list);
+  const announce = (what: string): void => {
+    const note = noteText(list);
+    say(said, note !== null && note !== lastNote ? `${what} ${note}`.trim() : what);
+    lastNote = note;
   };
 
   const addNow = (course: Course | null): void => {
@@ -194,7 +236,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       input.value = '';
       add.disabled = true;
       say(message, '');
-      say(said, added(result.added.code));
+      announce(added(result.added.code));
       close();
     } else {
       say(message, result.problem === 'already-there' ? alreadyThere(result.code) : notACourse(curriculum));
@@ -255,6 +297,16 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     filters.querySelector<HTMLElement>(`[data-filter="${chosen}"]`)?.focus();
   });
 
+  // The credits of a course PathCheck doesn't know. Only the numbers above the list are
+  // drawn again: the row, and the dropdown the student is on, stay as they are.
+  region.addEventListener('change', event => {
+    const chosen = event.target instanceof HTMLSelectElement && event.target.dataset.credits ? event.target : null;
+    if (!chosen) return;
+    list.entries = setCredits(list.entries, chosen.dataset.credits ?? '', Number(chosen.value));
+    summary.innerHTML = summaryHtml(list, curriculum);
+    announce('');
+  });
+
   region.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
     // The legacy question, answered on a row; and the line that lets the student change it.
@@ -264,7 +316,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       writeLegacyAnswer(browserStorage(), list.legacy);
       drawList();
       // Every row has changed: say which answer they now follow.
-      say(said, `${TEXT.legacyLine} ${list.legacy ? LEGACY_YES : LEGACY_NO}`);
+      announce(`${TEXT.legacyLine} ${list.legacy ? LEGACY_YES : LEGACY_NO}`);
       (region.querySelector<HTMLElement>('[data-legacy-change]') ?? input).focus();
       return;
     }
@@ -272,7 +324,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       list.legacy = null;
       clearLegacyAnswer(browserStorage());
       drawList();
-      say(said, LEGACY_QUESTION);
+      announce(LEGACY_QUESTION);
       (region.querySelector<HTMLElement>('[data-legacy]') ?? input).focus();
       return;
     }
@@ -282,7 +334,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     const at = shown.indexOf(gone);
     list.entries = removeCourse(list.entries, gone);
     drawList();
-    say(said, removed(gone));
+    announce(removed(gone));
     // The keyboard goes to the next course's Remove button, or back to the field.
     const buttons = region.querySelectorAll<HTMLElement>('[data-remove]');
     (buttons[Math.min(at, buttons.length - 1)] ?? input).focus();

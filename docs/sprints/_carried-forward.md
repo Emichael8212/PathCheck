@@ -8,35 +8,11 @@ Read this before writing a sprint contract; delete a line when its feature has d
   adding up a transcript row's credits. A withdrawn row still shows credits attempted.
   (F03 review; done for placement in F04)
 
-## For F09 (credit total and the summary strip)
-- The design's summary strip is F09's: total credits; credits that count, with "unless
-  you've already passed them or filled their slots" under it (owner answer b); credits
-  that don't count. Take the two counts from `answersFor` (`src/answers.ts`): a course
-  counts when its answer's `kind` is "counts" and doesn't when it is "no". A row that
-  shows the legacy question or waits for it is in neither count until it is answered: say
-  so in F09's contract. (F08)
-- Each row already shows its credits (`Entry.credits`): the curriculum's, the elective
-  rule's, or `UNKNOWN_COURSE_CREDITS` for a course PathCheck doesn't know. F09 makes the
-  last one editable and adds the total. (F07)
-- The default for a course PathCheck doesn't know is `UNKNOWN_COURSE_CREDITS` in
-  `src/credits.ts`; the Start demo's "3 cr" for BIO 230 uses it. Build the total there.
-  (F06)
-- Owner answer, 2026-11-16 ("Credits of a course PathCheck doesn't know"): a course
-  PathCheck doesn't know starts at 3 credits and the student can change it; a course it
-  knows uses its curriculum credits and is not editable. An unknown course's credits add
-  to the semester total only, never to what counts toward CIS. The owner's tests: an unknown course adds 3 by default; an edited
-  value changes the total and the under-12 / over-18 notes; an unknown course's credits
-  never count toward CIS.
-- Agent's reading (decision log), not the owner's words: "doesn't know" means not in a
-  curriculum list and not matching the elective rule, which includes CIS 304 and CIS 415
-  (3 by default, editable); a rule-matched elective (MKT 410) is known: the rule's 3
-  credits, not editable.
-- This is F09 step 5 in `features.json` (owner approval, 2026-11-16).
-- The field to change the credits is not in the approved design (it shows "3 cr" as text):
-  add it to `docs/design/DESIGN.md` as a difference that comes from this answer. What
-  values the field accepts is not an academic rule: choose the simplest and record it.
-  The entry row is built in F07 and the answers in F08; say in F09's contract where the
-  field lives.
+## For F12 (the numbers with a transcript)
+- The summary strip is `summaryHtml` in `src/check.ts`, from `totalsOf` in
+  `src/credits.ts`. With a transcript the count is exact: the condition under "Count
+  toward CIS" is dropped (owner answer b) and the two counts come from the exact answers.
+  (F09)
 
 ## For F17 and F18 (the printed summary; on every result)
 - The footer is `foot(curriculum, subject)` in `src/shell.ts`: it already leaves the
@@ -110,6 +86,8 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   while another course holds its pick. (F05)
 
 ## For F19 (clear my data)
+- The credits the student gave a course PathCheck doesn't know are part of the list
+  (`Entry.credits`): kept and cleared with it. (F09)
 - The entered courses live in memory only (a `CourseList` from `src/check.ts`, held by
   `startApp` in `src/app.ts`).
   F19 keeps them across visits and clears them. (F07)
@@ -117,6 +95,9 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   (`src/legacy.ts`). (F05)
 
 ## For F15 (the pace line in "Check my courses", with a transcript)
+- The credits of the typed courses ("15 credits in …") are `totalsOf(…).total`
+  (`src/credits.ts`): the curriculum's credits, and the student's own number for a course
+  PathCheck doesn't know. (F09)
 - Owner answer, 2026-11-16 ("No semester in the heading; the term for the pace line"). If
   the pace line needs the term the typed courses are for: the default is the next Fall or
   Spring after the latest term on the transcript (the term with In progress rows if there

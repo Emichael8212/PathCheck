@@ -19,7 +19,15 @@ const optionCodes = (): string[] => options().map(one => one.querySelector('.cod
 const tidy = (text: string | null | undefined): string => (text ?? '').replace(/\s+/g, ' ').trim();
 const rowElements = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('[data-entries] [role="row"].row')];
 // A row by its course and credits; its answer is read separately.
-const rows = (): string[] => rowElements().map(row => tidy(`${row.querySelector('.cell-name')?.textContent} ${row.querySelector('.cell-cr')?.textContent}`));
+// The credits of a row: what it shows, or what its dropdown was drawn with for a course
+// PathCheck doesn't know. (The simulated browser does not honour the selected option of a
+// dropdown made from HTML text, so the option marked selected is read; a real browser is
+// checked by the evaluator.)
+const creditsOf = (row: HTMLElement): string => {
+  const select = row.querySelector<HTMLSelectElement>('.cell-cr select');
+  return select ? `${select.querySelector('option[selected]')?.getAttribute('value')} cr` : tidy(row.querySelector('.cell-cr')?.textContent);
+};
+const rows = (): string[] => rowElements().map(row => tidy(`${row.querySelector('.cell-name')?.textContent} ${creditsOf(row)}`));
 const answers = (): string[] => rowElements().map(row => tidy(row.querySelector('.cell-answer')?.textContent));
 const answerOf = (code: string): string => answers()[rows().findIndex(row => row.startsWith(code))] ?? `no row for ${code}`;
 const message = (): string => $('#add-message').textContent ?? '';
@@ -393,7 +401,8 @@ describe('the list', () => {
   it('says what was added and removed', () => {
     expect(said()).toBe('');
     add('mgt 321');
-    expect(said()).toBe('MGT 321 added.');
+    // The first course brings the note about the total with it; it is not repeated after.
+    expect(said()).toBe('MGT 321 added. Below 12 credits: below full-time; may affect scholarships.');
     add('bio 230');
     expect(said()).toBe('BIO 230 added.');
     $('[data-remove="MGT 321"]').click();
@@ -636,5 +645,136 @@ describe('the answers', () => {
     expect(said()).toBe('Are you a legacy CIS student?');
     $('[data-legacy="no"]').click();
     expect(said()).toBe('Legacy CIS student: No');
+  });
+});
+
+// F09: the numbers above the list and the credits of an unknown course (docs/sprints/F09.md).
+describe('the numbers', () => {
+  const UNDER = 'Below 12 credits: below full-time; may affect scholarships.';
+  const OVER = 'Over 18 credits: may cost extra.';
+  const numbers = (): number[] => [...document.querySelectorAll('[data-summary] .num')].map(one => Number(one.textContent));
+  const stripText = (): string => tidy(document.querySelector('[data-summary]')?.textContent);
+  const creditsField = (code: string): HTMLSelectElement => $<HTMLSelectElement>(`[data-credits="${code}"]`);
+  const choose = (code: string, credits: number): void => {
+    const select = creditsField(code);
+    select.focus();
+    select.value = String(credits);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  it("changes the total when an unknown course's credits are changed", () => {
+    expect(document.querySelector('[data-summary] .summary')).toBeNull();
+    add('mgt 321');
+    add('bio 230');
+    expect(numbers()).toEqual([6, 3, 3]);
+    const select = creditsField('BIO 230');
+    const row = rowElements()[1]!;
+    choose('BIO 230', 4);
+    // At once, and without drawing the row or the field again.
+    expect(numbers()).toEqual([7, 3, 4]);
+    expect(creditsField('BIO 230')).toBe(select);
+    expect(rowElements()[1]).toBe(row);
+    expect(document.activeElement).toBe(select);
+    expect(select.value).toBe('4');
+    // An unknown course's credits never count toward CIS.
+    choose('BIO 230', 9);
+    expect(numbers()).toEqual([12, 3, 9]);
+    choose('BIO 230', 0);
+    expect(numbers()).toEqual([3, 3, 0]);
+    // The highest value.
+    add('eng 131');
+    add('act 215');
+    choose('BIO 230', 12);
+    expect(numbers()).toEqual([21, 9, 12]);
+    expect(stripText()).toContain(OVER);
+    // Courses PathCheck knows have nothing to change.
+    expect(document.querySelectorAll('[data-entries] select')).toHaveLength(1);
+    // The two courses that never count are unknown courses too.
+    add('cis 304');
+    expect(creditsField('CIS 304').getAttribute('aria-label')).toBe('Credits for CIS 304');
+    choose('CIS 304', 1);
+    expect(numbers()).toEqual([22, 9, 13]);
+  });
+
+  it("moves the notes when an unknown course's credits are changed", () => {
+    for (const one of ['mgt 321', 'eng 131', 'act 215', 'bio 230']) add(one);
+    expect(numbers()).toEqual([12, 9, 3]);
+    expect(stripText()).not.toMatch(/Below|Over/);
+    choose('BIO 230', 2);
+    expect(numbers()[0]).toBe(11);
+    expect(stripText()).toContain(UNDER);
+    // The note is read out when it appears...
+    expect(said()).toBe(UNDER);
+    choose('BIO 230', 1);
+    // ...and not again while it stays.
+    expect(said()).toBe('');
+    choose('BIO 230', 3);
+    expect(stripText()).not.toMatch(/Below|Over/);
+    expect(said()).toBe('');
+    add('mkt 321');
+    add('cis 300');
+    expect(numbers()[0]).toBe(18);
+    expect(stripText()).not.toMatch(/Below|Over/);
+    choose('BIO 230', 4);
+    expect(numbers()[0]).toBe(19);
+    expect(stripText()).toContain(OVER);
+    expect(stripText()).not.toContain(UNDER);
+    expect(said()).toBe(OVER);
+  });
+
+  it('follows the legacy answer in the numbers', () => {
+    add('fls 161');
+    add('mgt 321');
+    expect(numbers()).toEqual([6, 3, 0]);
+    expect(stripText()).toContain('Waiting for your legacy answer.');
+    $('[data-legacy="yes"]').click();
+    expect(numbers()).toEqual([6, 6, 0]);
+    expect(stripText()).not.toContain('Waiting');
+    $('[data-legacy-change]').click();
+    expect(numbers()).toEqual([6, 3, 0]);
+    $('[data-legacy="no"]').click();
+    expect(numbers()).toEqual([6, 3, 3]);
+    expect(stripText()).not.toContain('Waiting');
+    // A row that waits is treated the same.
+    $('[data-legacy-change]').click();
+    for (const one of ['mkt 410', 'cis 499', 'eco 301']) add(one);
+    expect(answerOf('ECO 301')).toBe('Answer “Are you a legacy CIS student?” to see this.');
+    expect(numbers()).toEqual([15, 9, 0]);
+    expect(stripText()).toContain('Waiting for your legacy answer.');
+  });
+
+  it('keeps the numbers right as the list changes', () => {
+    for (const one of ['act 215', 'mgt 321', 'mkt 410', 'bio 230', 'eng 131', 'eng 140']) add(one);
+    expect(numbers()).toEqual([18, 12, 6]);
+    expect([...document.querySelectorAll('[data-summary] .summary > div')].map(cell => [...cell.children].map(part => tidy(part.textContent)).join(' | '))).toEqual([
+      '18 | Total credits', '12 | Count toward CIS | unless you’ve already passed them or filled their slots', '6 | Don’t count',
+    ]);
+    // The filter lists fewer rows; the numbers are about the whole list.
+    $('[data-filter="no"]').click();
+    expect(numbers()).toEqual([18, 12, 6]);
+    $('[data-filter="all"]').click();
+    // Removing the course that held a pick lets the other count.
+    $('[data-remove="ENG 131"]').click();
+    expect(numbers()).toEqual([15, 12, 3]);
+    choose('BIO 230', 5);
+    expect(numbers()).toEqual([17, 12, 5]);
+    // Changed credits are kept while the student moves between pages...
+    go('#/');
+    go('#/check');
+    expect(numbers()).toEqual([17, 12, 5]);
+    expect(rows()).toContain('BIO 230 5 cr');
+    // ...and start again at 3 when the course is removed and added again.
+    $('[data-remove="BIO 230"]').click();
+    expect(numbers()).toEqual([12, 12, 0]);
+    add('bio 230');
+    expect(rows()).toContain('BIO 230 3 cr');
+    expect(numbers()).toEqual([15, 12, 3]);
+    // No list, no numbers; they come back with the first course.
+    for (const one of ['ACT 215', 'MGT 321', 'MKT 410', 'ENG 140', 'BIO 230']) $(`[data-remove="${one}"]`).click();
+    expect(document.querySelector('[data-summary] .summary')).toBeNull();
+    expect(stripText()).toBe('');
+    add('ori 100');
+    expect(numbers()).toEqual([1, 1, 0]);
+    expect(stripText()).toContain(UNDER);
   });
 });
