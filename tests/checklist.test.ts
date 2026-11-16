@@ -8,7 +8,9 @@ import { left as approved } from '../mockups/data.js';
 import sampleA from '../synthetic/transcripts/sample-a.json';
 import sampleB from '../synthetic/transcripts/sample-b.json';
 import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml, type Card, type Checklist, type StillItem } from '../src/checklist';
+import { answersFor } from '../src/answers';
 import { curriculum, findCourse } from '../src/curriculum';
+import { entryFor } from '../src/entries';
 import { emptyLeft, leftPage, resultHtml } from '../src/left';
 import { placeCourses } from '../src/placement';
 import { openTranscript, reviewedStandings } from '../src/review';
@@ -91,6 +93,10 @@ describe('the requirements', () => {
       expect(lines(card.done), `${block.name}: done`).toEqual(wanted(block.done));
       expect(lines(card.progress), `${block.name}: in progress`).toEqual(wanted(block.progress));
       expect(lines(card.still), `${block.name}: still needed`).toEqual(wanted(block.still));
+      // Where the design shows a title, it is the curriculum's.
+      for (const one of [...(block.done ?? []), ...(block.progress ?? []), ...(block.still ?? [])]) {
+        if (one.code && one.title) expect(findCourse(curriculum, one.code)[0]?.course.title, one.code).toBe(one.title);
+      }
       // Titles are the curriculum's, also where the design shows none.
       for (const item of [...card.done, ...card.progress, ...card.still]) {
         if (!('open' in item)) expect(item.title, item.code).toBe(findCourse(curriculum, item.code)[0]?.course.title);
@@ -109,7 +115,9 @@ describe('the requirements', () => {
     expect(html).toMatch(/<div class="donut" role="img" aria-label="81 credits left, 27 counted, 13 in progress, 121 total" style="--counted: 22\.314%; --counted-and-progress: 33\.058%">\s*<div><strong class="num">81<\/strong><span>credits left<\/span><\/div>/);
     expect(text).toContain('13 in progress · Fall 2026');
     expect(text).toContain('27 counted 81 left 121 total');
-    expect(html).toContain('grid-template-columns: minmax(0, 27fr) minmax(0, 13fr) minmax(0, 81fr)');
+    // Each label of the bar starts where its part starts: in progress after the counted part, "left" after both.
+    expect(html).toContain('<span class="credit-gap" style="flex-basis: 22.314%"></span><span class="bar-label is-progress">');
+    expect(html).toContain('<span class="bar-label is-counted" style="min-width: 33.058%">');
     expect(html).toContain('<span class="item-note">Repeat; the earlier D doesn’t count.</span>');
     // What belongs to later features is not drawn.
     expect(text).not.toMatch(/On pace|Looking ahead|Target semester|Draft plan|Move later|Print|Clear my data/);
@@ -146,6 +154,12 @@ describe('the requirements', () => {
     const running = cardOf(list(['MGT 321:D', 'MGT 321:-']), 'Business core');
     expect(lines(running.progress)).toEqual(['MGT 321 (Repeat; the earlier D doesn’t count.)']);
     expect(running.status).toBe('In progress');
+    // A course that also has a row still to fix is not flagged: that row may be the one that passed.
+    const unchecked = lines(cardOf(checklistOf(having(['MGT 321:D', 'ENG 131:D', 'MKT 410:D', 'MGT 422:F']), curriculum, false, new Set(['MGT 321', 'ENG 131', 'MKT 410'])), 'Business core').still);
+    expect(unchecked).toContain('MGT 321');
+    expect(unchecked).toContain('MGT 422 (Must be repeated; the F doesn’t count.)');
+    const quiet = checklistOf(having(['ENG 131:D', 'MKT 410:D']), curriculum, false, new Set(['ENG 131', 'MKT 410']));
+    expect(JSON.stringify(quiet.cards)).not.toContain('doesn’t count');
     // Repeated and passed: done, nothing flagged.
     expect(lines(cardOf(list(['MGT 321:D', 'MGT 321:A']), 'Business core').done)).toEqual(['MGT 321']);
     // A course of a pick: the pick stays open; the note keeps "must be repeated" and says another course can fill it.
@@ -230,9 +244,48 @@ describe('the sequence', () => {
     const extra = page(['GEO 206', 'HUM 101']);
     expect(decode(extra)).toContain('Needed for the history or literature sequence (3 extra credits): HIS 132 or ENG 210.');
     expect(extra).toMatch(/<\/div>\s*<p class="credit-extra">Plus 3 extra credits for the history or literature sequence\.<\/p>\s*<\/section>/);
-    // For a legacy student PSY 251 can leave its pick to become an elective; then the pick is open again.
+    // For a legacy student PSY 251 can leave its pick for an elective place: the history
+    // sequence can then still go through that pick, exactly as "Check my courses" answers.
     expect(sequenceOf(['PSY 251', 'HUM 101'], false).kind).toBe('extra');
-    expect(sequenceOf(['PSY 251', 'HUM 101'], true)).toEqual({ kind: 'extra', text: 'Needed for the history or literature sequence (3 extra credits): HIS 132 or ENG 210.', beside: 'Plus 3 extra credits for the history or literature sequence.' });
+    expect(sequenceOf(['PSY 251', 'HUM 101'], true)).toEqual({ kind: 'open', text: 'Still needed: HIS 132 to complete a history sequence.' });
+    for (const legacy of [true, false]) {
+      const typed = answersFor([entryFor('HIS 132', curriculum)], curriculum, legacy, { standings: having(['PSY 251', 'HUM 101']), exact: true })[0];
+      expect(typed?.kind, String(legacy)).toBe(legacy ? 'counts' : 'needed');
+    }
+    // With the elective places full it cannot move, and the pick stays held.
+    expect(sequenceOf(['PSY 251', 'HUM 101', 'FIN 201', 'MKT 410', 'CIS 499'], true).kind).toBe('extra');
+  });
+
+  it('does not say a sequence course in progress does not count', () => {
+    // HIS 132 is in progress while a passed course holds its pick: it is what completes the
+    // sequence. It is said in the sequence box, and is not among the courses that count nothing.
+    const rows = ['HIS 131', 'GEO 206', 'HIS 132:-'];
+    const checklist = list(rows);
+    expect(checklist.sequence).toEqual({
+      kind: 'running', text: 'In progress: HIS 132 for the history sequence (3 extra credits). It fills the sequence requirement only.', beside: 'Plus 3 extra credits in progress for the history sequence.',
+    });
+    expect(checklist.unused).toEqual([]);
+    expect(JSON.stringify(checklist.cards)).not.toContain('HIS 132');
+    const html = page(rows);
+    expect(html).toMatch(/<p class="sequence"><svg class="icon mark mark-progress"[^>]*>[\s\S]*?<\/svg><span>In progress: <span class="code">HIS 132<\/span> for the history sequence \(3 extra credits\)\. It fills the sequence requirement only\.<\/span><\/p>/);
+    expect(html).toMatch(/<p class="credit-extra">Plus 3 extra credits in progress for the history sequence\.<\/p>/);
+    expect(html).not.toContain('class="unused"');
+    expect(decode(html)).not.toMatch(/HIS 132[^.]*Doesn’t count/);
+    // The same for the other sequence.
+    expect(list(['HUM 101', 'ENG 210:-']).sequence).toMatchObject({ kind: 'running', text: 'In progress: ENG 210 for the literature sequence (3 extra credits). It fills the sequence requirement only.' });
+    // Everything else passed: every card is done and nothing is left, and the page still says what HIS 132 is for.
+    const all = list([...everything('GEO 206', 'HUM 101'), 'HIS 132:-']);
+    expect([all.credits.left, all.cards.every(card => card.status === 'Done'), all.sequence.kind, all.unused.length]).toEqual([0, true, 'running', 0]);
+    // Another sequence already holds its pick: then the course in progress really fills nothing, and is listed.
+    const settled = list(['GEO 206', 'ENG 210', 'HIS 132:-']);
+    expect(settled.sequence).toEqual({ kind: 'none' });
+    expect(settled.unused.map(one => [one.code, one.reason])).toEqual([['HIS 132', 'Doesn’t count — it fills the same requirement as GEO 206.']]);
+    // Both sequence courses in progress with both picks held: one completes a sequence, the other is listed.
+    const both = list(['GEO 206', 'HUM 101', 'HIS 132:-', 'ENG 210:-']);
+    expect(both.sequence).toMatchObject({ kind: 'running', text: 'In progress: HIS 132 for the history sequence (3 extra credits). It fills the sequence requirement only.' });
+    expect(both.unused.map(one => one.code)).toEqual(['ENG 210']);
+    // With its pick open the course in progress simply holds it.
+    expect([list(['HIS 132:-']).sequence.kind, lines(cardOf(list(['HIS 132:-']), 'Social sciences').progress)]).toEqual(['none', ['HIS 132']]);
   });
 
   it('keeps the sequence apart from the credits, with nothing left', () => {
@@ -245,7 +298,7 @@ describe('the sequence', () => {
     const html = page(rows);
     // The ring reads 0; the extra credits are said in the same card, directly under the bar; the box is shown.
     expect(html).toMatch(/<strong class="num">0<\/strong><span>credits left<\/span>/);
-    expect(html).toMatch(/<span class="bar-label is-total"><strong class="num">121<\/strong> total<\/span>\s*<\/div>\s*<p class="credit-extra">Plus 3 extra credits for the history or literature sequence\.<\/p>\s*<\/section>/);
+    expect(html).toMatch(/<span class="bar-label is-total"><strong class="num">121<\/strong> total<\/span>\s*<\/div>\s*<\/div>\s*<p class="credit-extra">Plus 3 extra credits for the history or literature sequence\.<\/p>\s*<\/section>/);
     expect(html).toMatch(/<p class="sequence">[\s\S]*Needed for the history or literature sequence \(3 extra credits\): /);
     // No word says the degree is done.
     const whole = decode(resultHtml(openTranscript('made-up.pdf', { rows: rows.map(code => { const [prefix, number] = code.split(' '); return { term: 'Fall 2025', transfer: false, prefix, number, description: 'A course', attempted: 3, earned: 3, grade: 'B', points: 9 }; }) }, curriculum), curriculum, false));
@@ -299,12 +352,13 @@ describe('what does not count, and the legacy answer', () => {
     expect(no.unused.map(one => one.code)).toEqual(['BIO 230', 'FLS 161']);
     expect(yes.unused.map(one => one.code)).toEqual(['BIO 230']);
     // Where the answer changes nothing, nothing is asked.
-    for (const rows of [[], ['ENG 131', 'MGT 321'], ['PSY 251'], ['FLS 161:D'], ['FLS 161:W', 'MGT 220:F']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(false);
-    for (const rows of [['FLS 161'], ['MGT 220:-'], ['MGT 203:T'], ['PSY 251', 'GEO 206']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(true);
+    for (const rows of [[], ['ENG 131', 'MGT 321'], ['PSY 251:D'], ['FLS 161:D'], ['FLS 161:W', 'MGT 220:F']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(false);
+    // (PSY 251 alone: a legacy student could still take HIS 132 for its pick, so what the sequence needs differs.)
+    for (const rows of [['FLS 161'], ['MGT 220:-'], ['MGT 203:T'], ['PSY 251', 'GEO 206'], ['PSY 251']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(true);
     // The page before the answer: the question and its reason, and nothing the answer could change.
     const transcript = openTranscript('sample-b.pdf', sampleB, curriculum);
     const asking = resultHtml(transcript, curriculum, null);
-    expect(asking).toMatch(/<div class="legacy-ask" role="group" aria-label="Are you a legacy CIS student\?">\s*<p>Are you a legacy CIS student\?<\/p>\s*<div class="legacy-buttons">\s*<button type="button" class="btn secondary" data-legacy="yes">Yes<\/button>\s*<button type="button" class="btn secondary" data-legacy="no">No<\/button>\s*<\/div>\s*<p class="condition">Your transcript has FLS 161, which counts only for legacy students\.<\/p>/);
+    expect(asking).toMatch(/<div class="legacy-ask" role="group" aria-label="Are you a legacy CIS student\?">\s*<p>Are you a legacy CIS student\?<\/p>\s*<div class="legacy-buttons">\s*<button type="button" class="btn secondary" data-legacy="yes">Yes<\/button>\s*<button type="button" class="btn secondary" data-legacy="no">No<\/button>\s*<\/div>\s*<p class="condition">Your transcript has FLS 161, which counts as an elective only for legacy students\.<\/p>/);
     expect(asking).not.toMatch(/class="req"|donut|credit-bar|class="sequence"|class="unused"|legacy-line|Done|In progress|Still needed|credits left/);
     expect(decode(asking)).not.toMatch(/\b(26|23|89|92)\b/);
     // After it: the line that shows the answer and lets the student change it.
@@ -356,7 +410,7 @@ describe('whatever the transcript', () => {
     const everyCourse = [...new Set([...curriculum.blocks.flatMap(block => [...block.required, ...block.picks.flatMap(group => group.courses)]), ...curriculum.electives.named, ...curriculum.electives.legacyOnly].map(course => course.code))];
     const pool = [...everyCourse, 'MKT 410', 'CIS 499', 'ECO 301', 'ACT 350', 'CIS 304', 'CIS 415', 'BIO 230', 'XYZ 101'];
     const marks = ['A', 'B', 'B', 'B', 'C', 'D', 'F', 'W', 'I', '-', '-', 'T'];
-    const seen = { open: 0, oneOpen: 0, extra: 0, none: 0, asked: 0, unused: 0, done: 0, flagged: 0 };
+    const seen = { open: 0, oneOpen: 0, extra: 0, none: 0, running: 0, asked: 0, unused: 0, done: 0, flagged: 0 };
     for (let i = 0; i < 300; i++) {
       // A transcript of any size, up to nearly everything, with repeats.
       const size = Math.floor(next() * (i % 3 === 0 ? pool.length * 1.5 : 25));
@@ -394,16 +448,25 @@ describe('whatever the transcript', () => {
         for (const [code, standing] of shown) expect(held.get(code!), `${label}: ${code}`).toBe(standing);
         // Every still-needed course is one the transcript has neither passed nor in progress.
         for (const card of checklist.cards) for (const item of card.still) if (!('open' in item)) { expect(held.has(item.code), `${label}: ${item.code}`).toBe(false); if (item.note) seen.flagged++; }
-        // The not-counted list is exactly the placement's left-over courses.
-        expect(checklist.unused.map(one => one.code), label).toEqual(placement.unplaced.map(one => one.code));
+        // The not-counted list is exactly the placement's left-over courses, without a
+        // sequence course in progress that is what completes the sequence.
+        const forSequence = checklist.sequence.kind === 'running' ? ['HIS 132', 'ENG 210'].filter(code => checklist.sequence.kind === 'running' && checklist.sequence.text.includes(code)) : [];
+        if (forSequence.length > 0) { seen.running++; for (const code of forSequence) expect(held.get(code), label).toBe('in-progress'); }
+        expect(checklist.unused.map(one => one.code), label).toEqual(placement.unplaced.map(one => one.code).filter(code => !forSequence.includes(code)));
         for (const one of checklist.unused) expect(held.has(one.code), label).toBe(true);
         for (const one of checklist.unused) expect(shown.map(([code]) => code), label).not.toContain(one.code);
         if (checklist.unused.length > 0) seen.unused++;
         // The sequence box, from an independent look at the two sequence courses and their picks.
         const groupOf = (code: string) => placement.blocks.flatMap(block => block.picks).find(group => group.options.some(option => option.code === code))!;
-        const have = ['HIS 132', 'ENG 210'].some(code => held.has(code));
-        const open = ['HIS 132', 'ENG 210'].filter(code => groupOf(code).open > 0);
-        if (have) { expect(checklist.sequence.kind, label).toBe('none'); seen.none++; }
+        const have = ['HIS 132', 'ENG 210'].filter(code => held.has(code));
+        const placedOnes = placement.blocks.flatMap(block => block.picks.flatMap(group => group.filled.map(one => one.course.code)));
+        // A legacy student's PSY 251 can give up its pick: only then is a held pick still "open".
+        const open = ['HIS 132', 'ENG 210'].filter(code => groupOf(code).open > 0 || (legacy && groupOf(code).filled.some(one => one.course.code === 'PSY 251') && placement.electives.open > 0));
+        if (have.length > 0) {
+          // Nothing to say when a sequence course holds its pick; otherwise it is the one in progress.
+          expect(checklist.sequence.kind, label).toBe(have.some(code => placedOnes.includes(code)) ? 'none' : 'running');
+          seen.none++;
+        }
         else if (open.length === 2) { expect(checklist.sequence, label).toEqual({ kind: 'open', text: STEP_5 }); seen.open++; }
         else if (open.length === 1) { expect(checklist.sequence, label).toMatchObject({ kind: 'open' }); expect((checklist.sequence as { text: string }).text, label).toMatch(new RegExp(`^Still needed: ${open[0]} to complete a (history|literature) sequence\\.$`)); seen.oneOpen++; }
         else { expect(checklist.sequence.kind, label).toBe('extra'); seen.extra++; }

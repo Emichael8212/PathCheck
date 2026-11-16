@@ -1,10 +1,11 @@
 // "See what I have left": the student brings their transcript PDF, checks what was read,
 // and goes on. The upload panel is the approved design's; the review step is made of its
-// pieces (rows, buttons, type, colors). The checklist that follows is another feature.
+// pieces (rows, buttons, type, colors). After "Continue" comes the result: the credits left
+// and the checklist (src/checklist.ts).
 //
 // Text printed on a transcript is shown as text. Nothing here says a course counts.
 import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml } from './checklist';
-import { type Curriculum } from './curriculum';
+import { normalizeCode, type Curriculum } from './curriculum';
 import { code, esc, eyebrow, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
 import { type Problem } from './reader';
@@ -62,7 +63,7 @@ const TEXT = {
   resultEyebrow: 'What I have left',
   resultHeading: 'Your degree, in focus.',
   pill: 'Synthetic transcript result',
-  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of them.`,
+  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}.`,
   fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
   noRows: 'No row of your transcript was taken on, so there is nothing to show yet.',
   reviewAgain: 'Check what was read',
@@ -225,7 +226,10 @@ export function reviewHtml(state: LeftState, curriculum: Curriculum): string {
  */
 export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer): string {
   const standings = reviewedStandings(transcript, curriculum.grades);
-  const toFix = stillToFix(transcript).length;
+  const fixing = stillToFix(transcript);
+  const toFix = fixing.length;
+  // The courses that also have a row still to fix, where its code could be read.
+  const unchecked = new Set(fixing.flatMap(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`) ?? []));
   const warning = toFix === 0 ? '' : `<div class="note" data-to-fix>
     <p>${icons.doc(20)}${esc(TEXT.toFix(toFix))}</p>
     <button type="button" class="text-link" data-review-again>${esc(TEXT.fix(toFix))}</button>
@@ -239,7 +243,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   </div>`;
   if (takenOn(transcript).length === 0) return `${warning}<p class="empty-hint" data-no-rows>${esc(TEXT.noRows)}</p>
   ${foot}`;
-  const asks = legacyChanges(standings, curriculum);
+  const asks = legacyChanges(standings, curriculum, unchecked);
   if (asks && legacy === null) {
     const because = legacyOnTranscript(standings, curriculum);
     return `${warning}<div class="note legacy-first" data-legacy-first>
@@ -254,7 +258,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   </div>
   ${foot}`;
   }
-  const checklist = checklistOf(standings, curriculum, legacy === true);
+  const checklist = checklistOf(standings, curriculum, legacy === true, unchecked);
   return `${warning}${asks ? `<p class="legacy-line">${esc(LEGACY_LINE)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(CHANGE)}</button></p>
   ` : ''}${overviewHtml(checklist)}
   ${requirementsHtml(checklist)}

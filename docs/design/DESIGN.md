@@ -355,7 +355,8 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     transcript still need fixing and count nothing. A requirement, or the sequence, may
     show as still needed because of them." with "Fix them";
   - before the result, when the answer would change it: the legacy question (the owner's
-    words) with "Your transcript has <code>, which counts only for legacy students.";
+    words) with "Your transcript has <code>, which counts as an elective only for legacy
+    students.";
     afterwards "Legacy CIS student: Yes" with "Change";
   - notes on a course: "Repeat; the earlier D doesn't count." (the design's); "Must be
     repeated; the D doesn't count."; on a pick, "<code>: the D doesn't count. It must be
@@ -365,6 +366,13 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     sequence.") and with none ("Needed for the history or literature sequence (3 extra
     credits): HIS 132 or ENG 210."), and then under the credit bar "Plus 3 extra credits
     for the history or literature sequence." (from the owner's answer of 2026-11-16);
+    when a sequence course is in progress while a passed course holds its pick, "In
+    progress: HIS 132 for the history sequence (3 extra credits). It fills the sequence
+    requirement only." with the in-progress mark, and under the bar "Plus 3 extra credits
+    in progress for the history sequence.";
+  - the labels of the credit bar start where their parts start, as designed, and wrap
+    instead of overlapping when a part is very small (a new student; a nearly finished
+    one);
   - under the requirements, closed until opened: "<n> courses on your transcript are not
     counted toward CIS", each with its reason;
   - at the end: the line of counts of the review, "Check what was read" and "Use another
@@ -389,7 +397,7 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     brief's), "Already in progress." (the owner's, 2026-11-16), all three drawn as
     "Doesn't count"; a "Counts" keeps its outlined mark and loses its
     condition; under the legacy question on a row that is no legacy course, "Your
-    transcript has <code>, which counts only for legacy students.";
+    transcript has <code>, which counts as an elective only for legacy students.";
   - a sequence course whose pick another course already holds (the owner's words,
     2026-11-16): while the other sequence's pick is open, "Doesn't count — same slot as
     <course>. Take ENG 210 for the sequence.", drawn as "Doesn't count"; when both picks

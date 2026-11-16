@@ -9,7 +9,7 @@ import { answersFor, legacyMatters, reminderFor, type Answer, type TranscriptUse
 import { FULL_TIME, MOST_UNKNOWN_CREDITS, USUAL_MOST, creditsOf, noteFor, totalsOf } from './credits';
 import { type Course, type Curriculum } from './curriculum';
 import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entries';
-import { code, esc, icons, marks } from './html';
+import { code, esc, icons, marks, withCodes } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { FLOW_NAME, foot, top } from './shell';
 import { countsExample } from './start';
@@ -105,9 +105,6 @@ export function transcriptCard(transcript: OnCheck): string {
       <p>${esc(ANOTHER_FORGETS)}</p>`);
 }
 
-// A sentence with every course code inside it set in the code face.
-const COURSE_CODE = /\b[A-Z]{2,4} \d{3}\b/g;
-const withCodes = (text: string): string => esc(text).replace(COURSE_CODE, found => `<span class="code">${found}</span>`);
 
 export const suggestionsHtml = (courses: readonly Course[], active: number): string =>
   courses.map((course, i) => `

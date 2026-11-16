@@ -915,7 +915,7 @@ describe('with a transcript', () => {
     add('mgt 321');
     // The transcript's FLS 161 holds an elective place only for a legacy student: the second elective depends on it.
     expect(answers()).toEqual([
-      'Counts toward CIS — CIS electives', 'Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts only for legacy students.', 'Counts toward CIS — Business core',
+      'Counts toward CIS — CIS electives', 'Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts as an elective only for legacy students.', 'Counts toward CIS — Business core',
     ]);
     expect(strip()).toContain('Waiting for your legacy answer.');
     expect(numbers()).toEqual([9, 6, 0]);

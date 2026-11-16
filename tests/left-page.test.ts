@@ -594,7 +594,7 @@ describe('the checklist', () => {
     $('[data-save="1"]').click();
     $('[data-out="2"]').click();
     $('[data-continue]').click();
-    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of them. Fix it');
+    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. Fix it');
     expect(creditsOf('Composition')).toBe('3 / 6 cr');
     $('[data-to-fix] [data-review-again]').click();
     $('[data-out="3"]').click();
@@ -602,12 +602,41 @@ describe('the checklist', () => {
     expect(document.querySelector('[data-to-fix]')).toBeNull();
   });
 
+  it('does not say a course must be repeated while a row of it still needs fixing', () => {
+    // An F, then a later row of the same course that could not be checked: it may be the one that passed.
+    review(good({ grade: 'F', term: 'Fall 2024' }), good({ grade: 'B+', term: 'Spr 2025' }), good({ prefix: 'MGT', number: '422', grade: 'D' }));
+    $('[data-continue]').click();
+    expect(listOf('Business core')).toContain('MGT 321 Principles of Management');
+    expect(listOf('Business core')).not.toContain('MGT 321 Principles of Management Must be repeated');
+    // A course with no row to fix is still flagged.
+    expect(listOf('Business core')).toContain('MGT 422 Production Management Must be repeated; the D doesn’t count.');
+    // Once the row is fixed the course is done; had it been left out, the flag would be back.
+    $('[data-to-fix] [data-review-again]').click();
+    $('[data-out="1"]').click();
+    $('[data-continue]').click();
+    expect(listOf('Business core')).toContain('MGT 321 Principles of Management Must be repeated; the F doesn’t count.');
+  });
+
+  it('keeps the numbers of the credit bar apart, however small a part is', () => {
+    // A new student, with one course passed and one in progress: nearly everything is left.
+    review(good({ prefix: 'ORI', number: '100', attempted: 1 }), good({ prefix: 'ENG', number: '131', grade: '' }));
+    $('[data-continue]').click();
+    expect(ring()).toBe('117');
+    const labels = [...document.querySelectorAll<HTMLElement>('.bar-label')];
+    expect(labels.map(label => tidy(label.textContent))).toEqual(['3 in progress · Fall 2025', '1 counted', '117 left', '121 total']);
+    // The labels are laid out in rows of their own that wrap; none is tied to a part of the bar that may be too narrow for it.
+    for (const label of labels) expect(label.parentElement?.className).toBe('credit-row');
+    expect($('.credit').getAttribute('style')).toBeNull();
+    expect($('.is-counted').getAttribute('style')).toBe('min-width: 3.306%');
+    expect($('.credit-gap').getAttribute('style')).toBe('flex-basis: 0.826%');
+  });
+
   it('asks the legacy question before the result', async () => {
     await app.takeFile(madeUp('sample-b'));
     $('[data-continue]').click();
     // Nothing of the result is on the page before the answer: no number, no status.
     const asking = $('[data-legacy-first]');
-    expect(tidy(asking.textContent)).toBe('Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts only for legacy students.');
+    expect(tidy(asking.textContent)).toBe('Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts as an elective only for legacy students.');
     expect(asking.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('Are you a legacy CIS student?');
     expect(document.querySelector('.req, .donut, .credit, .sequence, .unused, .legacy-line')).toBeNull();
     expect(tidy($('main').textContent)).not.toMatch(/Done|In progress|Still needed|credits left|\d+ counted/);

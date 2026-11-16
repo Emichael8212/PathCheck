@@ -571,7 +571,7 @@ describe('the transcript on the page', () => {
     const html = entriesHtml(listed(typed('CIS 499', 'ECO 301', 'ACT 350')), curriculum, withPassed(['FLS 161', 'MGT 220']));
     const [first, asking, waiting] = rowsOf(html);
     expect(answerIn(first!)).toBe('Counts toward CIS: elective (300/400-level CIS)');
-    expect(asking).toMatch(/<div class="legacy-ask" role="group" aria-label="Are you a legacy CIS student\?">\s*<p>Are you a legacy CIS student\?<\/p>\s*<div class="legacy-buttons">\s*<button type="button" class="btn secondary" data-legacy="yes">Yes<\/button>\s*<button type="button" class="btn secondary" data-legacy="no">No<\/button>\s*<\/div>\s*<p class="condition">Your transcript has <span class="code">FLS 161<\/span> and <span class="code">MGT 220<\/span>, which count only for legacy students\.<\/p>/);
+    expect(asking).toMatch(/<div class="legacy-ask" role="group" aria-label="Are you a legacy CIS student\?">\s*<p>Are you a legacy CIS student\?<\/p>\s*<div class="legacy-buttons">\s*<button type="button" class="btn secondary" data-legacy="yes">Yes<\/button>\s*<button type="button" class="btn secondary" data-legacy="no">No<\/button>\s*<\/div>\s*<p class="condition">Your transcript has <span class="code">FLS 161<\/span> and <span class="code">MGT 220<\/span>, which count as electives only for legacy students\.<\/p>/);
     expect(answerIn(waiting!)).toBe('Answer “Are you a legacy CIS student?” to see this.');
     for (const row of [asking!, waiting!]) expect(row).not.toMatch(/mark-counts|mark-no|is-counts|is-no|Counts toward|Doesn’t count/);
     // Once answered, the line to change it is there although no typed course is a legacy course.

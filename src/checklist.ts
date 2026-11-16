@@ -6,12 +6,12 @@
 // course in progress fills its place but is never done.
 import { levelOf, sequencePicks } from './answers';
 import { findCourse, type Curriculum } from './curriculum';
-import { code, esc, eyebrow, icons, marks } from './html';
-import { countsByElectiveRule, placeCourses, type Filled, type Placement } from './placement';
+import { code, esc, eyebrow, icons, marks, withCodes } from './html';
+import { countsByElectiveRule, placeCourses, wouldTakePick, type Filled, type Placement } from './placement';
 import { type CourseStanding } from './transcript';
 import {
-  LEGACY_STUDENTS_ONLY, NOT_IN_CURRICULUM, electiveFailed, electivePlacesFilled, extraForSequence, listOf, mustBeRepeated, notInCurrentCurriculum, pickFailed,
-  repeatInProgress, sameRequirement, sequenceExtra, sequenceStillNeeded,
+  LEGACY_STUDENTS_ONLY, NOT_IN_CURRICULUM, electiveFailed, electivePlacesFilled, extraForSequence, extraInProgress, listOf, mustBeRepeated, notInCurrentCurriculum,
+  pickFailed, repeatInProgress, sameRequirement, sequenceExtra, sequenceInProgress, sequenceStillNeeded,
 } from './wording';
 
 export type Status = 'Done' | 'In progress' | 'Still needed';
@@ -56,17 +56,23 @@ export interface Checklist {
   readonly inProgressTerms: readonly string[];
   readonly cards: readonly Card[];
   /**
-   * What the sequence still needs: nothing; a course through a pick that is still open; or,
-   * with every pick held, a course that fills the sequence only, with extra credits.
+   * What the sequence still needs: nothing; a course through a pick that is still open;
+   * with every pick held, a course that fills the sequence only, with extra credits; or
+   * such a course already in progress ("running"), which is then not among the unused.
    */
-  readonly sequence: { readonly kind: 'none' } | { readonly kind: 'open'; readonly text: string } | { readonly kind: 'extra'; readonly text: string; readonly beside: string };
+  readonly sequence: { readonly kind: 'none' } | { readonly kind: 'open'; readonly text: string }
+    | { readonly kind: 'extra' | 'running'; readonly text: string; readonly beside: string };
   readonly unused: readonly Unused[];
 }
 
 const titleOf = (curriculum: Curriculum, courseCode: string): string => findCourse(curriculum, courseCode)[0]?.course.title ?? '';
 
-/** The checklist of a reviewed transcript, for a student who is or is not a legacy student. */
-export function checklistOf(standings: readonly CourseStanding[], curriculum: Curriculum, legacy: boolean): Checklist {
+/**
+ * The checklist of a reviewed transcript, for a student who is or is not a legacy student.
+ * `unchecked` are the courses that also have a row still to fix: nothing firm is said about
+ * a failed attempt of such a course, since the unchecked row may be the one that passed.
+ */
+export function checklistOf(standings: readonly CourseStanding[], curriculum: Curriculum, legacy: boolean, unchecked: ReadonlySet<string> = new Set()): Checklist {
   const placement: Placement = placeCourses(standings, curriculum, { legacy });
   const { electives, grades } = curriculum;
   const standingOf = new Map(standings.map(one => [one.code, one]));
@@ -77,7 +83,7 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
     return grades.letters.find(letter => failing.includes(letter.toUpperCase())) ?? null;
   };
   /** A course that only failed: below the lowest grade that counts, with nothing later that passes or runs. */
-  const mustRepeat = (courseCode: string): string | null => (held(courseCode) ? null : failedWith(courseCode));
+  const mustRepeat = (courseCode: string): string | null => (held(courseCode) || unchecked.has(courseCode) ? null : failedWith(courseCode));
 
   const filledItem = (filled: Filled): CourseItem => {
     const earlier = filled.state === 'in-progress' ? failedWith(filled.course.code) : null;
@@ -140,9 +146,41 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
     done: electiveFilled.filter(one => one.state === 'done').map(filledItem), progress: electiveFilled.filter(one => one.state === 'in-progress').map(filledItem), still: electiveStill,
   };
 
+  // The sequence: judged on its courses that sit in a pick (the others are required anyway).
+  const alternatives = sequencePicks(curriculum).filter(alternative => alternative.courses.length > 0);
+  const kind = (name: string): string => name.replace(/ sequence$/, '');
+  const creditsOf = (courseCode: string): number => findCourse(curriculum, courseCode)[0]?.course.credits ?? electives.creditsPerCourse;
+  const withoutPlace = new Set(placement.unplaced.map(one => one.code));
+  let sequence: Checklist['sequence'] = { kind: 'none' };
+  // A sequence whose pick courses the transcript has passed or in progress.
+  const onItsWay = alternatives.filter(alternative => alternative.courses.every(held));
+  // None of them holds its pick: a sequence course is in progress while a passed course
+  // holds its pick. It is what completes the sequence, with extra credits; it is said in
+  // the sequence box, and never listed as a course that does not count.
+  const forSequence = onItsWay.some(alternative => !alternative.courses.some(courseCode => withoutPlace.has(courseCode))) ? undefined : onItsWay[0];
+  const inSequenceOnly = new Set(forSequence ? forSequence.courses.filter(courseCode => withoutPlace.has(courseCode)) : []);
+  if (forSequence) {
+    const codes = [...inSequenceOnly];
+    const extra = codes.reduce((sum, courseCode) => sum + creditsOf(courseCode), 0);
+    sequence = { kind: 'running', text: sequenceInProgress(codes, forSequence.name, extra), beside: extraInProgress(extra, forSequence.name) };
+  } else if (onItsWay.length === 0 && placement.sequence.state === 'needed' && alternatives.length > 0) {
+    // Which sequence can still go through its pick: its course, planned, would take it.
+    const through = alternatives.filter(alternative => alternative.courses.every(courseCode => wouldTakePick(standings, curriculum, { legacy }, courseCode)));
+    if (through.length > 0) {
+      sequence = { kind: 'open', text: sequenceStillNeeded(through.flatMap(alternative => alternative.courses), through.map(alternative => kind(alternative.name))) };
+    } else {
+      // Every pick is held by other courses: one sequence course is needed with its own
+      // credits as extra. (The sequence courses have the same credits; the most is said.)
+      const codes = alternatives.flatMap(alternative => alternative.courses);
+      const kinds = alternatives.map(alternative => kind(alternative.name));
+      const extra = Math.max(...codes.map(creditsOf));
+      sequence = { kind: 'extra', text: sequenceExtra(kinds, extra, codes), beside: extraForSequence(extra, kinds) };
+    }
+  }
+
   // Courses that are passed or in progress and fill nothing, each with its reason.
   const holdingElectives = electiveFilled.map(one => one.course.code);
-  const unused: Unused[] = placement.unplaced.map(one => ({
+  const unused: Unused[] = placement.unplaced.filter(one => !inSequenceOnly.has(one.code)).map(one => ({
     code: one.code,
     title: titleOf(curriculum, one.code),
     reason: one.reason === 'not-in-curriculum' ? NOT_IN_CURRICULUM
@@ -152,23 +190,6 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
             : electivePlacesFilled(electives.courseCount, holdingElectives),
   }));
 
-  // The sequence: judged on its courses that sit in a pick (the others are required anyway).
-  const alternatives = sequencePicks(curriculum).filter(alternative => alternative.courses.length > 0);
-  const kind = (name: string): string => name.replace(/ sequence$/, '');
-  const pickIsOpen = (courseCode: string): boolean => placement.blocks.flatMap(one => one.picks).some(pick => pick.open > 0 && pick.options.some(option => option.code === courseCode));
-  let sequence: Checklist['sequence'] = { kind: 'none' };
-  if (placement.sequence.state === 'needed' && alternatives.length > 0 && !alternatives.some(alternative => alternative.courses.every(held))) {
-    const through = alternatives.filter(alternative => alternative.courses.every(pickIsOpen));
-    if (through.length > 0) {
-      sequence = { kind: 'open', text: sequenceStillNeeded(through.flatMap(alternative => alternative.courses), through.map(alternative => kind(alternative.name))) };
-    } else {
-      const codes = alternatives.flatMap(alternative => alternative.courses);
-      const kinds = alternatives.map(alternative => kind(alternative.name));
-      const extra = Math.min(...codes.map(courseCode => findCourse(curriculum, courseCode)[0]?.course.credits ?? electives.creditsPerCourse));
-      sequence = { kind: 'extra', text: sequenceExtra(kinds, extra, codes), beside: extraForSequence(extra, kinds) };
-    }
-  }
-
   const inProgress = new Set([...blockCards, electiveCard].flatMap(card => card.progress.map(item => item.code)));
   const inProgressTerms = [...new Set(standings.filter(one => inProgress.has(one.code)).map(one => one.deciding.row.term.trim()).filter(Boolean))];
   const { done, inProgress: running, remaining, degree } = placement.credits;
@@ -176,8 +197,8 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
 }
 
 /** Would the legacy answer change anything of the checklist? */
-export const legacyChanges = (standings: readonly CourseStanding[], curriculum: Curriculum): boolean =>
-  JSON.stringify(checklistOf(standings, curriculum, true)) !== JSON.stringify(checklistOf(standings, curriculum, false));
+export const legacyChanges = (standings: readonly CourseStanding[], curriculum: Curriculum, unchecked: ReadonlySet<string> = new Set()): boolean =>
+  JSON.stringify(checklistOf(standings, curriculum, true, unchecked)) !== JSON.stringify(checklistOf(standings, curriculum, false, unchecked));
 
 /** The legacy-only courses that the transcript has passed or in progress. */
 export const legacyOnTranscript = (standings: readonly CourseStanding[], curriculum: Curriculum): string[] =>
@@ -201,9 +222,6 @@ const TEXT = {
   unused: (count: number): string => `${count} ${count === 1 ? 'course on your transcript is' : 'courses on your transcript are'} not counted toward CIS`,
 };
 const STATUS_MARK: Record<Status, (size?: number) => string> = { 'Done': marks.done, 'In progress': marks.progress, 'Still needed': marks.needed };
-// A sentence with every course code inside it set in the code face.
-const COURSE_CODE = /\b[A-Z]{2,4} \d{3}\b/g;
-const withCodes = (text: string): string => esc(text).replace(COURSE_CODE, found => `<span class="code">${found}</span>`);
 const percent = (part: number, whole: number): string => `${Math.round((part / whole) * 1e5) / 1e3}%`;
 const showCue = `<span class="req-show no-print"><span class="when-closed">${esc(TEXT.show)}</span> <span class="when-open">${esc(TEXT.hide)}</span>${icons.arrow(16, 'req-cue')}</span>`;
 
@@ -242,15 +260,17 @@ export function overviewHtml(checklist: Checklist): string {
       <div class="donut" role="img" aria-label="${left} ${esc(TEXT.creditsLeft)}, ${counted} ${esc(TEXT.counted)}, ${inProgress} ${esc(TEXT.inProgress)}, ${total} ${esc(TEXT.total)}" style="--counted: ${percent(counted, total)}; --counted-and-progress: ${percent(counted + inProgress, total)}">
         <div><strong class="num">${left}</strong><span>${esc(TEXT.creditsLeft)}</span></div>
       </div>
-      <div data-pace></div>
+      <div data-pace hidden></div>
     </div>
-    <div class="credit" style="grid-template-columns: minmax(0, ${counted}fr) minmax(0, ${inProgress}fr) minmax(0, ${left}fr)">${inProgress > 0 ? `
-      <span class="bar-label is-progress"><strong class="num">${inProgress}</strong> ${esc(TEXT.inProgress)}${terms}</span>` : ''}
+    <div class="credit">${inProgress > 0 ? `
+      <div class="credit-row"><span class="credit-gap" style="flex-basis: ${percent(counted, total)}"></span><span class="bar-label is-progress"><strong class="num">${inProgress}</strong> ${esc(TEXT.inProgress)}${terms}</span></div>` : ''}
       <div class="credit-bar" aria-hidden="true"><span class="bar-counted" style="width: ${percent(counted, total)}"></span><span class="bar-progress hatch" style="width: ${percent(inProgress, total)}"></span></div>
-      <span class="bar-label is-counted"><strong class="num">${counted}</strong> ${esc(TEXT.counted)}</span>
-      <span class="bar-label is-left"><strong class="num">${left}</strong> ${esc(TEXT.left)}</span>
-      <span class="bar-label is-total"><strong class="num">${total}</strong> ${esc(TEXT.total)}</span>
-    </div>${checklist.sequence.kind === 'extra' ? `
+      <div class="credit-row">
+        <span class="bar-label is-counted" style="min-width: ${percent(counted + inProgress, total)}"><strong class="num">${counted}</strong> ${esc(TEXT.counted)}</span>
+        <span class="bar-label is-left"><strong class="num">${left}</strong> ${esc(TEXT.left)}</span>
+        <span class="bar-label is-total"><strong class="num">${total}</strong> ${esc(TEXT.total)}</span>
+      </div>
+    </div>${checklist.sequence.kind === 'extra' || checklist.sequence.kind === 'running' ? `
     <p class="credit-extra">${esc(checklist.sequence.beside)}</p>` : ''}
   </section>`;
 }
@@ -272,7 +292,7 @@ export function requirementsHtml(checklist: Checklist): string {
     <p class="section-note">${esc(TEXT.reqNote)}</p>
     <ul class="req-list">${checklist.cards.map(cardHtml).join('')}
     </ul>${sequence.kind === 'none' ? '' : `
-    <p class="sequence">${marks.needed(20)}<span>${withCodes(sequence.text)}</span></p>`}${unused.length === 0 ? '' : `
+    <p class="sequence">${sequence.kind === 'running' ? marks.progress(20) : marks.needed(20)}<span>${withCodes(sequence.text)}</span></p>`}${unused.length === 0 ? '' : `
     <details class="unused">
       <summary><span>${esc(TEXT.unused(unused.length))}</span> ${showCue}</summary>
       <ul>

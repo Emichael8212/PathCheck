@@ -29,8 +29,8 @@ Read this before writing a sprint contract; delete a line when its feature has d
   must not be drawn before it is answered either. (F13)
 - While rows still need fixing the result says so above itself; pace and the plan
   should carry the same caution (they are built on the same rows). (F13)
-- Requirements are `<details>`; for print every requirement must be opened and the
-  toggles, "All / Not done" and the two end buttons hidden (`.no-print`). (F13, for F17)
+- Requirements are `<details>`, and so is the list of courses not counted
+  (`details.unused`); for print every one of them must be opened and the toggles, "All / Not done" and the two end buttons hidden (`.no-print`). (F13, for F17)
 
 ## For F14 and F16 (pace, plan)
 - **The draft plan schedules the extra sequence course** (owner answer, 2026-11-16): when

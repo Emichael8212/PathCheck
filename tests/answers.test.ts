@@ -525,10 +525,10 @@ describe('with a transcript', () => {
     // Not answered: the first course whose answer depends on it asks, and says why; the next waits.
     const open = answersFor(entries(typed), curriculum, NOT_ANSWERED, transcript);
     expect(open.map(said)).toEqual(['✓ Counts toward CIS: elective (300/400-level CIS)', '✓ Counts toward CIS — Business core', '?', `… ${WAITING}`]);
-    expect(open[2]).toEqual({ kind: 'ask', because: 'Your transcript has FLS 161 and MGT 220, which count only for legacy students.' });
+    expect(open[2]).toEqual({ kind: 'ask', because: 'Your transcript has FLS 161 and MGT 220, which count as electives only for legacy students.' });
     expect(legacyMatters(entries(typed), curriculum, transcript)).toBe(true);
     expect(answersFor(entries(['FIN 201', 'CIS 499', 'ECO 301']), curriculum, NOT_ANSWERED, having(['FLS 161', 'MKT 410']))[1])
-      .toEqual({ kind: 'ask', because: 'Your transcript has FLS 161, which counts only for legacy students.' });
+      .toEqual({ kind: 'ask', because: 'Your transcript has FLS 161, which counts as an elective only for legacy students.' });
     // Where the answer changes nothing, nothing is asked.
     expect(askWith(transcript, ['CIS 499', 'MGT 321'], NOT_ANSWERED)).toEqual(['✓ Counts toward CIS: elective (300/400-level CIS)', '✓ Counts toward CIS — Business core']);
     expect(legacyMatters(entries(['CIS 499', 'MGT 321']), curriculum, transcript)).toBe(false);
@@ -564,7 +564,7 @@ describe('with a transcript', () => {
     // student it can be an elective, which leaves the pick to the typed course.
     expect(askWith(having(['PSY 251']), ['GEO 206'], YES)).toEqual(['✓ Counts toward CIS — Social sciences']);
     expect(askWith(having(['PSY 251']), ['GEO 206'], NO)).toEqual([FILLED]);
-    expect(answersFor(entries(['GEO 206']), curriculum, NOT_ANSWERED, having(['PSY 251']))).toEqual([{ kind: 'ask', because: 'Your transcript has PSY 251, which counts only for legacy students.' }]);
+    expect(answersFor(entries(['GEO 206']), curriculum, NOT_ANSWERED, having(['PSY 251']))).toEqual([{ kind: 'ask', because: 'Your transcript has PSY 251, which counts as an elective only for legacy students.' }]);
   });
 
   it('keeps the condition while rows still need fixing', () => {

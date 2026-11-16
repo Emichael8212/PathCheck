@@ -773,6 +773,17 @@ details[open] .req-cue { transform: rotate(-90deg); }
   font-weight: 700;
 }
 .sequence > svg { margin-top: 2px; }
+/* The bar's labels in the app: each starts where its part starts (the same proportions as
+   the bar), and gives way instead of running over its neighbour or out of the card when
+   a part is very small. */
+.credit { grid-template-columns: minmax(0, 1fr); }
+.credit .credit-bar { grid-column: 1; grid-row: auto; }
+.credit-row { display: flex; flex-wrap: wrap; align-items: baseline; min-width: 0; }
+.credit-row .bar-label { grid-column: auto; grid-row: auto; }
+.credit-gap { flex: 0 1 auto; min-width: 0; }
+.credit-row .is-counted { box-sizing: border-box; padding-right: 12px; }
+.credit-row .is-left { padding-right: 12px; }
+.credit-row .is-total { margin-left: auto; }
 /* Additions to the design: the extra credits beside the bar, the courses that fill
    nothing (closed until asked for), and the question that comes before the result. */
 .credit-extra { margin-top: 12px; color: var(--ink-2); font-size: 14px; line-height: 20px; }

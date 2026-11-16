@@ -7,6 +7,10 @@ export const esc = (text: string | number): string =>
 /** A course code, set in the code face so that it cannot break across lines. */
 export const code = (text: string, cls = ''): string => `<span class="code${cls ? ' ' + cls : ''}">${esc(text)}</span>`;
 
+// A sentence with every course code inside it set in the code face.
+const COURSE_CODE = /\b[A-Z]{2,4} \d{3}\b/g;
+export const withCodes = (text: string): string => esc(text).replace(COURSE_CODE, found => `<span class="code">${found}</span>`);
+
 // Marks and icons are drawn here; there is no icon pack and no image.
 const svg = (size: number, body: string, cls = '', box = 20): string =>
   `<svg class="icon${cls ? ' ' + cls : ''}" width="${size}" height="${size}" viewBox="0 0 ${box} ${box}" aria-hidden="true" focusable="false">${body}</svg>`;

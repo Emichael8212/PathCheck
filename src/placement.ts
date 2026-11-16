@@ -217,6 +217,17 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
   return best;
 }
 
+/**
+ * Would this course, planned on top of everything else, take a place in a pick? Asked of a
+ * sequence course: whether its sequence can still go through its pick. (For a legacy
+ * student a legacy course of the transcript may give up the pick for an elective place.)
+ */
+export function wouldTakePick(standings: readonly CourseStanding[], curriculum: Curriculum, options: PlaceOptions, code: string): boolean {
+  const planned = [...(options.planned ?? []).filter(one => one !== code), code];
+  return placeCourses(standings, curriculum, { ...options, planned }).blocks
+    .some(one => one.picks.some(pick => pick.filled.some(filled => filled.state === 'planned' && filled.course.code === code)));
+}
+
 /** One placement: `asElective` names the legacy-only courses that give up their pick to be electives. */
 function arrange(standings: readonly CourseStanding[], planned: readonly string[], curriculum: Curriculum, legacy: boolean, asElective: ReadonlySet<string>): Placement {
   const { blocks, electives, sequence } = curriculum;
