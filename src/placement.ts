@@ -73,7 +73,7 @@ export interface SequenceResult {
 
 /** A course that was passed or is in progress but fills nothing, and why. */
 export type Unplaced =
-  | { readonly code: string; readonly state: FillState; readonly reason: 'not-in-curriculum' | 'electives-full' | 'legacy-only' }
+  | { readonly code: string; readonly state: FillState; readonly reason: 'not-in-curriculum' | 'not-current' | 'electives-full' | 'legacy-only' }
   | {
     readonly code: string;
     readonly state: FillState;
@@ -173,6 +173,9 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
     } else if (places.some(place => place.kind === 'legacy-elective')) {
       // Whether a legacy-only course can count depends on the legacy answer.
       unplaced.push({ order, entry: { code, state, reason: 'legacy-only' } });
+    } else if (electives.except.includes(code)) {
+      // It would match the elective rule, but the curriculum says it never counts.
+      unplaced.push({ order, entry: { code, state, reason: 'not-current' } });
     } else if (matchesElectiveRule(curriculum, code)) {
       // An elective by the rule: its title is not in the curriculum, its credits are the rule's.
       forElective.push({ course: { code, title: '', credits: electives.creditsPerCourse }, state, order, by: 'rule' });

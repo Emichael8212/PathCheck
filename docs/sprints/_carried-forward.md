@@ -13,9 +13,11 @@ Read this before writing a sprint contract; delete a line when its feature has d
   `placeCourses` puts a sequence course (HIS 132, ENG 210) ahead of another course in the
   same state. Typed GEO 206 then HIS 132 would therefore make HIS 132 count. F08 must
   either keep typed order or ask the owner which wins. (F04 review)
-- CIS 304 and CIS 415 match the elective rule as written. An open question to the owner in
-  `docs/decision-log.md` asks whether they count. Do not show "Counts toward CIS: elective"
-  for them before it is answered. (F04 QA)
+- CIS 304 and CIS 415 never count (owner answer, 2026-11-16). `placeCourses` leaves them
+  unplaced with the reason "not-current". Flow A must answer, in the owner's words,
+  "Doesn't count toward CIS — <code> isn't in the current CIS curriculum.", and never the
+  elective answer. The owner asked for a Flow A test of both courses, and of another
+  300/400-level CIS course that still counts as an elective.
 - `placeCourses` refuses the same course twice. A student may type a course twice, or type
   one that is already on the transcript: merge before calling it. (F04 QA)
 - Typed courses need a third, weaker state than passed and in progress, with its own

@@ -89,6 +89,7 @@ describe('the curriculum comes from the data file', () => {
     expect(other.blocks[0]?.picks[0]?.choose).toBe(2);
     expect(findCourse(other, 'xbbb201')).toEqual([{ kind: 'required', blockId: 'depth', course: { code: 'XBBB 201', title: 'Deeper Things', credits: 3 } }]);
     expect(other.lastReviewed).toBe('2026-01-15');
+    expect(other.electives.except).toEqual(['XC 350']);
     // It is a test fixture only: it is not one of the app's majors.
     expect(programs.map(program => program.id)).not.toContain(other.id);
     expect(findCourse(curriculum, 'XAA 101')).toEqual([]);
@@ -144,6 +145,8 @@ describe('the curriculum matches brief section 5', () => {
     expect([...electives.subjects].sort()).toEqual(['ACT', 'CIS', 'ECO', 'FIN', 'MGT', 'MKT']);
     expect([electives.minNumber, electives.maxNumber, electives.creditsPerCourse]).toEqual([300, 499, 3]);
     expect(electives.excludeRequired).toBe(true);
+    // Two courses match the rule but never count (owner, 2026-11-16).
+    expect(electives.except).toEqual(['CIS 304', 'CIS 415']);
     expect(electives.legacyOnly).toEqual([
       { code: 'PSY 251', title: 'General Psychology', credits: 3 },
       { code: 'FLS 161', title: 'Spanish I', credits: 3 },
@@ -182,7 +185,13 @@ describe('what must not be in the curriculum', () => {
   const REMOVED = /CIS[- ]?304|CIS[- ]?415|\breplacement|\bold(er)?[ _-]?codes?\b|\bformerly\b|\bsupersed|not[- ]?offered|nonOffer|\bhistorical\b|\bunresolved\b/i;
 
   it('has no CIS 304, CIS 415, replacement, older-code or not-offered entry', () => {
-    for (const value of [...keysOf(rawData), ...textsOf(rawData)]) expect(value).not.toMatch(REMOVED);
+    // Owner, 2026-11-16: the two courses are named in one place only, as exceptions to the
+    // elective rule, so that they never count. They are not courses of the curriculum.
+    expect(rawData.electives.subjectRule.exceptCourses).toEqual(['CIS-304', 'CIS-415']);
+    const rest = structuredClone(rawData) as { electives: { subjectRule: { exceptCourses?: string[] } } };
+    delete rest.electives.subjectRule.exceptCourses;
+    for (const value of [...keysOf(rest), ...textsOf(rest)]) expect(value).not.toMatch(REMOVED);
+    expect(curriculum.electives.except).toEqual(['CIS 304', 'CIS 415']);
     for (const { file, text } of sources) expect(text.match(REMOVED), file).toBe(null);
     expect(findCourse(curriculum, 'CIS 304')).toEqual([]);
     expect(findCourse(curriculum, 'CIS 415')).toEqual([]);
@@ -323,6 +332,21 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
     expect(broken(data => { (rule(data).prefixes as Json[])[1] = 'MGT'; })).toThrow(/prefixes\[1\] \(MGT\): the same subject is listed twice/);
     expect(broken(data => { rule(data).maxCourseNumber = 4999; })).toThrow(/electives\.subjectRule\.maxCourseNumber: must be a three-digit course number/);
     expect(broken(data => { rule(data).minCourseNumber = 30; })).toThrow(/electives\.subjectRule\.minCourseNumber: must be a three-digit course number/);
+  });
+
+  it('refuses a data file whose exceptions to the elective rule make no sense', () => {
+    const rule = (data: ReturnType<typeof copy>) => part(data, 'electives').subjectRule as { [key: string]: Json };
+    expect(broken(data => { delete rule(data).exceptCourses; })).toThrow(/electives\.subjectRule\.exceptCourses: missing/);
+    expect(broken(data => { rule(data).exceptCourses = 'CIS-304'; })).toThrow(/electives\.subjectRule\.exceptCourses: must be a list/);
+    expect(broken(data => { (rule(data).exceptCourses as Json[])[0] = 'CIS304'; })).toThrow(/exceptCourses\[0\] \(CIS304\): must be 2 to 4 capital letters, a hyphen and 3 digits/);
+    expect(broken(data => { (rule(data).exceptCourses as Json[]).push('CIS-304'); })).toThrow(/exceptCourses\[2\] \(CIS-304\): the same course is listed twice/);
+    // An exception is only for a course the rule would otherwise let in...
+    expect(broken(data => { (rule(data).exceptCourses as Json[])[0] = 'BIO-230'; })).toThrow(/exceptCourses\[0\] \(BIO-230\): does not match the elective rule/);
+    expect(broken(data => { (rule(data).exceptCourses as Json[])[0] = 'CIS-250'; })).toThrow(/exceptCourses\[0\] \(CIS-250\): does not match the elective rule/);
+    // ...and never for a course the curriculum lists.
+    expect(broken(data => { (rule(data).exceptCourses as Json[])[0] = 'MGT-321'; })).toThrow(/exceptCourses\[0\] \(MGT-321\): never counts, but is also listed in blocks\[6\] \(business-core\)/);
+    // An empty list is fine: a program may have no exceptions.
+    expect(broken(data => { rule(data).exceptCourses = []; })).not.toThrow();
   });
 
   it('refuses a data file whose sequence does not sit inside the core blocks', () => {

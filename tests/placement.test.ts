@@ -237,6 +237,41 @@ describe('the CIS electives', () => {
   });
 });
 
+describe('the two courses that never count', () => {
+  // Owner, 2026-11-16: CIS 304 and CIS 415 do not count, not even as electives. They are an
+  // exception to the 300/400-level CIS elective rule.
+  it('does not count CIS 304 or CIS 415, on a transcript or as transfer credit', () => {
+    for (const entries of [['CIS 304', 'CIS 415'], ['CIS 304:-', 'CIS 415:-'], ['CIS 304:T', 'CIS 415:T'], ['cis304:A', 'CIS-415:A']]) {
+      const result = place(entries);
+      expect(electivesOf(result), entries.join()).toEqual([]);
+      expect(result.electives.credits).toEqual({ done: 0, inProgress: 0, needed: 9 });
+      expect(result.credits).toMatchObject({ done: 0, inProgress: 0, remaining: 121 });
+      expect(result.unplaced.map(one => `${one.code} ${one.reason}`)).toEqual(['CIS 304 not-current', 'CIS 415 not-current']);
+    }
+    // They take no elective place from courses that do count.
+    const mixed = place(['CIS 304', 'MKT 410', 'CIS 415', 'CIS 499', 'FIN 201']);
+    expect(electivesOf(mixed)).toEqual(['MKT 410 done', 'CIS 499 done', 'FIN 201 done']);
+    expect(mixed.electives.credits.done).toBe(9);
+  });
+
+  it('still counts another 300/400-level CIS course that is not required', () => {
+    for (const code of ['CIS 303', 'CIS 305', 'CIS 414', 'CIS 416', 'CIS 399', 'CIS 499']) {
+      const result = place([code]);
+      expect(electivesOf(result), code).toEqual([`${code} done`]);
+      expect(result.electives.filled[0]?.by).toBe('rule');
+      expect(result.unplaced).toEqual([]);
+    }
+  });
+
+  it('reads the exceptions from the curriculum', () => {
+    // The made-up program has its own exception to its own rule.
+    const program = loadCurriculum(madeUp);
+    const result = place(['XC 350', 'XC 351', 'CIS 304'], program);
+    expect(electivesOf(result)).toEqual(['XC 351 done']);
+    expect(result.unplaced.map(one => `${one.code} ${one.reason}`)).toEqual(['XC 350 not-current', 'CIS 304 not-in-curriculum']);
+  });
+});
+
 describe('the history or literature sequence', () => {
   it('completes the history or the literature sequence', () => {
     expect(place(['HIS 131', 'HIS 132']).sequence.state).toBe('done');
@@ -411,7 +446,7 @@ describe('whatever the transcript', () => {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  const pool = [...inBlocks.map(course => course.code), 'FIN 201', 'FLS 161', 'MGT 220', 'MGT 203', 'MKT 410', 'CIS 499', 'ECO 301', 'ACT 350', 'MGT 499', 'BIO 230', 'XYZ 101'];
+  const pool = [...inBlocks.map(course => course.code), 'FIN 201', 'FLS 161', 'MGT 220', 'MGT 203', 'MKT 410', 'CIS 499', 'ECO 301', 'ACT 350', 'MGT 499', 'BIO 230', 'XYZ 101', 'CIS 304', 'CIS 415'];
   const marks = ['A', 'B', 'C', 'D', 'F', 'W', 'I', '-', 'B+', 'T'];
 
   const invariants = (entries: string[]): void => {
@@ -441,6 +476,7 @@ describe('whatever the transcript', () => {
       const byRule = ['MGT', 'FIN', 'CIS', 'MKT', 'ACT', 'ECO'].includes(subject) && Number(number) >= 300 && Number(number) <= 499;
       expect(elective.by === 'name' ? elective.course.code === 'FIN 201' : byRule, `${label} / ${elective.course.code}`).toBe(true);
       expect(inBlocks.map(course => course.code), label).not.toContain(elective.course.code);
+      expect(['CIS 304', 'CIS 415'], label).not.toContain(elective.course.code);
     }
     // A course left over by a full pick names that pick and the courses that hold it.
     for (const one of result.unplaced) {

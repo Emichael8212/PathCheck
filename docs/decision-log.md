@@ -309,21 +309,37 @@ wording, now in `features.json`:
 - A row is transfer credit only when the reader marks it so with a plain yes; anything
   else is treated as an ordinary row, so a misread flag can never make a D count.
 
+### 2026-11-16 — CIS 304 and CIS 415 never count (F08, and anywhere the elective rule applies)
+
+CIS 304 and CIS 415 do **not** count, not even as electives. They are an exception to the
+300/400-level CIS elective rule. They have never been available to select in the ASU portal.
+
+- **Flow A answer:** "Doesn't count toward CIS — <code> isn't in the current CIS curriculum."
+  → F08.
+- **Flow B:** these courses will never be found on a transcript. (If one ever is, it does
+  not count.) → F04.
+- **Tests:** CIS 304 and CIS 415 don't count in Flow A or Flow B; another 300/400-level CIS
+  course not already required still counts as an elective. → F04 (placing), F08 (Flow A).
+
+**Where this differs from the brief:** §5 says to delete CIS 304 and CIS 415 from the data,
+and gives the elective rule with no exception. To make these two never count, the
+curriculum file now names them in one place only: as exceptions to the elective rule
+(`electives.subjectRule.exceptCourses`). They are still not courses of the curriculum.
+
+*Agent's notes, not owner decisions:*
+- `features.json` still says, in F02 step 3, that CIS 304 and CIS 415 "do not exist
+  anywhere", and gives the elective rule in F04 step 3 and the Flow A answers in F08 step 5
+  without this exception. Feature steps are only changed with the owner's approval; new
+  wording is proposed in the pull request for this change.
+- The exception is data, not code: another program could list its own, or none.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- **2026-11-16 (raised in F04's QA; needed for F08).** The brief removed CIS 304 and CIS 415
-  from the curriculum as "a mistake and never used". The elective rule covers any
-  300/400-level CIS course that is not required, so as written both would count as
-  electives if a student typed them or had them on a transcript. Should they count as
-  electives like any other 300/400-level CIS course, or not count at all? Until answered
-  they follow the elective rule as written. Status: asked in chat on 2026-11-16, not
-  answered yet.
-
-(The 2026-11-16 question about the grade column of transfer rows was answered the same
-day: see "Owner answers", "Transfer, AP and CLEP rows".)
+- None open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+  rows; and whether CIS 304 and CIS 415 count.)
 
 ## Milestone checks
 

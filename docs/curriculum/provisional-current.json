@@ -460,7 +460,11 @@
       ],
       "minCourseNumber": 300,
       "maxCourseNumber": 499,
-      "creditsPerCourse": 3
+      "creditsPerCourse": 3,
+      "exceptCourses": [
+        "CIS-304",
+        "CIS-415"
+      ]
     },
     "excludeRequiredCourses": true,
     "legacyOnlyCourses": [
