@@ -115,6 +115,9 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   changes the finish semester.
 
 ## For F14 (pace)
+- The made-up transcript `sample-a` has its in-progress courses under "Fall 2026", as the
+  approved design's student has. No made-up transcript has a summer term: how one is
+  printed is still to be asked (see the F15 note). (F10)
 - The Start demo shows "On pace for Spring 2029" for its made-up student
   (`src/examples.json`; `demoStudent` in `src/start.ts`) as example text. Check it against
   the pace code, and against the sequence (that student still needs it, with the pick
@@ -137,9 +140,18 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
 - An ordinary row with nothing in its grade column passes the check as "in progress".
   The review step shows it as "In progress" for the student to confirm: an empty grade
   may be a misread.
-- A row marked `transfer` is labelled "Transfer credit"; its grade column is not a grade
-  and is not to be fixed. A row whose `match` is "none" passed the check but can fill
-  nothing: say so, do not ask the student to fix it.
+- A row marked `transfer` is labelled "Transfer credit", so the student can correct a row
+  wrongly read as transfer, or the other way round; its grade column is not a grade and
+  is not to be fixed. (Owner answer, 2026-11-16)
+- `match` is not "counts". "listed" only means the code is in a curriculum list: a legacy
+  course, or a listed course with a D, W or F, fills nothing. What counts comes only from
+  `placeCourses`; never label a row as counting from `match` alone. A row whose `match` is
+  "none" passed the check but can fill nothing: it is not an error, and the student must
+  still be able to edit it (a code misread by one digit is "none").
+- On Start, the drop zone and "Browse files" must start the upload: "Browse files" opens
+  the file picker, not the flow page, and a dropped PDF is taken. Today both only open
+  `#/left` and the file is not looked at (`startApp` in `src/app.ts`). The privacy
+  sentence is already beside them. (F06)
 - At M1 the "reader" is the answer file beside each made-up PDF. F11 decides how the
   uploaded PDF is recognised (the PDFs' text is uncompressed and every page carries the
   line in `MARK`, `scripts/make-synthetic-transcripts.mjs`). The answer files hold course
@@ -153,20 +165,6 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
 - Confirm on the owner's real transcript: how the transfer section's totals line is worded
   (`NOT_COURSES` in `src/reader.ts` has "Transfer Totals", the made-up PDF's wording), and
   whether transfer rows leave "attempted" empty. (F10; F03 review)
-
-## For F11 (upload)
-- On Start, the drop zone and "Browse files" must start the upload: "Browse files" opens
-  the file picker, not the flow page, and a dropped PDF is taken. Today both only open
-  `#/left` and the file is not looked at (`startApp` in `src/app.ts`). The privacy
-  sentence is already beside them. (F06)
-
-## For F10 and F11 (the review step)
-- Transfer, AP and CLEP rows are labelled "Transfer credit" in the review step, so the
-  student can correct a misread row (for example a row wrongly read as transfer, or the
-  other way round). The grade column of such a row is not a grade: do not ask the student
-  to fix it. (Owner answer, 2026-11-16)
-- Made-up transcripts may now show marks such as "T" or "TR" on transfer rows. (Owner
-  answer, 2026-11-16)
 
 ## For F07 onward (screens)
 - How the app is put together (F06): a page is a function that returns HTML text

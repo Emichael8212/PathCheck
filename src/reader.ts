@@ -77,23 +77,26 @@ const empty = (value: unknown): boolean => value === undefined || value === null
 
 /** A number, or text that is a plain decimal number as a transcript prints it ("3.00"); otherwise nothing. */
 function plainNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value : null;
-  if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) return Number(value.trim());
+  if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value || 0 : null;
+  if (typeof value === 'string' && /^\d+(\.\d{1,2})?$/.test(value.trim())) return Number(value.trim());
   return null;
 }
 const twoDecimalsAtMost = (value: number): boolean => Math.abs(value * 100 - Math.round(value * 100)) < 1e-9;
 
 /** The course code from its two parts, each checked on its own; or nothing. */
 function codeOf(prefix: unknown, number: unknown): string | null {
-  const letters = typeof prefix === 'string' ? prefix.trim().toUpperCase() : '';
+  // Plain letters as printed: a letter that only becomes one in capitals (a dotless i, a long s) is not a prefix.
+  const typed = typeof prefix === 'string' ? prefix.trim() : '';
+  const letters = /^[A-Za-z]{2,4}$/.test(typed) ? typed.toUpperCase() : '';
   const digits = typeof number === 'string' ? number.trim() : typeof number === 'number' && Number.isInteger(number) ? String(number) : '';
   return /^[A-Z]{2,4}$/.test(letters) && /^\d{3}$/.test(digits) ? `${letters} ${digits}` : null;
 }
 
-const isTotalsLine = (row: Fields): boolean => {
-  const text = `${shown(field(row, 'prefix'))} ${shown(field(row, 'description'))}`.toLowerCase();
-  return NOT_COURSES.some(phrase => text.includes(phrase));
-};
+// The prefix or the description is one of the phrases, alone, or followed by its figures or
+// by a colon and words: "Term GPA 2.55", "Academic Standing: Good Standing". Anything
+// longer ("Midterm GPA Review", "Academic Standing Seminar") is a row to look at.
+const TOTALS_LINE = new RegExp(`^\\s*(${NOT_COURSES.join('|')})(\\s*:.*|[\\s\\d.]*)$`, 'i');
+const isTotalsLine = (row: Fields): boolean => [field(row, 'prefix'), field(row, 'description')].some(text => typeof text === 'string' && TOTALS_LINE.test(text));
 
 function matchOf(code: string, curriculum: Curriculum): Match {
   return findCourse(curriculum, code).length > 0 ? 'listed' : countsByElectiveRule(curriculum, code) ? 'elective' : 'none';
@@ -104,6 +107,15 @@ function matchOf(code: string, curriculum: Curriculum): Match {
  * of rows; otherwise every row ends up passed, to fix, or thrown away.
  */
 export function readRows(answer: unknown, curriculum: Curriculum): Reading {
+  try {
+    return check(answer, curriculum);
+  } catch {
+    // Whatever went wrong, the caller hears one thing, and nothing of the answer is used.
+    throw new ReaderError();
+  }
+}
+
+function check(answer: unknown, curriculum: Curriculum): Reading {
   const list = isObject(answer) ? field(answer, 'rows') : undefined;
   if (!Array.isArray(list)) throw new ReaderError();
 
@@ -111,10 +123,11 @@ export function readRows(answer: unknown, curriculum: Curriculum): Reading {
   const toFix: RowToFix[] = [];
   let thrownAway = 0;
 
-  list.forEach((raw: unknown, line) => {
+  for (let line = 0; line < list.length; line++) {
+    const raw: unknown = list[line];
     if (!isObject(raw)) {
       toFix.push({ line, problems: ['not-a-row'], seen: { term: '', transfer: null, prefix: '', number: '', description: '', attempted: '', grade: '' } });
-      return;
+      continue;
     }
     const term = field(raw, 'term');
     const transfer = field(raw, 'transfer');
@@ -124,7 +137,7 @@ export function readRows(answer: unknown, curriculum: Curriculum): Reading {
     const code = codeOf(field(raw, 'prefix'), field(raw, 'number'));
     if (code === null && isTotalsLine(raw)) {
       thrownAway++;
-      return;
+      continue;
     }
 
     const problems: Problem[] = [];
@@ -143,14 +156,14 @@ export function readRows(answer: unknown, curriculum: Curriculum): Reading {
 
     // The grade: text or nothing, and then judged by the one judge of grades. The grade
     // column of transfer credit is not a grade and is not judged.
-    const printed = typeof grade === 'string' && grade.trim() !== '' ? grade : null;
+    const printed = typeof grade === 'string' && grade.trim() !== '' ? grade.trim() : null;
     if (!empty(grade) && typeof grade !== 'string') problems.push('grade');
 
     if (problems.length === 0 && code !== null && credits !== null && typeof term === 'string' && typeof transfer === 'boolean') {
       const row: TranscriptRow = { code, term, credits, grade: printed, transfer };
       if (rowStanding(row, curriculum.grades) !== 'unrecognised') {
         rows.push({ line, row, description: typeof description === 'string' ? description : '', match: matchOf(code, curriculum) });
-        return;
+        continue;
       }
       problems.push('grade');
     } else if (transfer === false && printed !== null && !problems.includes('grade')
@@ -172,7 +185,7 @@ export function readRows(answer: unknown, curriculum: Curriculum): Reading {
         grade: shown(grade),
       },
     });
-  });
+  }
 
   return { rows, toFix, thrownAway };
 }

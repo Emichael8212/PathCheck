@@ -13,6 +13,7 @@
 // usage: node scripts/make-synthetic-transcripts.mjs
 import { Buffer } from 'node:buffer';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 export const MARK = 'SYNTHETIC - not a real transcript';
 export const STUDENT = 'Sample Student';
@@ -106,7 +107,8 @@ export function transcripts() {
   });
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop() ?? '')) {
+// Only when this file itself is what was run, never when it is imported.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   for (const { name, pdf } of transcripts()) {
     writeFileSync(new URL(`${name}.pdf`, folder), pdf);
     console.log(`wrote synthetic/transcripts/${name}.pdf (${pdf.length} bytes)`);

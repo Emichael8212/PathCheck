@@ -70,6 +70,12 @@ describe('a row that fails the check', () => {
     ['number 13.5', good({ number: 13.5 }), ['code']],
     ['the code in the prefix', good({ prefix: 'ENG131', number: '' }), ['code']],
     ['a one-letter prefix', good({ prefix: 'E' }), ['code']],
+    // Letters that only become plain letters in capitals are not a prefix.
+    ['a dotless i in the prefix', good({ prefix: 'c\u0131s', number: '205' }), ['code']],
+    ['a long s in the prefix', good({ prefix: '\u017ftat', number: '101' }), ['code']],
+    ['a sharp s as the prefix', good({ prefix: '\u00df', number: '101' }), ['code']],
+    ['full-width letters', good({ prefix: '\uff2d\uff27\uff34' }), ['code']],
+    ['full-width digits', good({ number: '\uff13\uff12\uff11' }), ['code']],
     ['no prefix', without('prefix'), ['code']],
     ['attempted ""', good({ attempted: '' }), ['credits']],
     ['attempted "3 cr"', good({ attempted: '3 cr' }), ['credits']],
@@ -79,6 +85,12 @@ describe('a row that fails the check', () => {
     ['attempted -3', good({ attempted: -3 }), ['credits']],
     ['attempted 31', good({ attempted: 31 }), ['credits']],
     ['attempted 3.005', good({ attempted: 3.005 }), ['credits']],
+    ['attempted "3.005"', good({ attempted: '3.005' }), ['credits']],
+    ['attempted "3.000000000001"', good({ attempted: '3.000000000001' }), ['credits']],
+    ['attempted "3."', good({ attempted: '3.' }), ['credits']],
+    ['attempted ".5"', good({ attempted: '.5' }), ['credits']],
+    ['attempted "+3"', good({ attempted: '+3' }), ['credits']],
+    ['attempted true', good({ attempted: true }), ['credits']],
     ['attempted NaN', good({ attempted: Number.NaN }), ['credits']],
     ['no attempted', without('attempted'), ['credits']],
     ['earned as words', good({ earned: 'three' }), ['earned']],
@@ -108,6 +120,12 @@ describe('a row that fails the check', () => {
     expect(MOST_ATTEMPTED).toBe(30);
     // The edges of the range pass.
     for (const attempted of [0, 30, 0.5, 2.25, '0', '30', '1.50']) expect(read(good({ attempted })).toFix, String(attempted)).toEqual([]);
+    // No negative zero comes out of it.
+    expect(Object.is(read(good({ attempted: -0 })).rows[0]?.row.credits, 0)).toBe(true);
+    // A hole in the list is a row that is not a row, like any other.
+    const holed: unknown[] = [good()];
+    holed.length = 3;
+    expect(readRows({ rows: holed }, curriculum).toFix.map(one => [one.line, one.problems])).toEqual([[1, ['not-a-row']], [2, ['not-a-row']]]);
   });
 
   it('counts nothing from a row that failed', () => {
@@ -155,6 +173,8 @@ describe('transfer credit, rows in progress and printed numbers', () => {
     const missing = read(without('grade'));
     expect(credits(missing)).toEqual([0, 3, 118]);
     // Below C, W, I and F pass the check and count nothing.
+    // The grade is kept as printed, without the spaces around it.
+    expect(read(good({ grade: ' b ' })).rows[0]?.row.grade).toBe('b');
     for (const grade of ['D', 'F', 'W', 'I', ' d ', 'w']) {
       const reading = read(good({ grade }));
       expect(reading.toFix, grade).toEqual([]);
@@ -183,13 +203,17 @@ describe('matching to the curriculum', () => {
       good({ prefix: 'BIO', number: '127', description: 'General Biology I' }),
       // The exact title of a curriculum course, under a code that is not one.
       good({ prefix: 'XYZ', number: '101', description: 'Principles of Management' }),
+      // A course of the curriculum under the title of another one: the code decides.
+      good({ prefix: 'CIS', number: '205', description: 'Principles of Management' }),
       // The right code with a wrong description, and with none.
       good({ prefix: 'MGT', number: '321', description: 'Basket Weaving' }),
       without('description', { prefix: 'ENG', number: '131' }),
     );
     expect(reading.toFix).toEqual([]);
-    expect(reading.rows.map(one => `${one.row.code} ${one.match}`)).toEqual(['ORI 100 listed', 'CIS 206 listed', 'BIOL 127 listed', 'BIO 127 listed', 'XYZ 101 none', 'MGT 321 listed', 'ENG 131 listed']);
-    expect(reading.rows[6]?.description).toBe('');
+    expect(reading.rows.map(one => `${one.row.code} ${one.match}`)).toEqual(['ORI 100 listed', 'CIS 206 listed', 'BIOL 127 listed', 'BIO 127 listed', 'XYZ 101 none', 'CIS 205 listed', 'MGT 321 listed', 'ENG 131 listed']);
+    expect(reading.rows[7]?.description).toBe('');
+    // The title placed nothing: CIS 205 filled its own place, and MGT 321's is filled by MGT 321's own row.
+    expect(place(reading).blocks.flatMap(one => one.required).filter(one => one.state === 'done').map(one => one.course.code).sort()).toEqual(['BIO 127', 'BIOL 127', 'CIS 205', 'CIS 206', 'MGT 321', 'ORI 100']);
     // The lab and the lecture are two courses.
     const placed = place(read(good({ prefix: 'BIOL', number: '127' })));
     expect(placed.credits.done).toBe(1);
@@ -203,14 +227,19 @@ describe('matching to the curriculum', () => {
     const reading = read(
       good({ prefix: 'BIO', number: '230', grade: 'A' }), good({ prefix: 'XYZ', number: '101', grade: 'A' }),
       good({ prefix: 'MKT', number: '410', grade: 'A' }), good({ prefix: 'CIS', number: '304', grade: 'A' }),
+      good({ prefix: 'CIS', number: '415', grade: 'A' }),
     );
     expect(reading.toFix).toEqual([]);
-    expect(reading.rows.map(one => `${one.row.code} ${one.match}`)).toEqual(['BIO 230 none', 'XYZ 101 none', 'MKT 410 elective', 'CIS 304 none']);
+    expect(reading.rows.map(one => `${one.row.code} ${one.match}`)).toEqual(['BIO 230 none', 'XYZ 101 none', 'MKT 410 elective', 'CIS 304 none', 'CIS 415 none']);
     const placement = place(reading);
     expect(placement.credits.done).toBe(3);
     expect(placement.electives.filled.map(one => one.course.code)).toEqual(['MKT 410']);
     expect(placement.blocks.every(one => one.credits.done === 0)).toBe(true);
-    expect(placement.unplaced.map(one => one.code)).toEqual(['BIO 230', 'XYZ 101', 'CIS 304']);
+    expect(placement.unplaced.map(one => one.code)).toEqual(['BIO 230', 'XYZ 101', 'CIS 304', 'CIS 415']);
+    // "Listed" is not "counts": a legacy course, and a listed course that was not passed, fill nothing.
+    const listed = read(good({ prefix: 'FLS', number: '161', grade: 'A' }), good({ prefix: 'CIS', number: '300', grade: 'D' }));
+    expect(listed.rows.map(one => one.match)).toEqual(['listed', 'listed']);
+    expect(credits(listed)).toEqual([0, 0, 121]);
   });
 });
 
@@ -234,11 +263,17 @@ describe('lines that are not courses', () => {
     expect(bare.thrownAway).toBe(0);
     expect(full.rows.map(one => one.row)).toEqual(bare.rows.map(one => one.row));
     expect(full.toFix).toEqual([]);
+    // The words with more words after them are not a totals line, with a code or without.
+    expect(read(line({ prefix: 'ORI', description: 'Academic Standing Seminar' }))).toMatchObject({ thrownAway: 0, toFix: [{ problems: ['code', 'credits'] }] });
     // A row that carries such words but is a course is kept and checked like any row.
     const seminar = read(good({ prefix: 'ORI', number: '100', description: 'Academic Standing Seminar' }));
     expect(seminar).toMatchObject({ thrownAway: 0, toFix: [] });
     expect(codes(seminar)).toEqual(['ORI 100']);
     expect(read(good({ description: 'Academic Standing Seminar', grade: 'Z' }))).toMatchObject({ thrownAway: 0, rows: [] });
+    // Only the phrases themselves, as whole words: anything else without a code is a row to fix.
+    for (const description of ['Academic Writing', 'Academic Advising Hold', 'Midterm GPA Review', 'Longterm GPAX', 'Standing Committee', 'Totals']) {
+      expect(read(line({ description })), description).toMatchObject({ thrownAway: 0, rows: [], toFix: [{ problems: ['code', 'credits'], seen: { description } }] });
+    }
     // A real course is never thrown away, and a line that only looks odd is a row to fix.
     expect(codes(read(good({ description: 'Academic Writing' })))).toEqual(['MGT 321']);
     expect(read(line({ description: 'Dean\'s List' }))).toMatchObject({ thrownAway: 0, toFix: [{ problems: ['code', 'credits'] }] });
@@ -280,6 +315,10 @@ describe('an answer that is no answer', () => {
     expect(read2.toFix.map(one => one.problems)).toEqual([['term', 'transfer', 'code', 'credits']]);
     // The second is read on its own fields: an ordinary row, not transfer credit.
     expect(read2.rows.map(one => one.row)).toEqual([{ code: 'MGT 321', term: 'Fall 2025', credits: 3, grade: 'B', transfer: false }]);
+    // An answer that fails while it is being read (impossible from parsed text) is no answer either.
+    const failing = { rows: [Object.defineProperty({}, 'term', { enumerable: true, get(): never { throw new TypeError('boom'); } })] };
+    expect(() => readRows(failing, curriculum)).toThrow(ReaderError);
+    expect(() => readRows({ get rows(): never { throw new RangeError('boom'); } }, curriculum)).toThrow('The transcript could not be read.');
     // An answer whose rows are only inherited is no answer.
     expect(() => readRows(Object.create({ rows: [good()] }), curriculum)).toThrow(ReaderError);
   });
@@ -402,6 +441,33 @@ describe('the made-up transcripts', () => {
     expect(b!.find(line => line.startsWith('Transfer Totals'))).toMatch(/9\.00$/);
     // No summer term: the owner has given no heading for one.
     for (const lines of [a!, b!]) expect(lines.join('\n')).not.toMatch(/\bSum(mer)?\b/);
+  });
+
+  it('marks every page of a long transcript, and keeps its pages in order', () => {
+    const rows = Array.from({ length: 130 }, (_, i) => ({ term: `Fall ${2000 + Math.floor(i / 10)}`, transfer: false, prefix: 'XYZ', number: String(100 + i), description: `Made-up course ${i}`, attempted: 3, earned: 3, grade: 'B', points: 9 }));
+    const pdf = pdfFor({ rows }) as Buffer;
+    const raw = pdf.toString('latin1');
+    const pages = raw.split('/Type /Page /Parent').length - 1;
+    expect(pages).toBeGreaterThan(3);
+    expect(raw).toContain(`/Count ${pages} >>`);
+    expect(textOf(pdf).filter(line => line === MARK)).toHaveLength(pages);
+    // Every course line is there, once, in the order given.
+    expect(textOf(pdf).filter(line => line.startsWith('XYZ    ')).map(line => line.slice(7, 10))).toEqual(rows.map(row => row.number));
+    const table = Number(/startxref\n(\d+)\n%%EOF\n$/.exec(raw)?.[1]);
+    const offsets = [...raw.slice(table).matchAll(/^(\d{10}) 00000 n $/gm)].map(found => Number(found[1]));
+    expect(offsets).toHaveLength(4 + pages * 2);
+    offsets.forEach((offset, i) => expect(raw.slice(offset, offset + `${i + 1} 0 obj\n`.length)).toBe(`${i + 1} 0 obj\n`));
+  });
+
+  it('prints the totals the careless reader returned', () => {
+    // The totals lines kept as rows in the second answer are the ones on its PDF.
+    const lines = textOf(made[1]!.pdf);
+    const totals = sampleB.rows.filter(row => row.number === '' && !/^[A-Z]{2,4}$/.test(row.prefix));
+    expect(totals).toHaveLength(13);
+    for (const row of totals) {
+      const printed = row.prefix === 'Academic Standing' ? `Academic Standing: ${row.description}` : row.prefix === 'Transfer Totals' ? lines.find(line => line.startsWith('Transfer Totals') && line.endsWith(row.earned)) : row.description;
+      expect(lines, JSON.stringify(row)).toContain(printed);
+    }
   });
 
   it('holds no real student data', () => {
