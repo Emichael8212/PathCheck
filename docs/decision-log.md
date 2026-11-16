@@ -12,6 +12,8 @@ here by the agent; they are asked and the owner's answer is recorded.
 | CI runs one job named `check` (lint, typecheck, tests, build). No browser tests in CI yet. | Nothing to test in a browser until the first feature. | Add steps to `.github/workflows/ci.yml`. |
 | Feature IDs are `F01`–`F26` in `features.json`, each with a `milestone` field (M0–M3). | Hooks and `/next-task` need to know the current milestone and when to stop. | Edit `features.json` (owner approval needed for ids, descriptions and steps). |
 | (2026-11-16, F02) The app's code lives in `src/` as plain TypeScript modules; the curriculum model is `src/curriculum.ts`. A UI framework is still not chosen; that is decided with F06, the first screen. | Rules and data need no framework, and keeping them free of one makes every academic rule testable on its own. | Move the files. |
+| (2026-11-16, F03) A grade that is not on the scale (for example "B+" or "P") never passes and is reported as "unrecognised", not as "must be repeated"; the review step asks the student to fix it. A transfer row with such a mark is treated the same way for now. | The owner said only A, B, C, D, F exist, so such a mark is a misread or something unforeseen. It is not "C or better", so it cannot pass; calling it "must be repeated" would be a claim PathCheck can't back. | Change `rowStanding` in `src/transcript.ts`. |
+| (2026-11-16, F03) When a course has several transcript rows and none passes, its standing is the first that applies of: in progress, unrecognised, must repeat, no credit. | In progress first: the brief says to assume the course will be passed and not to schedule it again. "Must be repeated" only when no row leaves the outcome open; it outranks W and I because the flag belongs to the below-C grade. | Change the order in `src/transcript.ts`. |
 | Curriculum file keeps its name `docs/curriculum/provisional-current.json`; "CIS 300/400-level" is stored as course numbers 300–499. | Name kept as carried over. 300–499 is the plain reading of "300/400-level". | Rename the file / edit `electives.subjectRule`. |
 | The curriculum keeps titles for FIN 201, FLS 161, MGT 203 and MGT 220 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
 | `lastReviewed` in the curriculum file is `null`. | The owner provides the date of the last curriculum review before M3 (brief §12). | Set the date. |
@@ -259,6 +261,18 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   GitHub milestone "M1: Working prototype". As brief §11 says, the agent merges its own
   pull request when CI is green and the reviewer finds no blocker, and stops at the end of
   M1 for the owner's check.
+
+## Open questions to the owner
+
+These are questions, not answers. The rule each one mentions is the agent's cautious
+stand-in until the owner answers; it is not an owner decision.
+
+- **2026-11-16 (F03; needed before F21, M2).** On the real unofficial transcript, what does
+  the grade column show on a transfer, AP or CLEP row: blank, a mark such as "T", "TR" or
+  "CR", or a letter grade? The brief says such rows count "with no grade check if no grade
+  is shown". Until this is answered, a transfer row with a mark that is not A, B, C, D, F,
+  W or I does not count and is shown to the student to fix, and no made-up transcript uses
+  a transfer mark. Status: not answered yet.
 
 ## Milestone checks
 

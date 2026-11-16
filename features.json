@@ -78,9 +78,11 @@
         "Transfer, AP and CLEP rows count when shown under an ASU course code, with no grade check if no grade is shown",
         "Each of these rules has an automated test using synthetic rows"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F03.md — evaluator QA round 1: PASS (13 checks; Functionality 5, Truthfulness 5)",
+      "tests": [
+        "tests/transcript.test.ts"
+      ]
     },
     {
       "id": "F04",
