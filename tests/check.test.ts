@@ -547,9 +547,10 @@ describe('the transcript on the page', () => {
 
   it('draws a course that is needed for a sequence with neither mark', () => {
     const list = listed(typed('HIS 132', 'MGT 321'));
-    const transcript = withPassed(['HIS 131', 'GEO 206']);
+    // Both sequence picks are held by other courses.
+    const transcript = withPassed(['HIS 131', 'GEO 206', 'HUM 101']);
     const [needed, counting] = rowsOf(entriesHtml(list, curriculum, transcript));
-    expect(answerIn(needed!)).toBe('Needed for the history sequence. Its credits don’t add to your degree total.');
+    expect(answerIn(needed!)).toBe('Needed for the history sequence (3 extra credits).');
     expect(needed!.startsWith('">')).toBe(true);
     expect(needed).not.toMatch(/mark-counts|mark-no|is-counts|is-no|Counts toward|Doesn’t count|already filled/);
     expect(needed).toContain('<p class="answer">');
@@ -558,6 +559,12 @@ describe('the transcript on the page', () => {
     expect(summaryHtml(list, curriculum, transcript).match(/<span class="num[^"]*">(\d+)<\/span>/g)?.map(one => Number(one.replace(/\D+/g, '')))).toEqual([6, 3, 0]);
     // No reminder: the course it reminds of is in the list.
     expect(entriesHtml(list, curriculum, transcript)).not.toContain('class="note"');
+    // While the other sequence's pick is open the course doesn't count, and the row says which to take.
+    const [pointed] = rowsOf(entriesHtml(list, curriculum, withPassed(['HIS 131', 'GEO 206'])));
+    expect(answerIn(pointed!)).toBe('Doesn’t count — same slot as GEO 206. Take ENG 210 for the sequence.');
+    expect(pointed!.startsWith(' is-no">')).toBe(true);
+    expect(pointed).toContain('same slot as <span class="code">GEO 206</span>. Take <span class="code">ENG 210</span> for the sequence.');
+    expect(summaryHtml(list, curriculum, withPassed(['HIS 131', 'GEO 206'])).match(/<span class="num[^"]*">(\d+)<\/span>/g)?.map(one => Number(one.replace(/\D+/g, '')))).toEqual([6, 3, 3]);
   });
 
   it('says why the legacy question is asked on a row that is no legacy course', () => {
@@ -596,6 +603,8 @@ describe('the transcript on the page', () => {
     expect(statusText(unused)).toBe('No transcript added');
     expect(decode(transcriptCard(unused))).toContain('No row of your transcript (sample.pdf) was taken on, so these answers don’t use it.');
     expect(transcriptCard(unused)).toContain('data-another');
+    // It is not used, so nothing is said about being exact, even with rows still to fix.
+    expect(transcriptCard(withPassed([], { used: false, toFix: 2 }))).not.toMatch(/exact-warning|data-review/);
     // None, after a file was not taken: the reason is under the card.
     expect(transcriptCard({ state: 'none', refusal: 'That file is not a PDF.' })).toMatch(/<p class="field-message" data-refusal>That file is not a PDF\.<\/p>$/);
     // A file's name and a reason are shown as text.

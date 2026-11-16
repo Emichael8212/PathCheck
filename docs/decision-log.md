@@ -74,7 +74,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F11) `npm run check` (and so CI) ends with `scripts/check-build.mjs`: the built site must hold no fingerprint and no description of the made-up transcripts. | They are for a development server only; a change to how they are loaded could ship them with every test still passing. | Remove the step from `check` in `package.json`. |
 | (2026-11-16, F12) Typed courses are placed as *planned*, a third and weakest state: a planned course takes only a place that no passed and no in-progress course holds; among planned courses F08's rules stay (the sequence course wins its pick, the first typed electives take the open places). Without a transcript every typed course is planned. A planned course adds nothing to the credits done or in progress, and the sequence is judged on the transcript only. | One placement for both flows, so they cannot disagree; a course the student only means to take must never push out one they have. | `options.planned` in `placeCourses` (`src/placement.ts`). |
 | (2026-11-16, F12) With a transcript, a course that is in no curriculum list (or is CIS 304 / CIS 415) keeps its "Doesn't count" sentence even when the transcript has it passed or in progress: that comes before "You already passed this". | It is true with or without a transcript, and it is what the student most needs to know. | Change the order in `verdicts` (`src/answers.ts`). |
-| (2026-11-16, F12) A typed course that has no grade yet on the transcript shows "In progress on your transcript — it doesn't count again." (the agent's words). | F12's step 5 says it is not shown as counting again; the brief gives no sentence for it. | Change `IN_PROGRESS_AGAIN` in `src/wording.ts`. |
+| (2026-11-16, F12) A typed course that has no grade yet on the transcript shows "Already in progress." (the owner's words, 2026-11-16; first built with a sentence of the agent's). | F12's step 5 says it is not shown as counting again; the brief gives no sentence for it. | Change `IN_PROGRESS_AGAIN` in `src/wording.ts`. |
 | (2026-11-16, F12) "You already passed this", "This slot is already filled" and the in-progress sentence are drawn as "Doesn't count": the square mark, the tinted row, the "Doesn't count" filter and the "Don't count" number. | None of them adds anything toward the degree; the design shows no transcript state. | Give them their own kind in `src/answers.ts` and `answerCell` (`src/check.ts`). |
 | (2026-11-16, F12) "This slot is already filled" is said only when courses of the transcript alone hold the place. When a course of the student's own list holds it (alone or with the transcript's), F08's sentences name the holders. For PSY 251 and a student who is not a legacy student: "This slot is already filled" when the transcript holds its pick, F08's "Legacy students only" when the list does. | The student can act on a course of their own list; the slot sentence gives the real reason. | Change `verdicts` in `src/answers.ts`. |
 | (2026-11-16, F12) While the reviewed transcript has rows that still need fixing, no answer is called exact: every "Counts" and the count above the list keep their condition, and the card says how many rows and offers the way back to fix them. The checked rows are still used for "You already passed this", "This slot is already filled" and in progress. A transcript with no row taken on is not used at all. | An unchecked row may be the very course that was typed (priority 1). (Contract review) | Change `onCheck` in `src/app.ts`. |
@@ -561,6 +561,47 @@ owner); it now reads more narrowly for PSY 251.
 - For PSY 251 with the answer Yes, the F05 rule applies: it stays in its Social sciences
   pick unless being an elective counts more.
 
+### 2026-11-16 — F12: the in-progress wording; a sequence course whose pick is filled; when to ask
+
+The owner's message, in full:
+
+"Owner answers, 2026-11-16. Record them in docs/decision-log.md under "Owner answers".
+
+1. F12 in-progress wording: "Already in progress." Everything else in F12 is approved.
+
+2. Sequence course when a pick is filled:
+   a. If a sequence can still be completed through an open pick: "Doesn't count — same slot as <course>. Take <ENG 210 / HIS 132> for the sequence."
+   b. If both picks are filled by non-sequence courses: "Needed for the <history / literature> sequence (3 extra credits)." It fills the sequence requirement only. Flow B shows the same, and the draft plan schedules it.
+   Add tests for a, b, and Flow B.
+
+3. Before asking me, check whether the curriculum and brief already decide it. Ask only when they don't."
+
+**Where this differs from earlier records:** answer 1 replaces the agent's sentence "In
+progress on your transcript — it doesn't count again." Answer 2 replaces the agent's
+stand-in "Needed for the history sequence. Its credits don't add to your degree total."
+and closes the open question of the same day. Answer 3 refines "academic rules … stop and
+ask the owner" (`CLAUDE.md`): the agent first reads the brief, the curriculum and these
+answers, and asks only for what they leave open.
+
+*Agent's notes, not owner decisions:*
+- 2a is read as: the typed sequence course's own pick is held by a course of the
+  transcript, no sequence is on its way, and the transcript leaves the other sequence
+  course's pick open. "<course>" is the course that holds the pick; the course to take is
+  the other sequence's. The row is drawn as "Doesn't count" and its credits are in "Don't
+  count".
+- 2b is read as: the transcript holds the picks of both sequence courses with other
+  courses, and neither sequence course is passed, in progress or typed earlier. "3" is the
+  course's credits from the curriculum. The row has neither mark; its credits are in the
+  total and in neither of the two counts (extra: they fill no place of the 121).
+- When a sequence is already on its way (its pick course passed, in progress, or typed
+  earlier or holding its pick), a typed sequence course whose pick is held still shows
+  the brief's "This slot is already filled".
+- "Flow B shows the same, and the draft plan schedules it" is carried to F13 (the
+  checklist) and F16 (the draft plan), each with its tests, in
+  `docs/sprints/_carried-forward.md`. Flow B has no screen yet; F12 tests a and b.
+- "Everything else in F12 is approved" is recorded as given. The words concerned are
+  listed in F12's pull request so that the owner can see each of them on the page.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -571,19 +612,6 @@ stand-in until the owner answers; it is not an owner decision.
   with rows to correct). It was built from the design's own pieces, and its layout and
   words are the agent's. The owner was told in chat on 2026-11-16 before it was built, and
   it is listed in F11's pull request. Does the owner want to change it, or design it?
-  Status: no reply yet.
-
-- **2026-11-16 (F12; an academic question, asked in chat the same day).** A student's
-  transcript already fills the Social sciences pick with another course (for example GEO
-  206 passed), and neither HIS 132 nor ENG 210 is passed, in progress or typed. They type
-  HIS 132 in "Check my courses". The sequence rule says they still need it; the rule also
-  says the sequence adds no credits, and with the pick already filled its 3 credits fill
-  no place. What should the answer say, and do its credits go under "Count toward CIS"?
-  Options put to the owner: (a) "Counts toward CIS — history sequence", credits counted;
-  (b) "Needed for the history sequence. Its credits don’t add to your degree total.",
-  credits in neither number; (c) the owner's own words. Until the answer the app shows
-  (b) and never "This slot is already filled" (agent's stand-in, not an owner decision).
-  The same answer is needed for ENG 210 and for the checklist (F13).
   Status: no reply yet.
 
 Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer

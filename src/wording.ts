@@ -44,13 +44,17 @@ export const sequenceReminder = (courses: readonly string[], kinds: string): str
 // ---- The answers with a transcript (brief §4 Flow A step 3; docs/sprints/F12.md) ----
 export const ALREADY_PASSED = 'You already passed this';
 export const SLOT_FILLED = 'This slot is already filled';
-/** A typed course that has no grade yet on the transcript (the agent's words). */
-export const IN_PROGRESS_AGAIN = 'In progress on your transcript — it doesn’t count again.';
+/** A typed course that has no grade yet on the transcript (the owner's words, 2026-11-16). */
+export const IN_PROGRESS_AGAIN = 'Already in progress.';
+// A sequence course whose pick another course already holds (the owner's answer of 2026-11-16).
+/** A sequence can still be completed through an open pick: `take` are that pick's sequence courses. */
+export const sameSlotTake = (holders: readonly string[], take: readonly string[]): string =>
+  `Doesn’t count — same slot as ${listOf(holders)}. Take ${take.join(' or ')} for the sequence.`;
 /**
- * A sequence course whose pick another course already holds: the agent's cautious words
- * until the owner says how it is worded and counted. `sequence` is its name in the curriculum.
+ * Every pick of a sequence is held by other courses: the course fills the sequence
+ * requirement only. `sequence` is its name in the curriculum, `credits` the course's own.
  */
-export const neededForSequence = (sequence: string): string => `Needed for the ${sequence}. Its credits don’t add to your degree total.`;
+export const neededForSequence = (sequence: string, credits: number): string => `Needed for the ${sequence} (${credits} extra ${credits === 1 ? 'credit' : 'credits'}).`;
 /** Under the legacy question when it is asked because of courses on the transcript. */
 export const transcriptHasLegacy = (codes: readonly string[]): string =>
   `Your transcript has ${listOf(codes)}, which ${codes.length === 1 ? 'counts' : 'count'} only for legacy students.`;

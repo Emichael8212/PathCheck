@@ -341,8 +341,10 @@ describe('the reminder and the sentences', () => {
 // ---- F12: with a transcript ----
 const PASSED = '✗ You already passed this';
 const FILLED = '✗ This slot is already filled';
-const RUNNING = '✗ In progress on your transcript — it doesn’t count again.';
-const neededFor = (sequence: string): string => `! Needed for the ${sequence} sequence. Its credits don’t add to your degree total.`;
+const RUNNING = '✗ Already in progress.';
+// The owner's two answers of 2026-11-16 for a sequence course whose pick is held.
+const neededFor = (sequence: string): string => `! Needed for the ${sequence} sequence (3 extra credits).`;
+const takeInstead = (holder: string, take: string): string => `✗ Doesn’t count — same slot as ${holder}. Take ${take} for the sequence.`;
 /** A made-up row: "ENG 131" is passed with a B; "ENG 131:D" has that grade; ":-" is in progress; ":T" is transfer credit. */
 const rowOf = (entry: string, i = 0): TranscriptRow => {
   const [code = '', mark = 'B'] = entry.split(':');
@@ -443,28 +445,55 @@ describe('with a transcript', () => {
     ]);
   });
 
-  it('does not send away a sequence course that is still needed', () => {
-    // Its pick is held by another course, and no sequence is on its way: needed, not "Counts", not "filled".
+  it('points to the other sequence course while its pick is open', () => {
+    // (a) The pick is held by another course, and a sequence can still go through an open pick.
     for (const other of ['GEO 206', 'GEO 206:-']) {
       const transcript = having(['HIS 131', other]);
       const typed = entries(['HIS 132']);
       for (const legacy of [YES, NO, NOT_ANSWERED]) {
         const answers = answersFor(typed, curriculum, legacy, transcript);
-        expect(answers).toEqual([{ kind: 'needed', text: 'Needed for the history sequence. Its credits don’t add to your degree total.' }]);
-        // In the total, in neither count.
-        expect(totalsOf(typed, answers)).toEqual({ total: 3, counts: 0, doesNotCount: 0, waiting: 0, needed: 3, pending: false });
+        expect(answers).toEqual([{ kind: 'no', text: 'Doesn’t count — same slot as GEO 206. Take ENG 210 for the sequence.' }]);
+        // It doesn't count: its credits are among those that don't.
+        expect(totalsOf(typed, answers)).toEqual({ total: 3, counts: 0, doesNotCount: 3, waiting: 0, needed: 0, pending: false });
       }
     }
-    expect(askWith(having(['HUM 101']), ['ENG 210'])).toEqual([neededFor('literature')]);
-    // The other sequence is on its way: passed, in progress, or typed before it.
-    expect(askWith(having(['GEO 206', 'ENG 210']), ['HIS 132'])).toEqual([FILLED]);
-    expect(askWith(having(['GEO 206', 'ENG 210:-']), ['HIS 132'])).toEqual([FILLED]);
+    // The other way round.
+    expect(askWith(having(['HUM 101']), ['ENG 210'])).toEqual([takeInstead('HUM 101', 'HIS 132')]);
+    expect(askWith(having(['ENG 209', 'HUM 102:-']), ['ENG 210'])).toEqual([takeInstead('HUM 102', 'HIS 132')]);
+    // A failed sequence course does not hold its pick: the pick is open, and it is the one to take.
+    expect(askWith(having(['GEO 206', 'ENG 210:D']), ['HIS 132'])).toEqual([takeInstead('GEO 206', 'ENG 210')]);
+    // A course of the list in the other pick does not close it: the transcript leaves it open.
+    expect(askWith(having(['GEO 206']), ['HIS 132', 'HUM 101'])).toEqual([takeInstead('GEO 206', 'ENG 210'), `✓ Counts toward CIS — ${blockOf('HUM 101')}`]);
+  });
+
+  it('does not send away a sequence course when both picks are held', () => {
+    // (b) Both picks are held by courses that belong to no sequence: needed for the sequence only.
+    for (const rows of [['HIS 131', 'GEO 206', 'HUM 101'], ['GEO 206:-', 'HUM 101'], ['SOC 110', 'PHL 201:-']]) {
+      const transcript = having(rows);
+      const typed = entries(['HIS 132']);
+      for (const legacy of [YES, NO, NOT_ANSWERED]) {
+        const answers = answersFor(typed, curriculum, legacy, transcript);
+        expect(answers, rows.join()).toEqual([{ kind: 'needed', text: 'Needed for the history sequence (3 extra credits).' }]);
+        // Extra credits: in the total, in neither count.
+        expect(totalsOf(typed, answers)).toEqual({ total: 3, counts: 0, doesNotCount: 0, waiting: 0, needed: 3, pending: false });
+      }
+      expect(askWith(transcript, ['ENG 210'])).toEqual([neededFor('literature')]);
+    }
+    // One of the two is enough: the first typed is the needed one, the other's slot is filled.
     expect(askWith(having(['GEO 206', 'HUM 101']), ['ENG 210', 'HIS 132'])).toEqual([neededFor('literature'), FILLED]);
     expect(askWith(having(['GEO 206', 'HUM 101']), ['HIS 132', 'ENG 210'])).toEqual([neededFor('history'), FILLED]);
+    // The credits in the sentence are the course's own, from the curriculum.
+    expect(curriculum.blocks.flatMap(block => block.picks.flatMap(group => group.courses)).filter(course => ['HIS 132', 'ENG 210'].includes(course.code)).map(course => course.credits)).toEqual([3, 3]);
+  });
+
+  it('says the slot is filled when a sequence is already on its way', () => {
+    // Passed, in progress, or typed before it.
+    expect(askWith(having(['GEO 206', 'ENG 210']), ['HIS 132'])).toEqual([FILLED]);
+    expect(askWith(having(['GEO 206', 'ENG 210:-']), ['HIS 132'])).toEqual([FILLED]);
+    expect(askWith(having(['HUM 101', 'HIS 132']), ['ENG 210'])).toEqual([FILLED]);
     // Or typed anywhere in the list and holding its pick.
     expect(askWith(having(['HUM 101']), ['ENG 210', 'HIS 132'])).toEqual([FILLED, '✓ Counts toward CIS — Social sciences']);
-    // A failed sequence course on the transcript is not on its way.
-    expect(askWith(having(['GEO 206', 'ENG 210:D']), ['HIS 132'])).toEqual([neededFor('history')]);
+    expect(askWith(having(['GEO 206']), ['HIS 132', 'ENG 210'])).toEqual([FILLED, `✓ Counts toward CIS — ${blockOf('ENG 210')}`]);
     // With its pick open the course simply counts toward its block.
     expect(askWith(having(['HIS 131']), ['HIS 132'])).toEqual(['✓ Counts toward CIS — Social sciences']);
     // A course of the same pick that is no sequence course is simply told the slot is filled.
@@ -519,6 +548,14 @@ describe('with a transcript', () => {
     expect(askWith(transcript, ['PSY 251'], YES)).toEqual(['✓ Counts toward CIS: elective (legacy)']);
     // A legacy student with every elective place held by the transcript: the slot is filled.
     expect(askWith(having(['GEO 206', 'FIN 201', 'MKT 410', 'CIS 499']), ['PSY 251'], YES)).toEqual([FILLED]);
+    // A legacy student whose last elective place is taken by a course of their own list is
+    // told so, with the courses that hold the places: the pick is not the whole reason.
+    expect(askWith(having(['GEO 206', 'FIN 201', 'MKT 410']), ['PSY 251', 'CIS 499'], YES)).toEqual([
+      '✗ Doesn’t count — your 3 CIS elective places are already filled by FIN 201, MKT 410 and CIS 499.', '✓ Counts toward CIS: elective (300/400-level CIS)',
+    ]);
+    expect(askWith(having(['GEO 206', 'FIN 201', 'MKT 410']), ['CIS 499', 'PSY 251'], YES)).toEqual([
+      '✓ Counts toward CIS: elective (300/400-level CIS)', '✗ Doesn’t count — your 3 CIS elective places are already filled by FIN 201, MKT 410 and CIS 499.',
+    ]);
     // Held by the student's own list: F08's sentence.
     expect(askWith(having(['ORI 100']), ['GEO 206', 'PSY 251'], NO)).toEqual(['✓ Counts toward CIS — Social sciences', `✗ ${LEGACY_ONLY}`]);
     // With its pick open it is an ordinary course of that block, whatever the answer.
@@ -577,7 +614,7 @@ describe('with a transcript, whatever the list', () => {
     const pick = <T>(from: readonly T[]): T => from[Math.floor(next() * from.length)] as T;
     const use = (answer: unknown): TranscriptUse['standings'] => reviewedStandings(openTranscript('made-up.pdf', answer, curriculum), curriculum.grades);
     const madeUpOnes = [use(sampleA), use(sampleB)];
-    const seen = { needed: 0, asked: 0, filled: 0, counted: 0, passed: 0 };
+    const seen = { needed: 0, pointed: 0, asked: 0, filled: 0, counted: 0, passed: 0 };
     for (let i = 0; i < 400; i++) {
       // A transcript: one of the two made-up ones, or rows made here (repeats included).
       const rows = Array.from({ length: Math.floor(next() * 15) }, () => `${pick(pool)}:${pick(marks)}`);
@@ -614,7 +651,7 @@ describe('with a transcript, whatever the list', () => {
           // The electives that count are never more than the places the transcript leaves.
           const countedElectives = placement.electives.filled.filter(filled => filled.state === 'planned').length;
           expect(countedElectives + placement.electives.filled.filter(filled => filled.state !== 'planned').length, label).toBeLessThanOrEqual(curriculum.electives.courseCount);
-          if (!legacy) expect(countedElectives, label).toBeLessThanOrEqual(alone.electives.open);
+          expect(countedElectives, label).toBeLessThanOrEqual(alone.electives.open);
           answers.forEach((answer, at) => {
             const code = codes[at] as string;
             // A course that is passed or in progress never counts again.
@@ -627,12 +664,27 @@ describe('with a transcript, whatever the list', () => {
             if (answer.kind === 'counts') seen.counted++;
             expect(answer.kind === 'ask' || answer.kind === 'waiting', label).toBe(false);
           });
-          // A course said to be needed for a sequence is a sequence course whose pick the transcript holds.
+          // A course said to be needed for a sequence is a sequence course, and the transcript
+          // holds the pick of both sequence courses, neither of which it has.
           codes.forEach((code, at) => {
-            if (answers[at]?.kind !== 'needed') return;
-            expect(['HIS 132', 'ENG 210'], label).toContain(code);
-            const group = alone.blocks.flatMap(one => one.picks).find(one => one.options.some(option => option.code === code));
-            expect(group?.open, label).toBe(0);
+            const answer = answers[at]!;
+            const groupOf = (one: string) => alone.blocks.flatMap(block => block.picks).find(group => group.options.some(option => option.code === one));
+            if (answer.kind === 'needed') {
+              expect(['HIS 132', 'ENG 210'], label).toContain(code);
+              for (const one of ['HIS 132', 'ENG 210']) {
+                expect(groupOf(one)?.open, `${label}: ${one}`).toBe(0);
+                expect(held.has(one), `${label}: ${one}`).toBe(false);
+              }
+            }
+            // "Take the other one" is said only while the other one's pick is open and its own is held.
+            if (answer.kind === 'no' && answer.text.includes('for the sequence.')) {
+              seen.pointed++;
+              const take = code === 'HIS 132' ? 'ENG 210' : 'HIS 132';
+              expect(answer.text, label).toMatch(new RegExp(`^Doesn’t count — same slot as [A-Z]+ \\d+\\. Take ${take} for the sequence\\.$`));
+              expect(groupOf(code)?.open, label).toBe(0);
+              expect(groupOf(take)?.open, label).toBeGreaterThan(0);
+              expect(held.has(take), label).toBe(false);
+            }
           });
           // The numbers add up.
           const sums = totalsOf(typed, answers);

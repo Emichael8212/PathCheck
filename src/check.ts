@@ -98,7 +98,7 @@ export function transcriptCard(transcript: OnCheck): string {
       <button type="button" class="btn secondary" data-review>${esc(TEXT.review)} ${icons.arrow()}</button>`);
   }
   return card(transcript.use ? TEXT.uses(transcript.name) : TEXT.notUsed(transcript.name), `
-        <p>${esc(transcript.counts)}</p>${transcript.toFix > 0 ? `
+        <p>${esc(transcript.counts)}</p>${transcript.use && transcript.toFix > 0 ? `
         <p class="exact-warning">${esc(TEXT.notExact(transcript.toFix))}</p>
         <button type="button" class="text-link" data-review>${esc(TEXT.fix(transcript.toFix))}</button>` : ''}`, `
       <button type="button" class="btn secondary" data-another>${esc(USE_ANOTHER)}</button>

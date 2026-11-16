@@ -361,13 +361,15 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     answers don't use it.";
   - under the card, why a file was not taken (the sentences of the upload);
   - the answers: "You already passed this" and "This slot is already filled" (the
-    brief's), "In progress on your transcript — it doesn't count again." (the agent's),
-    all three drawn as "Doesn't count"; a "Counts" keeps its outlined mark and loses its
+    brief's), "Already in progress." (the owner's, 2026-11-16), all three drawn as
+    "Doesn't count"; a "Counts" keeps its outlined mark and loses its
     condition; under the legacy question on a row that is no legacy course, "Your
     transcript has <code>, which counts only for legacy students.";
-  - a sequence course whose pick another course already holds, while the owner's answer
-    is open: "Needed for the history sequence. Its credits don't add to your degree
-    total.", with no mark and no tint;
+  - a sequence course whose pick another course already holds (the owner's words,
+    2026-11-16): while the other sequence's pick is open, "Doesn't count — same slot as
+    <course>. Take ENG 210 for the sequence.", drawn as "Doesn't count"; when both picks
+    are held, "Needed for the history sequence (3 extra credits).", with no mark and no
+    tint, its credits in the total only;
   - in the review step, under "Continue": "You'll go back to “Check my courses”."
 - **Lines the design has no place for, on "Check my courses"** (agent's wording unless
   said otherwise; each listed for the owner in its pull request): with no courses, "Add

@@ -15,7 +15,7 @@ import { countsByElectiveRule, placeCourses } from './placement';
 import { type CourseStanding } from './transcript';
 import {
   ALREADY_PASSED, CONDITION, COUNTS_AS_LEGACY_ELECTIVE, IN_PROGRESS_AGAIN, LEGACY_STUDENTS_ONLY, NOT_IN_CURRICULUM, SLOT_FILLED, countsAsElective, countsToward,
-  electivePlacesFilled, neededForSequence, notInCurrentCurriculum, sameRequirement, sequenceReminder, transcriptHasLegacy, waitingFor,
+  electivePlacesFilled, neededForSequence, notInCurrentCurriculum, sameRequirement, sameSlotTake, sequenceReminder, transcriptHasLegacy, waitingFor,
 } from './wording';
 
 /** The student's reviewed transcript, as the answers use it. */
@@ -37,7 +37,10 @@ export type Answer =
   | { readonly kind: 'ask'; readonly because: string | null }
   /** Another course whose answer depends on the legacy answer: no verdict yet. */
   | { readonly kind: 'waiting'; readonly text: string }
-  /** A sequence course that is still needed although another course holds its pick: neither "Counts" nor "Doesn't count". */
+  /**
+   * A sequence course that is still needed although other courses hold every sequence pick:
+   * it fills the sequence requirement only, with extra credits. Neither "Counts" nor "Doesn't count".
+   */
   | { readonly kind: 'needed'; readonly text: string };
 
 type Verdict = Extract<Answer, { kind: 'counts' | 'no' | 'needed' }>;
@@ -107,6 +110,10 @@ function verdicts(entries: readonly Entry[], curriculum: Curriculum, legacy: boo
     const earlier = planned.slice(0, planned.indexOf(code));
     return alternatives.filter(alternative => alternative.courses.every(one => held.has(one) || holdsPick.has(one) || earlier.includes(one))).length >= sequence.choose;
   };
+  /** Do the transcript's own courses leave this course's pick open? */
+  const pickOpen = (code: string): boolean => placement.blocks.flatMap(one => one.picks)
+    .some(pick => pick.options.some(option => option.code === code) && pick.filled.filter(filled => filled.state !== 'planned').length < pick.choose);
+  const creditsOf = (code: string): number => findCourse(curriculum, code)[0]?.course.credits ?? electives.creditsPerCourse;
   for (const one of placement.unplaced) {
     if (one.state !== 'planned') continue;
     let answer: Verdict;
@@ -115,9 +122,17 @@ function verdicts(entries: readonly Entry[], curriculum: Curriculum, legacy: boo
       // A course of the student's own list holds the pick: it is named. For a student who is
       // not a legacy student a legacy-only course has nowhere else to go, and is told that.
       if (one.filledBy.some(isPlanned)) answer = no(!legacy && isLegacyOnly(curriculum, one.code) ? LEGACY_STUDENTS_ONLY : sameRequirement(one.filledBy));
-      // The transcript holds the pick. A sequence course is still needed when no sequence is
-      // on its way: it is never sent away, and never said to count.
-      else if (ofSequence && !sequenceOnItsWay(one.code)) answer = { kind: 'needed', text: neededForSequence(ofSequence.name) };
+      // The transcript holds the pick, and no sequence is on its way (the owner's answer of
+      // 2026-11-16). While another sequence can still go through an open pick, the student
+      // is pointed to that course. When every pick is held, this course is needed for its
+      // sequence only: never sent away, and never said to count.
+      else if (ofSequence && !sequenceOnItsWay(one.code)) {
+        const through = alternatives.filter(alternative => alternative !== ofSequence && alternative.courses.length > 0 && alternative.courses.every(pickOpen)).flatMap(alternative => alternative.courses);
+        answer = through.length > 0 ? no(sameSlotTake(one.filledBy, through)) : { kind: 'needed', text: neededForSequence(ofSequence.name, creditsOf(one.code)) };
+      }
+      // A legacy student's legacy course could still be an elective, were the last place not
+      // taken by a course of their own list: that is the reason it is given.
+      else if (legacy && isLegacyOnly(curriculum, one.code) && holdingElectives.some(isPlanned)) answer = no(electivePlacesFilled(electives.courseCount, holdingElectives));
       else answer = no(SLOT_FILLED);
     } else if (one.reason === 'electives-full') {
       answer = no(holdingElectives.some(isPlanned) ? electivePlacesFilled(electives.courseCount, holdingElectives) : SLOT_FILLED);

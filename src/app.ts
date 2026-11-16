@@ -184,7 +184,8 @@ export function startApp(win: AppWindow): App {
       part<{ focus(): void }>('[data-choose]')?.focus();
       return;
     }
-    const returnTo = from === 'check' ? 'check' : from === 'left' ? left.returnTo : 'left';
+    // (A file refused after the student left "Check my courses" brings nobody back there.)
+    const returnTo = from === 'check' && !refusal ? 'check' : from === 'left' ? left.returnTo : 'left';
     Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null, returnTo });
     showLeft();
     if (refusal) {

@@ -61,6 +61,8 @@ beforeEach(() => {
   window.history.replaceState(null, '', '#/check');
   app = startApp(window as unknown as AppWindow);
 });
+// Each test's app stops listening to the window, so that it takes no part in the next test.
+afterEach(() => { app.stop(); });
 
 describe('typing in the field', () => {
   it('opens the suggestions with the first one highlighted', () => {
@@ -805,7 +807,7 @@ describe('with a transcript', () => {
   // Sets a grade in an open edit. (The simulated browser does not honour the selected
   // option of a list made from HTML text; a real browser is checked by the evaluator.)
   const setGrade = (line: number, grade: string): void => { $<HTMLSelectElement>(`#row-${line}-grade`).value = grade; };
-  afterEach(() => { app.stop(); vi.restoreAllMocks(); });
+  afterEach(() => { vi.restoreAllMocks(); });
 
   it('adds a transcript and comes back', async () => {
     add('mgt 321');
@@ -848,7 +850,7 @@ describe('with a transcript', () => {
     // The answers stay exact as the list changes.
     add('bio 127');
     add('cis 206');
-    expect(answers().slice(2)).toEqual(['Counts toward CIS — Science & math', 'In progress on your transcript — it doesn’t count again.']);
+    expect(answers().slice(2)).toEqual(['Counts toward CIS — Science & math', 'Already in progress.']);
     expect(numbers()).toEqual([12, 6, 6]);
     // The same transcript is there on "See what I have left"; a transcript brought there stays there.
     go('#/left');
@@ -888,6 +890,15 @@ describe('with a transcript', () => {
     expect(tidy($('[data-refusal]').textContent)).toBe('');
     go('#/check');
     expect(tidy($('[data-transcript] [data-refusal]').textContent)).toBe('');
+    // A file refused after the student has left this page brings nobody back to it later.
+    let release = (): void => undefined;
+    const slow = { name: 'slow.pdf', size: 4, arrayBuffer: (): Promise<ArrayBuffer> => new Promise(resolve => { release = () => resolve(text('nope').slice().buffer as ArrayBuffer); }) };
+    const pending = app.takeFile(slow);
+    go('#/left');
+    release();
+    await pending;
+    expect(app.left.returnTo).toBe('left');
+    go('#/check');
     // A good file afterwards is taken.
     await app.takeFile(fileOf(text('nope')));
     await app.takeFile(madeUp('sample-a'));

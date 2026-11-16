@@ -8,7 +8,6 @@ Read this before writing a sprint contract; delete a line when its feature has d
   adding up a transcript row's credits. A withdrawn row still shows credits attempted.
   (F03 review; done for placement in F04)
 
-
 ## For F17 and F18 (the printed summary; on every result)
 - The footer is `foot(curriculum, subject)` in `src/shell.ts`: it already leaves the
   last-reviewed line out when there is no date and takes the email's subject. Still to
@@ -27,11 +26,16 @@ Read this before writing a sprint contract; delete a line when its feature has d
   "Check my courses" keeps every condition and says why (`onCheck` in `src/app.ts`). The
   checklist must not show a block as Done, or the degree as complete, on a transcript
   with unchecked rows without saying so. (F12 contract review)
-- **The sequence course whose pick is held** waits for the owner (open question of
-  2026-11-16 in `docs/decision-log.md`): how it is worded and whether its credits count.
-  "Check my courses" shows the stand-in `neededForSequence` (`src/wording.ts`), kind
-  `needed` in `src/answers.ts`. The checklist's "Still needed: HIS 132 or ENG 210 …" line
-  (F13 step 5) must agree with the owner's answer; apply the answer in both places.
+- **The sequence course whose pick is held** (owner answer, 2026-11-16, "F12: … a sequence
+  course whose pick is filled"). "Check my courses" follows it (`verdicts` in
+  `src/answers.ts`; `sameSlotTake` and `neededForSequence` in `src/wording.ts`). **Flow B
+  shows the same**: when both sequence picks are held by courses of no sequence and
+  neither HIS 132 nor ENG 210 is passed or in progress, the checklist says "Needed for the
+  history / literature sequence (3 extra credits)." and that it fills the sequence
+  requirement only; F13's step 5 sentence ("Still needed: HIS 132 or ENG 210 to complete a
+  history or literature sequence.") is for the case where a pick is still open. The
+  contract of F13 must have a check and a test for it (the owner asked for a Flow B
+  test), and must say how the two sentences meet.
 - After "Continue" there is no way back to the review from "See what I have left"; "Check
   my courses" has one ("Fix them" on its card: `review` in `src/app.ts`). The checklist
   needs the same when rows still need fixing. (F12 contract review)
@@ -44,8 +48,11 @@ Read this before writing a sprint contract; delete a line when its feature has d
   `credits.done` or `credits.inProgress`. Pace must not mix planned courses with courses
   really in progress; the credits of the typed list are `totalsOf(…).total`. (F12)
 
-
 ## For F13, F14 and F16 (checklist, pace, plan)
+- **The draft plan schedules the extra sequence course** (owner answer, 2026-11-16): when
+  both picks are held and no sequence is on its way, the plan has HIS 132 or ENG 210 with
+  its 3 extra credits, although no pick is open. F16's contract needs the check and the
+  test; pace (F14) must count those extra credits among what is left.
 - All 121 credits can be done while the sequence is still needed (other courses hold the
   two picks). Never show the degree as complete or on pace from credits alone; the plan
   must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
