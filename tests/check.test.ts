@@ -6,10 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { check as approvedCheck } from '../mockups/data.js';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
-import { alreadyThere, checkPage, entriesHtml, filtersHtml, notACourse, noteText, suggestionsHtml, summaryHtml, type CourseList } from '../src/check';
+import { NO_TRANSCRIPT, alreadyThere, checkPage, entriesHtml, filtersHtml, notACourse, noteText, statusText, suggestionsHtml, summaryHtml, transcriptCard, type CourseList, type OnCheck } from '../src/check';
 import { UNKNOWN_COURSE_CREDITS } from '../src/credits';
 import { curriculum, findCourse, loadCurriculum, type Course } from '../src/curriculum';
 import { FEWEST_CHARACTERS, MOST_SUGGESTIONS, addCourse, entryFor, listedCourses, removeCourse, setCredits, suggest, type Entry } from '../src/entries';
+import { courseStandings } from '../src/transcript';
 
 const decode = (html: string): string => html
   .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
@@ -470,5 +471,139 @@ describe('the numbers above the list', () => {
     expect(html.match(/<select/g)).toHaveLength(2);
     // The dropdown shows what the student chose.
     expect(drawn(setCredits(typed('BIO 230'), 'BIO 230', 7)).match(/<option value="\d+" selected>/g)).toEqual(['<option value="7" selected>']);
+  });
+});
+
+// ---- F12: a transcript on the page (docs/sprints/F12.md) ----
+describe('the transcript on the page', () => {
+  const CONDITION = 'unless you’ve already passed it or filled this slot';
+  const COUNT_CONDITION = 'unless you’ve already passed them or filled their slots';
+  const typed = (...codes: string[]): Entry[] => codes.reduce<Entry[]>((list, one) => added(list, one), []);
+  /** A reviewed transcript with these courses passed. */
+  const withPassed = (codes: string[], more: { exact?: boolean; toFix?: number; used?: boolean } = {}): OnCheck => ({
+    state: 'added',
+    name: 'sample.pdf',
+    use: more.used === false ? null : { standings: courseStandings(codes.map(code => ({ code, term: 'Fall 2025', credits: 3, grade: 'B', transfer: false })), curriculum.grades), exact: more.exact ?? true },
+    counts: `${codes.length} rows taken on.`,
+    toFix: more.toFix ?? 0,
+  });
+  const rowsOf = (html: string): string[] => html.split('<div role="row" class="row').slice(1).map(one => one.split('<p class="legacy-line">')[0]!.split('<p class="note">')[0]!);
+  const answerIn = (row: string): string => decode(row.match(/<div role="cell" class="cell-answer">([\s\S]*?)<div role="cell" class="cell-remove">/)?.[1] ?? '').trim();
+
+  it('offers the transcript as an option', () => {
+    const page = checkPage(curriculum);
+    // The note at the right of the heading, and the card, in the approved design's words.
+    expect(page).toMatch(/<\/h1>\s*<\/div>\s*<span class="page-status" data-status>No transcript added<\/span>\s*<\/div>/);
+    expect(approvedCheck.status).toBe('No transcript added');
+    const card = transcriptCard(NO_TRANSCRIPT);
+    expect(page).toContain(`<div data-transcript>${card}</div>`);
+    expect(card).toMatch(/^<section class="exact" aria-labelledby="exact-title">/);
+    expect(card).toContain(`<h2 id="exact-title">${approvedCheck.transcript}</h2>`);
+    expect(decode(card)).toContain(approvedCheck.privacy);
+    expect(card).toMatch(new RegExp(`<button type="button" class="btn primary" data-choose>${approvedCheck.choose} <svg`));
+    // The reason a file was not taken goes under the card; there is none yet.
+    expect(card).toMatch(/<p class="field-message" data-refusal><\/p>$/);
+    // It is an option: nothing of it is a field to fill in, and the list works without it.
+    expect(card).not.toMatch(/<input|type="file"/);
+    expect(page.match(/<input/g)).toHaveLength(1);
+    // The card comes after the list and its reminder.
+    const some = checkPage(curriculum, listed(typed('MGT 321')));
+    expect(some.indexOf('class="note"')).toBeGreaterThan(0);
+    expect(some.indexOf('class="exact"')).toBeGreaterThan(some.indexOf('class="note"'));
+    // Without a transcript every answer and number is as before.
+    expect(entriesHtml(listed(typed('MGT 321', 'ENG 131')), curriculum, NO_TRANSCRIPT)).toBe(drawn(typed('MGT 321', 'ENG 131')));
+    expect(summaryHtml(listed(typed('MGT 321')), curriculum, NO_TRANSCRIPT)).toBe(summaryHtml(listed(typed('MGT 321')), curriculum));
+  });
+
+  it('drops the condition with a transcript', () => {
+    const list = listed(typed('MGT 321', 'ENG 131', 'ENG 140', 'FIN 201', 'BIO 230'));
+    const transcript = withPassed(['ENG 131', 'ORI 100']);
+    const rows = rowsOf(entriesHtml(list, curriculum, transcript));
+    expect(rows.map(answerIn)).toEqual([
+      'Counts toward CIS — Business core', 'You already passed this', 'This slot is already filled', 'Counts toward CIS — CIS electives', 'Doesn’t count toward CIS — not in the CIS curriculum',
+    ]);
+    // "Counts" keeps its outlined mark and has no condition line; the others are drawn as "Doesn't count".
+    expect(rows.map(row => [row.includes('mark-counts'), row.includes('mark-no'), row.startsWith(' is-no">'), row.includes('class="condition"')])).toEqual([
+      [true, false, false, false], [false, true, true, false], [false, true, true, false], [true, false, false, false], [false, true, true, false],
+    ]);
+    expect(rows.join('')).not.toContain('mark-done');
+    // The numbers follow: 15 in all, 6 count, 9 don't; no condition under the count.
+    const summary = summaryHtml(list, curriculum, transcript);
+    expect(summary.match(/<span class="num[^"]*">(\d+)<\/span>/g)?.map(one => Number(one.replace(/\D+/g, '')))).toEqual([15, 6, 9]);
+    expect(decode(summary)).not.toContain(COUNT_CONDITION);
+    expect(decode(summaryHtml(list, curriculum))).toContain(COUNT_CONDITION);
+    // The "Doesn't count" filter lists the three.
+    expect(rowsOf(entriesHtml({ ...list, filter: 'no' }, curriculum, transcript))).toHaveLength(3);
+    // While rows still need fixing nothing is exact: both conditions stay.
+    const unchecked = withPassed(['ENG 131', 'ORI 100'], { exact: false, toFix: 1 });
+    expect(rowsOf(entriesHtml(list, curriculum, unchecked)).map(answerIn)).toEqual([
+      `Counts toward CIS — Business core ${CONDITION}`, 'You already passed this', 'This slot is already filled', `Counts toward CIS — CIS electives ${CONDITION}`, 'Doesn’t count toward CIS — not in the CIS curriculum',
+    ]);
+    expect(decode(summaryHtml(list, curriculum, unchecked))).toContain(COUNT_CONDITION);
+    // A transcript with no row taken on changes nothing.
+    expect(entriesHtml(list, curriculum, withPassed([], { used: false }))).toBe(entriesHtml(list, curriculum));
+    expect(summaryHtml(list, curriculum, withPassed([], { used: false }))).toBe(summaryHtml(list, curriculum));
+  });
+
+  it('draws a course that is needed for a sequence with neither mark', () => {
+    const list = listed(typed('HIS 132', 'MGT 321'));
+    const transcript = withPassed(['HIS 131', 'GEO 206']);
+    const [needed, counting] = rowsOf(entriesHtml(list, curriculum, transcript));
+    expect(answerIn(needed!)).toBe('Needed for the history sequence. Its credits don’t add to your degree total.');
+    expect(needed!.startsWith('">')).toBe(true);
+    expect(needed).not.toMatch(/mark-counts|mark-no|is-counts|is-no|Counts toward|Doesn’t count|already filled/);
+    expect(needed).toContain('<p class="answer">');
+    expect(answerIn(counting!)).toBe('Counts toward CIS — Business core');
+    // Its credits are in the total and in neither count.
+    expect(summaryHtml(list, curriculum, transcript).match(/<span class="num[^"]*">(\d+)<\/span>/g)?.map(one => Number(one.replace(/\D+/g, '')))).toEqual([6, 3, 0]);
+    // No reminder: the course it reminds of is in the list.
+    expect(entriesHtml(list, curriculum, transcript)).not.toContain('class="note"');
+  });
+
+  it('says why the legacy question is asked on a row that is no legacy course', () => {
+    const html = entriesHtml(listed(typed('CIS 499', 'ECO 301', 'ACT 350')), curriculum, withPassed(['FLS 161', 'MGT 220']));
+    const [first, asking, waiting] = rowsOf(html);
+    expect(answerIn(first!)).toBe('Counts toward CIS: elective (300/400-level CIS)');
+    expect(asking).toMatch(/<div class="legacy-ask" role="group" aria-label="Are you a legacy CIS student\?">\s*<p>Are you a legacy CIS student\?<\/p>\s*<div class="legacy-buttons">\s*<button type="button" class="btn secondary" data-legacy="yes">Yes<\/button>\s*<button type="button" class="btn secondary" data-legacy="no">No<\/button>\s*<\/div>\s*<p class="condition">Your transcript has <span class="code">FLS 161<\/span> and <span class="code">MGT 220<\/span>, which count only for legacy students\.<\/p>/);
+    expect(answerIn(waiting!)).toBe('Answer “Are you a legacy CIS student?” to see this.');
+    for (const row of [asking!, waiting!]) expect(row).not.toMatch(/mark-counts|mark-no|is-counts|is-no|Counts toward|Doesn’t count/);
+    // Once answered, the line to change it is there although no typed course is a legacy course.
+    expect(entriesHtml(listed(typed('CIS 499', 'ECO 301', 'ACT 350'), true), curriculum, withPassed(['FLS 161', 'MGT 220']))).toMatch(/<p class="legacy-line">Legacy CIS student: <strong>Yes<\/strong> <button type="button" class="text-link" data-legacy-change>Change<\/button><\/p>/);
+  });
+
+  it('says where the transcript stands', () => {
+    // Uploaded, not yet checked: nothing is used; the card leads to the review.
+    const reviewing: OnCheck = { state: 'reviewing' };
+    expect(statusText(reviewing)).toBe('No transcript added');
+    expect(decode(transcriptCard(reviewing))).toBe(' Your transcript is waiting to be checked. Check what was read ');
+    expect(transcriptCard(reviewing)).toMatch(/<button type="button" class="btn secondary" data-review>Check what was read <svg/);
+    expect(transcriptCard(reviewing)).not.toMatch(/data-choose|data-another|data-refusal/);
+    expect(entriesHtml(listed(typed('MGT 321')), curriculum, reviewing)).toBe(drawn(typed('MGT 321')));
+    // Reviewed: what the answers use, the review's counts, and the way to another transcript.
+    const there = withPassed(['ENG 131', 'ORI 100']);
+    expect(statusText(there)).toBe('Transcript added');
+    expect(decode(transcriptCard(there))).toBe(' Your answers use your transcript (sample.pdf). 2 rows taken on. Use another transcript Choosing another transcript forgets your corrections. ');
+    expect(transcriptCard(there)).toMatch(/<button type="button" class="btn secondary" data-another>Use another transcript<\/button>/);
+    expect(transcriptCard(there)).not.toMatch(/data-choose|data-review|exact-warning/);
+    // Rows still to fix: said, with the way back to them.
+    expect(decode(transcriptCard(withPassed(['ENG 131'], { exact: false, toFix: 2 })))).toContain('2 rows of your transcript still need fixing, so these answers are not exact yet. Fix them');
+    const one = transcriptCard(withPassed(['ENG 131'], { exact: false, toFix: 1 }));
+    expect(decode(one)).toContain('1 row of your transcript still needs fixing, so these answers are not exact yet. Fix it');
+    expect(one).toMatch(/<p class="exact-warning">[^<]+<\/p>\s*<button type="button" class="text-link" data-review>Fix it<\/button>/);
+    expect(statusText(withPassed(['ENG 131'], { exact: false, toFix: 1 }))).toBe('Transcript added');
+    // No row taken on: the answers do not use it, and the page says so.
+    const unused = withPassed([], { used: false });
+    expect(statusText(unused)).toBe('No transcript added');
+    expect(decode(transcriptCard(unused))).toContain('No row of your transcript (sample.pdf) was taken on, so these answers don’t use it.');
+    expect(transcriptCard(unused)).toContain('data-another');
+    // None, after a file was not taken: the reason is under the card.
+    expect(transcriptCard({ state: 'none', refusal: 'That file is not a PDF.' })).toMatch(/<p class="field-message" data-refusal>That file is not a PDF\.<\/p>$/);
+    // A file's name and a reason are shown as text.
+    expect(transcriptCard({ ...there, name: '<b>x</b>.pdf' } as OnCheck)).toContain('(&lt;b&gt;x&lt;/b&gt;.pdf)');
+    expect(transcriptCard({ state: 'none', refusal: '<i>no</i>' })).toContain('&lt;i&gt;no&lt;/i&gt;');
+    // The page carries the note and the card of the state it is given.
+    const page = checkPage(curriculum, listed(typed('MGT 321')), there);
+    expect(page).toContain('<span class="page-status" data-status>Transcript added</span>');
+    expect(page).toContain(`<div data-transcript>${transcriptCard(there)}</div>`);
   });
 });

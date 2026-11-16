@@ -8,11 +8,6 @@ Read this before writing a sprint contract; delete a line when its feature has d
   adding up a transcript row's credits. A withdrawn row still shows credits attempted.
   (F03 review; done for placement in F04)
 
-## For F12 (the numbers with a transcript)
-- The summary strip is `summaryHtml` in `src/check.ts`, from `totalsOf` in
-  `src/credits.ts`. With a transcript the count is exact: the condition under "Count
-  toward CIS" is dropped (owner answer b) and the two counts come from the exact answers.
-  (F09)
 
 ## For F17 and F18 (the printed summary; on every result)
 - The footer is `foot(curriculum, subject)` in `src/shell.ts`: it already leaves the
@@ -24,46 +19,47 @@ Read this before writing a sprint contract; delete a line when its feature has d
   F18 steps 1 and 3 need a date. Before building whichever comes first, ask the owner:
   give a date, or reword those steps. (Owner answer, 2026-11-16)
 
-## For F12 and F13 (answers with a transcript; the checklist)
+## For F13 (what F12 decided that the checklist must follow)
 - A course left unplaced with the reason "not-current" (CIS 304, CIS 415) must always read
-  as not counting: never the elective answer, never under a block. In Flow A it uses the
-  owner's sentence, with or without a transcript. (F04 fix review)
+  as not counting: never the elective answer, never under a block. (F04 fix review; done
+  for Flow A in F12)
+- **Rows still to fix make nothing exact.** While `stillToFix(transcript)` is not empty,
+  "Check my courses" keeps every condition and says why (`onCheck` in `src/app.ts`). The
+  checklist must not show a block as Done, or the degree as complete, on a transcript
+  with unchecked rows without saying so. (F12 contract review)
+- **The sequence course whose pick is held** waits for the owner (open question of
+  2026-11-16 in `docs/decision-log.md`): how it is worded and whether its credits count.
+  "Check my courses" shows the stand-in `neededForSequence` (`src/wording.ts`), kind
+  `needed` in `src/answers.ts`. The checklist's "Still needed: HIS 132 or ENG 210 …" line
+  (F13 step 5) must agree with the owner's answer; apply the answer in both places.
+- After "Continue" there is no way back to the review from "See what I have left"; "Check
+  my courses" has one ("Fix them" on its card: `review` in `src/app.ts`). The checklist
+  needs the same when rows still need fixing. (F12 contract review)
+- The legacy question in the checklist: the transcript's own legacy courses make it
+  matter; `transcriptHasLegacy` (`src/wording.ts`) says why it is asked. (F12)
 
-## For F12, F14 and F15 (typed courses beside a transcript)
-- Without a transcript every typed course is placed in the same state (in progress). With
-  a transcript, typed courses need a third, weaker state than passed and in progress,
-  with its own credits, so that a planned course never takes a place from a passed one
-  and pace is not mixed with courses really in progress. (F04 review; F08)
-- With a transcript the answers change: "You already passed this", "This slot is already
-  filled", and "Counts toward CIS: <block>" without the condition (F12's steps). The
-  sentences of `src/wording.ts` and `answersFor` in `src/answers.ts` are the place to add
-  them; the condition belongs to the no-transcript answers only. (F08)
+## For F14 and F15 (typed courses beside a transcript)
+- Typed courses are placed as *planned* (`options.planned` in `placeCourses`): a planned
+  course never takes a place from a passed or in-progress one, and adds nothing to
+  `credits.done` or `credits.inProgress`. Pace must not mix planned courses with courses
+  really in progress; the credits of the typed list are `totalsOf(…).total`. (F12)
 
-## For F12 (check my courses, with a transcript)
-- "Add your transcript for an exact answer" uses the same upload and review step: `browse`
-  and `takeFile` in `src/app.ts`, `uploadPanel` and the review in `src/left.ts`, the
-  transcript in `LeftState`. After the review the student should come back to "Check my
-  courses", not to the checklist: decide in F12's contract how the flow returns. (F11)
-- The design has "No transcript added" at the right of the page heading, and the card "Add
-  your transcript for an exact answer" under the list. Neither is drawn yet. (F07)
-- "This slot is already filled" must not be said for a typed sequence course the student
-  still needs: with HIS 131 and GEO 206 passed, HIS 132 is what completes the sequence.
-  Look at the sequence's missing courses, not only at the pick. (F04 review)
 
 ## For F13, F14 and F16 (checklist, pace, plan)
 - All 121 credits can be done while the sequence is still needed (other courses hold the
   two picks). Never show the degree as complete or on pace from credits alone; the plan
   must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
 
-## For F12 and F13 (the legacy question on screen)
+## For F13 (the legacy question on screen)
 F05's rule is merged but F05 is not passing: it is BLOCKED in `docs/sprints/F05.md` until
 the screens that need the question have shown it. F08 ("Check my courses") has done its
 part: the question on the row, Yes and No, the line to change the answer, remembering it.
+F12 has done its part too: the question with a transcript, asked on the first row that
+depends on it with the reason, not asked for a legacy course already passed.
 The review step (F11) says nothing about what counts toward the degree, so the question
-is not asked there. F12 ("Check my courses" with a transcript) and F13 (the checklist)
-remain; each contract must contain the
-on-screen checks below, checked by the evaluator in a browser. The pull request of the
-last of them marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line. Reuse
+is not asked there. F13 (the checklist) remains; its contract must contain the
+on-screen checks below, checked by the evaluator in a browser. Its pull request
+marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line. Reuse
 what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the sentences in
 `src/wording.ts`, and the answer held in `CourseList.legacy` by `startApp`.
 - On-screen checks: the question appears for FLS 161, MGT 220 and MGT 203, typed in any

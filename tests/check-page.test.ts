@@ -2,10 +2,13 @@
 // F07: typing, the keyboard and redrawing on "Check my courses", in a simulated browser
 // (docs/sprints/F07.md). What a simulated browser models poorly (a click landing after the
 // field loses focus, touch, real input methods) is also checked by the evaluator in a real one.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type AppWindow } from '../src/app';
 import { emptyList, setupCheck } from '../src/check';
 import { curriculum } from '../src/curriculum';
+import { openTranscript } from '../src/review';
 
 const $ = <T extends HTMLElement>(selector: string): T => {
   const found = document.querySelector<T>(selector);
@@ -777,5 +780,245 @@ describe('the numbers', () => {
     add('ori 100');
     expect(numbers()).toEqual([1, 1, 0]);
     expect(stripText()).toContain(UNDER);
+  });
+});
+
+// ---- F12: with a transcript (docs/sprints/F12.md) ----
+describe('with a transcript', () => {
+  const CONDITION = 'unless you’ve already passed it or filled this slot';
+  const folder = join(import.meta.dirname, '..', 'synthetic', 'transcripts');
+  const fileOf = (bytes: Uint8Array, name = 'transcript.pdf') => ({ name, size: bytes.length, arrayBuffer: async (): Promise<ArrayBuffer> => bytes.slice().buffer as ArrayBuffer });
+  const madeUp = (name: string) => fileOf(new Uint8Array(readFileSync(join(folder, `${name}.pdf`))), `${name}.pdf`);
+  const heading = (): string => tidy($('h1').textContent);
+  const status = (): string => tidy($('[data-status]').textContent);
+  const card = (): string => tidy($('[data-transcript]').textContent);
+  const spoken = (): string => tidy($('#pathcheck-status').textContent);
+  const numbers = (): number[] => [...document.querySelectorAll('[data-summary] .num')].map(one => Number(one.textContent));
+  const strip = (): string => tidy(document.querySelector('[data-summary]')?.textContent);
+  type Row = Record<string, unknown>;
+  const good = (over: Row = {}): Row => ({ term: 'Fall 2025', transfer: false, prefix: 'MGT', number: '321', description: 'Prin of Management', attempted: 3, earned: 3, grade: 'B', points: 9, ...over });
+  /** Puts a prepared reader's answer in the review step, as if its PDF had been chosen on this page. */
+  const reviewing = (...answerRows: unknown[]): void => {
+    Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: answerRows }, curriculum), continued: false, refusal: null, editing: null, draft: null, returnTo: 'check' });
+    go('#/left');
+  };
+  // Sets a grade in an open edit. (The simulated browser does not honour the selected
+  // option of a list made from HTML text; a real browser is checked by the evaluator.)
+  const setGrade = (line: number, grade: string): void => { $<HTMLSelectElement>(`#row-${line}-grade`).value = grade; };
+  afterEach(() => { app.stop(); vi.restoreAllMocks(); });
+
+  it('adds a transcript and comes back', async () => {
+    add('mgt 321');
+    add('eng 131');
+    expect(status()).toBe('No transcript added');
+    expect(answers()).toEqual([`Counts toward CIS — Business core ${CONDITION}`, `Counts toward CIS — Composition ${CONDITION}`]);
+    // "Choose transcript PDF" opens the same file picker as "Browse files".
+    const made: HTMLInputElement[] = [];
+    const create = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((tag: string) => {
+      const element = create(tag);
+      if (tag === 'input') { made.push(element as HTMLInputElement); vi.spyOn(element as HTMLInputElement, 'click').mockImplementation(() => undefined); }
+      return element;
+    }) as typeof document.createElement);
+    $('[data-choose]').click();
+    expect(made).toHaveLength(1);
+    expect([made[0]!.type, made[0]!.accept]).toEqual(['file', 'application/pdf,.pdf']);
+    expect(made[0]!.click).toHaveBeenCalledTimes(1);
+    Object.defineProperty(made[0], 'files', { value: [madeUp('sample-b')] });
+    made[0]!.dispatchEvent(new Event('change'));
+    // The review step, which says where "Continue" goes.
+    await vi.waitFor(() => expect(app.route).toBe('left'));
+    expect(heading()).toBe('Check what was read');
+    expect(tidy($('[data-returns]').textContent)).toBe('You’ll go back to “Check my courses”.');
+    expect(document.querySelectorAll('.review-row')).toHaveLength(16);
+    $('[data-continue]').click();
+    // Back on "Check my courses": the keyboard on its heading, the typed courses still there.
+    expect(app.route).toBe('check');
+    expect(window.location.hash).toBe('#/check');
+    expect(heading()).toBe('Check my courses');
+    expect(document.activeElement).toBe($('h1'));
+    expect(rows()).toEqual(['MGT 321 Principles of Management 3 cr', 'ENG 131 English Composition I 3 cr']);
+    expect(status()).toBe('Transcript added');
+    // Exact answers: no condition on the "Counts", none under the count.
+    expect(answers()).toEqual(['Counts toward CIS — Business core', 'You already passed this']);
+    expect(document.querySelector('[data-entries] .condition')).toBeNull();
+    expect(numbers()).toEqual([6, 3, 3]);
+    expect(strip()).not.toContain('unless');
+    expect(card()).toBe('Your answers use your transcript (sample-b.pdf). 16 rows taken on. Use another transcript Choosing another transcript forgets your corrections.');
+    // The answers stay exact as the list changes.
+    add('bio 127');
+    add('cis 206');
+    expect(answers().slice(2)).toEqual(['Counts toward CIS — Science & math', 'In progress on your transcript — it doesn’t count again.']);
+    expect(numbers()).toEqual([12, 6, 6]);
+    // The same transcript is there on "See what I have left"; a transcript brought there stays there.
+    go('#/left');
+    expect(tidy($('[data-handed-on]').textContent)).toBe('16 rows taken on.');
+    $('[data-another]').click();
+    await app.takeFile(madeUp('sample-a'));
+    expect(document.querySelector('[data-returns]')).toBeNull();
+    $('[data-continue]').click();
+    expect(app.route).toBe('left');
+    expect(heading()).toBe('See what I have left');
+  });
+
+  it('says on the card why a file was not taken', async () => {
+    type('mgt');
+    const text = (words: string): Uint8Array => new TextEncoder().encode(words);
+    const cases: [ReturnType<typeof fileOf>, string][] = [
+      [fileOf(text('ENG 131 B')), 'That file is not a PDF. Choose the unofficial transcript PDF from the portal.'],
+      [fileOf(text('%PDF-1.7 some other document')), 'PathCheck can only read its two made-up transcripts for now. Nothing from this file was kept or sent.'],
+      [{ ...fileOf(text('%PDF-')), size: 11 * 1024 * 1024 }, 'That file is too large to be a transcript. Nothing from it was read.'],
+      [{ name: 'gone.pdf', size: 10, arrayBuffer: (): Promise<ArrayBuffer> => Promise.reject(new Error('gone')) }, 'That file could not be opened. Choose it again.'],
+    ];
+    for (const [file, sentence] of cases) {
+      await app.takeFile(file);
+      // The student stays on this page; the reason is on the card and is read out.
+      expect(app.route).toBe('check');
+      expect(window.location.hash).toBe('#/check');
+      expect(tidy($('[data-transcript] [data-refusal]').textContent)).toBe(sentence);
+      expect(spoken()).toBe(sentence);
+      expect(document.activeElement).toBe($('[data-choose]'));
+      expect(app.left.transcript).toBeNull();
+      expect(app.left.refusal).toBeNull();
+      // What was being typed is still in the field.
+      expect(field().value).toBe('mgt');
+    }
+    // The reason does not follow the student to another page, or wait for them here.
+    go('#/left');
+    expect(tidy($('[data-refusal]').textContent)).toBe('');
+    go('#/check');
+    expect(tidy($('[data-transcript] [data-refusal]').textContent)).toBe('');
+    // A good file afterwards is taken.
+    await app.takeFile(fileOf(text('nope')));
+    await app.takeFile(madeUp('sample-a'));
+    expect(app.route).toBe('left');
+    expect(heading()).toBe('Check what was read');
+  });
+
+  it('asks the legacy question with a transcript', async () => {
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+    add('fin 201');
+    add('cis 499');
+    add('mgt 321');
+    // The transcript's FLS 161 holds an elective place only for a legacy student: the second elective depends on it.
+    expect(answers()).toEqual([
+      'Counts toward CIS — CIS electives', 'Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts only for legacy students.', 'Counts toward CIS — Business core',
+    ]);
+    expect(strip()).toContain('Waiting for your legacy answer.');
+    expect(numbers()).toEqual([9, 6, 0]);
+    expect(document.querySelector('.legacy-line')).toBeNull();
+    $('[data-legacy="yes"]').click();
+    expect(answerOf('CIS 499')).toBe('Doesn’t count — your 3 CIS elective places are already filled by FLS 161, MKT 410 and FIN 201.');
+    expect(numbers()).toEqual([9, 6, 3]);
+    expect(strip()).not.toContain('Waiting');
+    // Answered once: remembered, not asked again, and it can be changed.
+    expect(window.localStorage.getItem('pathcheck.legacy')).not.toBeNull();
+    expect(document.querySelector('.legacy-ask')).toBeNull();
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
+    add('eco 301');
+    expect(document.querySelector('.legacy-ask')).toBeNull();
+    $('[data-remove="ECO 301"]').click();
+    $('[data-legacy-change]').click();
+    expect(answerOf('CIS 499')).toContain('Are you a legacy CIS student?');
+    expect(document.activeElement).toBe($('[data-legacy="yes"]'));
+    $('[data-legacy="no"]').click();
+    expect(answerOf('CIS 499')).toBe('Counts toward CIS: elective (300/400-level CIS)');
+    expect(numbers()).toEqual([9, 9, 0]);
+    // A typed legacy course that is already passed says so: no question, whatever the answer.
+    $('[data-legacy-change]').click();
+    add('fls 161');
+    expect(answerOf('FLS 161')).toBe('You already passed this');
+    expect(document.querySelectorAll('.legacy-ask')).toHaveLength(1);
+  });
+
+  it('forgets the transcript', async () => {
+    add('eng 131');
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-continue]').click();
+    expect(answers()).toEqual(['You already passed this']);
+    type('mgt');
+    $('[data-another]').click();
+    expect(app.left.transcript).toBeNull();
+    expect(status()).toBe('No transcript added');
+    expect(answers()).toEqual([`Counts toward CIS — Composition ${CONDITION}`]);
+    expect(strip()).toContain('unless you’ve already passed them or filled their slots');
+    expect(card()).toContain('Add your transcript for an exact answer');
+    expect(document.activeElement).toBe($('[data-choose]'));
+    expect(tidy($('[data-said]').textContent)).toBe('No transcript added');
+    // What was being typed stays.
+    expect(field().value).toBe('mgt');
+    // "See what I have left" has no transcript either.
+    go('#/left');
+    expect(document.querySelector('[data-drop]')).not.toBeNull();
+  });
+
+  it('waits for the review before it uses a transcript', async () => {
+    add('eng 131');
+    await app.takeFile(madeUp('sample-b'));
+    // The student comes back without pressing "Continue".
+    go('#/check');
+    expect(status()).toBe('No transcript added');
+    expect(answers()).toEqual([`Counts toward CIS — Composition ${CONDITION}`]);
+    expect(card()).toBe('Your transcript is waiting to be checked. Check what was read');
+    $('[data-review]').click();
+    expect(app.route).toBe('left');
+    expect(heading()).toBe('Check what was read');
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+    expect(answers()).toEqual(['You already passed this']);
+  });
+
+  it('lets the student fix the remaining rows from the card', () => {
+    add('mgt 321');
+    add('eng 131');
+    add('mgt 422');
+    // The student continued although one row (ENG 131, "B+") still needs fixing.
+    reviewing(good(), good({ prefix: 'ENG', number: '131', grade: 'B+' }));
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+    expect(status()).toBe('Transcript added');
+    expect(card()).toContain('1 row of your transcript still needs fixing, so these answers are not exact yet. Fix it');
+    // The checked rows are used, but nothing is called exact: the unchecked row is ENG 131 itself.
+    expect(answers()).toEqual(['You already passed this', `Counts toward CIS — Composition ${CONDITION}`, `Counts toward CIS — Business core ${CONDITION}`]);
+    expect(strip()).toContain('unless you’ve already passed them or filled their slots');
+    // "Fix it" opens the review again, as it was left; "Continue" comes back here.
+    $('[data-review]').click();
+    expect(app.route).toBe('left');
+    expect(heading()).toBe('Check what was read');
+    expect(tidy($('[data-returns]').textContent)).toBe('You’ll go back to “Check my courses”.');
+    expect(tidy($('[data-line="1"]').textContent)).toContain('Needs fixing: the grade');
+    $('[data-edit="1"]').click();
+    setGrade(1, 'B');
+    $('[data-save="1"]').click();
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+    expect(answers()).toEqual(['You already passed this', 'You already passed this', 'Counts toward CIS — Business core']);
+    expect(card()).not.toContain('still need');
+    expect(strip()).not.toContain('unless');
+  });
+
+  it('uses the corrected rows', () => {
+    add('mgt 321');
+    add('eng 131');
+    add('eng 140');
+    reviewing(good(), good({ prefix: 'ENG', number: '131' }));
+    // A row left out is not used; a grade corrected to one below C is not passed.
+    $('[data-out="0"]').click();
+    $('[data-edit="1"]').click();
+    setGrade(1, 'D');
+    $('[data-save="1"]').click();
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+    expect(card()).toContain('1 row taken on. 1 left out as not on your transcript.');
+    expect(answers()).toEqual(['Counts toward CIS — Business core', 'Counts toward CIS — Composition', 'Doesn’t count — it fills the same requirement as ENG 131.']);
+    // Every row left out: no row is taken on, and the answers go back to conditional.
+    reviewing(good());
+    $('[data-out="0"]').click();
+    $('[data-continue]').click();
+    expect(status()).toBe('No transcript added');
+    expect(card()).toContain('No row of your transcript (made-up.pdf) was taken on, so these answers don’t use it.');
+    expect(answers()[0]).toBe(`Counts toward CIS — Business core ${CONDITION}`);
   });
 });

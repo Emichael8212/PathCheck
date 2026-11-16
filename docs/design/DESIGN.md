@@ -346,6 +346,29 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   2026-11-16: such a course "starts at 3 credits and the student can change it".
 - **The summary strip and the two filters are drawn only when the list has a course.**
   The design shows a list that already has six.
+- **"Check my courses" with a transcript** (F12). The heading note and the card "Add your
+  transcript for an exact answer" are drawn as designed ("Choose transcript PDF" opens
+  the file picker). The design shows them only without a transcript; the other states
+  use the same note and the same card, in the agent's words:
+  - the note: "Transcript added";
+  - the card while the transcript waits in the review step: "Your transcript is waiting
+    to be checked." with a button "Check what was read";
+  - the card with a reviewed transcript: "Your answers use your transcript (<file>).",
+    the review's line of counts, and "Use another transcript" with "Choosing another
+    transcript forgets your corrections."; when rows still need fixing, "<m> rows of your
+    transcript still need fixing, so these answers are not exact yet." with "Fix them";
+    when no row was taken on, "No row of your transcript (<file>) was taken on, so these
+    answers don't use it.";
+  - under the card, why a file was not taken (the sentences of the upload);
+  - the answers: "You already passed this" and "This slot is already filled" (the
+    brief's), "In progress on your transcript — it doesn't count again." (the agent's),
+    all three drawn as "Doesn't count"; a "Counts" keeps its outlined mark and loses its
+    condition; under the legacy question on a row that is no legacy course, "Your
+    transcript has <code>, which counts only for legacy students.";
+  - a sequence course whose pick another course already holds, while the owner's answer
+    is open: "Needed for the history sequence. Its credits don't add to your degree
+    total.", with no mark and no tint;
+  - in the review step, under "Continue": "You'll go back to “Check my courses”."
 - **Lines the design has no place for, on "Check my courses"** (agent's wording unless
   said otherwise; each listed for the owner in its pull request): with no courses, "Add
   the courses you plan to take next semester."; under the field, what to type and

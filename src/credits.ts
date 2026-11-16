@@ -23,6 +23,8 @@ export interface Totals {
   readonly doesNotCount: number;
   /** Courses that show the legacy question or wait for it: in neither count yet. */
   readonly waiting: number;
+  /** Courses needed for a sequence whose pick is already held: in the total, in neither count. */
+  readonly needed: number;
   /** Whether any course is still waiting, whatever its credits. */
   readonly pending: boolean;
 }
@@ -31,11 +33,11 @@ export interface Totals {
 export const creditsOf = (entries: readonly { readonly credits: number }[]): number => entries.reduce((credits, entry) => credits + entry.credits, 0);
 
 /** The credits of a list, split by the answers its courses got. `answers` are in the list's order. */
-export function totalsOf(entries: readonly { readonly credits: number }[], answers: readonly { readonly kind: 'counts' | 'no' | 'ask' | 'waiting' }[]): Totals {
+export function totalsOf(entries: readonly { readonly credits: number }[], answers: readonly { readonly kind: 'counts' | 'no' | 'ask' | 'waiting' | 'needed' }[]): Totals {
   if (entries.length !== answers.length) throw new Error('Every course needs its answer to be counted.');
   const sum = (kinds: readonly string[]): number => entries.reduce((credits, entry, i) => (kinds.includes(answers[i]?.kind ?? '') ? credits + entry.credits : credits), 0);
   const pending = answers.some(answer => answer.kind === 'ask' || answer.kind === 'waiting');
-  return { total: creditsOf(entries), counts: sum(['counts']), doesNotCount: sum(['no']), waiting: sum(['ask', 'waiting']), pending };
+  return { total: creditsOf(entries), counts: sum(['counts']), doesNotCount: sum(['no']), waiting: sum(['ask', 'waiting']), needed: sum(['needed']), pending };
 }
 
 /** Which neutral note goes with a total: under a full-time load, over the usual most, or none. */
