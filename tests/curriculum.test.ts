@@ -2,7 +2,7 @@
 // 2026-11-15). These tests run against the real data file on every `npm test`, so an edit
 // that breaks a rule fails CI. The expected table is written out here from the brief; it
 // is not derived from the file.
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import rawData from '../docs/curriculum/provisional-current.json';
@@ -10,12 +10,21 @@ import madeUp from './fixtures/made-up-program.json';
 import { CurriculumError, curriculum, findCourse, loadCurriculum, normalizeCode, programs } from '../src/curriculum';
 
 const repo = join(import.meta.dirname, '..');
+// Every file of the app that can hold text shown to a student: all of src/, the page that
+// loads it, and public/ if there is one.
 const sourceFiles = (dir: string): string[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
-    entry.isDirectory() ? sourceFiles(join(dir, entry.name)) : /\.tsx?$/.test(entry.name) ? [join(dir, entry.name)] : []);
-const sources = sourceFiles(join(repo, 'src')).map(file => ({ file, text: readFileSync(file, 'utf8') }));
+  !existsSync(dir) ? [] : readdirSync(dir, { withFileTypes: true }).flatMap(entry =>
+    entry.isDirectory() ? sourceFiles(join(dir, entry.name)) : /\.(tsx?|jsx?|css|json|html|svg|txt|md)$/.test(entry.name) ? [join(dir, entry.name)] : []);
+const sources = [...sourceFiles(join(repo, 'src')), join(repo, 'index.html'), ...sourceFiles(join(repo, 'public'))]
+  .map(file => ({ file, text: readFileSync(file, 'utf8') }));
+// The one file that may name course codes, and only codes (tests/start.test.ts checks that).
+const EXAMPLES = join(repo, 'src', 'examples.json');
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
+/** Every value stored under `key`, at any depth. */
+const keyed = (value: unknown, key: string): unknown[] =>
+  Array.isArray(value) ? value.flatMap(child => keyed(child, key))
+    : value && typeof value === 'object' ? Object.entries(value).flatMap(([name, child]) => (name === key ? [child] : keyed(child, key))) : [];
 const keysOf = (value: unknown): string[] =>
   Array.isArray(value) ? value.flatMap(keysOf)
     : value && typeof value === 'object' ? Object.entries(value).flatMap(([key, child]) => [key, ...keysOf(child)]) : [];
@@ -40,10 +49,16 @@ describe('the curriculum comes from the data file', () => {
   });
 
   it('keeps curriculum facts out of the code', () => {
-    expect(sources.length).toBeGreaterThan(0);
+    expect(sources.length).toBeGreaterThan(8);
+    for (const needed of ['curriculum.ts', 'start.ts', 'style.css', 'examples.json', 'index.html']) expect(sources.map(one => one.file).filter(name => name.endsWith(needed)), needed).toHaveLength(1);
     const blockNames = rawData.blocks.map(block => block.name);
+    const titles = [...new Set(textsOf([rawData.blocks, rawData.electives.namedCourses, rawData.electives.legacyOnlyCourses].map(part => keyed(part, 'title'))))].filter(title => title.length > 0);
+    expect(titles.length).toBeGreaterThan(50);
     for (const { file, text } of sources) {
-      expect(text.match(/\b[A-Z]{2,4}[ -]?\d{3}\b/g) ?? [], `${file}: text shaped like a course code`).toEqual([]);
+      if (file !== EXAMPLES) expect(text.match(/\b[A-Z]{2,4}[ -]?\d{3}\b/g) ?? [], `${file}: text shaped like a course code`).toEqual([]);
+      expect(titles.filter(title => text.includes(title)), `${file}: a course title`).toEqual([]);
+      // A stylesheet is full of numbers and words that are sizes and names, not facts.
+      if (file.endsWith('.css')) continue;
       // Exact and case-sensitive, and not inside a longer word (CompositionEvent is fine).
       const named = (name: string): boolean => new RegExp(`(?<![A-Za-z])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z])`).test(text);
       expect(blockNames.filter(named), `${file}: a block name`).toEqual([]);
