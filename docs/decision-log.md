@@ -470,6 +470,53 @@ today's date."
   "latest term on the transcript" as its starting point is for F14's contract to check
   against the brief, and to ask if the brief does not say.
 
+### 2026-11-16 — F08: the sequence course in a shared slot, more than three electives, the legacy courses
+
+Three questions asked before F08. The owner's answers, in their words:
+
+1. **Same "pick one" slot with a sequence course: option a.** "The sequence course (HIS 132
+   or ENG 210) counts whatever the typed order. The other shows "Doesn't count — it fills
+   the same requirement as <sequence course>." Same placement as transcripts, so the two
+   flows never disagree."
+2. **More than three electives: option a.** "The first three typed count. Every extra one
+   shows: "Doesn't count — your 3 CIS elective places are already filled by <A>, <B> and
+   <C>." A legacy elective (when the answer is Yes) uses one of the three places like any
+   other. Never show "Counts" for a course whose slot is already filled by the student's
+   own list."
+3. **Legacy courses** "(FLS 161, MGT 220, MGT 203, and PSY 251 when its social-sciences pick
+   is already taken)":
+   - "Not answered yet: the row shows the question "Are you a legacy CIS student?" (Yes /
+     No) in place of an answer. Never "Counts" before the answer."
+   - "Yes: "Counts toward CIS: elective (legacy)""
+   - "No: "Doesn't count toward CIS. Legacy students only.""
+   - "The answer is remembered in the browser and can be changed (brief §5)."
+
+"Tests: the sequence course wins the slot in both typed orders; the 4th elective doesn't
+count and names the three that do; a legacy course shows the question before an answer,
+"Counts… (legacy)" on Yes, "Doesn't count…" on No; a legacy elective on Yes takes one of the
+three elective places."
+
+**Where this differs from earlier answers:** answer 3 of 2026-11-15 on PR #1 ("the first
+counts") now has an exception: a sequence course wins its slot whatever the order.
+
+**Where this differs from `features.json`:** F05 step 1 says the legacy question is asked
+"only when one of these four courses appears". For PSY 251 the owner's answer is narrower:
+only "when its social-sciences pick is already taken". PSY 251 alone is an ordinary Social
+sciences course and is not asked about. The step's text is not changed (that needs the
+owner); it now reads more narrowly for PSY 251.
+
+*Agent's notes, not owner decisions:*
+- "When its social-sciences pick is already taken" is read as: another typed course is in
+  that pick, in either order. With PSY 251 typed first and GEO 206 second, which of the two
+  counts depends on the legacy answer, so the question is needed there too.
+- "Counts toward CIS: elective (legacy)" is shown, like every "Counts" answer without a
+  transcript, with the condition "unless you've already passed it or filled this slot"
+  under it (F08 step 6: a plain "Counts toward CIS" with no condition is never shown).
+- The typed courses are placed with the same code as a transcript (`placeCourses`), which
+  already puts a sequence course first in its slot and takes electives in order.
+- For PSY 251 with the answer Yes, the F05 rule applies: it stays in its Social sciences
+  pick unless being an elective counts more.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -477,8 +524,8 @@ stand-in until the owner answers; it is not an owner decision.
 
 None open now. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
-F08 step 5; the new F09 step; the last-reviewed line; and the semester in the heading of
-"Check my courses".)
+F08 step 5; the new F09 step; the last-reviewed line; the semester in the heading of
+"Check my courses"; and the three F08 questions.)
 
 **To ask later**, when F17 or F18 starts, whichever is first: with no review date in the
 curriculum file, F17's last-reviewed line and F18 steps 1 and 3 cannot be shown as written

@@ -32,10 +32,8 @@ Read this before writing a sprint contract; delete a line when its feature has d
 - Use the sentences in `src/wording.ts`: `countsToward(block name)`, `CONDITION` and
   `NOT_IN_CURRICULUM`. The Start page's examples show the same constants, so a change
   changes both. (F06)
-- Owner answer 3 says that of two typed courses for one pick "the first counts".
-  `placeCourses` puts a sequence course (HIS 132, ENG 210) ahead of another course in the
-  same state. Typed GEO 206 then HIS 132 would therefore make HIS 132 count. F08 must
-  either keep typed order or ask the owner which wins. (F04 review)
+- Settled by the owner on 2026-11-16: the sequence course wins its slot whatever the
+  typed order, as `placeCourses` already does; otherwise the first typed counts.
 - CIS 304 and CIS 415 never count (owner answer, 2026-11-16). `placeCourses` leaves them
   unplaced with the reason "not-current", and `countsByElectiveRule` says no. Flow A must
   answer, in the owner's words, "Doesn't count toward CIS — <code> isn't in the current CIS
@@ -103,8 +101,10 @@ F05's rule is merged but F05 is not passing: it is BLOCKED in `docs/sprints/F05.
 these three screens have shown the question. Each of their contracts must contain the
 on-screen checks below, checked by the evaluator in a browser. The pull request of the
 last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line.
-- On-screen checks: the question appears for each of the four legacy courses, typed in any
-  form; it does not appear without them; it uses `LEGACY_QUESTION`, `LEGACY_YES` and
+- On-screen checks: the question appears for FLS 161, MGT 220 and MGT 203, typed in any
+  form, and for PSY 251 only when another course is in its Social sciences pick (owner
+  answer, 2026-11-16: PSY 251 alone is an ordinary course of that block); it does not
+  appear without them; it uses `LEGACY_QUESTION`, `LEGACY_YES` and
   `LEGACY_NO` (`src/legacy.ts`) exactly; Yes and No visibly change the result; the answer
   survives a reload; the student can change it and the result updates; it is not asked
   again once answered; it works with the keyboard only and at 375px.
