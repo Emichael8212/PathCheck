@@ -160,6 +160,8 @@ describe('the requirements', () => {
     expect(unchecked).toContain('MGT 422 (Must be repeated; the F doesn’t count.)');
     const quiet = checklistOf(having(['ENG 131:D', 'MKT 410:D']), curriculum, false, new Set(['ENG 131', 'MKT 410']));
     expect(JSON.stringify(quiet.cards)).not.toContain('doesn’t count');
+    // A row to fix with no readable code could be any course: nothing is flagged.
+    expect(JSON.stringify(checklistOf(having(['MGT 321:D', 'ENG 131:F', 'MKT 410:D']), curriculum, false, 'any').cards)).not.toContain('doesn’t count');
     // Repeated and passed: done, nothing flagged.
     expect(lines(cardOf(list(['MGT 321:D', 'MGT 321:A']), 'Business core').done)).toEqual(['MGT 321']);
     // A course of a pick: the pick stays open; the note keeps "must be repeated" and says another course can fill it.
@@ -248,6 +250,10 @@ describe('the sequence', () => {
     // sequence can then still go through that pick, exactly as "Check my courses" answers.
     expect(sequenceOf(['PSY 251', 'HUM 101'], false).kind).toBe('extra');
     expect(sequenceOf(['PSY 251', 'HUM 101'], true)).toEqual({ kind: 'open', text: 'Still needed: HIS 132 to complete a history sequence.' });
+    // PSY 251 holding its pick with the other pick open: the open one is named, the same for
+    // every student, so nothing depends on the legacy answer (the owner: PSY 251 alone is not asked about).
+    for (const legacy of [true, false]) expect(sequenceOf(['PSY 251'], legacy), String(legacy)).toEqual({ kind: 'open', text: 'Still needed: ENG 210 to complete a literature sequence.' });
+    expect(JSON.stringify(list(['PSY 251'], true))).toBe(JSON.stringify(list(['PSY 251'], false)));
     for (const legacy of [true, false]) {
       const typed = answersFor([entryFor('HIS 132', curriculum)], curriculum, legacy, { standings: having(['PSY 251', 'HUM 101']), exact: true })[0];
       expect(typed?.kind, String(legacy)).toBe(legacy ? 'counts' : 'needed');
@@ -352,9 +358,11 @@ describe('what does not count, and the legacy answer', () => {
     expect(no.unused.map(one => one.code)).toEqual(['BIO 230', 'FLS 161']);
     expect(yes.unused.map(one => one.code)).toEqual(['BIO 230']);
     // Where the answer changes nothing, nothing is asked.
-    for (const rows of [[], ['ENG 131', 'MGT 321'], ['PSY 251:D'], ['FLS 161:D'], ['FLS 161:W', 'MGT 220:F']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(false);
-    // (PSY 251 alone: a legacy student could still take HIS 132 for its pick, so what the sequence needs differs.)
-    for (const rows of [['FLS 161'], ['MGT 220:-'], ['MGT 203:T'], ['PSY 251', 'GEO 206'], ['PSY 251']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(true);
+    // PSY 251 alone is an ordinary course of its pick (the owner's answer of 2026-11-16 for F08).
+    for (const rows of [[], ['ENG 131', 'MGT 321'], ['PSY 251'], ['PSY 251', 'HIS 131', 'MGT 321:-'], ['PSY 251:D'], ['FLS 161:D'], ['FLS 161:W', 'MGT 220:F']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(false);
+    // PSY 251 with another course for its pick; and PSY 251 with the other sequence pick held,
+    // where only a legacy student can still complete a sequence without extra credits.
+    for (const rows of [['FLS 161'], ['MGT 220:-'], ['MGT 203:T'], ['PSY 251', 'GEO 206'], ['PSY 251', 'HUM 101']]) expect(legacyChanges(having(rows), curriculum), rows.join()).toBe(true);
     // The page before the answer: the question and its reason, and nothing the answer could change.
     const transcript = openTranscript('sample-b.pdf', sampleB, curriculum);
     const asking = resultHtml(transcript, curriculum, null);
@@ -460,8 +468,11 @@ describe('whatever the transcript', () => {
         const groupOf = (code: string) => placement.blocks.flatMap(block => block.picks).find(group => group.options.some(option => option.code === code))!;
         const have = ['HIS 132', 'ENG 210'].filter(code => held.has(code));
         const placedOnes = placement.blocks.flatMap(block => block.picks.flatMap(group => group.filled.map(one => one.course.code)));
-        // A legacy student's PSY 251 can give up its pick: only then is a held pick still "open".
-        const open = ['HIS 132', 'ENG 210'].filter(code => groupOf(code).open > 0 || (legacy && groupOf(code).filled.some(one => one.course.code === 'PSY 251') && placement.electives.open > 0));
+        // The picks the transcript leaves open. When none is, a legacy student's PSY 251 can
+        // still give up its pick for an open elective place. (This restates that one rule of
+        // the placement for today's curriculum; the rest of the check is independent of it.)
+        const plainlyOpen = ['HIS 132', 'ENG 210'].filter(code => groupOf(code).open > 0);
+        const open = plainlyOpen.length > 0 || !legacy ? plainlyOpen : ['HIS 132', 'ENG 210'].filter(code => groupOf(code).filled.some(one => one.course.code === 'PSY 251') && placement.electives.open > 0);
         if (have.length > 0) {
           // Nothing to say when a sequence course holds its pick; otherwise it is the one in progress.
           expect(checklist.sequence.kind, label).toBe(have.some(code => placedOnes.includes(code)) ? 'none' : 'running');

@@ -610,6 +610,20 @@ describe('the checklist', () => {
     expect(listOf('Business core')).not.toContain('MGT 321 Principles of Management Must be repeated');
     // A course with no row to fix is still flagged.
     expect(listOf('Business core')).toContain('MGT 422 Production Management Must be repeated; the D doesn’t count.');
+    // A row to fix whose code cannot be read could be any course: then no course is said to need repeating.
+    $('[data-to-fix] [data-review-again]').click();
+    openEdit(1);
+    setField(1, 'number', '32');
+    $('[data-save="1"]').click();
+    $('[data-continue]').click();
+    expect(tidy($('[data-to-fix]').textContent)).toContain('1 row of your transcript still needs fixing');
+    expect(listOf('Business core')).not.toContain('Must be repeated');
+    expect(listOf('Business core')).toContain('MGT 422 Production Management');
+    $('[data-to-fix] [data-review-again]').click();
+    openEdit(1);
+    setField(1, 'number', '321');
+    $('[data-save="1"]').click();
+    $('[data-continue]').click();
     // Once the row is fixed the course is done; had it been left out, the flag would be back.
     $('[data-to-fix] [data-review-again]').click();
     $('[data-out="1"]').click();
@@ -629,6 +643,9 @@ describe('the checklist', () => {
     expect($('.credit').getAttribute('style')).toBeNull();
     expect($('.is-counted').getAttribute('style')).toBe('min-width: 3.306%');
     expect($('.credit-gap').getAttribute('style')).toBe('flex-basis: 0.826%');
+    // The place for the pace answer takes no room until there is one.
+    expect($<HTMLElement>('[data-pace]').hidden).toBe(true);
+    expect($('[data-pace]').textContent).toBe('');
   });
 
   it('asks the legacy question before the result', async () => {

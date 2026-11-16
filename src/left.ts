@@ -4,7 +4,7 @@
 // and the checklist (src/checklist.ts).
 //
 // Text printed on a transcript is shown as text. Nothing here says a course counts.
-import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml } from './checklist';
+import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml, type Unchecked } from './checklist';
 import { normalizeCode, type Curriculum } from './curriculum';
 import { code, esc, eyebrow, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
@@ -228,8 +228,10 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   const standings = reviewedStandings(transcript, curriculum.grades);
   const fixing = stillToFix(transcript);
   const toFix = fixing.length;
-  // The courses that also have a row still to fix, where its code could be read.
-  const unchecked = new Set(fixing.flatMap(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`) ?? []));
+  // The courses that also have a row still to fix. A row whose code could not be read
+  // could be any course: then no failed attempt is called final.
+  const codes = fixing.map(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`));
+  const unchecked: Unchecked = codes.includes(null) ? 'any' : new Set(codes.flatMap(one => one ?? []));
   const warning = toFix === 0 ? '' : `<div class="note" data-to-fix>
     <p>${icons.doc(20)}${esc(TEXT.toFix(toFix))}</p>
     <button type="button" class="text-link" data-review-again>${esc(TEXT.fix(toFix))}</button>
