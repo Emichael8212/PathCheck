@@ -18,6 +18,7 @@ Read this before writing a sprint contract; delete a line when its feature has d
   answer, in the owner's words, "Doesn't count toward CIS — <code> isn't in the current CIS
   curriculum.", and never the elective answer. The owner asked for a Flow A test of both
   courses, and of another 300/400-level CIS course that still counts as an elective.
+  F08 steps 2, 5 and 7 now say so (owner approval, 2026-11-16).
 - `placeCourses` refuses the same course twice. A student may type a course twice, or type
   one that is already on the transcript: merge before calling it. (F04 QA)
 - Typed courses need a third, weaker state than passed and in progress, with its own
@@ -28,11 +29,24 @@ Read this before writing a sprint contract; delete a line when its feature has d
   elective rule's exceptions (CIS 304, CIS 415). (F04 fix QA)
 
 ## For F09 (credit total)
-- The total needs credits for typed courses that are not in the curriculum (BIO 230, and
-  now CIS 304 and CIS 415). The owner said a course outside the curriculum is shown with
-  its credits and is included in the total, but not where the credits come from when the
-  curriculum has none. It is an open question to the owner in `docs/decision-log.md`; do
-  not assume 3 before it is answered. (F04 fix review and QA)
+- Owner answer, 2026-11-16 ("Credits of a course PathCheck doesn't know"): a course
+  PathCheck doesn't know starts at 3 credits and the student can change it; a course it
+  knows uses its curriculum credits and is not editable. An unknown course's credits add
+  to the semester total only, never to what counts toward CIS. The owner's tests: an unknown course adds 3 by default; an edited
+  value changes the total and the under-12 / over-18 notes; an unknown course's credits
+  never count toward CIS.
+- Agent's reading (decision log), not the owner's words: "doesn't know" means not in a
+  curriculum list and not matching the elective rule, which includes CIS 304 and CIS 415
+  (3 by default, editable); a rule-matched elective (MKT 410) is known: the rule's 3
+  credits, not editable.
+- A new F09 step for this is proposed to the owner (open question in the decision log).
+  Until it is approved, F09's contract does not treat it as a step and does not rewrite
+  F09's steps.
+- The field to change the credits is not in the approved design (it shows "3 cr" as text):
+  add it to `docs/design/DESIGN.md` as a difference that comes from this answer. What
+  values the field accepts is not an academic rule: choose the simplest and record it.
+  The entry row is built in F07 and the answers in F08; say in F09's contract where the
+  field lives.
 
 ## For F12 and F13 (answers with a transcript; the checklist)
 - A course left unplaced with the reason "not-current" (CIS 304, CIS 415) must always read
