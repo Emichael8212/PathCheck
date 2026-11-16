@@ -355,6 +355,18 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   the note below 12 or over 18 (the sentences of the pace controls); under the two counts,
   "Waiting for your legacy answer."; with the "Doesn't count" filter and nothing to
   list, "No course in your list is marked “Doesn't count”.".
+- **"See what I have left" before the result: the upload and the review step** (F11). The
+  approved design has the result page only. The upload is the Start page's drop zone,
+  "Browse files" and privacy sentence, on its own. The review step is new, made of the
+  design's pieces: under the heading "Check what was read", the terms as headings, each
+  with its rows (code over the printed description; credits; the grade as printed and
+  how the row stands: "Passed", "In progress", "Transfer credit", "Doesn't count — below
+  C", "Doesn't count — W", "Not in the CIS curriculum", "Needs fixing: …", "This line
+  could not be read"); under each row "Edit" (term, prefix, number, credits, grade,
+  "Transfer credit"; "Save", "Cancel") and "Not on my transcript" / "Put back"; at the
+  end how many rows still need fixing, "Continue" and "Use another transcript". The
+  layout and every word of it are the agent's, listed for the owner in F11's pull
+  request (open question in `docs/decision-log.md`).
 - **The heading of "Check my courses" is "Check my courses", not a semester**, and the
   small label above it is left out so the page does not say it twice. The owner,
   2026-11-16: "no semester in the heading. It says "Check my courses". Nothing is derived

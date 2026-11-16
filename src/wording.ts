@@ -52,3 +52,7 @@ export const WAITING_FOR_LEGACY = 'Waiting for your legacy answer.';
 /** The two neutral notes, in the approved design's sentences; the numbers are the brief's. */
 export const belowFullTime = (credits: number): string => `Below ${credits} credits: below full-time; may affect scholarships.`;
 export const overUsualMost = (credits: number): string => `Over ${credits} credits: may cost extra.`;
+
+// ---- The review step ----
+/** Beside a row whose course the curriculum names as never counting (the owner's words). */
+export const notCurrent = (courseCode: string): string => `${courseCode} isn’t in the current CIS curriculum`;

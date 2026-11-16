@@ -485,7 +485,7 @@ describe('the made-up transcripts', () => {
     }
     for (const answer of [sampleA, sampleB]) expect(answer.note).toMatch(/^SYNTHETIC - not a real transcript\. .*The student does not exist\./);
     // Nothing else in the folder, and nothing in it that looks like a person.
-    expect(readdirSync(folder).sort()).toEqual(['sample-a.json', 'sample-a.pdf', 'sample-b.json', 'sample-b.pdf']);
+    expect(readdirSync(folder).sort()).toEqual(['manifest.json', 'sample-a.json', 'sample-a.pdf', 'sample-b.json', 'sample-b.pdf']);
     for (const file of readdirSync(folder)) {
       const text = readFileSync(join(folder, file), 'latin1').replaceAll(STUDENT_ID, '').replaceAll(STUDENT, '');
       expect(text, file).not.toMatch(/\b\d{9}\b|\b\d{3}-\d{2}-\d{4}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|@|\b(Street|Avenue|Montgomery|Date of Birth|DOB)\b/i);

@@ -97,20 +97,44 @@ export function pdfFor(answer) {
   return Buffer.from(pdf, 'latin1');
 }
 
+/**
+ * A fingerprint of a file's bytes, the same as `fingerprintOf` in src/upload.ts: it tells
+ * the made-up transcripts from other files, in plain code.
+ */
+export function fingerprintOf(bytes) {
+  let first = 0x811c9dc5;
+  let low = 1;
+  let high = 0;
+  for (const byte of bytes) {
+    first = Math.imul(first ^ byte, 0x01000193) >>> 0;
+    low = (low + byte) % 65521;
+    high = (high + low) % 65521;
+  }
+  const hex = value => (value >>> 0).toString(16).padStart(8, '0');
+  return `${hex(first)}-${hex(high * 65536 + low)}`;
+}
+
 const folder = new URL('../synthetic/transcripts/', import.meta.url);
+const MANIFEST = 'manifest.json';
 
 /** Every made-up transcript: its name, its answer and the PDF that goes with it. */
 export function transcripts() {
-  return readdirSync(folder).filter(name => name.endsWith('.json')).sort().map(name => {
+  return readdirSync(folder).filter(name => name.endsWith('.json') && name !== MANIFEST).sort().map(name => {
     const answer = JSON.parse(readFileSync(new URL(name, folder), 'utf8'));
     return { name: name.replace(/\.json$/, ''), answer, pdf: pdfFor(answer) };
   });
 }
 
+/** How the app recognises each made-up PDF: its length and its fingerprint. */
+export const manifestFor = made => Object.fromEntries(made.map(({ name, pdf }) => [name, { bytes: pdf.length, fingerprint: fingerprintOf(pdf) }]));
+
 // Only when this file itself is what was run, never when it is imported.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  for (const { name, pdf } of transcripts()) {
+  const made = transcripts();
+  for (const { name, pdf } of made) {
     writeFileSync(new URL(`${name}.pdf`, folder), pdf);
     console.log(`wrote synthetic/transcripts/${name}.pdf (${pdf.length} bytes)`);
   }
+  writeFileSync(new URL(MANIFEST, folder), `${JSON.stringify(manifestFor(made), null, 2)}\n`);
+  console.log(`wrote synthetic/transcripts/${MANIFEST}`);
 }

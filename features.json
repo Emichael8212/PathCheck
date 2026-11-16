@@ -224,8 +224,12 @@
         "Continuing uses the reviewed rows, including the student's fixes"
       ],
       "passes": false,
-      "evidence": "",
-      "tests": []
+      "evidence": "docs/sprints/F11.md — the upload and the review step merged with tests; not passing yet: step 5 (continuing uses the reviewed rows) is checked on screen with F13",
+      "tests": [
+        "tests/upload.test.ts",
+        "tests/review.test.ts",
+        "tests/left-page.test.ts"
+      ]
     },
     {
       "id": "F12",

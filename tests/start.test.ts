@@ -41,7 +41,8 @@ describe('the Start page', () => {
     // Each choice has its own way in.
     const [, check = '', left = ''] = html.split(/<section class="entry-(?:check|left)"/);
     expect(check).toContain(`href="${HREF.check}"`);
-    expect(left.split('</section>')[0]).toContain(`href="${HREF.left}"`);
+    // The second choice is taken by bringing the transcript: the drop zone and "Browse files", which opens the file picker (F11).
+    expect(left.split('</section>')[0]).toMatch(/<div class="drop" data-drop>[\s\S]*<button type="button" class="btn secondary" data-browse>Browse files /);
     // Nothing to type, tick or send first.
     expect(html).not.toMatch(/<input|<textarea|<form|\brequired\b/i);
     expect(count(html, '<select')).toBe(1);
@@ -66,7 +67,7 @@ describe('the Start page', () => {
     ]) expect(text, one).toContain(one);
     // The privacy sentence sits with the upload control.
     expect(PRIVACY).toBe('Your PDF is read, then deleted. Only your result stays in this browser.');
-    expect(html).toMatch(/<div class="drop">[\s\S]*Browse files[\s\S]*Your PDF is read, then deleted\. Only your result stays in this browser\.[\s\S]*?<\/div>/);
+    expect(html).toMatch(/<div class="drop" data-drop>[\s\S]*Browse files[\s\S]*Your PDF is read, then deleted\. Only your result stays in this browser\.[\s\S]*?<\/div>/);
     // The top bar.
     expect(NOT_OFFICIAL).toBe(approvedFacts.notOfficial);
     expect(decode(top('start'))).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. ');
@@ -110,7 +111,7 @@ describe('the Start page', () => {
 describe('the three addresses', () => {
   it('opens each flow from its choice', () => {
     expect(html).toMatch(/<a class="btn primary" href="#\/check">Check my courses /);
-    expect(html).toMatch(/<a class="btn secondary" href="#\/left">Browse files /);
+    expect(html).toMatch(/<button type="button" class="btn secondary" data-browse>Browse files /);
     for (const [name, page] of Object.entries(pages)) {
       expect(page, name).toContain('<a href="#/check"');
       expect(page, name).toContain('<a href="#/left"');
@@ -121,8 +122,8 @@ describe('the three addresses', () => {
     expect(pages.check).toContain('<a href="#/check" aria-current="page">Check my courses</a>');
     expect(pages.left).toMatch(/<h1 tabindex="-1">See what I have left<\/h1>/);
     expect(pages.left).toContain('<a href="#/left" aria-current="page">What I have left</a>');
-    // A flow's page holds its name and nothing that is not built yet.
-    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
+    // Before a transcript is brought, the page of the second flow holds its name and the way to bring one.
+    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Your PDF is read, then deleted. Only your result stays in this browser. Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
     for (const page of [pages.check, pages.left]) expect(decode(page)).not.toMatch(/coming soon|not built|later/i);
     expect(routeOf('#/check')).toBe('check');
     expect(routeOf('#/left')).toBe('left');
@@ -280,8 +281,8 @@ describe('the demo', () => {
     for (const [, tag, rest] of html.matchAll(/<(\w+)[^>]*aria-hidden="true"[^>]*>([^<]*)/g)) {
       expect(['span', 'svg', 'div'], `${tag} ${rest}`).toContain(tag);
     }
-    // Every button has a name; the chips are decoration.
-    for (const [button] of html.matchAll(/<button[^>]*>/g)) expect(button).toMatch(/aria-label="[^"]+"/);
+    // Every button has a name: its label, or its words. The chips are decoration.
+    for (const [button, words] of html.matchAll(/<button[^>]*>([^<]*)/g)) expect(/aria-label="[^"]+"/.test(button) || (words ?? '').trim().length > 0, button).toBe(true);
   });
 
   // Stand-ins for the parts of the page the demo moves.
@@ -462,7 +463,7 @@ describe('the demo', () => {
         prevented: 0,
         preventDefault(): void { event.prevented++; },
         // The kind of thing dragged may be asked. Looking at the file in any way fails the test.
-        dataTransfer: { types, get files(): never { return looked(); }, get items(): never { return looked(); }, getData: looked },
+        dataTransfer: { types, dropEffect: '', get files(): never { return looked(); }, get items(): never { return looked(); }, getData: looked },
       };
       return event;
     };
@@ -470,24 +471,18 @@ describe('the demo', () => {
     const fake = fakeWindow();
     startApp(fake.win);
     for (const type of ['dragover', 'drop']) expect(fake.handlers[type], type).toBeTypeOf('function');
-    const over = dropped();
-    fake.handlers.dragover!(over);
-    expect(over.prevented).toBe(1);
-    expect(fake.location.hash).toBe('');
-    // On Start, a drop opens the flow that will take the file.
-    const drop = dropped();
-    fake.handlers.drop!(drop);
-    expect(drop.prevented).toBe(1);
-    expect(fake.location.hash).toBe('#/left');
-    fake.go('#/left');
-    // On a flow page it does nothing, and the browser still does not open the file.
-    for (const route of ['#/left']) {
-      fake.go(route);
-      const again = dropped();
-      fake.handlers.dragover!(again);
-      fake.handlers.drop!(again);
-      expect(again.prevented).toBe(2);
-      expect(fake.location.hash).toBe(route);
+    // A file dragged over the page, away from a drop zone: the browser must not open it, and
+    // the page says it does not take it there. Nothing of the file is looked at.
+    for (const route of ['#/', '#/left', '#/check']) {
+      if (route !== '#/check') fake.go(route);
+      const over = dropped();
+      fake.handlers.dragover!(over);
+      expect(over.prevented, route).toBe(1);
+      expect(over.dataTransfer.dropEffect, route).toBe('none');
+      const drop = dropped();
+      fake.handlers.drop!(drop);
+      expect(drop.prevented, route).toBe(1);
+      expect(fake.location.hash).toBe(route === '#/check' ? '#/left' : route);
     }
     // Dragged text is none of the app's business: it is left alone, on every page.
     for (const route of ['#/', '#/left']) {
@@ -499,9 +494,13 @@ describe('the demo', () => {
         expect(fake.location.hash).toBe(route);
       }
     }
-    // The app's code never asks for a file or sends anything.
+    // A file is read in one place only, and nothing in the app sends anything anywhere.
+    const reading = /FileReader|\.items\b|getData|arrayBuffer|createObjectURL|\.text\(\)|\.stream\(\)/;
+    const sending = /fetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|navigator\.connection|new Image\(/;
     for (const file of readdirSync(join(repo, 'src'), { recursive: true }).map(String).filter(name => /\.(tsx?|jsx?|html)$/.test(name))) {
-      expect(readFileSync(join(repo, 'src', file), 'utf8'), file).not.toMatch(/FileReader|\.files\b|\.items\b|getData|arrayBuffer|createObjectURL|fetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource/);
+      const source = readFileSync(join(repo, 'src', file), 'utf8');
+      expect(source, file).not.toMatch(sending);
+      if (file !== 'upload.ts') expect(source, file).not.toMatch(reading);
     }
   });
 });

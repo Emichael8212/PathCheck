@@ -210,11 +210,11 @@ export function startPage(programs: readonly Program[] = allPrograms): string {
         </div>
       </div>
       <p>${esc(b.desc)}</p>
-      <div class="drop">
+      <div class="drop" data-drop>
         <span class="upload-icon">${icons.upload()}</span>
         <p class="drop-title">${esc(b.drop)}</p>
         <span class="drop-or">${esc(b.or)}</span>
-        <a class="btn secondary" href="${HREF.left}">${esc(b.browse)} ${icons.arrow()}</a>
+        <button type="button" class="btn secondary" data-browse>${esc(b.browse)} ${icons.arrow()}</button>
         <p class="privacy">${icons.doc(20)}${esc(PRIVACY)}</p>
       </div>
     </section>

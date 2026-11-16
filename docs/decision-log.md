@@ -58,6 +58,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F10) Numbers may arrive as text ("3.00"). `attempted` must be from 0 to 30 with at most two decimals; on a transfer row it may be empty, and the row's credits are then 0. | A transcript prints numbers that way; the range is a sanity mark, not a rule of the degree: credits never come from a transcript row. | Change `MOST_ATTEMPTED` or `plainNumber` in `src/reader.ts`. |
 | (2026-11-16, F10) A row returned by a reader is thrown away, neither counted nor shown to fix, when it carries "Term GPA", "Transfer Term GPA", "Combined GPA", "Academic Standing" or "Transfer Totals" and is not a course code. | Feature step 7: these lines are never read as courses and never shown. "Transfer Totals" is the made-up PDF's wording; the real wording is to be confirmed on the owner's transcript in F21. | Edit `NOT_COURSES` in `src/reader.ts`. |
 | (2026-11-16, F10) The made-up transcripts live in `synthetic/transcripts/`: for each, the reader's answer (`.json`) and a PDF written from it by `scripts/make-synthetic-transcripts.mjs`. The student is "Sample Student", ID 000000000; every page says "SYNTHETIC - not a real transcript". No summer term. | Outside `src/` (which may hold no course code) and outside `tests/` (F11's localhost upload uses them too). The owner has given only the headings "Fall 2023" and "Spr 2024". | Move the folder; add a term once the owner says how a summer term is printed. |
+| (2026-11-16, F11) The review step is a new screen, made of the approved design's pieces (course rows, marks, buttons, type, colors). Its layout and words are the agent's. | The brief requires the step (§4 Flow B step 2) and the approved design has no screen for it. The owner was told before it was built; see "Open questions to the owner". | Rebuild it from the owner's design when there is one: `src/left.ts` and the rules at the end of `src/style.css`. |
+| (2026-11-16, F11) Every row can be edited (term, prefix, number, credits, grade, transfer credit) and is checked again when saved. Any row can be left out as "Not on my transcript" and put back. No row can be added; a line that is not a row cannot be edited. | A misread can pass the check, and a reader can invent a course: the student must be able to correct the one and refuse the other. Adding rows would be typing a transcript in, which the brief excludes. | Change `src/review.ts` and `src/left.ts`. |
+| (2026-11-16, F11) "Continue" is allowed while rows still need fixing. They count nothing, and a line says how many there are. | The cautious direction: nothing unchecked is counted. | Hold "Continue" back in `src/left.ts`. |
+| (2026-11-16, F11) The review step says how each row stands by its grade ("Passed", "In progress", "Transfer credit", "Doesn't count — below C") and never that a course counts toward the degree. The legacy question is therefore not asked there. | What counts is the checklist's to say (F13); a row can be passed and still fill nothing. | — the checklist is where it belongs. |
+| (2026-11-16, F11) At M1 the upload works on a development server only: the chosen PDF is recognised as one of the two made-up transcripts by its length and a plain-code fingerprint (`synthetic/transcripts/manifest.json`), and answered with the rows prepared for it. Any other file is refused with a sentence; nothing is sent. The built site has none of the made-up answers and says "Upload isn't available right now — try again tomorrow". | Feature F10 step 3 and the brief: M1 uses synthetic transcripts only; the paid reader is M2. Plain code, not the browser's cryptography, so it also works from a phone on the local network. | F21 replaces `readFile` in `src/upload.ts`. |
+| (2026-11-16, F11) A file over 10 MB is refused before it is read; a file is a PDF when it begins with "%PDF-", whatever its name. A file is taken only when it is dropped on the drop zone; "Browse files" opens the file picker through a file control made at that moment, on Start too. | A transcript is a few pages; a name proves nothing; no page has a field to fill in. | Change `LARGEST_FILE` and `isPdf` in `src/upload.ts`; `browse` in `src/app.ts`. |
+| (2026-11-16, F11) F11 is not marked passing by its own pull request: its step 5 ("Continuing uses the reviewed rows, including the student's fixes") shows on screen only in the checklist (F13). After "Continue" the page says how many rows are taken on and how many are left out. F10 is marked passing by this pull request. | An on-screen step cannot pass before its screen exists; F10's on-screen parts are all here. | Build a throwaway result in F11. |
 
 ## Owner answers
 
@@ -542,7 +549,14 @@ owner); it now reads more narrowly for PSY 251.
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-None open now. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+- **2026-11-16 (F11; to be looked at by the owner at the M1 check at the latest).** The
+  approved design has no screen for the review step (what was read from the transcript,
+  with rows to correct). It was built from the design's own pieces, and its layout and
+  words are the agent's. The owner was told in chat on 2026-11-16 before it was built, and
+  it is listed in F11's pull request. Does the owner want to change it, or design it?
+  Status: no reply yet.
+
+Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
 F08 step 5; the new F09 step; the last-reviewed line; the semester in the heading of
 "Check my courses"; and the three F08 questions.)

@@ -522,6 +522,44 @@ svg { display: block; flex-shrink: 0; }
 .answer.is-waiting { color: var(--ink-2); font-weight: 400; }
 .legacy-line { margin-top: 16px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .legacy-line strong { color: var(--ink); }
+
+/* ---- "See what I have left": the upload and the review step ---- */
+.upload { display: flex; flex-direction: column; max-width: 560px; }
+.review-intro { max-width: 62ch; margin-bottom: 24px; color: var(--ink-2); font-size: 14px; line-height: 1.7; }
+.term + .term { margin-top: 28px; }
+.term-name { margin-bottom: 10px; font-size: 18px; font-weight: 700; line-height: 1.4; }
+.review-row .grade-read { font-family: var(--f-code); font-size: 18px; line-height: 1.4; }
+.review-row .answer { font-weight: 600; }
+.review-row.is-left-out .cell-name, .review-row.is-left-out .cell-cr { color: var(--ink-2); text-decoration: line-through; }
+.row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; margin-top: 4px; }
+.row-actions .text-link { font-size: 14px; }
+.row-edit {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  align-items: end;
+  gap: 14px;
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.row-edit input[type="text"], .row-edit select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+}
+.tick { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; }
+.tick input { width: 20px; height: 20px; accent-color: var(--accent); }
+.row-edit .row-actions { grid-column: 1 / -1; gap: 10px; }
+.review-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 28px; }
+.review-count { flex-basis: 100%; color: var(--ink-2); font-size: 14px; line-height: 1.7; }
+.review-count:empty { display: none; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .filters button {
   display: inline-flex;
