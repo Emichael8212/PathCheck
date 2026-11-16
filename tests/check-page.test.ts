@@ -2,9 +2,9 @@
 // F07: typing, the keyboard and redrawing on "Check my courses", in a simulated browser
 // (docs/sprints/F07.md). What a simulated browser models poorly (a click landing after the
 // field loses focus, touch, real input methods) is also checked by the evaluator in a real one.
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type AppWindow } from '../src/app';
-import { setupCheck } from '../src/check';
+import { emptyList, setupCheck } from '../src/check';
 import { curriculum } from '../src/curriculum';
 
 const $ = <T extends HTMLElement>(selector: string): T => {
@@ -16,7 +16,12 @@ const field = (): HTMLInputElement => $('#add-course');
 const menu = (): HTMLElement => $('#suggestions');
 const options = (): HTMLElement[] => [...menu().querySelectorAll<HTMLElement>('[role="option"]')];
 const optionCodes = (): string[] => options().map(one => one.querySelector('.code')?.textContent ?? '');
-const rows = (): string[] => [...document.querySelectorAll('[data-entries] [role="row"].row')].map(row => (row.textContent ?? '').replace(/\s+/g, ' ').trim());
+const tidy = (text: string | null | undefined): string => (text ?? '').replace(/\s+/g, ' ').trim();
+const rowElements = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('[data-entries] [role="row"].row')];
+// A row by its course and credits; its answer is read separately.
+const rows = (): string[] => rowElements().map(row => tidy(`${row.querySelector('.cell-name')?.textContent} ${row.querySelector('.cell-cr')?.textContent}`));
+const answers = (): string[] => rowElements().map(row => tidy(row.querySelector('.cell-answer')?.textContent));
+const answerOf = (code: string): string => answers()[rows().findIndex(row => row.startsWith(code))] ?? `no row for ${code}`;
 const message = (): string => $('#add-message').textContent ?? '';
 const said = (): string => $('[data-said]').textContent ?? '';
 
@@ -40,6 +45,7 @@ const add = (text: string): void => { type(text); key('Enter'); };
 
 let app: ReturnType<typeof startApp>;
 beforeEach(() => {
+  window.localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
   window.history.replaceState(null, '', '#/check');
   app = startApp(window as unknown as AppWindow);
@@ -172,8 +178,8 @@ describe('typing in the field', () => {
   it('fails loudly when a part of the page is missing', () => {
     const broken = document.createElement('div');
     broken.innerHTML = '<input id="add-course"><ul id="suggestions"></ul>';
-    expect(() => setupCheck(broken, { entries: [] }, curriculum)).toThrow(/missing a part/);
-    expect(() => setupCheck(document.createElement('div'), { entries: [] }, curriculum)).toThrow(/missing a part/);
+    expect(() => setupCheck(broken, emptyList(), curriculum)).toThrow(/missing a part/);
+    expect(() => setupCheck(document.createElement('div'), emptyList(), curriculum)).toThrow(/missing a part/);
   });
 
   it('moves the highlight without drawing the list again', () => {
@@ -417,5 +423,218 @@ describe('the list', () => {
     document.body.innerHTML = '<div id="app"></div>';
     startApp(window as unknown as AppWindow);
     expect(rows()).toEqual([]);
+  });
+});
+
+// F08: the answers, the legacy question and the filters (docs/sprints/F08.md).
+describe('the answers', () => {
+  const CONDITION = 'unless you’ve already passed it or filled this slot';
+  const QUESTION = 'Are you a legacy CIS student? Yes No';
+  const reload = (): void => {
+    document.body.innerHTML = '<div id="app"></div>';
+    app = startApp(window as unknown as AppWindow);
+  };
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('gives a course outside the curriculum its answer', () => {
+    add('bio 230');
+    expect(rows()).toEqual(['BIO 230 3 cr']);
+    expect(answers()).toEqual(['Doesn’t count toward CIS — not in the CIS curriculum']);
+    expect(rowElements()[0]!.className).toBe('row is-no');
+    add('cis 304');
+    expect(answerOf('CIS 304')).toBe('Doesn’t count toward CIS — CIS 304 isn’t in the current CIS curriculum.');
+    add('mgt 321');
+    expect(answerOf('MGT 321')).toBe(`Counts toward CIS — Business core ${CONDITION}`);
+    expect(rowElements()[2]!.className).toBe('row');
+    expect(tidy($('.note').textContent)).toBe('Remember: you need HIS 132 or ENG 210 for the history/literature sequence.');
+  });
+
+  it('re-works the answers when the list changes', () => {
+    add('eng 131');
+    expect(answerOf('ENG 131')).toBe(`Counts toward CIS — Composition ${CONDITION}`);
+    add('eng 140');
+    expect(answerOf('ENG 140')).toBe('Doesn’t count — it fills the same requirement as ENG 131.');
+    // Removing the first makes the second count; the keyboard moves as before.
+    $('[data-remove="ENG 131"]').click();
+    expect(rows()).toEqual(['ENG 140 English Composition Honors I 3 cr']);
+    expect(answerOf('ENG 140')).toBe(`Counts toward CIS — Composition ${CONDITION}`);
+    expect(document.activeElement).toBe($('[data-remove="ENG 140"]'));
+    expect(said()).toBe('ENG 131 removed.');
+    // The sequence course wins its slot whatever the order, and the reminder goes.
+    add('geo 206');
+    expect(document.querySelector('.note')).not.toBeNull();
+    add('his 132');
+    expect(answerOf('GEO 206')).toBe('Doesn’t count — it fills the same requirement as HIS 132.');
+    expect(answerOf('HIS 132')).toBe(`Counts toward CIS — Social sciences ${CONDITION}`);
+    expect(document.querySelector('.note')).toBeNull();
+    expect(said()).toBe('HIS 132 added.');
+    $('[data-remove="HIS 132"]').click();
+    expect(document.querySelector('.note')).not.toBeNull();
+    // A fourth elective is told which three fill the places.
+    for (const one of ['mkt 410', 'cis 499', 'eco 301', 'act 350']) add(one);
+    expect(answerOf('ACT 350')).toBe('Doesn’t count — your 3 CIS elective places are already filled by MKT 410, CIS 499 and ECO 301.');
+    $('[data-remove="CIS 499"]').click();
+    expect(answerOf('ACT 350')).toBe(`Counts toward CIS: elective (300/400-level ACT) ${CONDITION}`);
+  });
+
+  it('answers the legacy question on the row', () => {
+    for (const one of ['fls 161', 'mkt 410', 'cis 499', 'eco 301']) add(one);
+    expect(answers()).toEqual([QUESTION, `Counts toward CIS: elective (300/400-level MKT) ${CONDITION}`, `Counts toward CIS: elective (300/400-level CIS) ${CONDITION}`, 'Answer “Are you a legacy CIS student?” to see this.']);
+    expect(document.querySelector('.legacy-line')).toBeNull();
+    const group = $('.legacy-ask');
+    expect(group.getAttribute('role')).toBe('group');
+    expect(group.getAttribute('aria-label')).toBe('Are you a legacy CIS student?');
+    $('[data-legacy="yes"]').click();
+    expect(answerOf('FLS 161')).toBe(`Counts toward CIS: elective (legacy) ${CONDITION}`);
+    expect(answerOf('ECO 301')).toBe('Doesn’t count — your 3 CIS elective places are already filled by FLS 161, MKT 410 and CIS 499.');
+    expect(document.querySelector('.legacy-ask')).toBeNull();
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
+  });
+
+  it('lets the student change the legacy answer', () => {
+    add('geo 206');
+    add('psy 251');
+    add('mgt 220');
+    expect(answers()).toEqual([`Counts toward CIS — Social sciences ${CONDITION}`, QUESTION, QUESTION]);
+    // Either row's buttons answer for all of them.
+    document.querySelectorAll<HTMLElement>('[data-legacy="no"]')[1]!.click();
+    expect(answers().slice(1)).toEqual(['Doesn’t count toward CIS. Legacy students only.', 'Doesn’t count toward CIS. Legacy students only.']);
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: No Change');
+    $('[data-legacy-change]').click();
+    expect(answers().slice(1)).toEqual([QUESTION, QUESTION]);
+    expect(document.querySelector('.legacy-line')).toBeNull();
+    $('[data-legacy="yes"]').click();
+    expect(answers().slice(1)).toEqual([`Counts toward CIS: elective (legacy) ${CONDITION}`, `Counts toward CIS: elective (legacy) ${CONDITION}`]);
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
+  });
+
+  it('keeps the keyboard in place when the question is answered', () => {
+    add('fls 161');
+    $('[data-legacy="no"]').click();
+    expect(document.activeElement).toBe($('[data-legacy-change]'));
+    $('[data-legacy-change]').click();
+    expect(document.activeElement).toBe($('[data-legacy="yes"]'));
+    // Yes, No and Change are buttons.
+    for (const selector of ['[data-legacy="yes"]', '[data-legacy="no"]']) expect($(selector).tagName).toBe('BUTTON');
+    $('[data-legacy="yes"]').click();
+    expect($('[data-legacy-change]').tagName).toBe('BUTTON');
+    expect(document.activeElement).toBe($('[data-legacy-change]'));
+  });
+
+  it('does not ask again once answered', () => {
+    add('fls 161');
+    $('[data-legacy="yes"]').click();
+    add('mgt 203');
+    expect(answerOf('MGT 203')).toBe(`Counts toward CIS: elective (legacy) ${CONDITION}`);
+    expect(document.querySelector('.legacy-ask')).toBeNull();
+    // The answer stays while the student moves between pages.
+    go('#/');
+    go('#/check');
+    expect(answerOf('FLS 161')).toBe(`Counts toward CIS: elective (legacy) ${CONDITION}`);
+    // With no course it matters for, the line to change it is not shown; the answer is kept.
+    $('[data-remove="FLS 161"]').click();
+    $('[data-remove="MGT 203"]').click();
+    add('mgt 321');
+    expect(document.querySelector('.legacy-line')).toBeNull();
+    add('mgt 220');
+    expect(answerOf('MGT 220')).toBe(`Counts toward CIS: elective (legacy) ${CONDITION}`);
+  });
+
+  it('remembers the legacy answer across a reload', () => {
+    add('fls 161');
+    expect(window.localStorage.length).toBe(0);
+    $('[data-legacy="yes"]').click();
+    // One key, and nothing about the courses.
+    expect(window.localStorage.length).toBe(1);
+    expect(window.localStorage.key(0)).toBe('pathcheck.legacy');
+    expect(JSON.stringify(window.localStorage.getItem('pathcheck.legacy'))).not.toMatch(/FLS|161/);
+    reload();
+    expect(rows()).toEqual([]);
+    add('fls 161');
+    expect(answers()).toEqual([`Counts toward CIS: elective (legacy) ${CONDITION}`]);
+    $('[data-legacy-change]').click();
+    expect(window.localStorage.length).toBe(0);
+    reload();
+    add('fls 161');
+    expect(answers()).toEqual([QUESTION]);
+    $('[data-legacy="no"]').click();
+    reload();
+    add('mgt 220');
+    expect(answers()).toEqual(['Doesn’t count toward CIS. Legacy students only.']);
+  });
+
+  it('works when the answer cannot be stored', () => {
+    // A browser with site data blocked: every use of its storage is refused.
+    const refuse = (): never => { throw new DOMException('The operation is insecure.', 'SecurityError'); };
+    vi.stubGlobal('localStorage', { getItem: refuse, setItem: refuse, removeItem: refuse, clear: refuse, key: refuse, get length(): number { return refuse(); } });
+    reload();
+    add('fls 161');
+    expect(answers()).toEqual([QUESTION]);
+    $('[data-legacy="yes"]').click();
+    // For this visit the answer holds, also across pages.
+    expect(answers()).toEqual([`Counts toward CIS: elective (legacy) ${CONDITION}`]);
+    go('#/left');
+    go('#/check');
+    expect(answers()).toEqual([`Counts toward CIS: elective (legacy) ${CONDITION}`]);
+    $('[data-legacy-change]').click();
+    expect(answers()).toEqual([QUESTION]);
+    $('[data-legacy="yes"]').click();
+    // After a reload it has to be asked again.
+    reload();
+    add('fls 161');
+    expect(answers()).toEqual([QUESTION]);
+  });
+
+  it("filters the rows that don't count", () => {
+    expect(document.querySelector('[data-filter]')).toBeNull();
+    for (const one of ['act 215', 'mgt 321', 'mkt 410', 'bio 230', 'eng 131', 'eng 140']) add(one);
+    const pressed = (): string[] => [...document.querySelectorAll('[data-filter]')].map(button => `${tidy(button.textContent)}=${button.getAttribute('aria-pressed')}`);
+    expect(pressed()).toEqual(['All courses=true', 'Doesn’t count=false']);
+    expect(rows()).toHaveLength(6);
+    $('[data-filter="no"]').click();
+    expect(pressed()).toEqual(['All courses=false', 'Doesn’t count=true']);
+    expect(rows()).toEqual(['BIO 230 3 cr', 'ENG 140 English Composition Honors I 3 cr']);
+    expect(document.activeElement).toBe($('[data-filter="no"]'));
+    // The choice is kept while courses are added and removed.
+    add('cis 415');
+    add('fin 201');
+    expect(rows()).toEqual(['BIO 230 3 cr', 'ENG 140 English Composition Honors I 3 cr', 'CIS 415 3 cr']);
+    $('[data-remove="ENG 140"]').click();
+    expect(document.activeElement).toBe($('[data-remove="CIS 415"]'));
+    $('[data-remove="CIS 415"]').click();
+    $('[data-remove="BIO 230"]').click();
+    expect(rows()).toEqual([]);
+    expect($('.empty-hint').textContent).toBe('No course in your list is marked “Doesn’t count”.');
+    expect(document.activeElement).toBe(field());
+    $('[data-filter="all"]').click();
+    expect(pressed()).toEqual(['All courses=true', 'Doesn’t count=false']);
+    expect(rows().map(row => row.slice(0, 7))).toEqual(['ACT 215', 'MGT 321', 'MKT 410', 'ENG 131', 'FIN 201']);
+    // An empty list has no filters; the choice starts again with a new visit.
+    for (const one of ['ACT 215', 'MGT 321', 'MKT 410', 'ENG 131', 'FIN 201']) document.querySelector<HTMLElement>(`[data-remove="${one}"]`)?.click();
+    expect(rows()).toEqual([]);
+    expect(document.querySelector('[data-filter]')).toBeNull();
+    expect($('.empty-hint').textContent).toBe('Add the courses you plan to take next semester.');
+  });
+
+  it('starts a new list with all its rows after one was emptied under the filter', () => {
+    add('bio 230');
+    $('[data-filter="no"]').click();
+    $('[data-remove="BIO 230"]').click();
+    expect(document.querySelector('[data-filter]')).toBeNull();
+    expect($('.empty-hint').textContent).toBe('Add the courses you plan to take next semester.');
+    add('mgt 321');
+    expect(rows()).toEqual(['MGT 321 Principles of Management 3 cr']);
+    expect($('[data-filter="all"]').getAttribute('aria-pressed')).toBe('true');
+    expect($('[data-filter="no"]').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('says which legacy answer the rows now follow', () => {
+    add('fls 161');
+    $('[data-legacy="yes"]').click();
+    expect(said()).toBe('Legacy CIS student: Yes');
+    $('[data-legacy-change]').click();
+    expect(said()).toBe('Are you a legacy CIS student?');
+    $('[data-legacy="no"]').click();
+    expect(said()).toBe('Legacy CIS student: No');
   });
 });

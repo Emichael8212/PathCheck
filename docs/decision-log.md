@@ -41,6 +41,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F07) The heading of "Check my courses" is the flow's name, with no small label above it and no semester. | The design's heading is the next semester; the owner decided on 2026-11-16 that the heading has no semester (see "Owner answers"). | Owner's decision. |
 | (2026-11-16, F07) Tests of typing and the keyboard run in a simulated browser, `happy-dom` 21.0.4 (exact version), a development-only dependency. It is not in what the student downloads. | The page's behaviour can be tested on every run, not only by hand. The F06 decision (no framework) is about the app itself. | Remove it and the test file `tests/check-page.test.ts`. |
 | (2026-11-16, F07) The entered courses are kept in memory for the visit (a `CourseList`, defined in `src/check.ts` and held by `startApp` in `src/app.ts`): they survive moving between pages and are gone after a reload. | Keeping them across visits, with "Clear my data", is F19. | Draw the page from an empty list each time (in `startApp`). |
+| (2026-11-16, F08) The typed courses are placed with the transcript code (`placeCourses`): all in one state (in progress), in typed order, with the legacy answer. Each course's answer is read off that placement. | The two flows cannot disagree (owner, 2026-11-16); the sequence course wins its slot and electives are taken in order without new code. | Write separate rules for typed courses in `src/answers.ts`. |
+| (2026-11-16, F08) Before the legacy question is answered, a row whose sentence would differ between Yes and No shows no verdict: a legacy course shows the question; any other course shows "Answer “Are you a legacy CIS student?” to see this." A row whose sentence is the same either way shows it. | The owner: never "Counts" before the answer, and never "Counts" for a place the student's own list fills. Either verdict could be wrong until the answer is known. The waiting sentence is the agent's; listed in the pull request. | Reword `waitingFor` in `src/wording.ts`. |
+| (2026-11-16, F08) PSY 251 with the answer Yes, its pick held by a sequence course and the three elective places full, shows the same-requirement sentence. | One of the owner's sentences had to be chosen; this one names the place the curriculum lists PSY 251 for. | Use the places-filled sentence instead, in `src/answers.ts`. |
+| (2026-11-16, F08) A pick that takes more than one course names all the courses that fill it ("<A> and <B>"). | The owner's sentence names one course; the CIS curriculum has no such pick, the made-up test program has. | Name only the first course, in `sameRequirement` (`src/wording.ts`). |
+| (2026-11-16, F08) Once the legacy question is answered, a line under the list says "Legacy CIS student: Yes" (or No) with "Change", shown while a course it matters for is in the list. "Change" puts the question back. | The owner: the answer can be changed. The design has no place for it. Agent's wording; listed in the pull request. | Reword or move in `src/check.ts`. |
+| (2026-11-16, F08) The sequence reminder is not shown for an empty list. The "Doesn't count" filter with nothing to list says "No course in your list is marked “Doesn't count”." | Nothing to be reminded about yet; an empty filtered list needs a word. Agent's wording; listed in the pull request. | Change `reminderFor` in `src/answers.ts`; reword in `src/check.ts`. |
+| (2026-11-16, F08) F08 draws no numbers: the summary strip of the design (total credits, credits that count, credits that don't) is built in F09 from the answers. | The total is F09's feature; the strip is one piece. | Build the two counts in F08. |
 
 ## Owner answers
 
@@ -470,6 +477,56 @@ today's date."
   "latest term on the transcript" as its starting point is for F14's contract to check
   against the brief, and to ask if the brief does not say.
 
+### 2026-11-16 — F08: the sequence course in a shared slot, more than three electives, the legacy courses
+
+Three questions asked before F08. The owner's answers, in their words:
+
+1. **Same "pick one" slot with a sequence course: option a.** "The sequence course (HIS 132
+   or ENG 210) counts whatever the typed order. The other shows "Doesn't count — it fills
+   the same requirement as <sequence course>." Same placement as transcripts, so the two
+   flows never disagree."
+2. **More than three electives: option a.** "The first three typed count. Every extra one
+   shows: "Doesn't count — your 3 CIS elective places are already filled by <A>, <B> and
+   <C>." A legacy elective (when the answer is Yes) uses one of the three places like any
+   other. Never show "Counts" for a course whose slot is already filled by the student's
+   own list."
+3. **Legacy courses** "(FLS 161, MGT 220, MGT 203, and PSY 251 when its social-sciences pick
+   is already taken)":
+   - "Not answered yet: the row shows the question "Are you a legacy CIS student?" (Yes /
+     No) in place of an answer. Never "Counts" before the answer."
+   - "Yes: "Counts toward CIS: elective (legacy)""
+   - "No: "Doesn't count toward CIS. Legacy students only.""
+   - "The answer is remembered in the browser and can be changed (brief §5)."
+
+"Tests: the sequence course wins the slot in both typed orders; the 4th elective doesn't
+count and names the three that do; a legacy course shows the question before an answer,
+"Counts… (legacy)" on Yes, "Doesn't count…" on No; a legacy elective on Yes takes one of the
+three elective places."
+
+**Where this differs from earlier answers:** answer 3 of 2026-11-15 on PR #1 ("the first
+counts") now has an exception: a sequence course wins its slot whatever the order.
+
+**Where this differs from `features.json`:** F05 step 1 says the legacy question is asked
+"only when one of these four courses appears". For PSY 251 the owner's answer is narrower:
+only "when its social-sciences pick is already taken". PSY 251 alone is an ordinary Social
+sciences course and is not asked about. The step's text is not changed (that needs the
+owner); it now reads more narrowly for PSY 251.
+
+*Agent's notes, not owner decisions:*
+- "When its social-sciences pick is already taken" is read as: PSY 251 is asked about
+  whenever its answer depends on the legacy answer. That is when another typed course is
+  in that pick, in either order, and an elective place is free for PSY 251: with PSY 251
+  typed first and GEO 206 second, which of the two counts depends on the answer. When the
+  answer would change nothing (the three elective places already full), no question is
+  asked.
+- "Counts toward CIS: elective (legacy)" is shown, like every "Counts" answer without a
+  transcript, with the condition "unless you've already passed it or filled this slot"
+  under it (F08 step 6: a plain "Counts toward CIS" with no condition is never shown).
+- The typed courses are placed with the same code as a transcript (`placeCourses`), which
+  already puts a sequence course first in its slot and takes electives in order.
+- For PSY 251 with the answer Yes, the F05 rule applies: it stays in its Social sciences
+  pick unless being an elective counts more.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -477,8 +534,8 @@ stand-in until the owner answers; it is not an owner decision.
 
 None open now. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
-F08 step 5; the new F09 step; the last-reviewed line; and the semester in the heading of
-"Check my courses".)
+F08 step 5; the new F09 step; the last-reviewed line; the semester in the heading of
+"Check my courses"; and the three F08 questions.)
 
 **To ask later**, when F17 or F18 starts, whichever is first: with no review date in the
 curriculum file, F17's last-reviewed line and F18 steps 1 and 3 cannot be shown as written

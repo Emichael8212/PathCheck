@@ -1,12 +1,15 @@
-// Page 2, "Check my courses": the student enters next semester's courses
-// (docs/design/DESIGN.md). The page is drawn once; after that only the suggestions and the
-// list are redrawn, so the field the student is typing in is never replaced.
+// Page 2, "Check my courses": the student enters next semester's courses and each gets one
+// answer (docs/design/DESIGN.md). The page is drawn once; after that only the suggestions,
+// the filters and the list are redrawn, so the field the student is typing in is never
+// replaced.
 //
 // What the student types is never put into the page as it is: only a course code worked
 // out from it.
+import { answersFor, legacyMatters, reminderFor, type Answer } from './answers';
 import { type Course, type Curriculum } from './curriculum';
 import { addCourse, removeCourse, suggest, type Entry } from './entries';
-import { code, esc, icons } from './html';
+import { code, esc, icons, marks } from './html';
+import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { FLOW_NAME, foot, top } from './shell';
 import { countsExample } from './start';
 
@@ -17,7 +20,13 @@ const TEXT = {
   suggestions: 'Suggestions',
   empty: 'Add the courses you plan to take next semester.',
   table: 'Your courses',
-  columns: ['Course', 'Credits', 'Remove'],
+  columns: ['Course', 'Credits', 'Does it count?', 'Remove'],
+  filterLabel: 'Filter courses',
+  all: 'All courses',
+  onlyNo: 'Doesn’t count',
+  noneMarkedNo: 'No course in your list is marked “Doesn’t count”.',
+  legacyLine: 'Legacy CIS student:',
+  change: 'Change',
 };
 // The example code in this message is the Start page's example course, from the curriculum.
 export const notACourse = (curriculum: Curriculum): string => `Type a course code like ${countsExample(curriculum).course.code}, or pick a course from the list.`;
@@ -25,32 +34,87 @@ export const alreadyThere = (courseCode: string): string => `${courseCode} is al
 const added = (courseCode: string): string => `${courseCode} added.`;
 const removed = (courseCode: string): string => `${courseCode} removed.`;
 
+/** What the student has entered and chosen on this page. It is kept while they move between pages. */
+export interface CourseList {
+  entries: readonly Entry[];
+  /** The answer to the legacy question, or null when it has not been given. */
+  legacy: LegacyAnswer;
+  /** Which rows are listed: all of them, or only those that don't count. */
+  filter: 'all' | 'no';
+}
+export const emptyList = (legacy: LegacyAnswer = null): CourseList => ({ entries: [], legacy, filter: 'all' });
+
+// A sentence with every course code inside it set in the code face.
+const COURSE_CODE = /\b[A-Z]{2,4} \d{3}\b/g;
+const withCodes = (text: string): string => esc(text).replace(COURSE_CODE, found => `<span class="code">${found}</span>`);
+
 export const suggestionsHtml = (courses: readonly Course[], active: number): string =>
   courses.map((course, i) => `
         <li id="suggestion-${i + 1}" role="option" aria-selected="${i === active}" aria-posinset="${i + 1}" aria-setsize="${courses.length}" data-index="${i}">${code(course.code, 'strong')} <span class="truncate">${esc(course.title)}</span></li>`).join('');
 
-const row = (entry: Entry): string => `
-    <div role="row" class="row">
+/** The "Does it count?" cell: a verdict with its mark, the legacy question, or a line that waits for it. */
+const answerCell = (answer: Answer): string => {
+  if (answer.kind === 'ask') {
+    return `
+        <div class="legacy-ask" role="group" aria-label="${esc(LEGACY_QUESTION)}">
+          <p>${esc(LEGACY_QUESTION)}</p>
+          <div class="legacy-buttons">
+            <button type="button" class="btn secondary" data-legacy="yes">${esc(LEGACY_YES)}</button>
+            <button type="button" class="btn secondary" data-legacy="no">${esc(LEGACY_NO)}</button>
+          </div>
+        </div>`;
+  }
+  if (answer.kind === 'waiting') {
+    return `
+        <div>
+          <p class="answer is-waiting">${esc(answer.text)}</p>
+        </div>`;
+  }
+  return `
+        ${answer.kind === 'counts' ? marks.counts(20) : marks.no(20)}
+        <div>
+          <p class="answer ${answer.kind === 'counts' ? 'is-counts' : 'is-no'}">${withCodes(answer.text)}</p>${answer.kind === 'counts' ? `
+          <p class="condition">${esc(answer.condition)}</p>` : ''}
+        </div>`;
+};
+
+const row = (entry: Entry, answer: Answer): string => `
+    <div role="row" class="row${answer.kind === 'no' ? ' is-no' : ''}">
       <div role="cell" class="cell-name">
         ${code(entry.code, 'strong')}${entry.title ? `
         <p>${esc(entry.title)}</p>` : ''}
       </div>
       <span role="cell" class="cell-cr num">${entry.credits}<span class="cr-unit"> cr</span></span>
+      <div role="cell" class="cell-answer">${answerCell(answer)}
+      </div>
       <div role="cell" class="cell-remove">
         <button type="button" class="remove" aria-label="Remove ${esc(entry.code)}" data-remove="${esc(entry.code)}">${icons.x()}</button>
       </div>
     </div>`;
 
-/** The list of entered courses, or the line that says there are none yet. */
-export const entriesHtml = (entries: readonly Entry[]): string => (entries.length === 0
-  ? `<p class="empty-hint">${esc(TEXT.empty)}</p>`
-  : `<div class="table" role="table" aria-label="${esc(TEXT.table)}">
-    <div class="table-head" role="row">
-      ${TEXT.columns.map((heading, i) => `<span role="columnheader"${i === 2 ? ' class="sr-only"' : ''}>${esc(heading)}</span>`).join('\n      ')}
-    </div>${entries.map(row).join('')}
-  </div>`);
+/** The two filter buttons; nothing while the list is empty. */
+export const filtersHtml = (list: CourseList): string => (list.entries.length === 0 ? '' : `<div class="filters" role="group" aria-label="${esc(TEXT.filterLabel)}">
+      <button type="button" aria-pressed="${list.filter === 'all'}" data-filter="all">${esc(TEXT.all)}</button>
+      <button type="button" aria-pressed="${list.filter === 'no'}" data-filter="no">${marks.no(16)}${esc(TEXT.onlyNo)}</button>
+    </div>`);
 
-export const checkPage = (curriculum: Curriculum, entries: readonly Entry[] = []): string => `${top('check')}
+/** The list of entered courses with their answers, and what goes under it; or the line that says there are none yet. */
+export function entriesHtml(list: CourseList, curriculum: Curriculum): string {
+  const { entries, legacy, filter } = list;
+  if (entries.length === 0) return `<p class="empty-hint">${esc(TEXT.empty)}</p>`;
+  const answers = answersFor(entries, curriculum, legacy);
+  const rows = entries.map((entry, i) => ({ entry, answer: answers[i] as Answer })).filter(one => filter === 'all' || one.answer.kind === 'no');
+  const reminder = reminderFor(entries, curriculum);
+  return `${rows.length === 0 ? `<p class="empty-hint">${esc(TEXT.noneMarkedNo)}</p>` : `<div class="table" role="table" aria-label="${esc(TEXT.table)}">
+    <div class="table-head" role="row">
+      ${TEXT.columns.map((heading, i) => `<span role="columnheader"${i === 3 ? ' class="sr-only"' : ''}>${esc(heading)}</span>`).join('\n      ')}
+    </div>${rows.map(one => row(one.entry, one.answer)).join('')}
+  </div>`}${legacy !== null && legacyMatters(entries, curriculum) ? `
+  <p class="legacy-line">${esc(TEXT.legacyLine)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(TEXT.change)}</button></p>` : ''}${reminder ? `
+  <p class="note">${icons.doc(20)}${withCodes(reminder)}</p>` : ''}`;
+}
+
+export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList()): string => `${top('check')}
 <main class="check">
   <div class="page-head">
     <div>
@@ -68,17 +132,13 @@ export const checkPage = (curriculum: Curriculum, entries: readonly Entry[] = []
       <ul id="suggestions" role="listbox" aria-label="${esc(TEXT.suggestions)}" class="suggestions" hidden></ul>
       <p id="add-message" class="field-message" role="status" aria-live="polite"></p>
     </div>
+    <div data-filters>${filtersHtml(list)}</div>
   </div>
 
-  <div data-entries>${entriesHtml(entries)}</div>
+  <div data-entries>${entriesHtml(list, curriculum)}</div>
   <p class="sr-only" role="status" aria-live="polite" data-said></p>
 </main>
 ${foot(curriculum, `PathCheck: ${FLOW_NAME.check}`, true)}`;
-
-/** The list the student has entered. It is kept while they move between pages. */
-export interface CourseList {
-  entries: readonly Entry[];
-}
 
 /** Wires up the page once it is drawn. */
 export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curriculum): void {
@@ -86,9 +146,10 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const add = root.querySelector<HTMLButtonElement>('[data-add]');
   const menu = root.querySelector<HTMLElement>('#suggestions');
   const message = root.querySelector<HTMLElement>('#add-message');
+  const filters = root.querySelector<HTMLElement>('[data-filters]');
   const region = root.querySelector<HTMLElement>('[data-entries]');
   const said = root.querySelector<HTMLElement>('[data-said]');
-  if (!input || !add || !menu || !message || !region || !said) throw new Error('The "Check my courses" page is missing a part it needs.');
+  if (!input || !add || !menu || !message || !filters || !region || !said) throw new Error('The "Check my courses" page is missing a part it needs.');
 
   // What is suggested for the text in the field, which of them is highlighted, and whether
   // the list is showing. Leaving the field hides the list but keeps the highlight, so that
@@ -117,12 +178,19 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const highlight = (index: number): void => { active = index; mark(); };
   // A fresh piece of text each time, so that the same sentence is read out again.
   const say = (where: HTMLElement, text: string): void => where.replaceChildren(text);
+  // Every answer is worked out again from the whole list.
+  const drawList = (): void => {
+    // The filters go with the list: an empty list has none, and the next one starts with all its rows.
+    if (list.entries.length === 0) list.filter = 'all';
+    filters.innerHTML = filtersHtml(list);
+    region.innerHTML = entriesHtml(list, curriculum);
+  };
 
   const addNow = (course: Course | null): void => {
     const result = addCourse(list.entries, course ? '' : input.value, course ?? suggestions[active] ?? null, curriculum);
     if ('added' in result) {
       list.entries = result.entries;
-      region.innerHTML = entriesHtml(list.entries);
+      drawList();
       input.value = '';
       add.disabled = true;
       say(message, '');
@@ -179,13 +247,41 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     if (course) addNow(course);
   });
 
+  filters.addEventListener('click', event => {
+    const chosen = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-filter]')?.dataset.filter : undefined;
+    if (chosen !== 'all' && chosen !== 'no') return;
+    list.filter = chosen;
+    drawList();
+    filters.querySelector<HTMLElement>(`[data-filter="${chosen}"]`)?.focus();
+  });
+
   region.addEventListener('click', event => {
-    const button = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-remove]') : null;
-    const gone = button?.dataset.remove;
+    const target = event.target instanceof Element ? event.target : null;
+    // The legacy question, answered on a row; and the line that lets the student change it.
+    const answer = target?.closest<HTMLElement>('[data-legacy]')?.dataset.legacy;
+    if (answer === 'yes' || answer === 'no') {
+      list.legacy = answer === 'yes';
+      writeLegacyAnswer(browserStorage(), list.legacy);
+      drawList();
+      // Every row has changed: say which answer they now follow.
+      say(said, `${TEXT.legacyLine} ${list.legacy ? LEGACY_YES : LEGACY_NO}`);
+      (region.querySelector<HTMLElement>('[data-legacy-change]') ?? input).focus();
+      return;
+    }
+    if (target?.closest('[data-legacy-change]')) {
+      list.legacy = null;
+      clearLegacyAnswer(browserStorage());
+      drawList();
+      say(said, LEGACY_QUESTION);
+      (region.querySelector<HTMLElement>('[data-legacy]') ?? input).focus();
+      return;
+    }
+    const gone = target?.closest<HTMLElement>('[data-remove]')?.dataset.remove;
     if (!gone) return;
-    const at = list.entries.findIndex(entry => entry.code === gone);
+    const shown = [...region.querySelectorAll<HTMLElement>('[data-remove]')].map(button => button.dataset.remove);
+    const at = shown.indexOf(gone);
     list.entries = removeCourse(list.entries, gone);
-    region.innerHTML = entriesHtml(list.entries);
+    drawList();
     say(said, removed(gone));
     // The keyboard goes to the next course's Remove button, or back to the field.
     const buttons = region.querySelectorAll<HTMLElement>('[data-remove]');

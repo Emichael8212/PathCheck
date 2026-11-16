@@ -146,8 +146,8 @@
         "A course that is not in the curriculum can still be entered and gets an answer",
         "Courses can be added and removed before and after seeing answers"
       ],
-      "passes": false,
-      "evidence": "docs/sprints/F07.md — entering courses merged with tests; not passing yet: steps 3 and 4 (answers) are finished with F08",
+      "passes": true,
+      "evidence": "docs/sprints/F07.md — QA round 2: PASS; steps 2, 3 and 4 finished with the answers of F08 (docs/sprints/F08.md, QA round 1: PASS)",
       "tests": [
         "tests/check.test.ts",
         "tests/check-page.test.ts"
@@ -166,9 +166,13 @@
         "Without a transcript, a plain \"Counts toward CIS\" with no condition is never shown",
         "Automated tests cover counts-with-condition, the rule-matched elective answer, the same-slot answer, the sequence reminder and not-in-the-curriculum, and CIS 304 and CIS 415 not counting while another 300/400-level CIS course does"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F08.md — evaluator QA round 1 in a real browser: PASS (22 checks; Functionality 5, Clarity 4, Visual design 4, Truthfulness 5)",
+      "tests": [
+        "tests/answers.test.ts",
+        "tests/check.test.ts",
+        "tests/check-page.test.ts"
+      ]
     },
     {
       "id": "F09",

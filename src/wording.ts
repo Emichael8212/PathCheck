@@ -21,3 +21,22 @@ export const PRIVACY = 'Your PDF is read, then deleted. Only your result stays i
 export const countsToward = (block: string): string => `Counts toward CIS — ${block}`;
 /** The answer for a course that is in no curriculum list and is not an elective by the rule. */
 export const NOT_IN_CURRICULUM = 'Doesn’t count toward CIS — not in the CIS curriculum';
+
+// ---- The answers in "Check my courses" (brief §4; the owner's answers of 2026-11-16) ----
+/** Several course codes in a sentence: "A", "A and B", "A, B and C". */
+export const listOf = (codes: readonly string[]): string =>
+  (codes.length <= 1 ? codes.join('') : `${codes.slice(0, -1).join(', ')} and ${codes[codes.length - 1]}`);
+/** An elective by the rule; `level` and `subject` come from the curriculum's rule. */
+export const countsAsElective = (level: string, subject: string): string => `Counts toward CIS: elective (${level} ${subject})`;
+export const COUNTS_AS_LEGACY_ELECTIVE = 'Counts toward CIS: elective (legacy)';
+export const LEGACY_STUDENTS_ONLY = 'Doesn’t count toward CIS. Legacy students only.';
+/** Another course of the student's own list fills the place this one would. */
+export const sameRequirement = (filledBy: readonly string[]): string => `Doesn’t count — it fills the same requirement as ${listOf(filledBy)}.`;
+export const electivePlacesFilled = (places: number, filledBy: readonly string[]): string =>
+  `Doesn’t count — your ${places} CIS elective places are already filled by ${listOf(filledBy)}.`;
+/** A course the curriculum names as never counting. */
+export const notInCurrentCurriculum = (courseCode: string): string => `Doesn’t count toward CIS — ${courseCode} isn’t in the current CIS curriculum.`;
+/** Shown on a row whose answer depends on a legacy answer not yet given. */
+export const waitingFor = (question: string): string => `Answer “${question}” to see this.`;
+/** `courses` are the sequence's courses that sit in a pick; `kinds` names the sequences. */
+export const sequenceReminder = (courses: readonly string[], kinds: string): string => `Remember: you need ${courses.join(' or ')} for the ${kinds} sequence.`;

@@ -2,9 +2,11 @@
 // docs/design/DESIGN.md "Page 2: Check my courses"). The rules and the page's text; typing
 // and the keyboard are in tests/check-page.test.ts.
 import { describe, expect, it } from 'vitest';
+// @ts-expect-error The approved mockups are plain JavaScript, with no type declarations.
+import { check as approvedCheck } from '../mockups/data.js';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
-import { alreadyThere, checkPage, entriesHtml, notACourse, suggestionsHtml } from '../src/check';
+import { alreadyThere, checkPage, entriesHtml, filtersHtml, notACourse, suggestionsHtml, type CourseList } from '../src/check';
 import { UNKNOWN_COURSE_CREDITS } from '../src/credits';
 import { curriculum, findCourse, loadCurriculum, type Course } from '../src/curriculum';
 import { FEWEST_CHARACTERS, MOST_SUGGESTIONS, addCourse, entryFor, listedCourses, removeCourse, suggest, type Entry } from '../src/entries';
@@ -13,7 +15,8 @@ const decode = (html: string): string => html
   .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
   .replace(/<[^>]+>/g, ' ')
   .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
-  .replace(/\s+/g, ' ');
+  .replace(/\s+/g, ' ')
+  .replace(/ ([,.;:)])/g, '$1');
 const codes = (courses: readonly { code: string }[]): string[] => courses.map(course => course.code);
 const all = (text: string): Course[] => suggest(text, curriculum, 1000);
 const course = (code: string): Course => {
@@ -26,6 +29,8 @@ const inFile = [
   ...rawData.blocks.flatMap(block => [...block.required, ...block.choices.flatMap(choice => choice.courses)]),
   ...rawData.electives.namedCourses, ...rawData.electives.legacyOnlyCourses,
 ].map(one => one.courseId.replace('-', ' ')).filter((code, i, list) => list.indexOf(code) === i);
+const listed = (entries: readonly Entry[], legacy: boolean | null = null, filter: 'all' | 'no' = 'all'): CourseList => ({ entries, legacy, filter });
+const drawn = (entries: readonly Entry[], legacy: boolean | null = null, filter: 'all' | 'no' = 'all'): string => entriesHtml(listed(entries, legacy, filter), curriculum);
 const added = (entries: readonly Entry[], text: string, highlighted: Course | null = null): Entry[] => {
   const result = addCourse(entries, text, highlighted, curriculum);
   if (!('added' in result)) throw new Error(`${text} was not added: ${result.problem}`);
@@ -198,7 +203,7 @@ describe('adding and removing', () => {
 
   it('removes one course', () => {
     let entries = added(added(added([], 'mgt 321'), 'bio 230'), 'eng 131');
-    expect(entriesHtml(entries).match(/aria-label="Remove [^"]+" data-remove="[^"]+"/g)).toEqual([
+    expect(drawn(entries).match(/aria-label="Remove [^"]+" data-remove="[^"]+"/g)).toEqual([
       'aria-label="Remove MGT 321" data-remove="MGT 321"', 'aria-label="Remove BIO 230" data-remove="BIO 230"', 'aria-label="Remove ENG 131" data-remove="ENG 131"',
     ]);
     entries = removeCourse(entries, 'BIO 230');
@@ -250,43 +255,131 @@ describe('the page', () => {
   });
 
   it('shows the title next to every entry', () => {
-    expect(decode(entriesHtml(some))).toBe(' Course Credits Remove MGT 321 Principles of Management 3 cr BIO 230 3 cr MGT 312 3 cr ENG 131 English Composition I 3 cr ');
     // The same list drawn with the page.
-    expect(checkPage(curriculum, some)).toContain(entriesHtml(some));
+    expect(checkPage(curriculum, listed(some))).toContain(drawn(some));
     // A course of the curriculum always has its title under its code; one outside it has none.
     for (const entry of some) {
-      const cell = entriesHtml([entry]).match(/<div role="cell" class="cell-name">([\s\S]*?)<\/div>/)?.[1] ?? '';
+      const cell = drawn([entry]).match(/<div role="cell" class="cell-name">([\s\S]*?)<\/div>/)?.[1] ?? '';
       expect(decode(cell).trim(), entry.code).toBe(entry.kind === 'listed' ? `${entry.code} ${course(entry.code).title}` : entry.code);
     }
-    expect(entriesHtml(some)).toMatch(/<div class="table" role="table" aria-label="Your courses">/);
-    expect(entriesHtml(some).match(/role="columnheader"/g)).toHaveLength(3);
-    expect(entriesHtml(some).match(/role="row" class="row"/g)).toHaveLength(4);
+    expect(drawn(some).match(/<div role="cell" class="cell-name">\s*<span class="code strong">([^<]+)</g)?.map(found => found.replace(/^[\s\S]*>/, '').replace('<', ''))).toEqual(['MGT 321', 'BIO 230', 'MGT 312', 'ENG 131']);
+    expect(drawn(some)).toMatch(/<div class="table" role="table" aria-label="Your courses">/);
+    expect(drawn(some).match(/role="columnheader"/g)).toHaveLength(4);
+    expect(decode(drawn(some).match(/<div class="table-head" role="row">([\s\S]*?)<\/div>/)?.[1] ?? '')).toBe(' Course Credits Does it count? Remove ');
+    expect(drawn(some).match(/role="row" class="row[^"]*"/g)).toHaveLength(4);
   });
 
   it('shows the empty state', () => {
-    expect(entriesHtml([])).toBe('<p class="empty-hint">Add the courses you plan to take next semester.</p>');
-    expect(page).toContain(`<div data-entries>${entriesHtml([])}</div>`);
+    expect(drawn([])).toBe('<p class="empty-hint">Add the courses you plan to take next semester.</p>');
+    expect(page).toContain(`<div data-entries>${drawn([])}</div>`);
+    expect(page).toContain('<div data-filters></div>');
     expect(page).not.toMatch(/role="table"|role="row"/);
-    expect(entriesHtml(some)).not.toContain('empty-hint');
-  });
-
-  it('says nothing yet about what counts', () => {
-    for (const html of [page, checkPage(curriculum, some)]) {
-      const text = decode(html);
-      expect(text).not.toMatch(/\bcounts?\b|doesn’t|doesn't|does it|total|elective|already passed/i);
-      expect(html).not.toMatch(/mark-counts|mark-no|is-no|is-counts|cell-answer/);
-    }
+    expect(drawn(some)).not.toContain('empty-hint');
   });
 
   it('never puts typed text into the page', () => {
     // The only thing of an entry that is drawn is its code, title and credits, escaped.
-    const odd: Entry = { code: '<b>"A&B"</b>', title: '<img src=x onerror=alert(1)>', credits: 3, kind: 'unknown' };
-    const html = entriesHtml([odd]);
-    expect(html).not.toMatch(/<b>|<img/);
-    expect(html).toContain('&lt;b&gt;&quot;A&amp;B&quot;&lt;/b&gt;');
+    const odd: Entry = { code: 'BIO 230', title: '<img src=x onerror=alert(1)> "A&B"', credits: 3, kind: 'unknown' };
+    const html = drawn([odd]);
+    expect(html).not.toMatch(/<img/);
+    expect(html).toContain('&quot;A&amp;B&quot;');
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     // The messages are fixed sentences, or name a course code in its normal form.
     expect(addCourse([], '<img src=x onerror=alert(1)>', null, curriculum)).toEqual({ entries: [], problem: 'not-a-course' });
     expect(notACourse(curriculum)).not.toMatch(/[<>]/);
+  });
+});
+
+// F08: the answers on the page (docs/sprints/F08.md).
+describe('the answers on the page', () => {
+  const CONDITION = 'unless you’ve already passed it or filled this slot';
+  const typed = (...codes: string[]): Entry[] => codes.reduce<Entry[]>((list, one) => added(list, one), []);
+  const rowsOf = (html: string): string[] => html.split('<div role="row" class="row').slice(1).map(one => one.split('<p class="legacy-line">')[0]!.split('<p class="note">')[0]!);
+  const six = typed('ACT 215', 'MGT 321', 'MKT 410', 'BIO 230', 'ENG 131', 'ENG 140');
+
+  it('draws each answer with its mark', () => {
+    const html = drawn(six);
+    const rows = rowsOf(html);
+    expect(rows).toHaveLength(6);
+    // The six courses of the approved mockup, each with the mockup's answer, word for word.
+    const approved = approvedCheck.courses as { code: string; counts: boolean; answer: string }[];
+    expect(approved.map(one => one.code)).toEqual(six.map(one => one.code));
+    approved.forEach((wanted, i) => {
+      const row = rows[i]!;
+      const answer = decode(row.match(/<div role="cell" class="cell-answer">([\s\S]*?)<div role="cell" class="cell-remove">/)?.[1] ?? '').trim();
+      expect(answer, wanted.code).toBe(wanted.counts ? `${wanted.answer} ${CONDITION}` : wanted.answer);
+      // "Counts": the outlined tick, no tint. "Doesn't count": the square cross and the tinted row.
+      expect(row.startsWith(wanted.counts ? '">' : ' is-no">'), wanted.code).toBe(true);
+      expect(row.includes('mark-counts'), wanted.code).toBe(wanted.counts);
+      expect(row.includes('mark-no'), wanted.code).toBe(!wanted.counts);
+      expect(row, wanted.code).toContain(wanted.counts ? '<p class="answer is-counts">' : '<p class="answer is-no">');
+    });
+    expect(html).not.toContain('mark-done');
+    // Codes inside an answer are set in the code face.
+    expect(html).toContain('it fills the same requirement as <span class="code">ENG 131</span>.');
+    // The reminder, with its document icon, under the list.
+    expect(html).toMatch(/<\/div>\s*<p class="note"><svg[^>]*>[\s\S]*?<\/svg>Remember: you need <span class="code">HIS 132<\/span> or <span class="code">ENG 210<\/span> for the history\/literature sequence\.<\/p>$/);
+    expect(decode(html)).toContain(approvedCheck.reminder);
+    expect(drawn(typed('MGT 321', 'HIS 132'))).not.toContain('class="note"');
+    // A row that asks, and a row that waits: no mark, no tint, no verdict.
+    const [asking, waiting] = rowsOf(drawn(typed('PSY 251', 'GEO 206')));
+    for (const row of [asking!, waiting!]) {
+      expect(row.startsWith('">')).toBe(true);
+      expect(row).not.toMatch(/mark-counts|mark-no|is-counts|is-no|Counts toward|Doesn’t count/);
+    }
+    expect(asking).toMatch(/<div class="legacy-ask" role="group" aria-label="Are you a legacy CIS student\?">\s*<p>Are you a legacy CIS student\?<\/p>\s*<div class="legacy-buttons">\s*<button type="button" class="btn secondary" data-legacy="yes">Yes<\/button>\s*<button type="button" class="btn secondary" data-legacy="no">No<\/button>/);
+    expect(decode(waiting!)).toContain('Answer “Are you a legacy CIS student?” to see this.');
+    expect(waiting).toContain('<p class="answer is-waiting">');
+  });
+
+  it('shows the title next to every answer', () => {
+    const rows = rowsOf(drawn(typed('MGT 321', 'ENG 131', 'ENG 140', 'FLS 161', 'BIO 230'), true));
+    const names = ['MGT 321 Principles of Management', 'ENG 131 English Composition I', 'ENG 140 English Composition Honors I', 'FLS 161 Spanish I', 'BIO 230'];
+    rows.forEach((row, i) => {
+      // The title under the code, then the credits, then the answer: one row, one course.
+      expect(decode(row.match(/<div role="cell" class="cell-name">([\s\S]*?)<\/div>/)?.[1] ?? '').trim()).toBe(names[i]);
+      expect(row.indexOf('cell-name')).toBeLessThan(row.indexOf('cell-cr'));
+      expect(row.indexOf('cell-cr')).toBeLessThan(row.indexOf('cell-answer'));
+      expect(row.indexOf('cell-answer')).toBeLessThan(row.indexOf('cell-remove'));
+      expect(row.match(/role="cell"/g)).toHaveLength(4);
+    });
+    expect(decode(rows[3]!)).toContain(`Counts toward CIS: elective (legacy) ${CONDITION}`);
+  });
+
+  it('never shows a Counts answer without its condition', () => {
+    for (const legacy of [true, false, null]) {
+      const text = decode(checkPage(curriculum, listed(typed('MGT 321', 'MKT 410', 'FIN 201', 'FLS 161', 'PSY 251', 'GEO 206', 'CIS 499', 'ECO 301', 'BIO 230'), legacy)));
+      const counts = text.split('Counts toward CIS').slice(1);
+      expect(counts.length).toBeGreaterThan(2);
+      for (const after of counts) expect(after, String(legacy)).toMatch(new RegExp(`^[^.]{1,60}? ${CONDITION}`));
+    }
+  });
+
+  it('draws the two filters and what each lists', () => {
+    expect(filtersHtml(listed([]))).toBe('');
+    expect(filtersHtml(listed(six)).match(/<button[^>]*>/g)).toEqual(['<button type="button" aria-pressed="true" data-filter="all">', '<button type="button" aria-pressed="false" data-filter="no">']);
+    expect(filtersHtml(listed(six, null, 'no')).match(/aria-pressed="[^"]+"/g)).toEqual(['aria-pressed="false"', 'aria-pressed="true"']);
+    expect(decode(filtersHtml(listed(six)))).toBe(' All courses Doesn’t count ');
+    expect(filtersHtml(listed(six))).toMatch(/<div class="filters" role="group" aria-label="Filter courses">/);
+    expect(filtersHtml(listed(six))).toMatch(/data-filter="no"><svg[^>]*mark-no/);
+    // "Doesn't count" lists those rows only; a row that asks or waits is not one of them.
+    const codesIn = (html: string): string[] => rowsOf(html).map(row => row.match(/<span class="code strong">([^<]+)</)?.[1] ?? '');
+    expect(codesIn(drawn(six, null, 'no'))).toEqual(['BIO 230', 'ENG 140']);
+    expect(codesIn(drawn(typed('PSY 251', 'GEO 206', 'BIO 230'), null, 'no'))).toEqual(['BIO 230']);
+    expect(drawn(typed('MGT 321', 'FLS 161'), null, 'no')).toContain('<p class="empty-hint">No course in your list is marked “Doesn’t count”.</p>');
+    expect(drawn(typed('MGT 321', 'FLS 161'), null, 'no')).not.toContain('role="table"');
+    // The reminder does not depend on the filter.
+    expect(drawn(six, null, 'no')).toContain('class="note"');
+  });
+
+  it('shows the line to change the legacy answer only when it matters', () => {
+    const line = (answer: string): RegExp => new RegExp(`<p class="legacy-line">Legacy CIS student: <strong>${answer}</strong> <button type="button" class="text-link" data-legacy-change>Change</button></p>`);
+    expect(drawn(typed('FLS 161'), true)).toMatch(line('Yes'));
+    expect(drawn(typed('MGT 321', 'GEO 206', 'PSY 251'), false)).toMatch(line('No'));
+    // Not before the answer, not without a course it matters for, and not for PSY 251 alone.
+    expect(drawn(typed('FLS 161'))).not.toContain('legacy-line');
+    expect(drawn(typed('MGT 321', 'BIO 230'), true)).not.toContain('legacy-line');
+    expect(drawn(typed('PSY 251', 'MGT 321'), true)).not.toContain('legacy-line');
+    expect(drawn([], true)).not.toContain('legacy-line');
   });
 });
