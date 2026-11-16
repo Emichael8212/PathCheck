@@ -147,8 +147,11 @@
         "Courses can be added and removed before and after seeing answers"
       ],
       "passes": false,
-      "evidence": "",
-      "tests": []
+      "evidence": "docs/sprints/F07.md — entering courses merged with tests; not passing yet: steps 3 and 4 (answers) are finished with F08",
+      "tests": [
+        "tests/check.test.ts",
+        "tests/check-page.test.ts"
+      ]
     },
     {
       "id": "F08",

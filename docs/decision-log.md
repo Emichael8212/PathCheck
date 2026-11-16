@@ -34,6 +34,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F06) Until their flows are built, `#/check` and `#/left` show only the top bar, the flow's name and the footer. | "Each choice opens its flow" can be checked now; nothing unbuilt is announced. | F07 and F11 replace them. |
 | (2026-11-16, F06) The demo's "On pace for Spring 2029" is example text for the made-up student, shown with its caveat. | The pace code is F14. | F14 checks it against the pace code and the sequence, or changes it. |
 | (2026-11-16, F06) "Report a mistake" is an email link to the placeholder address `report@pathcheck.example` until the owner gives the real one (brief §12). | As in the approved mockups; the owner provides the address before launch. | Set `REPORT_ADDRESS` in `src/wording.ts` (F18). |
+| (2026-11-16, F07) F07 is not marked passing by its own pull request. Entering courses is merged with tests, with `passes: false` and a BLOCKED line in `docs/sprints/F07.md`; F08's pull request marks it passing. | Its steps 3 and 4, and half of step 2, are about answers, and the answers are F08. | Show one kind of answer inside F07 (splits F08's logic over two features). |
+| (2026-11-16, F07) What is suggested while typing: courses the curriculum lists whose code starts with the typed text (spaces, dashes and letter case ignored, exactly as when a code is added), then those whose title has the typed words, in order, at the start of its words. At least two characters; at most six suggestions. | Simplest matching that finds a course by code or by title, as the brief asks. | Change `suggest` in `src/entries.ts`. |
+| (2026-11-16, F07) "Add" or Enter adds the typed text when it is a complete course code, in or out of the curriculum; otherwise the highlighted suggestion; otherwise nothing, with a line saying what to type. The same course is never in the list twice. | A whole code is what the student asked for; a course entered twice would be counted twice. | Change `addCourse` in `src/entries.ts`. |
+| (2026-11-16, F07) With no courses entered the table is not drawn and one line says "Add the courses you plan to take next semester." Two more lines can appear under the field: what to type, and "<code> is already in your list." | The design has no empty list and no message for text that cannot be added. | Reword in `src/check.ts`; listed in the pull request for the owner. |
+| (2026-11-16, F07) The heading of "Check my courses" is the flow's name, with no small label above it and no semester. | The design's heading is the next semester; the owner decided on 2026-11-16 that the heading has no semester (see "Owner answers"). | Owner's decision. |
+| (2026-11-16, F07) Tests of typing and the keyboard run in a simulated browser, `happy-dom` 21.0.4 (exact version), a development-only dependency. It is not in what the student downloads. | The page's behaviour can be tested on every run, not only by hand. The F06 decision (no framework) is about the app itself. | Remove it and the test file `tests/check-page.test.ts`. |
+| (2026-11-16, F07) The entered courses are kept in memory for the visit (a `CourseList`, defined in `src/check.ts` and held by `startApp` in `src/app.ts`): they survive moving between pages and are gone after a reload. | Keeping them across visits, with "Clear my data", is F19. | Draw the page from an empty list each time (in `startApp`). |
 
 ## Owner answers
 
@@ -431,6 +438,38 @@ Asked after pull request #12. The owner's words are quoted.
   in the footer. F06 builds the footer without the line and records that in DESIGN.md as a
   difference that comes from this answer.
 
+### 2026-11-16 — No semester in the "Check my courses" heading; the term for the pace line (F07, F15)
+
+Asked: the design's heading on "Check my courses" is the next semester ("Spring 2027");
+which semester is "next" on a given date? The owner's answer, in their words:
+
+**F07:** "no semester in the heading. It says "Check my courses". Nothing is derived from
+today's date."
+
+**F15** (pace line, transcript only), "if it needs the term the typed courses are for":
+
+- "Default term = the next Fall or Spring after the latest term on the transcript. The
+  latest term is the one with In progress rows if there is one, otherwise the latest graded
+  term. Summer terms are skipped. Example: transcript ends with Fall 2026 in progress →
+  default Spring 2027."
+- "The pace line shows that term as a small control the student can change (Fall/Spring,
+  the default term and the next few after it). For example: "15 credits in [Spring 2027 ▾]
+  — at this pace you finish Fall 2029, one semester after your target.""
+- "Never derive the term from today's date."
+- "Tests: an in-progress term gives the next Fall/Spring; no in-progress term uses the
+  latest graded term; a summer latest term skips to Fall; changing the term changes the
+  finish semester."
+- "If F15 doesn't need a term, build nothing for it."
+
+*Agent's notes, not owner decisions:*
+- The design's page heading therefore differs from the screenshots for good: recorded in
+  `docs/design/DESIGN.md`, "Where the app differs from the screenshots".
+- "The next few after it" leaves the number of terms offered to F15's contract; it is not
+  an academic rule.
+- The rule is written for F15. Whether F14 (pace in "See what I have left") uses the same
+  "latest term on the transcript" as its starting point is for F14's contract to check
+  against the brief, and to ask if the brief does not say.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -438,7 +477,8 @@ stand-in until the owner answers; it is not an owner decision.
 
 None open now. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
-F08 step 5; the new F09 step; and the last-reviewed line.)
+F08 step 5; the new F09 step; the last-reviewed line; and the semester in the heading of
+"Check my courses".)
 
 **To ask later**, when F17 or F18 starts, whichever is first: with no review date in the
 curriculum file, F17's last-reviewed line and F18 steps 1 and 3 cannot be shown as written

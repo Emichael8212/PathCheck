@@ -396,9 +396,12 @@ export function loadCurriculum(data: unknown): Curriculum {
 // and the digits: spaces of any kind, hyphens and dashes, and characters that take no room.
 const SEPARATORS = /[\s\u00AD\u200B-\u200D\u2060\uFEFF\u2010-\u2015\u2212\uFE58\uFE63\uFF0D-]+/g;
 
+/** Typed text in capitals, without the spaces, dashes and invisible marks a code may be written with. */
+export const withoutSeparators = (input: string): string => input.normalize('NFKC').toUpperCase().replace(SEPARATORS, '');
+
 /** A course code the way a student might type or paste it, as subject, space, number; or null. */
 export function normalizeCode(input: string): string | null {
-  const match = /^([A-Z]{2,4})(\d{3})$/.exec(input.normalize('NFKC').toUpperCase().replace(SEPARATORS, ''));
+  const match = /^([A-Z]{2,4})(\d{3})$/.exec(withoutSeparators(input));
   return match ? `${match[1]} ${match[2]}` : null;
 }
 

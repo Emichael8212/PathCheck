@@ -9,6 +9,26 @@ Read this before writing a sprint contract; delete a line when its feature has d
   (F03 review; done for placement in F04)
 
 ## For F08 (check my courses, no transcript)
+- **F08 finishes F07.** F07's entering is merged but F07 is BLOCKED in
+  `docs/sprints/F07.md`. F08's contract must contain these three on-screen checks, and
+  F08's pull request marks F07 passing (`passes`, `evidence`) and removes its BLOCKED line:
+  a course that is not in the curriculum can be entered and gets its answer; courses can
+  be added and removed before and after answers are shown; every answer row shows the
+  course title under its code.
+- The list is `CourseList` (`src/check.ts`, held by `startApp`): entries in typed order,
+  never the same course twice, each an `Entry` (`src/entries.ts`) with `kind` "listed",
+  "elective" (by the rule only) or "unknown" (CIS 304 and CIS 415 are "unknown").
+  "listed" means only "in a curriculum list, with a title and credits": the legacy-only
+  electives are "listed" too. Whether a course counts is decided by placing it and by the
+  legacy answer, never by `kind`. (F07 review)
+- The table is drawn by `entriesHtml` in `src/check.ts` with three cells per row. The
+  design's third column, "Does it count?", is left free for F08, with the row tint, the
+  two filters, the summary's counts and the sequence reminder. `tests/check.test.ts` "says
+  nothing yet about what counts" must be replaced, not loosened.
+- Only the list and the suggestions are redrawn; the field never is. Keep it so.
+- At 375 the open suggestion menu covers the top of the first course row; in the design it
+  covers the filter row, which F08 adds. Check it again when the filters are there.
+  (F07 QA)
 - Use the sentences in `src/wording.ts`: `countsToward(block name)`, `CONDITION` and
   `NOT_IN_CURRICULUM`. The Start page's examples show the same constants, so a change
   changes both. (F06)
@@ -27,11 +47,10 @@ Read this before writing a sprint contract; delete a line when its feature has d
 - Typed courses need a third, weaker state than passed and in progress, with its own
   credits, so that pace is not mixed with courses really in progress. (F04 review)
 
-## For F07 (entering courses)
-- Suggestions come from the courses of the curriculum. Never suggest a course from the
-  elective rule's exceptions (CIS 304, CIS 415). (F04 fix QA)
-
 ## For F09 (credit total)
+- Each row already shows its credits (`Entry.credits`): the curriculum's, the elective
+  rule's, or `UNKNOWN_COURSE_CREDITS` for a course PathCheck doesn't know. F09 makes the
+  last one editable and adds the total. (F07)
 - The default for a course PathCheck doesn't know is `UNKNOWN_COURSE_CREDITS` in
   `src/credits.ts`; the Start demo's "3 cr" for BIO 230 uses it. Build the total there.
   (F06)
@@ -68,6 +87,8 @@ Read this before writing a sprint contract; delete a line when its feature has d
   owner's sentence, with or without a transcript. (F04 fix review)
 
 ## For F12 (check my courses, with a transcript)
+- The design has "No transcript added" at the right of the page heading, and the card "Add
+  your transcript for an exact answer" under the list. Neither is drawn yet. (F07)
 - "This slot is already filled" must not be said for a typed sequence course the student
   still needs: with HIS 131 and GEO 206 passed, HIS 132 is what completes the sequence.
   Look at the sequence's missing courses, not only at the pick. (F04 review)
@@ -105,8 +126,23 @@ last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCK
   while another course holds its pick. (F05)
 
 ## For F19 (clear my data)
+- The entered courses live in memory only (a `CourseList` from `src/check.ts`, held by
+  `startApp` in `src/app.ts`).
+  F19 keeps them across visits and clears them. (F07)
 - "Clear my data" must also forget the legacy answer, through `clearLegacyAnswer`
   (`src/legacy.ts`). (F05)
+
+## For F15 (the pace line in "Check my courses", with a transcript)
+- Owner answer, 2026-11-16 ("No semester in the heading; the term for the pace line"). If
+  the pace line needs the term the typed courses are for: the default is the next Fall or
+  Spring after the latest term on the transcript (the term with In progress rows if there
+  is one, otherwise the latest graded term; summer terms are skipped; Fall 2026 in
+  progress gives Spring 2027). The line shows that term as a small control the student can
+  change (Fall/Spring, the default term and the next few after it). The term is never
+  derived from today's date. If F15 doesn't need a term, build nothing for it.
+- The owner's tests: an in-progress term gives the next Fall/Spring; no in-progress term
+  uses the latest graded term; a summer latest term skips to Fall; changing the term
+  changes the finish semester.
 
 ## For F14 (pace)
 - The Start demo shows "On pace for Spring 2029" for its made-up student
