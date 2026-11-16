@@ -242,11 +242,20 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   them. Only under about 630px wide (a phone) is there no room beside them; there it drops
   below the other three, at the left.
 
+### 2026-11-15 — M0 approved; GitHub milestones
+
+- **The owner approved PR #4** ("I approve Pr 4"). This is the M0 check: the design in
+  `docs/design/` and the mockups are approved. F01 is marked passing and PR #4 is merged.
+- **GitHub milestones.** The owner created four: "M0: Design", "M1: Working prototype", "M2:
+  Transcript upload", "M3: Public launch". Each PR is attached to its milestone when it is
+  opened. The owner closes a milestone themselves, once the agent has given proof that it is
+  ready to be closed. `features.json` stays the source of truth.
+
 ## Milestone checks
 
 | Milestone | Date | Owner's answer |
 |---|---|---|
-| M0 | | (sequence rule confirmed 2026-11-15, see above) |
+| M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
 | M1 | | |
 | M2 | | |
 | M3 | | |

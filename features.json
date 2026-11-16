@@ -42,9 +42,11 @@
         "The look is rebuilt in plain project code: no Figma Make component library, toast or icon pack is copied in",
         "Stop: the owner approves the mockups side by side with the published design; F01 passes and its PR is merged only then; the answer is recorded in docs/decision-log.md"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F01.md",
+      "tests": [
+        "tests/mockups.test.js"
+      ]
     },
     {
       "id": "F02",
