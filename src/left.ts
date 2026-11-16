@@ -18,7 +18,7 @@ import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings,
 import { NOTHING_SHOWN, type Shown } from './report';
 import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { type Refusal } from './upload';
-import { ANOTHER_FORGETS, CHANGE, LEGACY_LINE, PRIVACY, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
+import { ANOTHER_FORGETS, CAVEAT, CHANGE, LEGACY_LINE, PRIVACY, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
 
 /** Where the student is in this flow. */
 export interface LeftState {
@@ -309,8 +309,8 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
 }
 
 /**
- * What the result shows, for "Report a mistake": the credits, the pace answer and the
- * settings it was made with, each requirement's status, the sequence sentence, the line
+ * What the result shows, for "Report a mistake": that rows still need fixing (when they
+ * do), the credits, the pace answer with its caveat and the settings it was made with, each requirement's status, the sequence sentence, the line
  * under a plan that ends late, and the legacy answer when one was given. Nothing before
  * there is a result, and nothing of the transcript itself.
  */
@@ -324,10 +324,14 @@ export function leftShown(curriculum: Curriculum, state: LeftState, legacy: Lega
   const pace = paceOf(left + checklist.extraLeft, latest, state.pace);
   const settings = settingsSentence(pace, state.pace);
   const late = lateSentence(planOf(standings, curriculum, legacy === true, latest, state.pace, state.moves));
+  const toFix = stillToFix(transcript).length;
   return {
     lines: [
+      // What the page says about its own numbers goes with them: rows still to fix, and the caveat of an estimate.
+      ...(toFix > 0 ? [TEXT.toFix(toFix)] : []),
       TEXT.reportCredits(left, counted, inProgress, total),
       paceSentence(pace),
+      ...(pace.kind === 'on' || pace.kind === 'off' ? [CAVEAT] : []),
       ...(settings ? [settings] : []),
       ...checklist.cards.map(card => TEXT.reportCard(card.name, card.status, card.counted, card.needed)),
       ...(checklist.sequence.kind === 'none' ? [] : [checklist.sequence.text]),

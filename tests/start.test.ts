@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { facts as approvedFacts, start as approvedStart } from '../mockups/data.js';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
+import { TEST_DAY } from './day';
 import { renderPage, startApp, type AppWindow } from '../src/app';
 import { UNKNOWN_COURSE_CREDITS } from '../src/credits';
 import { CurriculumError, curriculum, findCourse, loadCurriculum, programs, type Program } from '../src/curriculum';
@@ -405,6 +406,7 @@ describe('the demo', () => {
       addEventListener: (type: string, listener: (event: { preventDefault(): void }) => void): void => { handlers[type] = listener; },
       matchMedia: (query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)' && reducedMotion }),
       scrollTo: (x: number, y: number): void => { scrolls.push([x, y]); },
+      today: TEST_DAY,
     };
     const go = (to: string): void => { win.location.hash = to; handlers.hashchange?.({ preventDefault: () => undefined }); };
     return { win: win as unknown as AppWindow, timers, handlers, heading, scrolls, page, go, location: win.location, document: win.document };

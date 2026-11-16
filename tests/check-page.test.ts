@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { onTestDay } from './day';
 import { startApp, type AppWindow } from '../src/app';
 import { emptyList, setupCheck } from '../src/check';
 import { curriculum } from '../src/curriculum';
@@ -59,7 +60,7 @@ beforeEach(() => {
   window.localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
   window.history.replaceState(null, '', '#/check');
-  app = startApp(window as unknown as AppWindow);
+  app = startApp(onTestDay(window as unknown as AppWindow));
 });
 // Each test's app stops listening to the window, so that it takes no part in the next test.
 afterEach(() => { app.stop(); });
@@ -435,7 +436,7 @@ describe('the list', () => {
     expect(rows()).toEqual(['BIO 230 3 cr', 'ENG 131 English Composition I 3 cr']);
     // A new visit starts with an empty list.
     document.body.innerHTML = '<div id="app"></div>';
-    startApp(window as unknown as AppWindow);
+    startApp(onTestDay(window as unknown as AppWindow));
     expect(rows()).toEqual([]);
   });
 });
@@ -446,7 +447,7 @@ describe('the answers', () => {
   const QUESTION = 'Are you a legacy CIS student? Yes No';
   const reload = (): void => {
     document.body.innerHTML = '<div id="app"></div>';
-    app = startApp(window as unknown as AppWindow);
+    app = startApp(onTestDay(window as unknown as AppWindow));
   };
   afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -1217,7 +1218,7 @@ describe('the pace line', () => {
     window.localStorage.clear();
     app.stop();
     document.body.innerHTML = '<div id="app"></div>';
-    app = startApp(window as unknown as AppWindow);
+    app = startApp(onTestDay(window as unknown as AppWindow));
     add('fin 201');
     add('cis 499');
     await withTranscript('sample-b');

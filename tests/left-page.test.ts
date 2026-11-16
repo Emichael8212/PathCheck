@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { onTestDay } from './day';
 import { startApp, type App, type AppWindow } from '../src/app';
 import { curriculum } from '../src/curriculum';
 import { openTranscript, reviewedStandings } from '../src/review';
@@ -68,7 +69,7 @@ beforeEach(() => {
   window.localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
   window.history.replaceState(null, '', '#/left');
-  app = startApp(window as unknown as AppWindow);
+  app = startApp(onTestDay(window as unknown as AppWindow));
 });
 // Each test's app stops listening to the window, so that it takes no part in the next test.
 afterEach(() => { app.stop(); });
@@ -488,7 +489,7 @@ describe('going on', () => {
     expect(rowOf(7)).toContain('C Passed');
     // A new visit starts without a transcript.
     document.body.innerHTML = '<div id="app"></div>';
-    const fresh = startApp(window as unknown as AppWindow);
+    const fresh = startApp(onTestDay(window as unknown as AppWindow));
     expect(fresh.left.transcript).toBeNull();
     expect(document.querySelector('[data-drop]')).not.toBeNull();
     fresh.stop();
@@ -688,7 +689,7 @@ describe('the checklist', () => {
     // A new visit with the same transcript does not ask again.
     app.stop();
     document.body.innerHTML = '<div id="app"></div>';
-    app = startApp(window as unknown as AppWindow);
+    app = startApp(onTestDay(window as unknown as AppWindow));
     await app.takeFile(madeUp('sample-b'));
     $('[data-continue]').click();
     expect(document.querySelector('[data-legacy-first]')).toBeNull();
@@ -698,7 +699,7 @@ describe('the checklist', () => {
     window.localStorage.clear();
     app.stop();
     document.body.innerHTML = '<div id="app"></div>';
-    app = startApp(window as unknown as AppWindow);
+    app = startApp(onTestDay(window as unknown as AppWindow));
     await app.takeFile(madeUp('sample-a'));
     $('[data-continue]').click();
     expect(document.querySelector('[data-legacy-first], .legacy-line')).toBeNull();

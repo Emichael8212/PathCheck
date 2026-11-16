@@ -57,8 +57,8 @@ export function reviewIsOld(reviewed: string | null, today: Day | null): boolean
   if (!parts || !today) return false;
   const year = Number(parts[1]) + 1;
   const month = Number(parts[2]);
-  const day = Math.min(Number(parts[3]), new Date(year, month, 0).getDate());
-  return today.year !== year ? today.year > year : today.month !== month ? today.month > month : today.day > day;
+  // (A day the later month does not have is never passed within that month: the next month's first day is the first day after it.)
+  return today.year !== year ? today.year > year : today.month !== month ? today.month > month : today.day > Number(parts[3]);
 }
 
 /**

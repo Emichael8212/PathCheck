@@ -12,12 +12,13 @@ const TEXT = {
   ask: 'What looks wrong?',
   shown: 'What PathCheck showed:',
   more: (count: number): string => `… and ${count} more ${count === 1 ? 'course' : 'courses'}, left out to keep this message short.`,
+  rest: '… the rest is left out to keep this message short.',
 };
 
 /** What a page showed, as lines of an email. */
 export interface Shown {
   readonly lines: readonly string[];
-  /** The list of courses: the one part that is cut, from its end, when the link would be too long. */
+  /** The list of courses: the part that is cut first, from its end, when the link would be too long. */
   readonly list?: readonly string[];
   /** What comes after the list. */
   readonly after?: readonly string[];
@@ -34,15 +35,22 @@ const hrefOf = (subject: string, body: string): string => `mailto:${REPORT_ADDRE
 export function reportHref(subject: string, shown: Shown, closing: readonly string[]): string {
   const list = shown.list ?? [];
   const after = shown.after ?? [];
-  const bodyWith = (kept: number): string => {
+  const withResult = (result: readonly string[]): string => hrefOf(subject, [TEXT.ask, '', '', ...(result.length > 0 ? [TEXT.shown, ...result, ''] : []), ...closing].join('\r\n'));
+  const resultWith = (kept: number): string[] => {
     const cut = list.length - kept;
-    const result = [...shown.lines, ...list.slice(0, kept), ...(cut > 0 ? [TEXT.more(cut)] : []), ...after];
-    return [TEXT.ask, '', '', ...(result.length > 0 ? [TEXT.shown, ...result, ''] : []), ...closing].join('\r\n');
+    return [...shown.lines, ...list.slice(0, kept), ...(cut > 0 ? [TEXT.more(cut)] : []), ...after];
   };
   // Courses are left out from the end of the list until the link is short enough.
-  for (let kept = list.length; kept > 0; kept--) {
-    const href = hrefOf(subject, bodyWith(kept));
+  for (let kept = list.length; kept >= 0; kept--) {
+    const href = withResult(resultWith(kept));
     if (href.length <= REPORT_LIMIT) return href;
   }
-  return hrefOf(subject, bodyWith(0));
+  // Still too long without any course (no page of today's is): the other lines go from the end, and the message says so.
+  const rest = resultWith(0);
+  while (rest.length > 0) {
+    rest.pop();
+    const href = withResult([...rest, TEXT.rest]);
+    if (href.length <= REPORT_LIMIT) return href;
+  }
+  return withResult([]);
 }

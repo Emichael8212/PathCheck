@@ -92,6 +92,7 @@ beforeEach(() => {
   start();
 });
 afterEach(() => {
+  vi.useRealTimers();
   app.stop();
   window.removeEventListener('click', keepHere);
   delete win.today;
@@ -163,6 +164,17 @@ describe('"Report a mistake"', () => {
         expect(email.lines.slice(-2), hash).toEqual([PROGRAM, REVIEWED]);
       }
     }
+    // The email is filled in as soon as the link is pressed or reached, not only when it is followed:
+    // a middle click, the link's own menu or the keyboard get the page as it now stands.
+    go('#/check');
+    add('mgt 321');
+    const link = $<HTMLAnchorElement>('.foot a');
+    expect(emailOf(link.getAttribute('href') ?? '').lines).toContain('No course is in the list.');
+    link.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    expect(emailOf(link.getAttribute('href') ?? '').lines.join('\n')).toContain('MGT 321 — Counts toward CIS');
+    $('[data-remove="MGT 321"]').click();
+    link.dispatchEvent(new Event('focusin', { bubbles: true }));
+    expect(emailOf(link.getAttribute('href') ?? '').lines).toContain('No course is in the list.');
     // A page with nothing to show yet says nothing about a result.
     go('#/');
     expect(report().lines).toEqual(['What looks wrong?', '', '', PROGRAM, REVIEWED]);
@@ -207,7 +219,9 @@ describe('"Report a mistake"', () => {
     expect(paceLine()).toContain(`credits in ${lists()[0]} — `);
     expect(paceLine()).toMatch(new RegExp(`${lists()[1]}\\.$`));
     expect(paceLine()).toMatch(/credits in Spring 2027 — at this pace you finish .* your target/);
-    expect(shown().indexOf(paceLine())).toBe(shown().length - 1);
+    // A finish is never named without its caveat, in the email as on the page.
+    expect(shown().slice(-2)).toEqual([paceLine(), 'Credits only — course order may add semesters.']);
+    expect(tidy($('.pace-line .caveat').textContent)).toBe('Credits only — course order may add semesters.');
     const first = paceLine();
     choose('[data-line-term]', 'Fall 2027');
     expect(paceLine()).toMatch(/credits in Fall 2027 — at this pace you finish/);
@@ -229,23 +243,26 @@ describe('"Report a mistake"', () => {
     $('[data-continue]').click();
     const cards = [...document.querySelectorAll<HTMLElement>('.req')];
     const lines = shown();
-    expect(lines.slice(0, 3)).toEqual([
+    expect(lines.slice(0, 4)).toEqual([
       '81 credits left, 27 counted, 13 in progress, 121 in total',
       'On pace for Spring 2029: about 16 credits a term',
+      // The estimate's caveat goes with it, in the email as on the page.
+      'Credits only — course order may add semesters.',
       'Target semester: Spring 2029. Fewest credits per term: 12 credits. Most credits per term: 18 credits. Summers: Off.',
     ]);
+    expect(tidy($('[data-pace]').textContent)).toContain(lines[2]!);
     // Every requirement with its status and credits, as its card has them.
-    expect(lines.slice(3, 3 + cards.length)).toEqual(cards.map(card => `${tidy(card.querySelector('h3, .req-name')?.textContent)} — ${card.dataset.status}, ${tidy(card.querySelector('.req-credits, .req-cr')?.textContent).replace(/ cr$/, '')} cr`));
-    expect(lines[3]).toBe('Orientation — Done, 1 / 1 cr');
+    expect(lines.slice(4, 4 + cards.length)).toEqual(cards.map(card => `${tidy(card.querySelector('h3, .req-name')?.textContent)} — ${card.dataset.status}, ${tidy(card.querySelector('.req-credits, .req-cr')?.textContent).replace(/ cr$/, '')} cr`));
+    expect(lines[4]).toBe('Orientation — Done, 1 / 1 cr');
     expect(cards.length).toBe(9);
     // The sequence sentence the page shows; no legacy answer was asked for or given.
-    expect(lines[3 + cards.length]).toBe(tidy($('.sequence').textContent));
-    expect(lines).toHaveLength(4 + cards.length);
+    expect(lines[4 + cards.length]).toBe(tidy($('.sequence').textContent));
+    expect(lines).toHaveLength(5 + cards.length);
     // The pace settings change: the pace answer and the settings line in the link used next are the new ones.
     $('[data-stepper="most"] [data-delta="-1"]').click();
     $('[data-pace-summers]').click();
     expect(shown()[1]).toBe(tidy($('[data-pace] h2').textContent) + ': ' + tidy($('[data-pace] h2 + p').textContent));
-    expect(shown()[2]).toMatch(/^Target semester: .*Most credits per term: 17 credits\. .*Summers: On\.$/);
+    expect(shown()[3]).toMatch(/^Target semester: .*Most credits per term: 17 credits\. .*Summers: On\.$/);
     $('[data-pace-summers]').click();
     $('[data-stepper="most"] [data-delta="1"]').click();
     // A move that makes the plan end later: the line under the plan is in the email.
@@ -261,6 +278,22 @@ describe('"Report a mistake"', () => {
     $('[data-legacy="yes"]').click();
     expect(shown()[0]).toBe('89 credits left, 26 counted, 6 in progress, 121 in total');
     expect(shown()[shown().length - 1]).toBe('Legacy CIS student: Yes');
+    // Rows that still need fixing: the page's own note comes first, so that the numbers are not read as final.
+    Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: [row('ENG', '131'), row('MGT', '321', 'B+')] }, curriculum), continued: true });
+    go('#/check');
+    go('#/left');
+    expect(shown()[0]).toBe(tidy($('[data-to-fix] p').textContent));
+    expect(shown()[0]).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left, the pace and the draft plan may change too.');
+    expect(shown()[1]).toMatch(/^\d+ credits left, /);
+    // And on "Check my courses", that the answers are not exact yet.
+    go('#/check');
+    add('mgt 422');
+    expect(shown().slice(0, 2)).toEqual(['Transcript added', tidy($('.exact-warning').textContent)]);
+    expect(shown()[1]).toBe('1 row of your transcript still needs fixing, so these answers are not exact yet. The pace may change too.');
+    go('#/left');
+    $('[data-another]').click();
+    await result('sample-b');
+    expect(shown()[0]).toBe('89 credits left, 26 counted, 6 in progress, 121 in total');
     // No row taken on: no result lines.
     $('.review-foot [data-review-again]').click();
     for (let left = document.querySelectorAll('[data-out]').length; left > 0; left = document.querySelectorAll('[data-out]').length) $('[data-out]').click();
@@ -300,12 +333,19 @@ describe('"Report a mistake"', () => {
     expect(listed.length).toBeLessThan(30);
     expect(listed.map(line => line.slice(0, line.indexOf(' — ')))).toEqual(codes.slice(0, listed.length));
     expect(more).toBe(`… and ${30 - listed.length} more courses, left out to keep this message short.`);
-    expect(lines[lines.length - 1]).toMatch(/at this pace you finish|credits/);
-    expect(lines.indexOf(more!)).toBe(lines.length - 2);
+    expect(lines.slice(-2)).toEqual([expect.stringMatching(/at this pace you finish/), 'Credits only — course order may add semesters.']);
+    expect(lines.indexOf(more!)).toBe(lines.length - 3);
     // One course too many is said in the singular; a list that fits is whole.
     const one = emailOf(reportHref('s', { lines: [], list: ['x'.repeat(900), 'y'.repeat(900)] }, [])).lines;
     expect(one).toContain('… and 1 more course, left out to keep this message short.');
     expect(emailOf(reportHref('s', { lines: ['a'], list: ['b', 'c'], after: ['d'] }, ['e'])).lines).toEqual(['What looks wrong?', '', '', 'What PathCheck showed:', 'a', 'b', 'c', 'd', '', 'e']);
+    // Lines that are too long even without any course are cut from the end too, and the message says so: the link never passes the limit.
+    const long = reportHref('s', { lines: Array.from({ length: 40 }, (_, i) => `${i} ${'z'.repeat(78)}`), list: ['AAA 101 — x'], after: ['after'] }, ['closing']);
+    expect(long.length).toBeLessThanOrEqual(REPORT_LIMIT);
+    const cut = emailOf(long).lines;
+    expect(cut[cut.indexOf('') + 2]).toBe('What PathCheck showed:');
+    expect(cut.slice(-3)).toEqual(['… the rest is left out to keep this message short.', '', 'closing']);
+    expect(cut[4]).toMatch(/^0 z+$/);
     // Using the link asks no server for anything.
     expect(requests).not.toHaveBeenCalled();
     requests.mockRestore();
@@ -418,7 +458,13 @@ describe('the banner of an old review', () => {
     // The same visit on two days fifteen years apart: every page and every email is the same, apart from the banner.
     const visit = async (year: number): Promise<{ pages: string[]; emails: string[]; banners: boolean[] }> => {
       app.stop();
+      // The device's own clock is moved, so that anything that read it would show.
+      vi.useFakeTimers({ now: new Date(year, 2, 15, 12), toFake: ['Date'] });
       start(year, 3, 15);
+      delete win.today;
+      go('#/check');
+      go('#/');
+      expect(new Date().getFullYear()).toBe(year);
       const pages: string[] = [];
       const emails: string[] = [];
       const banners: boolean[] = [];
@@ -445,6 +491,7 @@ describe('the banner of an old review', () => {
     };
     const early = await visit(2020);
     const late = await visit(2035);
+    vi.useRealTimers();
     expect(early.banners).toEqual([false, false, false, false, false]);
     expect(late.banners).toEqual([true, true, true, true, true]);
     expect(late.emails).toEqual(early.emails);

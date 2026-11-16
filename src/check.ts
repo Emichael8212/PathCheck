@@ -283,13 +283,13 @@ export function paceLineSentence(view: LineView | null): string {
 const termList = (label: string, marker: string, terms: readonly Term[], chosen: Term): string => `<select class="line-select" aria-label="${esc(label)}" ${marker}>${
   terms.map(term => `<option value="${esc(termName(term))}"${termName(term) === termName(chosen) ? ' selected' : ''}>${esc(termName(term))}</option>`).join('')}</select>`;
 
-/** The pace line under the numbers; nothing without a transcript. A finish is never named without the caveat. */
 /** The pace line written out as the page has it, with both of its lists' terms in their places: for a report. */
 function paceLineWritten(view: LineView | null): string {
   if (!view || view.kind !== 'line') return paceLineSentence(view);
   const parts = lineParts(view.line);
   return `${parts.before} ${termName(view.line.term)}${parts.middle} ${termName(view.line.target)}${parts.after}`;
 }
+/** The pace line under the numbers; nothing without a transcript. A finish is never named without the caveat. */
 export function paceLineHtml(view: LineView | null): string {
   if (!view) return '';
   if (view.kind === 'text') return `<p class="pace-line" data-pace-line>${esc(view.text)}</p>`;
@@ -341,18 +341,22 @@ const answerWords = (answer: Answer): string => (answer.kind === 'ask' ? LEGACY_
   : answer.kind === 'counts' && answer.condition ? `${answer.text} (${answer.condition})` : answer.text);
 
 /**
- * What the page shows, for "Report a mistake": whether a transcript is in use, the legacy
- * answer when one was given, each course with its answer, and the pace line. Nothing of
- * the transcript itself.
+ * What the page shows, for "Report a mistake": whether a transcript is in use (and that
+ * the answers are not exact while rows of it still need fixing), the legacy answer when
+ * one was given, each course with its answer, and the pace line with its caveat. Nothing
+ * of the transcript itself.
  */
 export function checkShown(curriculum: Curriculum, list: CourseList, transcript: OnCheck): Shown {
   const { entries, legacy } = list;
   const answers = answersFor(entries, curriculum, legacy, useOf(transcript));
-  const pace = paceLineWritten(paceLineFor(list, curriculum, transcript));
+  const view = paceLineFor(list, curriculum, transcript);
+  const pace = paceLineWritten(view);
+  // What the page says about its own answers goes with them: that they are not exact yet, and the caveat of a finish.
+  const notExact = transcript.state === 'added' && transcript.use && transcript.toFix > 0 ? [TEXT.notExact(transcript.toFix)] : [];
   return {
-    lines: [statusText(transcript), ...(legacy === null ? [] : [`${TEXT.legacyLine} ${legacy ? LEGACY_YES : LEGACY_NO}`]), ...(entries.length === 0 ? [TEXT.reportEmpty] : [])],
+    lines: [statusText(transcript), ...notExact, ...(legacy === null ? [] : [`${TEXT.legacyLine} ${legacy ? LEGACY_YES : LEGACY_NO}`]), ...(entries.length === 0 ? [TEXT.reportEmpty] : [])],
     list: entries.map((entry, i) => `${entry.code} — ${answerWords(answers[i] as Answer)}`),
-    after: pace ? [pace] : [],
+    after: pace ? [pace, ...(view?.kind === 'line' ? [CAVEAT] : [])] : [],
   };
 }
 

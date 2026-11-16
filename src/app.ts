@@ -57,7 +57,7 @@ export interface AppEvent {
 interface AppRoot {
   innerHTML: string;
   querySelector(selector: string): unknown;
-  addEventListener?(type: 'click', listener: (event: { readonly target: unknown }) => void): void;
+  addEventListener?(type: 'click' | 'pointerdown' | 'focusin', listener: (event: { readonly target: unknown }) => void): void;
 }
 
 export interface App {
@@ -289,14 +289,21 @@ export function startApp(win: AppWindow): App {
     // "Browse files" on Start; the page of the flow has its own.
     const target = event.target as { closest?(selector: string): unknown } | null;
     if (route === 'start' && target?.closest?.('[data-browse]')) browse();
-    // "Report a mistake": the email is filled in with what the page shows at this moment,
-    // whatever was changed since the page was drawn. Then the browser follows the link.
-    const report = target?.closest?.('.foot a') as { setAttribute(name: string, value: string): void } | null | undefined;
-    if (report) {
-      report.setAttribute('href', route === 'check' ? checkReport(curriculum, courses, onCheck())
-        : route === 'left' ? leftReport(curriculum, left, courses.legacy) : reportLink(curriculum));
-    }
+    fillReport(event);
   });
+  // "Report a mistake": the email is filled in with what the page shows at this moment,
+  // whatever was changed since the page was drawn. Then the browser follows the link. It
+  // is filled in as soon as the link is pressed or reached (a middle click, the link's
+  // own menu, the keyboard), not only when it is followed.
+  function fillReport(event: { readonly target: unknown }): void {
+    const target = event.target as { closest?(selector: string): unknown } | null;
+    const report = target?.closest?.('.foot a') as { setAttribute(name: string, value: string): void } | null | undefined;
+    if (!report) return;
+    report.setAttribute('href', route === 'check' ? checkReport(curriculum, courses, onCheck())
+      : route === 'left' ? leftReport(curriculum, left, courses.legacy) : reportLink(curriculum));
+  }
+  root.addEventListener?.('pointerdown', fillReport);
+  root.addEventListener?.('focusin', fillReport);
 
   // A file dropped on the page must never make the browser open it in place of PathCheck.
   // Dragged text is left alone. A file is taken only when it is dropped on a drop zone;
