@@ -71,11 +71,11 @@
       "milestone": "M1",
       "description": "Which transcript rows count: grades, W and I, repeats, in progress, and transfer/AP/CLEP",
       "steps": [
-        "Grades are letters only (A, B, C, D, F), with no plus/minus and no pass-type grades: C or better counts; D and F never count and the course is flagged \"must be repeated\"",
+        "Grades are letters only (A, B, C, D, F), with no plus/minus and no pass-type grades: C or better counts; D and F never count and the course is flagged \"must be repeated\" (rows in the transfer-credit section are not grade-checked; see step 5)",
         "W and I don't count",
         "When a course is repeated, the highest grade counts",
         "A row with no grade yet is In progress: assumed to pass, shown as \"In progress\", never marked Done",
-        "Transfer, AP and CLEP rows count when shown under an ASU course code, with no grade check if no grade is shown",
+        "Transfer, AP and CLEP rows shown under an ASU course code are treated as passed, whatever their grade column shows (blank, T, TR, a letter or anything else). They then count only if the course is in the curriculum or matches the elective rule, like any passed course.",
         "Each of these rules has an automated test using synthetic rows"
       ],
       "passes": true,
@@ -199,7 +199,7 @@
         "The unofficial transcript PDF is the only input; there is no typed transcript entry",
         "Before the first upload, one plain sentence says what is sent and that it isn't kept",
         "After upload, the review step shows what was read; the student can fix a misread row",
-        "In-progress rows show \"In progress\"; below C, W and I rows are shown as not counting; transfer, AP and CLEP rows under an ASU course code are shown as counting",
+        "In-progress rows show \"In progress\"; below C, W and I rows are shown as not counting; rows in the transfer-credit section are labelled 'Transfer credit' and treated as passed, whatever their grade column shows; whether each one counts follows the normal curriculum rules.",
         "Continuing uses the reviewed rows, including the student's fixes"
       ],
       "passes": false,

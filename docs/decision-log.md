@@ -291,11 +291,19 @@ when a grade is shown. For transfer rows it therefore also overrides §5 "Grades
 grade below C never counts; flag 'must be repeated'"), which still holds for every row
 outside the transfer section.
 
+**Approved the same day (2026-11-16): three feature steps reworded** so they match this
+rule and the test "a transfer row outside the curriculum doesn't count". The owner's final
+wording, now in `features.json`:
+- F03, step 1: adds "(rows in the transfer-credit section are not grade-checked; see step 5)".
+- F03, step 5: "Transfer, AP and CLEP rows shown under an ASU course code are treated as
+  passed, whatever their grade column shows (blank, T, TR, a letter or anything else). They
+  then count only if the course is in the curriculum or matches the elective rule, like any
+  passed course."
+- F11, step 4: "rows in the transfer-credit section are labelled 'Transfer credit' and
+  treated as passed, whatever their grade column shows; whether each one counts follows the
+  normal curriculum rules."
+
 *Agent's notes, not owner decisions:*
-- `features.json` F03 still words two steps the old way: step 1 ("D and F never count",
-  with no exception for transfer rows) and step 5 ("with no grade check if no grade is
-  shown"). Feature steps are only changed with the owner's approval; new wording is
-  proposed in the pull request for this fix.
 - When a course has both an ordinary passing row and transfer credit, the ordinary row is
   the one shown as deciding, because the transfer row's grade column is not read at all.
 - A row is transfer credit only when the reader marks it so with a plain yes; anything
