@@ -46,11 +46,18 @@ let app: App;
 // The browser's print window, and the print media query: the simulated browser has neither.
 let printed: ReturnType<typeof standing>[];
 let mediaListeners: ((change: { matches: boolean }) => void)[];
+let printMatches = false;
+/** The print media query turns on or off, and the browser says so. */
+const media = (matches: boolean): void => {
+  printMatches = matches;
+  for (const listener of [...mediaListeners]) listener({ matches });
+};
 /** A browser's print window says when printing starts and ends; a 'silent' one gives no signal at all. */
 type PrintWindow = 'says' | 'silent' | 'none';
 const browser = (kind: PrintWindow = 'says'): AppWindow => {
   printed = [];
   mediaListeners = [];
+  printMatches = false;
   const win = window as unknown as AppWindow & { print?: () => void; matchMedia: unknown };
   if (kind === 'none') delete win.print;
   else {
@@ -61,7 +68,7 @@ const browser = (kind: PrintWindow = 'says'): AppWindow => {
     };
   }
   win.matchMedia = (query: string) => ({
-    matches: false,
+    get matches() { return query === 'print' && printMatches; },
     addEventListener: (_type: string, listener: (change: { matches: boolean }) => void) => { if (query === 'print') mediaListeners.push(listener); },
     removeEventListener: (_type: string, listener: (change: { matches: boolean }) => void) => { mediaListeners = mediaListeners.filter(one => one !== listener); },
   });
@@ -177,7 +184,7 @@ describe('what is prepared for paper', () => {
     cards[6]!.open = false;
     const later = standing();
     window.dispatchEvent(new Event('afterprint'));
-    for (const listener of mediaListeners) listener({ matches: false });
+    media(false);
     expect(standing()).toEqual(later);
     // The filter still works on the page that was put back.
     $('[data-reqs="all"]').click();
@@ -192,7 +199,7 @@ describe('what is prepared for paper', () => {
     // The browser says printing starts: by its event, by the print media query, or by both for one print.
     window.dispatchEvent(new Event('beforeprint'));
     expect(forPaper()).toBe(true);
-    mediaListeners[0]!({ matches: true });
+    media(true);
     window.dispatchEvent(new Event('beforeprint'));
     expect(forPaper()).toBe(true);
     // It ends: the page is put back, once.
@@ -201,13 +208,16 @@ describe('what is prepared for paper', () => {
     const opened = document.querySelector<HTMLDetailsElement>('.req details:not([open])')!;
     opened.open = true;
     const later = standing();
-    mediaListeners[0]!({ matches: false });
+    media(false);
     window.dispatchEvent(new Event('afterprint'));
     expect(standing()).toEqual(later);
     // By the media query alone.
-    mediaListeners[0]!({ matches: true });
+    media(true);
     expect(forPaper()).toBe(true);
-    mediaListeners[0]!({ matches: false });
+    media(false);
+    expect(standing()).toEqual(later);
+    // Told of the query turning on only after printing has ended (it no longer matches): the page is not opened again.
+    for (const listener of mediaListeners) listener({ matches: true });
     expect(standing()).toEqual(later);
 
     // Where there is no result there is nothing to prepare: the tab keeps its name.

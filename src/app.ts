@@ -132,8 +132,13 @@ export function startApp(win: AppWindow): App {
     closeAfterPaper(root as unknown as ParentNode, opened);
     win.document.title = title;
   };
-  const onPrintMedia: MediaListener = change => { if (change.matches) forPaper(); else fromPaper(); };
   const printMedia = win.matchMedia('print');
+  // A browser may tell of the print query turning on only after printing has ended: the
+  // page is opened only while the query does match.
+  const onPrintMedia: MediaListener = change => {
+    if (!change.matches) fromPaper();
+    else if (printMedia.matches) forPaper();
+  };
   const print = typeof win.print === 'function' ? (): void => {
     forPaper();
     win.print?.();

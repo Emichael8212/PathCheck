@@ -29,7 +29,8 @@ Read this before writing a sprint contract; delete a line when its feature has d
   design. Whatever F19 adds to the result must be either right on paper or hidden in
   print (`tests/print.test.ts` "marks every control as not printed" fails for a control
   that would print). In a browser without print the print button is taken out of the
-  row, and the row only while it is empty: "Clear my data" stays. (F13, F16, F17)
+  row, and the row only while it is empty: "Clear my data" stays. F19 must test that
+  (no test can until the row holds a second button). (F13, F16, F17)
 - The student's moves are `LeftState.moves` (for each moved entry, its earliest term),
   kept in memory for the visit beside the pace settings (`LeftState.pace`). If F19's
   "last result" is to come back as the student left it, both belong to it, and "Clear my
