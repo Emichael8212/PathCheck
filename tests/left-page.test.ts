@@ -4,7 +4,7 @@
 // A real file picker and a real drag and drop are checked by the evaluator in a browser.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type App, type AppWindow } from '../src/app';
 import { curriculum } from '../src/curriculum';
 import { openTranscript, reviewedStandings } from '../src/review';
@@ -19,7 +19,8 @@ const $ = <T extends HTMLElement>(selector: string): T => {
   return found;
 };
 const heading = (): string => tidy($('h1').textContent);
-const said = (): string => tidy($('[data-said]').textContent);
+// What a screen reader is told: one line beside the page, which the page being drawn again does not replace.
+const said = (): string => tidy($('#pathcheck-status').textContent);
 const rows = (): string[] => [...document.querySelectorAll('.review-row')].map(row => tidy(row.textContent));
 const rowOf = (line: number): string => tidy($(`[data-line="${line}"]`).textContent);
 const go = (hash: string): void => {
@@ -37,11 +38,25 @@ const openEdit = (line: number): void => {
   const grade = $<HTMLSelectElement>(`#row-${line}-grade`);
   grade.value = grade.querySelector('option[selected]')?.getAttribute('value') ?? '';
 };
+/** The grade an open edit shows as chosen, put into the list as a real browser has it. */
+const gradeShown = (line: number): string => {
+  const grade = $<HTMLSelectElement>(`#row-${line}-grade`);
+  grade.value = grade.querySelector('option[selected]')?.getAttribute('value') ?? '';
+  return grade.value;
+};
+/** A file dragged over, or dropped on, a part of the page. */
+const drag = (type: 'dragover' | 'drop', target: Element, types: string[], files: unknown[] = []): { prevented: boolean; effect: string } => {
+  const dataTransfer = { types, files, dropEffect: '' };
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+  target.dispatchEvent(event);
+  return { prevented: event.defaultPrevented, effect: dataTransfer.dropEffect };
+};
 
 let app: App;
 /** Opens the review step on a prepared reader's answer, as if its PDF had been read. */
 const review = (...answerRows: unknown[]): void => {
-  Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: answerRows }, curriculum), continued: false, refusal: null, editing: null });
+  Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: answerRows }, curriculum), continued: false, refusal: null, editing: null, draft: null });
   go('#/left');
 };
 beforeEach(() => {
@@ -50,6 +65,8 @@ beforeEach(() => {
   window.history.replaceState(null, '', '#/left');
   app = startApp(window as unknown as AppWindow);
 });
+// Each test's app stops listening to the window, so that it takes no part in the next test.
+afterEach(() => { app.stop(); });
 
 describe('bringing a transcript', () => {
   it('reviews a chosen transcript', async () => {
@@ -99,28 +116,31 @@ describe('bringing a transcript', () => {
 
   it('takes a transcript dropped on Start', async () => {
     go('#/');
-    const drop = (target: Element, types: string[], files: unknown[]): Event => {
-      const event = new Event('drop', { bubbles: true, cancelable: true });
-      Object.defineProperty(event, 'dataTransfer', { value: { types, files, dropEffect: '' } });
-      target.dispatchEvent(event);
-      return event;
-    };
-    // Away from the drop zone a file is not opened by the browser, and not taken.
-    expect(drop($('h1'), ['Files'], [madeUp('sample-a')]).defaultPrevented).toBe(true);
+    // Away from the drop zone a file is not opened by the browser, and not taken: the page says so while it is dragged.
+    expect(drag('dragover', $('h1'), ['Files'])).toEqual({ prevented: true, effect: 'none' });
+    expect(drag('drop', $('h1'), ['Files'], [madeUp('sample-a')]).prevented).toBe(true);
     await Promise.resolve();
     expect(app.route).toBe('start');
     expect(app.left.transcript).toBeNull();
     // On the drop zone it is taken, and the review opens on the page of this flow.
-    expect(drop($('[data-drop] .drop-title'), ['Files'], [madeUp('sample-a')]).defaultPrevented).toBe(true);
+    expect(drag('dragover', $('[data-drop] .drop-title'), ['Files'])).toEqual({ prevented: true, effect: 'copy' });
+    expect(drag('drop', $('[data-drop] .drop-title'), ['Files'], [madeUp('sample-a')]).prevented).toBe(true);
     await vi.waitFor(() => expect(app.route).toBe('left'));
     expect(heading()).toBe('Check what was read');
     expect(rows()).toHaveLength(17);
-    // During a review a dropped file is not read; the page says how to use another one.
-    drop($('main'), ['Files'], [{ name: 'x.pdf', size: 1, arrayBuffer: () => { throw new Error('read'); } }]);
+    // During a review a dropped file is not read; the page says how to use another one. The
+    // drag is let through (a browser gives no drop where the page refused the drag).
+    expect(said()).toBe('');
+    expect(drag('dragover', $('main'), ['Files'])).toEqual({ prevented: true, effect: 'copy' });
+    drag('drop', $('main'), ['Files'], [{ name: 'x.pdf', size: 1, arrayBuffer: () => { throw new Error('read'); } }]);
     expect(said()).toBe('To use another transcript, choose “Use another transcript” first.');
     expect(rows()).toHaveLength(17);
+    // The same after "Continue".
+    $('[data-continue]').click();
+    expect(drag('dragover', $('main'), ['Files']).effect).toBe('copy');
     // Dragged text is left alone.
-    expect(drop($('main'), ['text/plain'], []).defaultPrevented).toBe(false);
+    expect(drag('dragover', $('main'), ['text/plain'])).toEqual({ prevented: false, effect: '' });
+    expect(drag('drop', $('main'), ['text/plain']).prevented).toBe(false);
   });
 
   it('takes the same file twice, and another after it', async () => {
@@ -135,6 +155,12 @@ describe('bringing a transcript', () => {
     await app.takeFile(madeUp('sample-b'));
     expect([...document.querySelectorAll('.term-name')].map(one => one.textContent)).toEqual(['Transfer Credit', 'Fall 2024', 'Spr 2025', 'Fall 2025']);
     expect(rows()).toHaveLength(16);
+    // Transfer credit shows no credits, as on the transcript; its edit starts with none, and saves as it is.
+    expect(rowOf(0)).toBe('ENG 131 English Comp I T Transfer credit Passed Edit Not on my transcript');
+    openEdit(0);
+    expect($<HTMLInputElement>('#row-0-attempted').value).toBe('');
+    $('[data-save="0"]').click();
+    expect(rowOf(0)).toBe('ENG 131 English Comp I T Transfer credit Passed Edit Not on my transcript');
   });
 
   it('says why a file was not taken, and stays ready for another', async () => {
@@ -147,7 +173,8 @@ describe('bringing a transcript', () => {
     for (const [file, sentence] of cases) {
       await app.takeFile(file);
       expect(tidy($('[data-refusal]').textContent)).toBe(sentence);
-      expect($('[data-refusal]').getAttribute('role')).toBe('status');
+      // It is also said to a screen reader, in the line beside the page.
+      expect(said()).toBe(sentence);
       expect(heading()).toBe('See what I have left');
       expect(document.activeElement).toBe($('[data-browse]'));
       expect(app.left.transcript).toBeNull();
@@ -161,6 +188,55 @@ describe('bringing a transcript', () => {
     await app.takeFile(madeUp('sample-b'));
     expect(heading()).toBe('Check what was read');
     expect(document.querySelector('[data-refusal]')).toBeNull();
+  });
+
+  it('says so when a file cannot be opened', async () => {
+    // A file moved away or not downloaded yet: reading it fails. The student is told, and nothing is left unhandled.
+    const gone = { name: 'gone.pdf', size: 10, arrayBuffer: (): Promise<ArrayBuffer> => Promise.reject(new DOMException('gone', 'NotReadableError')) };
+    await expect(app.takeFile(gone)).resolves.toBeUndefined();
+    expect(tidy($('[data-refusal]').textContent)).toBe('That file could not be opened. Choose it again.');
+    expect(said()).toBe('That file could not be opened. Choose it again.');
+    expect(document.activeElement).toBe($('[data-browse]'));
+    await app.takeFile(madeUp('sample-a'));
+    expect(heading()).toBe('Check what was read');
+  });
+
+  it('reads no other file while a transcript is under review', async () => {
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-out="8"]').click();
+    go('#/');
+    // Chosen or dropped on Start: a good file and a bad one alike are not read, and the review stays as it was.
+    let reads = 0;
+    const counted = (file: ReturnType<typeof fileOf>) => ({ ...file, arrayBuffer: (): Promise<ArrayBuffer> => { reads++; return file.arrayBuffer(); } });
+    for (const file of [counted(madeUp('sample-a')), counted(fileOf(new TextEncoder().encode('not a pdf')))]) {
+      go('#/');
+      await app.takeFile(file);
+      expect(reads).toBe(0);
+      expect(app.route).toBe('left');
+      expect(window.location.hash).toBe('#/left');
+      expect(heading()).toBe('Check what was read');
+      expect(said()).toBe('To use another transcript, choose “Use another transcript” first.');
+      expect(tidy($('.review-intro').textContent)).toContain('sample-b.pdf');
+      expect(rows()).toHaveLength(16);
+      expect(rowOf(8)).toContain('Put back');
+      expect(app.left.refusal).toBeNull();
+    }
+  });
+
+  it('takes the file chosen last when two are being read', async () => {
+    const first = madeUp('sample-a');
+    let release = (): void => undefined;
+    const slow = { ...first, arrayBuffer: (): Promise<ArrayBuffer> => new Promise(resolve => { release = () => { void first.arrayBuffer().then(resolve); }; }) };
+    const waiting = app.takeFile(slow);
+    await app.takeFile(madeUp('sample-b'));
+    expect(tidy($('.review-intro').textContent)).toContain('sample-b.pdf');
+    $('[data-out="0"]').click();
+    // The slower file arrives afterwards and changes nothing.
+    release();
+    await waiting;
+    expect(tidy($('.review-intro').textContent)).toContain('sample-b.pdf');
+    expect(rows()).toHaveLength(16);
+    expect(rowOf(0)).toContain('Put back');
   });
 });
 
@@ -223,12 +299,44 @@ describe('the review step', () => {
     setField(0, 'attempted', 'three');
     $('[data-save="0"]').click();
     expect(rowOf(0)).toBe('MGT 32 Prin of Management three cr Needs fixing: the course code, the credits Edit Not on my transcript');
-    expect(said()).toBe('MGT 32 saved. 1 row still needs fixing. It counts nothing until fixed.');
+    expect(said()).toBe('MGT 32 still needs fixing: the course code, the credits.');
     expect(codesHandedOn()).toEqual(['ENG 131']);
     // What was typed is back in the fields, to be corrected again.
     openEdit(0);
     expect($<HTMLInputElement>('#row-0-number').value).toBe('32');
     expect($<HTMLInputElement>('#row-0-attempted').value).toBe('three');
+  });
+
+  it('keeps what is being typed while another row is left out or put back', () => {
+    review(good(), good({ prefix: 'ENG', number: '131' }), good({ prefix: 'CIS', number: '300' }));
+    openEdit(0);
+    // One edit at a time: while it is open the other rows offer none, so nothing typed is lost to a second one.
+    expect(document.querySelectorAll('[data-edit]')).toHaveLength(0);
+    expect(document.querySelectorAll('[data-out]')).toHaveLength(3);
+    setField(0, 'term', 'Spr 2026');
+    setField(0, 'number', '422');
+    setField(0, 'attempted', '4');
+    setField(0, 'grade', 'C');
+    $<HTMLInputElement>('#row-0-transfer').checked = true;
+    const typed = (): unknown[] => [$<HTMLInputElement>('#row-0-term').value, $<HTMLInputElement>('#row-0-prefix').value, $<HTMLInputElement>('#row-0-number').value, $<HTMLInputElement>('#row-0-attempted').value, gradeShown(0), $<HTMLInputElement>('#row-0-transfer').checked];
+    $('[data-out="1"]').click();
+    expect(rowOf(1)).toContain('Put back');
+    expect(typed()).toEqual(['Spr 2026', 'MGT', '422', '4', 'C', true]);
+    $('[data-back="1"]').click();
+    expect(typed()).toEqual(['Spr 2026', 'MGT', '422', '4', 'C', true]);
+    // Nothing is saved until "Save".
+    expect(codesHandedOn()).toEqual(['MGT 321', 'ENG 131', 'CIS 300']);
+    $('[data-save="0"]').click();
+    expect(rowOf(0)).toBe('MGT 422 Prin of Management 4 cr C Transfer credit Passed Edit Not on my transcript');
+    expect(document.querySelectorAll('[data-edit]')).toHaveLength(3);
+    // A later edit starts from what is saved, not from an earlier draft.
+    openEdit(1);
+    expect($<HTMLInputElement>('#row-1-number').value).toBe('131');
+    // Leaving out the row that is being edited closes its edit.
+    $('[data-out="1"]').click();
+    expect(document.querySelector('.row-edit')).toBeNull();
+    expect(app.left).toMatchObject({ editing: null, draft: null });
+    expect(document.querySelectorAll('[data-edit]')).toHaveLength(2);
   });
 
   it('cancels an edit', () => {
@@ -270,7 +378,7 @@ describe('the review step', () => {
     for (const field of document.querySelectorAll<HTMLElement>('[data-editing="1"] [data-field]')) {
       expect(document.querySelector(`label[for="${field.id}"]`), field.id).not.toBeNull();
     }
-    expect($('[data-editing="1"]').getAttribute('aria-label')).toBe('Edit ENG 131');
+    expect($('[data-editing="1"]').getAttribute('aria-label')).toBe('Edit ENG 131, Fall 2025');
     $('[data-cancel="1"]').click();
     expect(document.activeElement).toBe($('[data-edit="1"]'));
     openEdit(1);
@@ -278,9 +386,20 @@ describe('the review step', () => {
     $('[data-save="1"]').click();
     expect(document.activeElement).toBe($('[data-edit="1"]'));
     // Edit and Not on my transcript are buttons that name their course.
-    expect($('[data-edit="0"]').getAttribute('aria-label')).toBe('Edit MGT 321');
-    expect($('[data-out="0"]').getAttribute('aria-label')).toBe('Not on my transcript: MGT 321');
-    expect($('[data-said]').getAttribute('aria-live')).toBe('polite');
+    expect($('[data-edit="0"]').getAttribute('aria-label')).toBe('Edit MGT 321, Fall 2025');
+    expect($('[data-out="0"]').getAttribute('aria-label')).toBe('Not on my transcript: MGT 321, Fall 2025');
+    // The edit is one cell of its row, as a table allows.
+    openEdit(0);
+    expect($('[data-editing="0"]').parentElement?.getAttribute('role')).toBe('cell');
+    expect($('[data-editing="0"]').parentElement?.parentElement).toBe($('[data-line="0"]'));
+    $('[data-cancel="0"]').click();
+    // What happened is said in one polite line that stays in the page while the rest is drawn again.
+    const status = $('#pathcheck-status');
+    expect([status.getAttribute('role'), status.getAttribute('aria-live'), status.className]).toEqual(['status', 'polite', 'sr-only']);
+    expect($('#app').contains(status)).toBe(false);
+    $('[data-out="0"]').click();
+    expect($('#pathcheck-status')).toBe(status);
+    expect(document.querySelectorAll('[role="status"]')).toHaveLength(1);
     // The terms are headings.
     expect($('.term-name').tagName).toBe('H2');
   });
@@ -338,5 +457,6 @@ describe('going on', () => {
     const fresh = startApp(window as unknown as AppWindow);
     expect(fresh.left.transcript).toBeNull();
     expect(document.querySelector('[data-drop]')).not.toBeNull();
+    fresh.stop();
   });
 });

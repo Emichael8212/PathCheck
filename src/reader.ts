@@ -32,6 +32,8 @@ export interface ReadRow {
   readonly row: TranscriptRow;
   /** The description as printed. It is shown, never used to match or to count. */
   readonly description: string;
+  /** The credits column as printed; "" when it was empty (transfer credit may have none). */
+  readonly attempted: string;
   readonly match: Match;
 }
 
@@ -162,7 +164,7 @@ function check(answer: unknown, curriculum: Curriculum): Reading {
     if (problems.length === 0 && code !== null && credits !== null && typeof term === 'string' && typeof transfer === 'boolean') {
       const row: TranscriptRow = { code, term, credits, grade: printed, transfer };
       if (rowStanding(row, curriculum.grades) !== 'unrecognised') {
-        rows.push({ line, row, description: typeof description === 'string' ? description : '', match: matchOf(code, curriculum) });
+        rows.push({ line, row, description: typeof description === 'string' ? description : '', attempted: shown(attempted).trim(), match: matchOf(code, curriculum) });
         continue;
       }
       problems.push('grade');

@@ -149,6 +149,13 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   checklist does not mislead. `stillToFix(transcript)` gives them. (F11 contract review)
 
 ## For F21 (the reader function, M2)
+- "Browse files" opens the picker through a file control that is not in the page; it is
+  held until a file is chosen. Not tried on a real iPhone yet: the owner's M1 check on a
+  phone is the first real test, and M2 must repeat it with a real PDF. If the picker does
+  not answer there, put the control in the page, hidden. (F11 review)
+- A correction whose prefix reads like a totals line and whose number is empty is thrown
+  away like a totals line, and the row cannot be brought back. Rare; decide with the real
+  reader whether a corrected row may ever be thrown away. (F11 review)
 - The reader plugs in at `readFile` in `src/upload.ts`: today it recognises the two
   made-up PDFs on a development server and answers "unavailable" on the built site. The
   size limit, the "%PDF-" check and the refusal sentences are in place (`src/left.ts`,
@@ -166,21 +173,22 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
 
 ## For F07 onward (screens)
 - How the app is put together (F06): a page is a function that returns HTML text
-  (`src/start.ts`, `flowPage` in `src/shell.ts`); `renderPage` in `src/app.ts` picks the
+  (`src/start.ts`, `src/check.ts`, `src/left.ts`); `renderPage` in `src/app.ts` picks the
   page for an address; `startApp` draws it, sets the tab title, and after a page change
   puts the keyboard on the page's `<h1>` and scrolls to the top. Addresses are in
   `src/shell.ts` (`HREF`, `routeOf`). Anything with a timer must stop when the student
   leaves its page, as the demo does.
 - Redrawing a whole page loses what the student is typing. From F07, redraw only the part
-  that changed, or keep the field out of the redrawn part.
+  that changed, or keep the field out of the redrawn part. The transcript page (F11) is
+  drawn again as a whole: it reads what is typed in the open edit into `LeftState.draft`
+  first, and says what happened in `#pathcheck-status`, a line beside the page.
 - The scans in `tests/curriculum.test.ts` read every file in `src/`, `index.html` and
   `public/`: no course code, title, block name or credit total may be written there. Take
   them from the curriculum. `src/examples.json` is for the Start page only.
 - The app stops the browser from opening a dropped file, on every page (`startApp`); it
-  looks only at the kind of thing dragged, and leaves dragged text alone. A file drag
-  shows a "copy" cursor even where the drop does nothing: when F11 builds the upload,
-  accept a file only on the drop zone. (F06 review and QA)
+  looks only at the kind of thing dragged, and leaves dragged text alone. A file is taken
+  only on a drop zone (`[data-drop]`); elsewhere the drag shows "not here". (F06, F11)
 - The major dropdown shows its first program in the visible label and has no change
   handler: enough for one major. A second major needs both. (F06 review)
-- `tests/start.test.ts` "does not read a dropped file" fails if anything in `src/` reads a
-  file or sends a request. F11 changes that test on purpose, for the upload only.
+- `tests/start.test.ts` "does not read a dropped file" fails if a file dropped away from a
+  drop zone is looked at in any way.

@@ -28,7 +28,7 @@ describe('a clean answer', () => {
     expect(reading.thrownAway).toBe(0);
     expect(reading.rows).toHaveLength(sampleA.rows.length);
     expect(reading.rows.map(one => one.line)).toEqual(sampleA.rows.map((_, i) => i));
-    expect(reading.rows[0]).toEqual({ line: 0, row: { code: 'ORI 100', term: 'Fall 2025', credits: 1, grade: 'A', transfer: false }, description: 'First Year Experience', match: 'listed' });
+    expect(reading.rows[0]).toEqual({ line: 0, row: { code: 'ORI 100', term: 'Fall 2025', credits: 1, grade: 'A', transfer: false }, description: 'First Year Experience', attempted: '1', match: 'listed' });
     expect(reading.rows[3]?.row).toEqual({ code: 'BIOL 127', term: 'Fall 2025', credits: 1, grade: 'A', transfer: false });
     // A row still in progress has no grade.
     expect(reading.rows[12]?.row).toEqual({ code: 'ECO 251', term: 'Fall 2026', credits: 3, grade: null, transfer: false });
@@ -158,6 +158,8 @@ describe('transfer credit, rows in progress and printed numbers', () => {
         expect(reading.toFix, `${grade} / ${attempted}`).toEqual([]);
         expect(reading.rows[0]?.row.transfer).toBe(true);
         expect(reading.rows[0]?.row.credits).toBe(attempted === '3.00' || attempted === 3 ? 3 : 0);
+        // What was printed in the credits column is kept, so that an empty one is shown empty.
+        expect(reading.rows[0]?.attempted).toBe(attempted === '3.00' ? '3.00' : attempted === 3 ? '3' : '');
         expect(credits(reading)).toEqual([3, 0, 118]);
       }
     }
@@ -301,7 +303,7 @@ describe('an answer that is no answer', () => {
     expect(reading.rows).toHaveLength(1);
     expect(reading.toFix).toHaveLength(1);
     expect(JSON.stringify(reading)).not.toMatch(/Someone|123456789|123-45|ssn|advisor|Dr\. Who|student/);
-    expect(Object.keys(reading.rows[0]!).sort()).toEqual(['description', 'line', 'match', 'row']);
+    expect(Object.keys(reading.rows[0]!).sort()).toEqual(['attempted', 'description', 'line', 'match', 'row']);
     expect(Object.keys(reading.rows[0]!.row).sort()).toEqual(['code', 'credits', 'grade', 'term', 'transfer']);
     expect(Object.keys(reading.toFix[0]!.seen).sort()).toEqual(['attempted', 'description', 'grade', 'number', 'prefix', 'term', 'transfer']);
 

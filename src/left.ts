@@ -6,7 +6,7 @@
 import { type Curriculum } from './curriculum';
 import { code, esc, icons, marks } from './html';
 import { type Problem } from './reader';
-import { byTerm, gradeChoices, reviewRows, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
+import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
 import { type Refusal } from './upload';
 import { PRIVACY, notCurrent } from './wording';
@@ -20,8 +20,10 @@ export interface LeftState {
   refusal: Refusal | null;
   /** The row being edited, by its line. */
   editing: number | null;
+  /** What the student has typed in the open edit, kept while the page is drawn again. */
+  draft: Correction | null;
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -61,10 +63,12 @@ const REFUSALS: Record<Refusal, string> = {
   'not-made-up': 'PathCheck can only read its two made-up transcripts for now. Nothing from this file was kept or sent.',
   'not-a-pdf': 'That file is not a PDF. Choose the unofficial transcript PDF from the portal.',
   'too-large': 'That file is too large to be a transcript. Nothing from it was read.',
+  unreadable: 'That file could not be opened. Choose it again.',
   unavailable: 'Upload isn’t available right now — try again tomorrow',
 };
 export const refusalText = (refusal: Refusal): string => REFUSALS[refusal];
-export const DROP_DURING_REVIEW = 'To use another transcript, choose “Use another transcript” first.';
+/** Said when a file arrives while a transcript is already there: it is not read. */
+export const ANOTHER_FIRST = 'To use another transcript, choose “Use another transcript” first.';
 const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`;
 
 /** How many rows go on, and how many are left out and why. */
@@ -90,9 +94,11 @@ export const uploadPanel = (refusal: Refusal | null = null): string => `<div cla
       <button type="button" class="btn secondary" data-browse>${esc(TEXT.browse)} ${icons.arrow()}</button>
       <p class="privacy">${icons.doc(20)}${esc(PRIVACY)}</p>
     </div>
-    <p class="field-message" role="status" aria-live="polite" data-refusal>${refusal ? esc(refusalText(refusal)) : ''}</p>`;
+    <p class="field-message" data-refusal>${refusal ? esc(refusalText(refusal)) : ''}</p>`;
 
 const whatIsWrong = (problems: readonly Problem[]): string => problems.filter((one): one is Exclude<Problem, 'not-a-row'> => one !== 'not-a-row').map(one => WHAT[one]).join(', ');
+/** A row by its course and its term: a course can be on a transcript twice. */
+const nameOf = (row: ReviewRow): string => [row.code || TEXT.unreadable, row.term].filter(Boolean).join(', ');
 
 /** The words that say how a row stands, each on its own line. */
 function stateLines(row: ReviewRow, curriculum: Curriculum): string {
@@ -115,12 +121,14 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
   const id = (name: string): string => `row-${row.line}-${name}`;
   const text = (name: 'term' | 'prefix' | 'number' | 'attempted', more = ''): string => `<div class="field">
             <label for="${id(name)}">${esc(TEXT.fields[name])}</label>
-            <input id="${id(name)}" type="text" data-field="${name}" value="${esc(start[name])}" autocomplete="off" autocapitalize="characters" spellcheck="false"${more}>
+            <input id="${id(name)}" type="text" data-field="${name}" value="${esc(start[name])}" autocomplete="off" spellcheck="false"${more}>
           </div>`;
   const grades = gradeChoices(curriculum.grades);
-  return `<div class="row-edit" role="group" aria-label="${esc(`${TEXT.edit} ${row.code || TEXT.needsFixing}`)}" data-editing="${row.line}">
+  // The whole form is one cell of the row, across its width.
+  return `<div role="cell" class="row-edit-cell">
+        <div class="row-edit" role="group" aria-label="${esc(`${TEXT.edit} ${nameOf(row)}`)}" data-editing="${row.line}">
           ${text('term')}
-          ${text('prefix', ' maxlength="8"')}
+          ${text('prefix', ' autocapitalize="characters" maxlength="8"')}
           ${text('number', ' inputmode="numeric" maxlength="8"')}
           ${text('attempted', ' inputmode="decimal" maxlength="8"')}
           <div class="field">
@@ -136,12 +144,14 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
             <button type="button" class="btn primary" data-save="${row.line}">${esc(TEXT.save)}</button>
             <button type="button" class="btn secondary" data-cancel="${row.line}">${esc(TEXT.cancel)}</button>
           </div>
-        </div>`;
+        </div>
+      </div>`;
 };
 
-const rowHtml = (row: ReviewRow, editing: boolean, curriculum: Curriculum): string => {
+/** One row. `open` is the edit that is open, if it is this row's; `busy` says another row is being edited. */
+const rowHtml = (row: ReviewRow, open: Correction | null, busy: boolean, curriculum: Curriculum): string => {
   const flagged = row.state === 'to-fix' || row.state === 'unreadable';
-  const named = row.code || TEXT.unreadable;
+  const named = nameOf(row);
   return `
     <div role="row" class="row review-row${row.leftOut ? ' is-left-out' : flagged ? ' is-no' : ''}" data-line="${row.line}">
       <div role="cell" class="cell-name">
@@ -156,11 +166,12 @@ const rowHtml = (row: ReviewRow, editing: boolean, curriculum: Curriculum): stri
           ` : ''}${stateLines(row, curriculum)}`}
           <div class="row-actions">${row.leftOut
     ? `<button type="button" class="text-link" data-back="${row.line}" aria-label="${esc(`${TEXT.putBack} ${named}`)}">${esc(TEXT.putBack)}</button>`
-    : `${row.editable && !editing ? `<button type="button" class="text-link" data-edit="${row.line}" aria-label="${esc(`${TEXT.edit} ${named}`)}">${esc(TEXT.edit)}</button>` : ''}
+    // One edit at a time: while one is open, the other rows offer none.
+    : `${row.editable && !open && !busy ? `<button type="button" class="text-link" data-edit="${row.line}" aria-label="${esc(`${TEXT.edit} ${named}`)}">${esc(TEXT.edit)}</button>` : ''}
             <button type="button" class="text-link" data-out="${row.line}" aria-label="${esc(`${TEXT.notMine}: ${named}`)}">${esc(TEXT.notMine)}</button>`}</div>
         </div>
-      </div>${editing && row.editable && !row.leftOut ? `
-      ${editForm(row, row.editable, curriculum)}` : ''}
+      </div>${open && row.editable && !row.leftOut ? `
+      ${editForm(row, open, curriculum)}` : ''}
     </div>`;
 };
 
@@ -177,12 +188,13 @@ export function reviewHtml(state: LeftState, curriculum: Curriculum): string {
     ${another}
   </div>`;
   }
+  const editing = rows.find(row => row.line === state.editing && row.editable && !row.leftOut);
   return `${byTerm(rows).map((group, i) => `<section class="term" aria-labelledby="term-${i}">
     <h2 id="term-${i}" class="term-name">${esc(group.term || TEXT.noTerm)}</h2>
     <div class="table" role="table" aria-label="${esc(group.term || TEXT.noTerm)}">
       <div class="table-head" role="row">
         ${TEXT.columns.map(heading => `<span role="columnheader">${esc(heading)}</span>`).join('\n        ')}
-      </div>${group.rows.map(row => rowHtml(row, state.editing === row.line, curriculum)).join('')}
+      </div>${group.rows.map(row => rowHtml(row, row === editing ? state.draft ?? row.editable : null, editing !== undefined, curriculum)).join('')}
     </div>
   </section>`).join('\n  ')}
   <div class="review-foot">
@@ -214,29 +226,40 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft())
     </div>
   </div>
   ${body}
-  <p class="sr-only" role="status" aria-live="polite" data-said></p>
 </main>
 ${foot(curriculum, `PathCheck: ${FLOW_NAME.left}`)}`;
 }
 
-/** What the page asks of the app: to take a file, and to draw the page again when the flow moves on. */
+/** What the page asks of the app. */
 export interface LeftHooks {
+  /** Opens the file picker. */
   browse(): void;
+  /** Draws the page again from the state. */
   redraw(): void;
+  /** Puts a correction in the place of a row and checks it again. */
   correct(line: number, correction: Correction): void;
+  /** Says something to a screen reader, in a place the page being drawn again does not replace. */
+  say(text: string): void;
 }
 
 /** Wires up the page once it is drawn. */
 export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curriculum, hooks: LeftHooks, change: (next: Partial<LeftState>) => void): void {
   const main = root.querySelector<HTMLElement>('main.left');
-  const said = root.querySelector<HTMLElement>('[data-said]');
-  if (!main || !said) throw new Error('The "See what I have left" page is missing a part it needs.');
-  // The page is drawn again after most actions: the status line is looked up each time.
-  const say = (text: string): void => { root.querySelector<HTMLElement>('[data-said]')?.replaceChildren(text); };
+  if (!main) throw new Error('The "See what I have left" page is missing a part it needs.');
   const focus = (selector: string): void => root.querySelector<HTMLElement>(selector)?.focus();
-  const named = (line: number): string => {
-    const row = state.transcript ? reviewRows(state.transcript, curriculum).find(one => one.line === line) : undefined;
-    return row?.code || TEXT.unreadable;
+  const rowAt = (line: number): ReviewRow | undefined => (state.transcript ? reviewRows(state.transcript, curriculum).find(one => one.line === line) : undefined);
+  const named = (line: number): string => rowAt(line)?.code || TEXT.unreadable;
+  /** What is typed in the open edit, read from its fields. */
+  const typed = (line: number): Correction | null => {
+    const form = root.querySelector<HTMLElement>(`[data-editing="${line}"]`);
+    if (!form) return null;
+    const value = (name: string): string => form.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)?.value ?? '';
+    return { term: value('term'), prefix: value('prefix'), number: value('number'), attempted: value('attempted'), grade: value('grade'), transfer: form.querySelector<HTMLInputElement>('[data-field="transfer"]')?.checked === true };
+  };
+  // The page is drawn again after an action on another row: what is being typed is kept.
+  const redrawKeepingEdit = (): void => {
+    if (state.editing !== null) change({ draft: typed(state.editing) ?? state.draft });
+    hooks.redraw();
   };
 
   main.addEventListener('click', event => {
@@ -247,7 +270,7 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     };
     if (target?.closest('[data-browse]')) { hooks.browse(); return; }
     if (target?.closest('[data-another]')) {
-      change({ transcript: null, continued: false, refusal: null, editing: null });
+      change({ transcript: null, continued: false, refusal: null, editing: null, draft: null });
       hooks.redraw();
       focus('[data-browse]');
       return;
@@ -255,53 +278,54 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const { transcript } = state;
     if (!transcript) return;
     if (target?.closest('[data-continue]')) {
-      change({ continued: true, editing: null });
+      change({ continued: true, editing: null, draft: null });
       hooks.redraw();
       focus('h1');
       return;
     }
     const edit = lineOf('edit');
     if (edit !== null) {
-      change({ editing: edit });
+      change({ editing: edit, draft: null });
       hooks.redraw();
       focus(`[data-editing="${edit}"] [data-field]`);
       return;
     }
     const cancel = lineOf('cancel');
     if (cancel !== null) {
-      change({ editing: null });
+      change({ editing: null, draft: null });
       hooks.redraw();
       focus(`[data-edit="${cancel}"]`);
       return;
     }
     const save = lineOf('save');
     if (save !== null) {
-      const form = root.querySelector<HTMLElement>(`[data-editing="${save}"]`);
-      const value = (name: string): string => form?.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)?.value ?? '';
-      hooks.correct(save, {
-        term: value('term'), prefix: value('prefix'), number: value('number'), attempted: value('attempted'), grade: value('grade'),
-        transfer: form?.querySelector<HTMLInputElement>('[data-field="transfer"]')?.checked === true,
-      });
-      change({ editing: null });
+      const correction = typed(save);
+      if (!correction) return;
+      hooks.correct(save, correction);
+      change({ editing: null, draft: null });
       hooks.redraw();
-      const after = state.transcript ? fixingLine(state.transcript) : '';
-      say(`${named(save)} saved.${after ? ` ${after}` : ''}`);
+      const after = rowAt(save);
+      const fixing = state.transcript ? fixingLine(state.transcript) : '';
+      hooks.say(after && after.state === 'to-fix'
+        ? `${named(save)} still needs fixing: ${whatIsWrong(after.problems)}.`
+        : `${named(save)} saved.${fixing ? ` ${fixing}` : ''}`);
       focus(`[data-edit="${save}"]`);
       return;
     }
     const out = lineOf('out');
     if (out !== null) {
-      change({ transcript: { ...transcript, leftOut: new Set([...transcript.leftOut, out]) }, editing: state.editing === out ? null : state.editing });
-      hooks.redraw();
-      say(`${named(out)}: ${TEXT.notMine}.`);
+      const wasOpen = state.editing === out;
+      change({ transcript: leaveOut(transcript, out), ...(wasOpen ? { editing: null, draft: null } : {}) });
+      redrawKeepingEdit();
+      hooks.say(`${named(out)}: ${TEXT.notMine}.`);
       focus(`[data-back="${out}"]`);
       return;
     }
     const back = lineOf('back');
     if (back !== null) {
-      change({ transcript: { ...transcript, leftOut: new Set([...transcript.leftOut].filter(one => one !== back)) } });
-      hooks.redraw();
-      say(`${named(back)}: ${TEXT.putBack}.`);
+      change({ transcript: putBack(transcript, back) });
+      redrawKeepingEdit();
+      hooks.say(`${named(back)}: ${TEXT.putBack}.`);
       focus(`[data-out="${back}"]`);
     }
   });

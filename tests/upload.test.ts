@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
+import { forbiddenText, leaksIn } from '../scripts/check-build.mjs';
+// @ts-expect-error The script is plain JavaScript, with no type declarations.
 import { fingerprintOf as scriptFingerprint, manifestFor, transcripts } from '../scripts/make-synthetic-transcripts.mjs';
 import manifest from '../synthetic/transcripts/manifest.json';
 import sampleA from '../synthetic/transcripts/sample-a.json';
@@ -94,6 +96,26 @@ describe('taking a file', () => {
     expect(await built.readFile(fileOf(pdf('sample-a')))).toEqual({ ok: false, refusal: 'unavailable' });
     expect(await built.readFile(fileOf(text('not a pdf')))).toEqual({ ok: false, refusal: 'not-a-pdf' });
     expect(await built.readFile(fileOf(pdf('sample-a'), 'huge.pdf', LARGEST_FILE + 1))).toEqual({ ok: false, refusal: 'too-large' });
+  });
+
+  it('fails the check of the built site when made-up data is in it', () => {
+    // `npm run check` runs scripts/check-build.mjs on the real build; this is what it looks for.
+    const root = join(folder, '..', '..');
+    const forbidden = forbiddenText(folder, readFileSync(join(root, 'docs', 'curriculum', 'provisional-current.json'), 'utf8')) as { fingerprints: string[]; descriptions: string[] };
+    expect(forbidden.fingerprints).toEqual(Object.values(manifest).map(one => one.fingerprint));
+    expect(forbidden.descriptions.length).toBeGreaterThan(10);
+    expect(leaksIn('const page = "PathCheck";', forbidden)).toEqual([]);
+    expect(leaksIn(`var a="${forbidden.fingerprints[1]}"`, forbidden)).toEqual([forbidden.fingerprints[1]]);
+    expect(leaksIn(`var rows=${JSON.stringify(sampleB)}`, forbidden).length).toBeGreaterThan(5);
+    // The check runs after the build, every time.
+    const scripts = (JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { scripts: Record<string, string> }).scripts;
+    expect(scripts.check).toMatch(/npm run build && node scripts\/check-build\.mjs$/);
+  });
+
+  it('does not take a file\'s word for its size', async () => {
+    const big = new Uint8Array(LARGEST_FILE + 1);
+    big.set(text('%PDF-1.4'));
+    expect(await readFile(fileOf(big, 'small.pdf', 10))).toEqual({ ok: false, refusal: 'too-large' });
   });
 });
 

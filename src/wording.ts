@@ -35,7 +35,7 @@ export const sameRequirement = (filledBy: readonly string[]): string => `Doesn�
 export const electivePlacesFilled = (places: number, filledBy: readonly string[]): string =>
   `Doesn’t count — your ${places} CIS elective places are already filled by ${listOf(filledBy)}.`;
 /** A course the curriculum names as never counting. */
-export const notInCurrentCurriculum = (courseCode: string): string => `Doesn’t count toward CIS — ${courseCode} isn’t in the current CIS curriculum.`;
+export const notInCurrentCurriculum = (courseCode: string): string => `Doesn’t count toward CIS — ${notCurrent(courseCode)}.`;
 /** Shown on a row whose answer depends on a legacy answer not yet given. */
 export const waitingFor = (question: string): string => `Answer “${question}” to see this.`;
 /** `courses` are the sequence's courses that sit in a pick; `kinds` names the sequences. */
@@ -54,5 +54,8 @@ export const belowFullTime = (credits: number): string => `Below ${credits} cred
 export const overUsualMost = (credits: number): string => `Over ${credits} credits: may cost extra.`;
 
 // ---- The review step ----
-/** Beside a row whose course the curriculum names as never counting (the owner's words). */
-export const notCurrent = (courseCode: string): string => `${courseCode} isn’t in the current CIS curriculum`;
+/**
+ * Beside a row whose course the curriculum names as never counting: the second half of the
+ * owner's sentence above. The review step says how a row stands, not what counts.
+ */
+export function notCurrent(courseCode: string): string { return `${courseCode} isn’t in the current CIS curriculum`; }

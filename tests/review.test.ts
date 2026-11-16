@@ -39,7 +39,8 @@ describe('before a transcript', () => {
     expect(uploadPanel()).toMatch(new RegExp(`data-browse>[\\s\\S]*<p class="privacy">[\\s\\S]*${sentence.replace(/\./g, '\\.')}</p>`));
     expect(decode(leftPage(curriculum))).toContain(sentence);
     // The reason a file was not taken is said under the control.
-    expect(uploadPanel('not-a-pdf')).toContain('<p class="field-message" role="status" aria-live="polite" data-refusal>That file is not a PDF. Choose the unofficial transcript PDF from the portal.</p>');
+    expect(uploadPanel('not-a-pdf')).toContain('<p class="field-message" data-refusal>That file is not a PDF. Choose the unofficial transcript PDF from the portal.</p>');
+    expect(refusalText('unreadable')).toBe('That file could not be opened. Choose it again.');
     expect(refusalText('not-made-up')).toBe('PathCheck can only read its two made-up transcripts for now. Nothing from this file was kept or sent.');
     expect(refusalText('too-large')).toBe('That file is too large to be a transcript. Nothing from it was read.');
     expect(refusalText('unavailable')).toBe('Upload isn’t available right now — try again tomorrow');
@@ -88,9 +89,10 @@ describe('what was read', () => {
   it('says how each row stands', () => {
     const rows = Object.fromEntries(rowsOf(drawn(b)).map((row, i) => [`${i} ${row.slice(0, 8).trim()}`, row.replace(/ Edit Not on my transcript$/, '')]));
     expect(rows).toEqual({
-      '0 ENG 131': 'ENG 131 English Comp I 0 cr T Transfer credit Passed',
-      '1 MAT 137': 'MAT 137 Pre-Calc Algebra 0 cr TR Transfer credit Passed',
-      '2 HIS 131': 'HIS 131 World History I 0 cr AP Transfer credit Passed',
+      // Transfer credit: the credits column of the transcript is empty, and so is this one.
+      '0 ENG 131': 'ENG 131 English Comp I T Transfer credit Passed',
+      '1 MAT 137': 'MAT 137 Pre-Calc Algebra TR Transfer credit Passed',
+      '2 HIS 131': 'HIS 131 World History I AP Transfer credit Passed',
       '3 ORI 100': 'ORI 100 First Year Experience 1 cr A Passed',
       '4 ENG 132': 'ENG 132 English Comp II 3 cr B Passed',
       '5 BIO 127': 'BIO 127 General Biology I 3 cr W Doesn’t count — W',
@@ -105,6 +107,12 @@ describe('what was read', () => {
       '14 CIS 206': 'CIS 206 Bus Programming Languages 3 cr In progress No grade was read. Edit this row if the course already has one.',
       '15 ECO 251': 'ECO 251 Prin of Macroeconomics 3 cr In progress No grade was read. Edit this row if the course already has one.',
     });
+    // No number is shown that the transcript does not print: not "0", not "0 cr".
+    const transferRows = drawn(b).split('<div role="row" class="row review-row').slice(1, 4);
+    for (const row of transferRows) expect(row).toMatch(/<span role="cell" class="cell-cr num"><\/span>/);
+    expect(reviewRows(b, curriculum).slice(0, 3).map(row => [row.credits, row.editable?.attempted])).toEqual([['', ''], ['', ''], ['', '']]);
+    // Transfer credit that does print its credits shows them.
+    expect(rowsOf(drawn(open(good({ transfer: true, grade: 'T', attempted: '3.00', term: 'Transfer Credit' }))))[0]).toBe('MGT 321 Prin of Management 3 cr T Transfer credit Passed Edit Not on my transcript');
     // The two courses that never count, in the owner's words; a D; a grade read with spaces, in small letters.
     const more = rowsOf(drawn(open(good({ prefix: 'CIS', number: '304', grade: 'A' }), good({ prefix: 'CIS', number: '415', grade: 'B' }), good({ grade: 'D' }), good({ grade: ' b ' }))));
     expect(more.map(row => row.replace(/ Edit Not on my transcript$/, ''))).toEqual([
@@ -181,6 +189,25 @@ describe('correcting and leaving out', () => {
     // Transfer credit: the grade column is no longer judged.
     const transfer = correctRow(transcript, 0, { term: 'Transfer Credit', prefix: 'MGT', number: '321', attempted: '', grade: 'B+', transfer: true }, curriculum);
     expect(stillToFix(transfer)).toEqual([]);
+    // A corrected row carries the named fields and nothing else of the row it replaces.
+    const loaded = openTranscript('x.pdf', { rows: [{ ...good({ grade: 'B+' }), ssn: '123-45-6789', student: 'Someone' }] }, curriculum);
+    const cleaned = correctRow(loaded, 0, { term: 'Fall 2025', prefix: 'MGT', number: '321', attempted: '3', grade: 'B', transfer: false }, curriculum);
+    expect(Object.keys(cleaned.raw[0] as object).sort()).toEqual(['attempted', 'description', 'grade', 'number', 'prefix', 'term', 'transfer']);
+    expect(JSON.stringify(cleaned)).not.toMatch(/ssn|123-45|Someone/);
+    // A course that is on the transcript twice is told apart by its term in every button's name.
+    const twice = drawn(open(good({ term: 'Fall 2024', grade: 'F' }), good({ term: 'Spr 2025' })));
+    expect(twice.match(/aria-label="[^"]+"/g)?.filter(label => label.includes('MGT 321'))).toEqual([
+      'aria-label="Edit MGT 321, Fall 2024"', 'aria-label="Not on my transcript: MGT 321, Fall 2024"', 'aria-label="Edit MGT 321, Spr 2025"', 'aria-label="Not on my transcript: MGT 321, Spr 2025"',
+    ]);
+    // A line that is not a row stays one: a correction cannot turn it into a course.
+    const junk = open(good(), 'junk', 7);
+    for (const line of [1, 2]) expect(correctRow(junk, line, { term: 'Fall 2025', prefix: 'MGT', number: '321', attempted: '3', grade: 'B', transfer: false }, curriculum)).toBe(junk);
+    // A description that is not text is what needs fixing, and no field corrects it: saving the row drops it.
+    const odd = open(good({ description: 42 }));
+    expect(stillToFix(odd).map(row => row.problems)).toEqual([['description']]);
+    const mended = correctRow(odd, 0, { term: 'Fall 2025', prefix: 'MGT', number: '321', attempted: '3', grade: 'B', transfer: false }, curriculum);
+    expect(stillToFix(mended)).toEqual([]);
+    expect(takenOn(mended).map(row => [row.row.code, row.description])).toEqual([['MGT 321', '']]);
     // A line outside the transcript changes nothing.
     for (const line of [-1, 2, 0.5, Number.NaN]) expect(correctRow(transcript, line, { term: '', prefix: '', number: '', attempted: '', grade: '', transfer: false }, curriculum)).toBe(transcript);
     expect(gradeChoices(curriculum.grades)).toEqual([...curriculum.grades.letters, ...curriculum.grades.neverCounting]);
@@ -204,13 +231,13 @@ describe('correcting and leaving out', () => {
     expect(html.match(/class="row review-row is-left-out"/g)).toHaveLength(2);
     expect(rowsOf(html)[1]).toBe('ENG 131 Prin of Management 3 cr Not on my transcript Put back');
     expect(html).not.toMatch(/data-edit="[12]"/);
-    expect(html).toContain('data-back="1" aria-label="Put back ENG 131"');
+    expect(html).toContain('data-back="1" aria-label="Put back ENG 131, Fall 2025"');
   });
 
   it('draws the fields of an open edit', () => {
     const html = drawn(open(good(), good({ grade: 'B+', term: 'Spr 2026' })), 1);
     const form = html.match(/<div class="row-edit"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/)?.[0] ?? '';
-    expect(form).toContain('role="group" aria-label="Edit MGT 321" data-editing="1"');
+    expect(form).toContain('role="group" aria-label="Edit MGT 321, Spr 2026" data-editing="1"');
     // Every field has its label; what was read is in it.
     for (const [name, label, value] of [['term', 'Term', 'Spr 2026'], ['prefix', 'Prefix', 'MGT'], ['number', 'Number', '321'], ['attempted', 'Credits', '3']]) {
       expect(form).toContain(`<label for="row-1-${name}">${label}</label>`);
@@ -222,10 +249,17 @@ describe('correcting and leaving out', () => {
     expect(form).toContain('<option value="B+" selected>B+</option>');
     expect(form).toMatch(/<input id="row-1-transfer" type="checkbox" data-field="transfer"> Transfer credit<\/label>/);
     expect(form).toMatch(/data-save="1">Save<\/button>\s*<button type="button" class="btn secondary" data-cancel="1">Cancel<\/button>/);
-    // One edit at a time, and the row being edited has no second "Edit".
+    // One edit at a time: while it is open no row offers another, and every row can still be left out.
     expect(html.match(/class="row-edit"/g)).toHaveLength(1);
-    expect(html).toContain('data-edit="0"');
-    expect(html).not.toContain('data-edit="1"');
+    expect(html).not.toContain('data-edit=');
+    expect(html.match(/data-out="\d"/g)).toEqual(['data-out="0"', 'data-out="1"']);
+    // The edit is one cell of its row.
+    expect(html).toMatch(/<div role="cell" class="row-edit-cell">\s*<div class="row-edit" role="group"/);
+    // What is being typed is drawn in place of what was read.
+    const typing = reviewHtml({ ...reviewing(open(good()), 0), draft: { term: 'Spr 2026', prefix: 'MGT', number: '4<2', attempted: '', grade: 'D', transfer: true } }, curriculum);
+    expect(typing).toContain('data-field="number" value="4&lt;2"');
+    expect(typing).toContain('<option value="D" selected>D</option>');
+    expect(typing).toMatch(/data-field="transfer" checked>/);
     expect(drawn(open(good({ grade: 'B' })), 0)).toContain('<option value="B" selected>B</option>');
     expect(drawn(open(good({ transfer: true, grade: 'T' })), 0)).toMatch(/data-field="transfer" checked>/);
   });

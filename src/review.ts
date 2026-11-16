@@ -41,9 +41,13 @@ export interface Correction {
 /** Puts a correction in the place of a row and checks everything again. */
 export function correctRow(transcript: Transcript, line: number, correction: Correction, curriculum: Curriculum): Transcript {
   if (!Number.isInteger(line) || line < 0 || line >= transcript.raw.length) return transcript;
+  // A line that is not a row stays what it is: correcting it would be typing a course in.
+  if (transcript.reading.toFix.some(row => row.line === line && row.problems.includes('not-a-row'))) return transcript;
   const before = transcript.raw[line];
-  // The printed description stays with the row; nothing else of the old row is carried over.
-  const description = typeof before === 'object' && before !== null && Object.hasOwn(before, 'description') ? (before as { description: unknown }).description : undefined;
+  // The printed description stays with the row when it is text; nothing else of the old row
+  // is carried over. A description that is not text cannot be corrected, so it is dropped.
+  const printed = typeof before === 'object' && before !== null && Object.hasOwn(before, 'description') ? (before as { description: unknown }).description : undefined;
+  const description = typeof printed === 'string' ? printed : '';
   const { term, prefix, number, attempted, grade, transfer } = correction;
   const raw = transcript.raw.map((row, i) => (i === line ? { term, transfer, prefix, number, description, attempted, grade } : row));
   return { ...transcript, raw, reading: readRows({ rows: raw }, curriculum) };
@@ -85,16 +89,18 @@ export interface ReviewRow {
 /** The transcript's rows in the order read, each as it is to be shown. */
 export function reviewRows(transcript: Transcript, curriculum: Curriculum): ReviewRow[] {
   const { grades, electives } = curriculum;
-  const passed: ReviewRow[] = transcript.reading.rows.map(({ line, row, description, match }) => {
+  const passed: ReviewRow[] = transcript.reading.rows.map(({ line, row, description, attempted, match }) => {
     const standing = rowStanding(row, grades);
     const grade = (row.grade ?? '').toUpperCase();
+    // The credits as printed: a number when one was read, nothing when the column was empty.
+    const credits = attempted === '' ? '' : String(row.credits);
     return {
-      line, term: row.term, code: row.code, description, credits: String(row.credits), grade, transfer: row.transfer,
+      line, term: row.term, code: row.code, description, credits, grade, transfer: row.transfer,
       state: standing === 'passed' ? 'passed' : standing === 'in-progress' ? 'in-progress' : standing === 'must-repeat' ? 'below' : 'never',
       problems: [],
       outside: match !== 'none' ? 'no' : electives.except.includes(row.code) ? 'never' : 'none',
       leftOut: transcript.leftOut.has(line),
-      editable: { term: row.term, prefix: row.code.split(' ')[0] ?? '', number: row.code.split(' ')[1] ?? '', attempted: String(row.credits), grade, transfer: row.transfer },
+      editable: { term: row.term, prefix: row.code.split(' ')[0] ?? '', number: row.code.split(' ')[1] ?? '', attempted: credits, grade, transfer: row.transfer },
     };
   });
   const toFix: ReviewRow[] = transcript.reading.toFix.map(({ line, problems, seen }) => {

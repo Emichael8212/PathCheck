@@ -9,7 +9,7 @@
 /** Files larger than this are refused before they are read. */
 export const LARGEST_FILE = 10 * 1024 * 1024;
 
-export type Refusal = 'too-large' | 'not-a-pdf' | 'not-made-up' | 'unavailable';
+export type Refusal = 'too-large' | 'not-a-pdf' | 'not-made-up' | 'unreadable' | 'unavailable';
 
 /** As much of a chosen file as is used. */
 export interface ChosenFile {
@@ -59,6 +59,8 @@ const madeUp = import.meta.env.DEV
 export async function readFile(file: ChosenFile): Promise<Upload> {
   if (file.size > LARGEST_FILE) return { ok: false, refusal: 'too-large' };
   const bytes = new Uint8Array(await file.arrayBuffer());
+  // The size a file gives for itself is not taken on trust.
+  if (bytes.length > LARGEST_FILE) return { ok: false, refusal: 'too-large' };
   if (!isPdf(bytes)) return { ok: false, refusal: 'not-a-pdf' };
   if (!madeUp) return { ok: false, refusal: 'unavailable' };
   const manifest = Object.values(madeUp.manifest)[0] ?? {};
