@@ -1152,7 +1152,9 @@ describe('the pace line', () => {
     expect(line()).toBe(`3 credits in [Spring 2027] — at this pace you finish Spring 2040, 22 semesters after your target [Spring 2029]. ${CAVEAT}`);
     // What happened and the new line, as one message.
     add('mgt 422');
-    expect(said()).toBe('MGT 422 added. Below 12 credits: below full-time; may affect scholarships. 6 credits in Spring 2027 — at this pace you finish Fall 2033, 9 semesters after your target.'.replace('Below 12 credits: below full-time; may affect scholarships. ', ''));
+    // (The note about fewer than 12 credits was already there with one course: it is not said again.)
+    expect(said()).toBe('MGT 422 added. 6 credits in Spring 2027 — at this pace you finish Fall 2033, 9 semesters after your target.');
+    expect(said()).not.toContain('Below 12 credits');
     expect(line()).toContain('6 credits in [Spring 2027] — at this pace you finish Fall 2033, 9 semesters after your target');
     // A course that doesn't count changes the wording, not the finish.
     add('bio 230');
@@ -1190,8 +1192,18 @@ describe('the pace line', () => {
     // 89 credits still to take with Yes.
     expect(line()).toBe(`3 credits in [Spring 2026] — at this pace you finish Fall 2040, 25 semesters after your target [Spring 2028]. ${CAVEAT}`);
     expect(window.localStorage.getItem('pathcheck.legacy')).not.toBeNull();
-    expect(said()).toBe('Legacy CIS student: Yes 3 credits in Spring 2026 — at this pace you finish Fall 2040, 25 semesters after your target.');
-    expect(document.activeElement).toBe($('[data-line-term]'));
+    expect(said()).toBe('Legacy CIS student: Yes. 3 credits in Spring 2026 — at this pace you finish Fall 2040, 25 semesters after your target.');
+    // The keyboard goes to the line that shows the answer and lets the student change it.
+    expect(document.activeElement).toBe($('[data-legacy-change]'));
+    // The answer is shown under the list with "Change", although no typed course is a legacy course.
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
+    $('[data-legacy-change]').click();
+    expect(tidy($('[data-pace-line]').textContent)).toContain('Are you a legacy CIS student? Yes No');
+    expect(document.querySelector('.legacy-line')).toBeNull();
+    expect(document.activeElement).toBe($('[data-pace-line] [data-legacy="yes"]'));
+    expect(window.localStorage.getItem('pathcheck.legacy')).toBeNull();
+    $('[data-pace-line] [data-legacy="yes"]').click();
+    expect(line()).toContain('you finish Fall 2040, 25 semesters after your target [Spring 2028].');
     // It is the answer of the checklist too; changed there, the line here follows: 92 with No.
     go('#/left');
     expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');

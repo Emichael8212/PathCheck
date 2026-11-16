@@ -29,8 +29,8 @@ Read this before writing a sprint contract; delete a line when its feature has d
 
 ## For F16 (what pace gives it)
 - Terms: `readTerm`, `termAfter`, `termName`, `latestTermOf` in `src/pace.ts`. The first
-  term ahead is `termAfter(latest, summers)`: the owner's default term for the pace line
-  (F15) is that term with summers off. A term that cannot be read gives no estimate.
+  term ahead is `termAfter(latest, summers)`. A term that cannot be read gives no
+  estimate.
 - The settings (`PaceSettings`: target, fewest, most, summers) are `LeftState.pace`, kept
   for the visit. The plan (F16) must use the same range and summers, and end in the
   target when on pace. The target is shared with the pace line of "Check my courses"

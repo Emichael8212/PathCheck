@@ -167,11 +167,13 @@ const halfYears = (term: Term): number => term.year * 2 + (term.season === 'Spri
 /**
  * The pace line: `left` credits are still to take; the student has typed `total` credits
  * of which `counting` count toward the degree, for `term` (null: the first Fall or Spring
- * after the transcript's latest term). The target is the one of "See what I have left".
- * Summers are never counted here.
+ * after the transcript's latest term). `after` is what will still be to take once those
+ * courses are taken: usually `left - counting`, but more when one of them fills the last
+ * pick a sequence could have gone through. The target is the one of "See what I have
+ * left". Summers are never counted here.
  */
-export function paceLineOf(input: { left: number; counting: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
-  const { left, counting, total, latest, settings } = input;
+export function paceLineOf(input: { left: number; after: number; counting: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
+  const { left, after, counting, total, latest, settings } = input;
   if (left <= 0) return { kind: 'none' };
   if (latest === null) return { kind: 'unreadable' };
   if (counting <= 0) return { kind: 'no-count' };
@@ -179,11 +181,13 @@ export function paceLineOf(input: { left: number; counting: number; total: numbe
   const terms = [1, 2, 3, 4].map(count => termAt(first, count, false));
   // The chosen term, when it is one of those offered.
   const term = terms.find(one => input.term !== null && sameTerm(one, input.term)) ?? first;
-  const finish = termAt(term, Math.ceil(left / counting), false);
+  // This term, and then as many more at the same pace as what is left after it takes.
+  const finish = after <= 0 ? term : termAt(term, 1 + Math.ceil(after / counting), false);
   // The target as "See what I have left" has it; a summer only when summers count there.
   const shared = paceOf(left, latest, settings);
   const plain = paceOf(left, latest, { ...settings, summers: false, target: null });
-  if ((shared.kind !== 'on' && shared.kind !== 'off') || (plain.kind !== 'on' && plain.kind !== 'off')) return { kind: 'none' };
+  // (Credits are left and the latest term is known, so both are estimates.)
+  if ((shared.kind !== 'on' && shared.kind !== 'off') || (plain.kind !== 'on' && plain.kind !== 'off')) throw new Error('The pace line has no target to compare with.');
   const { target } = shared;
   const targets = [...plain.options, target].filter((one, i, all) => all.findIndex(other => sameTerm(other, one)) === i).sort((a, b) => place(a) - place(b));
   const apart = halfYears(finish) - halfYears(target);

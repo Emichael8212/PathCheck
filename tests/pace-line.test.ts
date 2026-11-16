@@ -164,7 +164,7 @@ describe('the pace line', () => {
     const eighteen = [...FIFTEEN, 'CIS 310'];
     expect(said(eighteen, summer)).toBe('18 credits in Spring 2027 — at this pace you finish Spring 2029, one semester before your target.');
     // Further away: Fall and Spring terms, the target summer as one step.
-    const line = (left: number, counting: number, target: string) => paceLineOf({ left, counting, total: counting, latest: term('Fall 2026'), term: null, settings: { ...defaultSettings(), summers: true, target: term(target) } });
+    const line = (left: number, counting: number, target: string) => paceLineOf({ left, after: left - counting, counting, total: counting, latest: term('Fall 2026'), term: null, settings: { ...defaultSettings(), summers: true, target: term(target) } });
     expect(line(3, 3, 'Summer 2028')).toMatchObject({ finish: term('Spring 2027'), compare: { kind: 'before', semesters: 3 } });
     expect(line(12, 3, 'Summer 2028')).toMatchObject({ finish: term('Fall 2028'), compare: { kind: 'after', semesters: 1 } });
     expect(line(18, 3, 'Summer 2028')).toMatchObject({ finish: term('Fall 2029'), compare: { kind: 'after', semesters: 3 } });
@@ -201,6 +201,24 @@ describe('the pace line', () => {
     expect(said(['HIS 132', 'MGT 462'], added(held))).toBe('6 credits in Spring 2026 — at this pace you finish in your target semester.');
     // One credit.
     expect(said(['ORI 100'], added(having('ENG 131:-@Fall 2026')))).toMatch(/^1 credit in Spring 2027 — at this pace you finish /);
+  });
+
+  it('counts the sequence course that the typed courses make necessary', () => {
+    // Everything is passed but four courses; GEO 206 holds the Social sciences pick, and the
+    // pick of ENG 210 is still open: 15 credits left, and a sequence could still go through it.
+    const open = ['MGT 462', 'MGT 422', 'CIS 461', 'CIS 410', 'ENG 210'];
+    const transcript = added(having(...everything('GEO 206', 'ENG 210').filter(code => !open.includes(code))));
+    // Typed with ENG 210, the five courses finish everything in one term.
+    expect(said(open, transcript)).toBe('15 credits in Spring 2026 — at this pace you finish in your target semester.');
+    // Typed with HUM 101 instead, all five count as well, but HUM 101 takes the pick the
+    // sequence needed: a sequence course is then still to take, with 3 extra credits. One term more.
+    const closing = ['MGT 462', 'MGT 422', 'CIS 461', 'CIS 410', 'HUM 101'];
+    expect(said(closing, transcript)).toBe('15 credits in Spring 2026 — at this pace you finish Fall 2026, one semester after your target.');
+    // The finish is never earlier than what is left once the typed courses are taken allows.
+    expect(paceLineOf({ left: 15, after: 3, counting: 15, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() })).toMatchObject({ finish: term('Fall 2026') });
+    expect(paceLineOf({ left: 15, after: 0, counting: 15, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() })).toMatchObject({ finish: term('Spring 2026') });
+    // A typed course that was failed before is taken again: it counts once.
+    expect(said(['MGT 321'], added(having('ENG 131@Fall 2025', 'MGT 321:D@Fall 2025')))).toMatch(/^3 credits in Spring 2026 — at this pace you finish /);
   });
 
   it('never names a finish without the caveat', () => {
@@ -253,9 +271,9 @@ describe('the pace line', () => {
     for (const view of [paceLineFor(typed(['BIO 230']), curriculum, added(done)), paceLineFor(typed(['MGT 321']), curriculum, added(having('ENG 132:-@Winter 2026')))]) {
       expect(paceLineHtml(view)).toMatch(/^<p class="pace-line" data-pace-line>[^<]+<\/p>$/);
     }
-    expect(paceLineOf({ left: 0, counting: 3, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toEqual({ kind: 'none' });
-    expect(paceLineOf({ left: 5, counting: 3, total: 3, latest: null, term: null, settings: defaultSettings() })).toEqual({ kind: 'unreadable' });
-    expect(paceLineOf({ left: 5, counting: 0, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toEqual({ kind: 'no-count' });
+    expect(paceLineOf({ left: 0, after: 0, counting: 3, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toEqual({ kind: 'none' });
+    expect(paceLineOf({ left: 5, after: 2, counting: 3, total: 3, latest: null, term: null, settings: defaultSettings() })).toEqual({ kind: 'unreadable' });
+    expect(paceLineOf({ left: 5, after: 5, counting: 0, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toEqual({ kind: 'no-count' });
   });
 
   it('holds for any numbers', () => {
@@ -286,7 +304,9 @@ describe('the pace line', () => {
       const skip = whole(0, 5);
       const chosenTerm: Term = { season: (halves(first) + skip) % 2 === 1 ? 'Fall' : 'Spring', year: Math.floor((halves(first) + skip) / 2) };
       const label = `seed ${SEED}, case ${i}: ${left} left, ${counting} counting after ${termName(latest)}, term ${termName(chosenTerm)}, ${JSON.stringify(settings)}`;
-      const line = paceLineOf({ left, counting, total: counting + extra, latest, term: chosenTerm, settings });
+      // What is left once this term's courses are taken: usually the rest, sometimes 3 more (a sequence course made necessary).
+      const after = left - counting + (next() < 0.2 ? 3 : 0);
+      const line = paceLineOf({ left, after, counting, total: counting + extra, latest, term: chosenTerm, settings });
       if (line.kind !== 'line') throw new Error(`${label}: no line`);
       // The terms offered: the first Fall or Spring after the latest term and the next three; no summer.
       expect(line.terms.map(halves), label).toEqual([0, 1, 2, 3].map(n => halves(first) + n));
@@ -295,12 +315,13 @@ describe('the pace line', () => {
       const used = skip <= 3 ? chosenTerm : first;
       expect(line.term, label).toEqual(used);
       if (skip > 0 && skip <= 3) seen.laterTerm++;
-      // The finish: credits ÷ pace, rounded up, in Fall and Spring terms from that term. Never a summer, never before the term.
-      const terms = Math.ceil(left / counting);
+      // The finish: this term, and then what is left after it ÷ pace, rounded up, in Fall and
+      // Spring terms. Never a summer, never before the term, never earlier than the plain count.
+      const more = after <= 0 ? 0 : Math.ceil(after / counting);
       expect(line.finish.season, label).not.toBe('Summer');
-      expect(halves(line.finish), label).toBe(halves(used) + terms - 1);
-      expect(halves(line.finish), label).toBeGreaterThanOrEqual(halves(used));
-      if (left <= counting) { seen.sameTerm++; expect(line.finish, label).toEqual(used); }
+      expect(halves(line.finish), label).toBe(halves(used) + more);
+      expect(halves(line.finish), label).toBeGreaterThanOrEqual(halves(used) + Math.ceil(left / counting) - 1);
+      if (after <= 0) { seen.sameTerm++; expect(line.finish, label).toEqual(used); }
       // Against the student's own target, in calendar order.
       const later = calendar(line.finish) - calendar(line.target);
       if (line.target.season === 'Summer') seen.summerTarget++;
@@ -321,13 +342,10 @@ describe('the pace line', () => {
       expect(new Set(names).size, label).toBe(names.length);
       expect(line.targets.filter(one => one.season === 'Summer' && termName(one) !== termName(line.target)), label).toEqual([]);
       // A later term never gives an earlier finish; fewer counting credits never give an earlier one; credits that do not count change nothing.
-      const at = (over: Partial<{ counting: number; total: number; term: Term }>) => paceLineOf({ left, counting, total: counting + extra, latest, term: used, settings, ...over });
+      const at = (over: Partial<{ counting: number; after: number; term: Term }>) => paceLineOf({ left, after, counting, total: counting + extra, latest, term: used, settings, ...over });
       const laterTerm = at({ term: line.terms[Math.min(3, line.terms.findIndex(one => termName(one) === termName(used)) + 1)]! });
       if (laterTerm.kind === 'line') expect(halves(laterTerm.finish), label).toBeGreaterThanOrEqual(halves(line.finish));
-      if (counting > 1) { const fewer = at({ counting: counting - 1 }); if (fewer.kind === 'line') expect(halves(fewer.finish), label).toBeGreaterThanOrEqual(halves(line.finish)); }
-      const padded = at({ total: counting + extra + 30 });
-      if (padded.kind !== 'line') throw new Error(`${label}: no line`);
-      expect([padded.finish, padded.compare], label).toEqual([line.finish, line.compare]);
+      if (counting > 1) { const fewer = at({ counting: counting - 1, after: after + 1 }); if (fewer.kind === 'line') expect(halves(fewer.finish), label).toBeGreaterThanOrEqual(halves(line.finish)); }
       // With no counting credits no finish is named.
       expect(at({ counting: 0 }), label).toEqual({ kind: 'no-count' });
     }

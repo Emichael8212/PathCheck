@@ -468,7 +468,7 @@ svg { display: block; flex-shrink: 0; }
 .summary .num.is-no { color: var(--nocount); }
 .summary-label, .summary-condition { color: var(--ink-2); font-size: 12px; }
 /* The pace line under the numbers, with a transcript: one sentence with two small lists in it. */
-.pace-line { margin-top: 14px; color: var(--ink); font-size: 15px; line-height: 1.9; }
+.pace-line { margin: -14px 0 28px; color: var(--ink); font-size: 15px; line-height: 1.9; }
 .pace-line .caveat { margin-top: 4px; }
 .pace-line .legacy-ask { max-width: 560px; }
 .line-select {
