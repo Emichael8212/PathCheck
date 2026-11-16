@@ -31,11 +31,17 @@ Read this before writing a sprint contract; delete a line when its feature has d
 ## For F09 (credit total)
 - Owner answer, 2026-11-16 ("Credits of a course PathCheck doesn't know"): a course
   PathCheck doesn't know starts at 3 credits and the student can change it; a course it
-  knows uses its curriculum credits (a rule-matched elective: the rule's) and is not
-  editable. An unknown course's credits add to the semester total only, never to what
-  counts toward CIS. The owner's tests: an unknown course adds 3 by default; an edited
+  knows uses its curriculum credits and is not editable. An unknown course's credits add
+  to the semester total only, never to what counts toward CIS. The owner's tests: an unknown course adds 3 by default; an edited
   value changes the total and the under-12 / over-18 notes; an unknown course's credits
   never count toward CIS.
+- Agent's reading (decision log), not the owner's words: "doesn't know" means not in a
+  curriculum list and not matching the elective rule, which includes CIS 304 and CIS 415
+  (3 by default, editable); a rule-matched elective (MKT 410) is known: the rule's 3
+  credits, not editable.
+- A new F09 step for this is proposed to the owner (open question in the decision log).
+  Until it is approved, F09's contract does not treat it as a step and does not rewrite
+  F09's steps.
 - The field to change the credits is not in the approved design (it shows "3 cr" as text):
   add it to `docs/design/DESIGN.md` as a difference that comes from this answer. What
   values the field accepts is not an academic rule: choose the simplest and record it.

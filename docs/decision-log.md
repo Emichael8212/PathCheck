@@ -362,7 +362,9 @@ Applied to `features.json`:
 - **F08 step 7:** … and CIS 304 and CIS 415 not counting while another 300/400-level CIS
   course does
 
-*Agent's note, not an owner decision:* the proposed F08 step 5 already quoted the owner's
+*Agent's note, not an owner decision:* the message seemed cut off after this first item
+(part pasted, part typed; the quotation is as it arrived, without its closing mark). The
+proposed F08 step 5 already quoted the owner's
 sentence in full for CIS 304 and CIS 415, so the "one change" is read as: that sentence
 must appear whole and unchanged, for those two courses. Every other course that is not in
 the curriculum (BIO 230) keeps the sentence of the brief and of the approved design,
@@ -396,9 +398,22 @@ from? The owner: "leave it open for the student to add it."
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- None open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
-  rows; whether CIS 304 and CIS 415 count; and the credits of a course PathCheck doesn't
-  know.)
+- **2026-11-16 (needed for F08).** The owner approved F08 step 5 "with one change": it
+  "must use my full message". The step as proposed already had that sentence in full for
+  CIS 304 and CIS 415, so it was applied as proposed. Did the owner mean the new sentence
+  ("Doesn't count toward CIS — <code> isn't in the current CIS curriculum.") for every
+  course that doesn't count, BIO 230 included, in place of "not in the CIS curriculum"?
+  Until answered, other courses keep the sentence of the brief and the approved design.
+  Status: asked in pull request #12, not answered yet.
+- **2026-11-16 (needed for F09).** `features.json` F09 has no step for the owner's answer
+  on the credits of a course PathCheck doesn't know. Proposed new step: "A course PathCheck
+  doesn't know starts at 3 credits and the student can change it; a course PathCheck knows
+  uses its curriculum credits and can't be edited. An unknown course's credits add to the
+  semester total only, never to what counts toward CIS". Status: asked in pull request
+  #12, not approved yet. The owner's three tests are built in F09 either way.
+
+(Answered on 2026-11-16, see "Owner answers": the grade column of transfer rows; whether
+CIS 304 and CIS 415 count; and the credits of a course PathCheck doesn't know.)
 
 ## Milestone checks
 
