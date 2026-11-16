@@ -30,7 +30,7 @@ const broken = (edit: Edit): (() => unknown) => () => { const data = copy(); edi
 const blocksOf = (data: ReturnType<typeof copy>) => data.blocks as { id: string; credits: Json; required: { [key: string]: Json }[]; choices: { choose: Json; courses: { [key: string]: Json }[] }[] }[];
 const part = (data: ReturnType<typeof copy>, key: string) => data[key] as { [key: string]: Json };
 
-const codes = (list: { code: string }[]): string[] => list.map(course => course.code).sort();
+const codes = (list: readonly { code: string }[]): string[] => list.map(course => course.code).sort();
 
 describe('the curriculum comes from the data file', () => {
   it('builds the curriculum from the data file', () => {
@@ -44,9 +44,32 @@ describe('the curriculum comes from the data file', () => {
     const blockNames = rawData.blocks.map(block => block.name);
     for (const { file, text } of sources) {
       expect(text.match(/\b[A-Z]{2,4}[ -]?\d{3}\b/g) ?? [], `${file}: text shaped like a course code`).toEqual([]);
-      expect(blockNames.filter(name => text.includes(name)), `${file}: a block name`).toEqual([]);
+      // Exact and case-sensitive, and not inside a longer word (CompositionEvent is fine).
+      const named = (name: string): boolean => new RegExp(`(?<![A-Za-z])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z])`).test(text);
+      expect(blockNames.filter(named), `${file}: a block name`).toEqual([]);
       expect(text.match(/\b121\b|\b42\b/g) ?? [], `${file}: the degree or core credit total`).toEqual([]);
     }
+  });
+
+  it('recognises a block name in code only as a whole word', () => {
+    const named = (name: string, text: string): boolean => new RegExp(`(?<![A-Za-z])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z])`).test(text);
+    expect(named('Composition', 'input.addEventListener("compositionend", (e: CompositionEvent) => {})')).toBe(false);
+    expect(named('Orientation', 'screen.orientation; ScreenOrientation')).toBe(false);
+    expect(named('Composition', 'const label = "Composition";')).toBe(true);
+    expect(named('Major (CIS)', 'title: "Major (CIS)"')).toBe(true);
+  });
+
+  it('cannot be changed once loaded', () => {
+    const place = findCourse(curriculum, 'MGT 321')[0];
+    expect(place).toBeDefined();
+    expect(() => { (place as { course: { title: string } }).course.title = 'changed'; }).toThrow(TypeError);
+    expect(() => { (curriculum.blocks as unknown[]).push({}); }).toThrow(TypeError);
+    expect(() => { (curriculum.blocks[6]?.required as unknown[]).reverse(); }).toThrow(TypeError);
+    expect(() => { (curriculum as { degreeCredits: number }).degreeCredits = 1; }).toThrow(TypeError);
+    expect(() => { (findCourse(curriculum, 'PSY 251') as unknown[]).pop(); }).toThrow(TypeError);
+    expect(() => { (programs as unknown[]).push({}); }).toThrow(TypeError);
+    expect(Object.isFrozen(loadCurriculum(madeUp).electives.subjects)).toBe(true);
+    expect(findCourse(curriculum, 'MGT 321')[0]?.course.title).toBe('Principles of Management');
   });
 
   it('lists exactly one major, named by the data file', () => {
@@ -191,6 +214,11 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
     expect(broken(() => {})).not.toThrow();
   });
 
+  it('refuses something that is not a data file at all', () => {
+    for (const notAFile of [null, undefined, [], 'text', 7]) expect(() => loadCurriculum(notAFile), JSON.stringify(notAFile)).toThrow(/Curriculum data: the file: must be an object/);
+    expect(() => loadCurriculum(null)).toThrow(CurriculumError);
+  });
+
   it('refuses a data file with a different schema version', () => {
     expect(broken(data => { data.schemaVersion = 3; })).toThrow(/schemaVersion/);
     expect(broken(data => { data.schemaVersion = 3; })).toThrow(CurriculumError);
@@ -215,7 +243,8 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
   });
 
   it('refuses a data file with two blocks of the same id', () => {
-    expect(broken(data => { blocksOf(data)[3]!.id = 'humanities'; })).toThrow(/blocks\[3\] \(humanities\): the same block id is used twice/);
+    expect(broken(data => { blocksOf(data)[3]!.id = 'humanities'; })).toThrow(/blocks\[3\] \(humanities\): the same block id is listed twice/);
+    expect(broken(data => { (blocksOf(data)[3] as unknown as { name: string }).name = 'Humanities'; })).toThrow(/blocks\[3\] \(Humanities\): the same block name is listed twice/);
   });
 
   it('refuses a data file with credits that are not a positive whole number', () => {
@@ -252,10 +281,26 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
   });
 
   it('refuses a data file that lists the same course twice', () => {
-    expect(broken(data => { blocksOf(data)[7]!.required[0]!.courseId = 'MGT-321'; })).toThrow(/MGT-321: the same course is listed twice/);
-    expect(broken(data => { (part(data, 'electives').namedCourses as { [key: string]: Json }[])[0]!.courseId = 'CIS-205'; })).toThrow(/CIS-205: the same course is listed twice/);
+    expect(broken(data => { blocksOf(data)[7]!.required[0]!.courseId = 'MGT-321'; })).toThrow(/MGT-321: the same course is listed twice: in blocks\[6\] \(business-core\) and in blocks\[7\] \(major\)/);
+    expect(broken(data => { (part(data, 'electives').namedCourses as { [key: string]: Json }[])[0]!.courseId = 'CIS-205'; })).toThrow(/CIS-205: the same course is listed twice: in blocks\[5\] \(pre-professional\) and in electives\.namedCourses/);
     // A legacy-only elective may also be a pick in a block, as PSY 251 is.
     expect(findCourse(curriculum, 'PSY 251')).toHaveLength(2);
+  });
+
+  it('refuses a data file whose legacy-only list contradicts the rest', () => {
+    const legacy = (data: ReturnType<typeof copy>) => part(data, 'electives').legacyOnlyCourses as { [key: string]: Json }[];
+    // Twice in the legacy list.
+    expect(broken(data => { legacy(data)[2]!.courseId = 'FLS-161'; })).toThrow(/FLS-161: the same course is listed twice: in electives\.legacyOnlyCourses and in electives\.legacyOnlyCourses/);
+    // The same as the named elective, or as a required course.
+    expect(broken(data => { legacy(data)[1]!.courseId = 'FIN-201'; })).toThrow(/FIN-201: the same course is listed twice: in electives\.namedCourses and in electives\.legacyOnlyCourses/);
+    expect(broken(data => { legacy(data)[1]!.courseId = 'MGT-321'; })).toThrow(/MGT-321: the same course is listed twice: in blocks\[6\] \(business-core\) and in electives\.legacyOnlyCourses/);
+    // The same as a pick is allowed, but only if both entries agree.
+    expect(broken(data => { legacy(data)[0]!.title = 'Psychology'; })).toThrow(/PSY-251: has a different title or credits in blocks\[3\] \(social-sciences\) and in electives\.legacyOnlyCourses/);
+  });
+
+  it('refuses a data file with an elective that is not worth the elective credits', () => {
+    expect(broken(data => { (part(data, 'electives').namedCourses as { [key: string]: Json }[])[0]!.credits = 4; })).toThrow(/electives\.namedCourses\[0\] \(FIN-201\)\.credits: is 4 but an elective is 3 credits/);
+    expect(broken(data => { (part(data, 'electives').legacyOnlyCourses as { [key: string]: Json }[])[1]!.credits = 1; })).toThrow(/electives\.legacyOnlyCourses\[1\] \(FLS-161\)\.credits: is 1 but an elective is 3 credits/);
   });
 
   it('refuses a data file whose total is not the degree credits', () => {
@@ -266,6 +311,11 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
     expect(broken(data => { part(data, 'electives').credits = 12; })).toThrow(/electives\.credits: is 12 but 3 courses of 3 credits is 9/);
     expect(broken(data => { (part(data, 'electives').subjectRule as { [key: string]: Json }).minCourseNumber = 500; })).toThrow(/electives\.subjectRule\.minCourseNumber: is above maxCourseNumber/);
     expect(broken(data => { ((part(data, 'electives').subjectRule as { [key: string]: Json }).prefixes as Json[])[0] = 'mgt'; })).toThrow(/prefixes\[0\] \(mgt\): must be 2 to 4 capital letters/);
+    const rule = (data: ReturnType<typeof copy>) => part(data, 'electives').subjectRule as { [key: string]: Json };
+    expect(broken(data => { rule(data).prefixes = []; })).toThrow(/electives\.subjectRule\.prefixes: must list at least one subject/);
+    expect(broken(data => { (rule(data).prefixes as Json[])[1] = 'MGT'; })).toThrow(/prefixes\[1\] \(MGT\): the same subject is listed twice/);
+    expect(broken(data => { rule(data).maxCourseNumber = 4999; })).toThrow(/electives\.subjectRule\.maxCourseNumber: must be a three-digit course number/);
+    expect(broken(data => { rule(data).minCourseNumber = 30; })).toThrow(/electives\.subjectRule\.minCourseNumber: must be a three-digit course number/);
   });
 
   it('refuses a data file whose sequence does not sit inside the core blocks', () => {
@@ -275,12 +325,31 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
     expect(broken(data => { ((part(data, 'sequence').alternatives as { courses: Json[] }[])[1]!.courses)[1] = 'ENG-999'; })).toThrow(/literature: ENG-999\): is not a course in a core block/);
   });
 
+  it('refuses a data file with a sequence that is empty, repeats itself or is listed twice', () => {
+    const alternatives = (data: ReturnType<typeof copy>) => part(data, 'sequence').alternatives as { id: Json; courses: Json[] }[];
+    // An empty sequence would always be complete.
+    expect(broken(data => { alternatives(data)[0]!.courses = []; })).toThrow(/sequence\.alternatives\[0\] \(history\)\.courses: a sequence needs at least two courses/);
+    expect(broken(data => { alternatives(data)[0]!.courses = ['HIS-131']; })).toThrow(/history\)\.courses: a sequence needs at least two courses/);
+    expect(broken(data => { alternatives(data)[0]!.courses = ['HIS-131', 'HIS-131']; })).toThrow(/history\)\.courses\[1\] \(HIS-131\): the same course is listed twice/);
+    expect(broken(data => { alternatives(data)[1]!.id = 'history'; })).toThrow(/sequence\.alternatives\[1\] \(history\): the same sequence id is listed twice/);
+    expect(broken(data => { (part(data, 'sequence').coreBlocks as Json[]).push('orientation'); })).toThrow(/sequence\.coreBlocks\[5\] \(orientation\): the same block is listed twice/);
+  });
+
   it('refuses a data file whose lowest counting grade is not one of its letters', () => {
     expect(broken(data => { part(data, 'grades').minimumCounting = 'C-'; })).toThrow(/grades\.minimumCounting: "C-" is not one of the letters/);
   });
 
+  it('refuses a data file whose grade scale repeats or contradicts itself', () => {
+    expect(broken(data => { (part(data, 'grades').letters as Json[]).push('A'); })).toThrow(/grades\.letters\[5\] \(A\): the same grade is listed twice/);
+    // A mark cannot both be a grade that may count and a mark that never counts.
+    expect(broken(data => { (part(data, 'grades').neverCounting as Json[]).push('C'); })).toThrow(/grades\.neverCounting\[2\] \(C\): is also one of the letters/);
+    expect(broken(data => { part(data, 'grades').letters = []; })).toThrow(/grades\.letters: must list at least one grade/);
+    // The letters are listed best first; the real file's order is pinned here.
+    expect(curriculum.grades.letters).toEqual(['A', 'B', 'C', 'D', 'F']);
+  });
+
   it('refuses a data file with a last-reviewed value that is not a date', () => {
-    for (const bad of ['Nov 2026', '2026-13-01', '2026-02-30', '2026-11', 20261115, '']) {
+    for (const bad of ['Nov 2026', '2026-13-01', '2026-02-30', '2026-11', 20261115, '', '0000-01-01', '1999-12-31']) {
       expect(broken(data => { data.lastReviewed = bad; }), String(bad)).toThrow(/lastReviewed: must be null or a date written YYYY-MM-DD/);
     }
     expect(loadCurriculum({ ...copy(), lastReviewed: '2026-11-15' }).lastReviewed).toBe('2026-11-15');
@@ -290,10 +359,24 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
 describe('looking a course up', () => {
   it('finds a course by code however it is typed', () => {
     const management = [{ kind: 'required', blockId: 'business-core', course: { code: 'MGT 321', title: 'Principles of Management', credits: 3 } }];
-    for (const typed of ['MGT 321', 'mgt321', 'MGT-321', ' Mgt 321 ', 'mgt  321', 'MGT–321'.replace('–', '-')]) expect(findCourse(curriculum, typed), typed).toEqual(management);
+    for (const typed of ['MGT 321', 'mgt321', 'MGT-321', ' Mgt 321 ', 'mgt  321', 'MGT\t321', 'MGT\u00A0321']) expect(findCourse(curriculum, typed), typed).toEqual(management);
+    // What a phone's autocorrect or a pasted PDF produces: other dashes, full-width
+    // characters, and characters that take no room.
+    const pasted = { 'en dash': 'MGT\u2013321', 'em dash': 'MGT\u2014321', 'non-breaking hyphen': 'MGT\u2011321', 'minus sign': 'MGT\u2212321', 'small hyphen': 'MGT\uFE63321', 'full-width hyphen': 'MGT\uFF0D321', 'zero-width space': '\u200BMGT 321', 'soft hyphen': 'MGT\u00AD321', 'byte-order mark': '\uFEFFMGT 321', 'full-width letters': '\uFF2D\uFF27\uFF34\uFF13\uFF12\uFF11' };
+    for (const [what, typed] of Object.entries(pasted)) {
+      expect(typed, what).not.toBe('MGT-321');
+      expect(normalizeCode(typed), what).toBe('MGT 321');
+      expect(findCourse(curriculum, typed), what).toEqual(management);
+    }
     expect(findCourse(curriculum, 'biol127')).toEqual([{ kind: 'required', blockId: 'science-math', course: { code: 'BIOL 127', title: 'General Biology Lab', credits: 1 } }]);
     expect(findCourse(curriculum, 'BIOL 128')).toMatchObject([{ kind: 'required', blockId: 'science-math', course: { code: 'BIOL 128', credits: 1 } }]);
-    expect(findCourse(curriculum, 'eng 140')).toEqual([{ kind: 'pick', blockId: 'composition', course: { code: 'ENG 140', title: 'English Composition Honors I', credits: 3 } }]);
+    expect(findCourse(curriculum, 'eng 140')).toEqual([{ kind: 'pick', blockId: 'composition', group: 0, course: { code: 'ENG 140', title: 'English Composition Honors I', credits: 3 } }]);
+    // A block can have two pick groups; the place says which one a course belongs to.
+    expect(findCourse(curriculum, 'ENG 131')).toMatchObject([{ kind: 'pick', blockId: 'composition', group: 0 }]);
+    expect(findCourse(curriculum, 'ENG 132')).toMatchObject([{ kind: 'pick', blockId: 'composition', group: 1 }]);
+    expect(findCourse(curriculum, 'ENG 141')).toMatchObject([{ kind: 'pick', blockId: 'composition', group: 1 }]);
+    expect(findCourse(curriculum, 'MUS 121')).toMatchObject([{ kind: 'pick', blockId: 'humanities', group: 0 }]);
+    expect(findCourse(curriculum, 'PHL 201')).toMatchObject([{ kind: 'pick', blockId: 'humanities', group: 1 }]);
     expect(findCourse(curriculum, 'fin201')).toEqual([{ kind: 'named-elective', course: { code: 'FIN 201', title: 'Personal Finance', credits: 3 } }]);
     expect(findCourse(curriculum, 'FLS 161')).toEqual([{ kind: 'legacy-elective', course: { code: 'FLS 161', title: 'Spanish I', credits: 3 } }]);
     expect(normalizeCode(' cis-206 ')).toBe('CIS 206');
@@ -301,7 +384,7 @@ describe('looking a course up', () => {
 
   it('finds both places of a course listed twice', () => {
     expect(findCourse(curriculum, 'PSY 251')).toEqual([
-      { kind: 'pick', blockId: 'social-sciences', course: { code: 'PSY 251', title: 'General Psychology', credits: 3 } },
+      { kind: 'pick', blockId: 'social-sciences', group: 0, course: { code: 'PSY 251', title: 'General Psychology', credits: 3 } },
       { kind: 'legacy-elective', course: { code: 'PSY 251', title: 'General Psychology', credits: 3 } },
     ]);
   });
