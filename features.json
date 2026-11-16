@@ -206,10 +206,13 @@
         "The synthetic transcripts copy the layout of the real unofficial transcript and never its data: abbreviated term headings (\"Fall 2023\", \"Spr 2024\"); course rows of prefix, number, description, attempted, earned, grade, points; per-term Term GPA / Transfer Term GPA / Combined GPA totals and an \"Academic Standing\" line; transfer credit with separate transfer totals and rows under ASU course codes",
         "The GPA totals and the \"Academic Standing\" line are ignored: never read as courses, never shown"
       ],
-      "passes": false,
-      "evidence": "docs/sprints/F10.md — the checking and the made-up transcripts merged with tests; not passing yet: showing a row to fix and the localhost upload are finished with F11",
+      "passes": true,
+      "evidence": "docs/sprints/F10.md — QA PASS; a row to fix and the localhost upload of the made-up PDFs shown in a browser by F11's QA round 2 (docs/sprints/F11.md)",
       "tests": [
-        "tests/reader.test.ts"
+        "tests/reader.test.ts",
+        "tests/upload.test.ts",
+        "tests/review.test.ts",
+        "tests/left-page.test.ts"
       ]
     },
     {
@@ -224,8 +227,12 @@
         "Continuing uses the reviewed rows, including the student's fixes"
       ],
       "passes": false,
-      "evidence": "",
-      "tests": []
+      "evidence": "docs/sprints/F11.md — QA round 2 PASS in a real browser (16 checks); not passing yet: step 5 (continuing uses the reviewed rows) is checked on screen with F13",
+      "tests": [
+        "tests/upload.test.ts",
+        "tests/review.test.ts",
+        "tests/left-page.test.ts"
+      ]
     },
     {
       "id": "F12",

@@ -28,7 +28,7 @@ describe('a clean answer', () => {
     expect(reading.thrownAway).toBe(0);
     expect(reading.rows).toHaveLength(sampleA.rows.length);
     expect(reading.rows.map(one => one.line)).toEqual(sampleA.rows.map((_, i) => i));
-    expect(reading.rows[0]).toEqual({ line: 0, row: { code: 'ORI 100', term: 'Fall 2025', credits: 1, grade: 'A', transfer: false }, description: 'First Year Experience', match: 'listed' });
+    expect(reading.rows[0]).toEqual({ line: 0, row: { code: 'ORI 100', term: 'Fall 2025', credits: 1, grade: 'A', transfer: false }, description: 'First Year Experience', attempted: '1', match: 'listed' });
     expect(reading.rows[3]?.row).toEqual({ code: 'BIOL 127', term: 'Fall 2025', credits: 1, grade: 'A', transfer: false });
     // A row still in progress has no grade.
     expect(reading.rows[12]?.row).toEqual({ code: 'ECO 251', term: 'Fall 2026', credits: 3, grade: null, transfer: false });
@@ -151,15 +151,22 @@ describe('a row that fails the check', () => {
 describe('transfer credit, rows in progress and printed numbers', () => {
   it('does not judge the grade column of transfer credit', () => {
     for (const grade of [null, '', 'T', 'TR', 'AP', 'CR', 'zz', 'B+']) {
-      for (const attempted of [undefined, null, '', '3.00', 3]) {
+      for (const attempted of [undefined, null, '', '  ', '3.00', 3]) {
         const row = good({ transfer: true, grade, attempted, term: 'Transfer Credit' });
         if (attempted === undefined) delete row.attempted;
         const reading = read(row);
         expect(reading.toFix, `${grade} / ${attempted}`).toEqual([]);
         expect(reading.rows[0]?.row.transfer).toBe(true);
         expect(reading.rows[0]?.row.credits).toBe(attempted === '3.00' || attempted === 3 ? 3 : 0);
+        // What was printed in the credits column is kept, so that an empty one is shown empty.
+        expect(reading.rows[0]?.attempted).toBe(attempted === '3.00' ? '3.00' : attempted === 3 ? '3' : '');
         expect(credits(reading)).toEqual([3, 0, 118]);
       }
+    }
+    // A zero that is printed is kept as printed: it is shown, where an empty column shows nothing.
+    for (const [attempted, printed] of [[0, '0'], ['0.00', '0.00'], ['0', '0']] as const) {
+      const reading = read(good({ transfer: true, grade: 'T', attempted, term: 'Transfer Credit' }));
+      expect([reading.rows[0]?.row.credits, reading.rows[0]?.attempted], String(attempted)).toEqual([0, printed]);
     }
     // The same marks on an ordinary row are a fault, and an empty "attempted" too.
     for (const grade of ['T', 'TR', 'AP']) expect(read(good({ grade })).toFix[0]?.problems).toEqual(['grade']);
@@ -301,7 +308,7 @@ describe('an answer that is no answer', () => {
     expect(reading.rows).toHaveLength(1);
     expect(reading.toFix).toHaveLength(1);
     expect(JSON.stringify(reading)).not.toMatch(/Someone|123456789|123-45|ssn|advisor|Dr\. Who|student/);
-    expect(Object.keys(reading.rows[0]!).sort()).toEqual(['description', 'line', 'match', 'row']);
+    expect(Object.keys(reading.rows[0]!).sort()).toEqual(['attempted', 'description', 'line', 'match', 'row']);
     expect(Object.keys(reading.rows[0]!.row).sort()).toEqual(['code', 'credits', 'grade', 'term', 'transfer']);
     expect(Object.keys(reading.toFix[0]!.seen).sort()).toEqual(['attempted', 'description', 'grade', 'number', 'prefix', 'term', 'transfer']);
 
@@ -485,7 +492,7 @@ describe('the made-up transcripts', () => {
     }
     for (const answer of [sampleA, sampleB]) expect(answer.note).toMatch(/^SYNTHETIC - not a real transcript\. .*The student does not exist\./);
     // Nothing else in the folder, and nothing in it that looks like a person.
-    expect(readdirSync(folder).sort()).toEqual(['sample-a.json', 'sample-a.pdf', 'sample-b.json', 'sample-b.pdf']);
+    expect(readdirSync(folder).sort()).toEqual(['manifest.json', 'sample-a.json', 'sample-a.pdf', 'sample-b.json', 'sample-b.pdf']);
     for (const file of readdirSync(folder)) {
       const text = readFileSync(join(folder, file), 'latin1').replaceAll(STUDENT_ID, '').replaceAll(STUDENT, '');
       expect(text, file).not.toMatch(/\b\d{9}\b|\b\d{3}-\d{2}-\d{4}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|@|\b(Street|Avenue|Montgomery|Date of Birth|DOB)\b/i);

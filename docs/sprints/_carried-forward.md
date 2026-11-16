@@ -40,6 +40,10 @@ Read this before writing a sprint contract; delete a line when its feature has d
   them; the condition belongs to the no-transcript answers only. (F08)
 
 ## For F12 (check my courses, with a transcript)
+- "Add your transcript for an exact answer" uses the same upload and review step: `browse`
+  and `takeFile` in `src/app.ts`, `uploadPanel` and the review in `src/left.ts`, the
+  transcript in `LeftState`. After the review the student should come back to "Check my
+  courses", not to the checklist: decide in F12's contract how the flow returns. (F11)
 - The design has "No transcript added" at the right of the page heading, and the card "Add
   your transcript for an exact answer" under the list. Neither is drawn yet. (F07)
 - "This slot is already filled" must not be said for a typed sequence course the student
@@ -51,11 +55,13 @@ Read this before writing a sprint contract; delete a line when its feature has d
   two picks). Never show the degree as complete or on pace from credits alone; the plan
   must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
 
-## For F11 and F13 (the legacy question on screen)
+## For F12 and F13 (the legacy question on screen)
 F05's rule is merged but F05 is not passing: it is BLOCKED in `docs/sprints/F05.md` until
 the screens that need the question have shown it. F08 ("Check my courses") has done its
 part: the question on the row, Yes and No, the line to change the answer, remembering it.
-F11 (the review step) and F13 (the checklist) remain; each contract must contain the
+The review step (F11) says nothing about what counts toward the degree, so the question
+is not asked there. F12 ("Check my courses" with a transcript) and F13 (the checklist)
+remain; each contract must contain the
 on-screen checks below, checked by the evaluator in a browser. The pull request of the
 last of them marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line. Reuse
 what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the sentences in
@@ -126,38 +132,40 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   credits − done − in progress. Do not add up in-progress rows: a course in progress that
   fills no place adds nothing. (F04 contract review)
 
-## For F11 (finishing F10: the review step and the localhost upload)
-- **F11 finishes F10.** F10's checking is merged but F10 is BLOCKED in
-  `docs/sprints/F10.md`. F11's contract must contain these on-screen checks, and F11's pull
-  request marks F10 passing (`passes`, `evidence`) and removes its BLOCKED line: an invalid
-  row is shown for the student to fix, with what was read and what is wrong, and counts
-  nothing until it is fixed; the localhost upload takes the two made-up PDFs in
-  `synthetic/transcripts/`, and nothing of any other file is read or sent.
-- A reader's answer goes through `readRows` (`src/reader.ts`) and only then, by
-  `standingsOf`, to `placeCourses`. A row the student has fixed is checked again by
-  `readRows`, like any row. `RowToFix.problems` says which field is at fault; `seen` holds
-  what was read, as text, to fill the fields the student edits.
-- An ordinary row with nothing in its grade column passes the check as "in progress".
-  The review step shows it as "In progress" for the student to confirm: an empty grade
-  may be a misread.
-- A row marked `transfer` is labelled "Transfer credit", so the student can correct a row
-  wrongly read as transfer, or the other way round; its grade column is not a grade and
-  is not to be fixed. (Owner answer, 2026-11-16)
-- `match` is not "counts". "listed" only means the code is in a curriculum list: a legacy
-  course, or a listed course with a D, W or F, fills nothing. What counts comes only from
-  `placeCourses`; never label a row as counting from `match` alone. A row whose `match` is
-  "none" passed the check but can fill nothing: it is not an error, and the student must
-  still be able to edit it (a code misread by one digit is "none").
-- On Start, the drop zone and "Browse files" must start the upload: "Browse files" opens
-  the file picker, not the flow page, and a dropped PDF is taken. Today both only open
-  `#/left` and the file is not looked at (`startApp` in `src/app.ts`). The privacy
-  sentence is already beside them. (F06)
-- At M1 the "reader" is the answer file beside each made-up PDF. F11 decides how the
-  uploaded PDF is recognised (the PDFs' text is uncompressed and every page carries the
-  line in `MARK`, `scripts/make-synthetic-transcripts.mjs`). The answer files hold course
-  codes, so they cannot be imported from `src/` as source text the scans read.
+## For F13 (finishing F11: the checklist follows the reviewed rows)
+- **F13 finishes F11.** The upload and the review step are merged but F11 is BLOCKED in
+  `docs/sprints/F11.md`. F13's contract must contain this on-screen check, and F13's pull
+  request marks F11 passing (`passes`, `evidence`) and removes its BLOCKED line: after
+  "Continue" the checklist follows the reviewed rows, including the student's corrections
+  and without the rows left out (correct a grade, leave a row out, continue: the
+  checklist changes accordingly).
+- "Continue" hands on `reviewedStandings(transcript, grades)` (`src/review.ts`): the rows
+  that passed the check and were not left out. The transcript under review is
+  `LeftState.transcript`, held by `startApp` (`src/app.ts`); after "Continue",
+  `LeftState.continued` is true and `leftPage` (`src/left.ts`) draws the result, which
+  today is one line (`countLine`). F13 replaces that line with the checklist.
+- The checklist must say when rows were left out because they still need fixing ("<m>
+  rows of your transcript still need fixing and count nothing"), so that a shorter
+  checklist does not mislead. `stillToFix(transcript)` gives them. (F11 contract review)
 
 ## For F21 (the reader function, M2)
+- "Browse files" opens the picker through a file control that is not in the page; it is
+  held until a file is chosen. Not tried on a real iPhone yet: the owner's M1 check on a
+  phone is the first real test, and M2 must repeat it with a real PDF. If the picker does
+  not answer there, put the control in the page, hidden. (F11 review)
+- Reading is instant at M1. When the reader takes seconds, a transcript that arrives after
+  the student has gone to another page still brings them to the review: decide then
+  whether to ask first, and show that a file is being read. (F11 review, round 2)
+- A correction whose prefix reads like a totals line and whose number is empty is thrown
+  away like a totals line, and the row cannot be brought back. Rare; decide with the real
+  reader whether a corrected row may ever be thrown away. (F11 review)
+- The reader plugs in at `readFile` in `src/upload.ts`: today it recognises the two
+  made-up PDFs on a development server and answers "unavailable" on the built site. The
+  size limit, the "%PDF-" check and the refusal sentences are in place (`src/left.ts`,
+  `refusalText`). Whatever the function returns goes through `openTranscript` →
+  `readRows`. (F11)
+- F23's sentence "Upload isn't available right now — try again tomorrow" is already the
+  refusal `unavailable`; F23 decides when it is shown at M2. (F11)
 - It must return the shape `readRows` checks: `{ "rows": [ … ] }`, each row with `term`,
   `transfer`, `prefix`, `number`, `description`, `attempted`, `earned`, `grade`, `points`,
   and nothing about the student. The shape changes only by a recorded decision that
@@ -168,21 +176,22 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
 
 ## For F07 onward (screens)
 - How the app is put together (F06): a page is a function that returns HTML text
-  (`src/start.ts`, `flowPage` in `src/shell.ts`); `renderPage` in `src/app.ts` picks the
+  (`src/start.ts`, `src/check.ts`, `src/left.ts`); `renderPage` in `src/app.ts` picks the
   page for an address; `startApp` draws it, sets the tab title, and after a page change
   puts the keyboard on the page's `<h1>` and scrolls to the top. Addresses are in
   `src/shell.ts` (`HREF`, `routeOf`). Anything with a timer must stop when the student
   leaves its page, as the demo does.
 - Redrawing a whole page loses what the student is typing. From F07, redraw only the part
-  that changed, or keep the field out of the redrawn part.
+  that changed, or keep the field out of the redrawn part. The transcript page (F11) is
+  drawn again as a whole: it reads what is typed in the open edit into `LeftState.draft`
+  first, and says what happened in `#pathcheck-status`, a line beside the page.
 - The scans in `tests/curriculum.test.ts` read every file in `src/`, `index.html` and
   `public/`: no course code, title, block name or credit total may be written there. Take
   them from the curriculum. `src/examples.json` is for the Start page only.
 - The app stops the browser from opening a dropped file, on every page (`startApp`); it
-  looks only at the kind of thing dragged, and leaves dragged text alone. A file drag
-  shows a "copy" cursor even where the drop does nothing: when F11 builds the upload,
-  accept a file only on the drop zone. (F06 review and QA)
+  looks only at the kind of thing dragged, and leaves dragged text alone. A file is taken
+  only on a drop zone (`[data-drop]`); elsewhere the drag shows "not here". (F06, F11)
 - The major dropdown shows its first program in the visible label and has no change
   handler: enough for one major. A second major needs both. (F06 review)
-- `tests/start.test.ts` "does not read a dropped file" fails if anything in `src/` reads a
-  file or sends a request. F11 changes that test on purpose, for the upload only.
+- `tests/start.test.ts` "does not read a dropped file" fails if a file dropped away from a
+  drop zone is looked at in any way.

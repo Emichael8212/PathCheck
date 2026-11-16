@@ -355,6 +355,41 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   the note below 12 or over 18 (the sentences of the pace controls); under the two counts,
   "Waiting for your legacy answer."; with the "Doesn't count" filter and nothing to
   list, "No course in your list is marked “Doesn't count”.".
+- **"See what I have left" before the result: the upload and the review step** (F11). The
+  approved design has the result page only. The upload is the Start page's drop zone,
+  "Browse files" and privacy sentence, on its own. The review step is new, made of the
+  design's pieces: under the heading "Check what was read", the terms as headings, each
+  with its rows (code over the printed description; credits; the grade as printed and
+  how the row stands); under each row "Edit" and "Not on my transcript" / "Put back"; at
+  the end how many rows still need fixing, "Continue" and "Use another transcript". An
+  open edit is a strip across the row with its fields, "Save" and "Cancel"; one row is
+  edited at a time. A transfer row shows no credits when the transcript prints none.
+  The layout and every word of it are the agent's, listed for the owner in F11's pull
+  request (open question in `docs/decision-log.md`). Its words, all in `src/left.ts`:
+  - the introduction: "This is what PathCheck read from <file>. Correct anything that was
+    misread before you continue."; a heading "Term not read" for rows without a term;
+    the columns "Course", "Credits", "Grade and what it means";
+  - how a row stands: "Passed"; "In progress" with "No grade was read. Edit this row if
+    the course already has one."; "Transfer credit"; "Doesn't count — below C";
+    "Doesn't count — W" and "Doesn't count — I"; "Not in the CIS curriculum"; "<code>
+    isn't in the current CIS curriculum" (the second half of the owner's sentence);
+    "Needs fixing: <what>" (the term, the course code, the credits, the grade, …); "This
+    line could not be read"; "Not on my transcript";
+  - the edit: "Term", "Prefix", "Number", "Credits", "Grade" ("No grade yet" or a grade),
+    "Transfer credit", "Save", "Cancel";
+  - the end: "<n> rows still need fixing. They count nothing until fixed."; "Continue";
+    "Use another transcript" with "Choosing another transcript forgets your
+    corrections."; "No courses were read from this transcript."; after "Continue", "<n>
+    rows taken on. <n> left out because they still need fixing. <n> left out as not on
+    your transcript.";
+  - when a file is not taken: "PathCheck can only read its two made-up transcripts for
+    now. Nothing from this file was kept or sent."; "That file is not a PDF. Choose the
+    unofficial transcript PDF from the portal."; "That file is too large to be a
+    transcript. Nothing from it was read."; "That file could not be opened. Choose it
+    again."; and, while a transcript is there, "To use another transcript, choose “Use
+    another transcript” first.";
+  - said to a screen reader only: "<code> saved.", "<code> still needs fixing: <what>.",
+    "<code>: Not on my transcript.", "<code>: Put back."
 - **The heading of "Check my courses" is "Check my courses", not a semester**, and the
   small label above it is left out so the page does not say it twice. The owner,
   2026-11-16: "no semester in the heading. It says "Check my courses". Nothing is derived

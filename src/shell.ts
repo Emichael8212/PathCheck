@@ -55,13 +55,3 @@ export const foot = (curriculum: Curriculum, subject = `${APP_NAME}: report a mi
 </footer>`;
 };
 
-/** A flow's page before the flow is built: its name, and nothing that is not there yet. */
-export const flowPage = (route: Exclude<Route, 'start'>, curriculum: Curriculum): string => `${top(route)}
-<main class="${route} wrap">
-  <div class="page-head">
-    <div>
-      <h1 tabindex="-1">${esc(FLOW_NAME[route])}</h1>
-    </div>
-  </div>
-</main>
-${foot(curriculum)}`;
