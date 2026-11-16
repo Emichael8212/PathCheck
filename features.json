@@ -172,7 +172,8 @@
         "The total credits of the entered courses are shown; a course that only matches the elective rule adds 3 credits",
         "Under 12 credits shows \"below full-time; may affect scholarships\"",
         "Over 18 credits shows \"may cost extra\"",
-        "From 12 to 18 credits shows no note"
+        "From 12 to 18 credits shows no note",
+        "A course PathCheck doesn't know starts at 3 credits and the student can change it; a course PathCheck knows uses its curriculum credits and can't be edited. An unknown course's credits add to the semester total only, never to what counts toward CIS"
       ],
       "passes": false,
       "evidence": "",

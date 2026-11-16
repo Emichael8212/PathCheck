@@ -39,14 +39,18 @@ Read this before writing a sprint contract; delete a line when its feature has d
   curriculum list and not matching the elective rule, which includes CIS 304 and CIS 415
   (3 by default, editable); a rule-matched elective (MKT 410) is known: the rule's 3
   credits, not editable.
-- A new F09 step for this is proposed to the owner (open question in the decision log).
-  Until it is approved, F09's contract does not treat it as a step and does not rewrite
-  F09's steps.
+- This is F09 step 5 in `features.json` (owner approval, 2026-11-16).
 - The field to change the credits is not in the approved design (it shows "3 cr" as text):
   add it to `docs/design/DESIGN.md` as a difference that comes from this answer. What
   values the field accepts is not an academic rule: choose the simplest and record it.
   The entry row is built in F07 and the answers in F08; say in F09's contract where the
   field lives.
+
+## For F17 and F18 (the printed summary; on every result)
+- The owner said to leave out "Curriculum last reviewed: Nov 2026" (2026-11-16): the
+  curriculum file has no review date and none is invented. F17's last-reviewed line and
+  F18 steps 1 and 3 need a date. Before building whichever comes first, ask the owner:
+  give a date, or reword those steps. (Owner answer, 2026-11-16)
 
 ## For F12 and F13 (answers with a transcript; the checklist)
 - A course left unplaced with the reason "not-current" (CIS 304, CIS 415) must always read
@@ -125,6 +129,10 @@ last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCK
   answer, 2026-11-16)
 
 ## For F06 onward (screens)
+- The footer leaves out "Curriculum last reviewed" until the curriculum file has a date,
+  and never shows "Nov 2026" (owner answer, 2026-11-16). `docs/design/DESIGN.md` still
+  describes the footer with that line: F06 records its absence there as a difference that
+  comes from the answer.
 - The scans in `tests/curriculum.test.ts` ("keeps curriculum facts out of the code", "has no
   CIS 304 …") read TypeScript files in `src/` only. When a UI framework is chosen, widen
   them to every source file that can hold text shown to the student. (F02 review)
