@@ -63,6 +63,8 @@ export interface Checklist {
   readonly sequence: { readonly kind: 'none' } | { readonly kind: 'open'; readonly text: string }
     | { readonly kind: 'extra' | 'running'; readonly text: string; readonly beside: string };
   readonly unused: readonly Unused[];
+  /** Credits still to take beyond the credits left: a sequence course that fills the sequence only. */
+  readonly extraLeft: number;
 }
 
 /** The courses that also have a row still to fix; "any" when such a row's code could not be read. */
@@ -156,6 +158,7 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
   const creditsOf = (courseCode: string): number => findCourse(curriculum, courseCode)[0]?.course.credits ?? electives.creditsPerCourse;
   const withoutPlace = new Set(placement.unplaced.map(one => one.code));
   let sequence: Checklist['sequence'] = { kind: 'none' };
+  let extraLeft = 0;
   // A sequence whose pick courses the transcript has passed or in progress.
   const onItsWay = alternatives.filter(alternative => alternative.courses.every(held));
   // None of them holds its pick: a sequence course is in progress while a passed course
@@ -185,6 +188,7 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
       const codes = alternatives.flatMap(alternative => alternative.courses);
       const kinds = alternatives.map(alternative => kind(alternative.name));
       const extra = Math.max(...codes.map(creditsOf));
+      extraLeft = extra;
       sequence = { kind: 'extra', text: sequenceExtra(kinds, extra, codes), beside: extraForSequence(extra, kinds) };
     }
   }
@@ -204,7 +208,7 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
   const inProgress = new Set([...blockCards, electiveCard].flatMap(card => card.progress.map(item => item.code)));
   const inProgressTerms = [...new Set(standings.filter(one => inProgress.has(one.code)).map(one => one.deciding.row.term.trim()).filter(Boolean))];
   const { done, inProgress: running, remaining, degree } = placement.credits;
-  return { credits: { counted: done, inProgress: running, left: remaining, total: degree }, inProgressTerms, cards: [...blockCards, electiveCard], sequence, unused };
+  return { credits: { counted: done, inProgress: running, left: remaining, total: degree }, inProgressTerms, cards: [...blockCards, electiveCard], sequence, unused, extraLeft };
 }
 
 /** Would the legacy answer change anything of the checklist? */
@@ -218,7 +222,7 @@ export const legacyOnTranscript = (standings: readonly CourseStanding[], curricu
 // ---- The page ----
 const TEXT = {
   creditsLeft: 'credits left',
-  overview: 'Credits left',
+  overview: 'Credits left and pace',
   counted: 'counted',
   inProgress: 'in progress',
   left: 'left',
@@ -262,8 +266,11 @@ const cardHtml = (card: Card): string => `
         </details>
       </li>`;
 
-/** The ring and the credit bar. The pace answer beside them comes with its own feature. */
-export function overviewHtml(checklist: Checklist): string {
+/**
+ * The ring and the credit bar, with the pace answer beside the ring and its controls under
+ * the bar when they are given (src/pace.ts).
+ */
+export function overviewHtml(checklist: Checklist, pace: { readonly beside: string; readonly under: string } | null = null): string {
   const { counted, inProgress, left, total } = checklist.credits;
   const terms = checklist.inProgressTerms.length > 0 ? ` · ${esc(listOf(checklist.inProgressTerms))}` : '';
   return `<section class="overview" aria-label="${esc(TEXT.overview)}">
@@ -271,7 +278,9 @@ export function overviewHtml(checklist: Checklist): string {
       <div class="donut" role="img" aria-label="${left} ${esc(TEXT.creditsLeft)}, ${counted} ${esc(TEXT.counted)}, ${inProgress} ${esc(TEXT.inProgress)}, ${total} ${esc(TEXT.total)}" style="--counted: ${percent(counted, total)}; --counted-and-progress: ${percent(counted + inProgress, total)}">
         <div><strong class="num">${left}</strong><span>${esc(TEXT.creditsLeft)}</span></div>
       </div>
-      <div data-pace hidden></div>
+      <div data-pace${pace ? '' : ' hidden'}>${pace ? `
+        ${pace.beside}
+      ` : ''}</div>
     </div>
     <div class="credit">${inProgress > 0 ? `
       <div class="credit-row"><span class="credit-gap" style="flex-basis: ${percent(counted, total)}"></span><span class="bar-label is-progress"><strong class="num">${inProgress}</strong> ${esc(TEXT.inProgress)}${terms}</span></div>` : ''}
@@ -282,7 +291,8 @@ export function overviewHtml(checklist: Checklist): string {
         <span class="bar-label is-total"><strong class="num">${total}</strong> ${esc(TEXT.total)}</span>
       </div>
     </div>${checklist.sequence.kind === 'extra' || checklist.sequence.kind === 'running' ? `
-    <p class="credit-extra">${esc(checklist.sequence.beside)}</p>` : ''}
+    <p class="credit-extra">${esc(checklist.sequence.beside)}</p>` : ''}${pace?.under ? `
+    ${pace.under}` : ''}
   </section>`;
 }
 

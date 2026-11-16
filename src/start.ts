@@ -3,6 +3,7 @@
 // The examples on this page name courses by code only (examples.json, read here and nowhere
 // else). Every title, credit, block name and total shown is looked up in, or worked out
 // from, the curriculum, and an example that would say something untrue is refused.
+import { defaultSettings, paceHeadline, paceOf, readTerm } from './pace';
 import examples from './examples.json';
 import { UNKNOWN_COURSE_CREDITS } from './credits';
 import { findCourse, normalizeCode, programs as allPrograms, type Block, type Course, type Curriculum, type Program } from './curriculum';
@@ -47,8 +48,8 @@ const TEXT = {
     placeholder: 'Add a course',
     file: 'unofficial-transcript.pdf',
     remainingLabel: 'credits left',
-    // Example text for the made-up student, until the pace code can work it out.
-    pace: 'On pace for Spring 2029',
+    // The term the demo's student is in, for its pace line (worked out by the pace code).
+    inProgressTerm: 'Fall 2026',
   },
 };
 
@@ -77,6 +78,10 @@ export function demoStudent(curriculum: Curriculum): Placement {
   const rows = [...examples.student.passed.map(row(curriculum.grades.minimumCounting)), ...examples.student.inProgress.map(row(null))];
   return placeCourses(courseStandings(rows, curriculum.grades), curriculum);
 }
+
+/** The demo's pace line: what the pace code says for the demo's student, with the usual settings. */
+export const demoPace = (curriculum: Curriculum): string =>
+  paceHeadline(paceOf(demoStudent(curriculum).credits.remaining, readTerm(TEXT.demo.inProgressTerm), defaultSettings()));
 
 const percent = (part: number, whole: number): string => `${Math.round((part / whole) * 1e5) / 1e3}%`;
 // The credit bar: done is solid, in progress is hatched, the rest is open.
@@ -110,7 +115,7 @@ const demoFrames = (curriculum: Curriculum): string[] => {
           <div class="demo-file">${icons.doc(20)} ${esc(d.file)}</div>
           <div class="demo-left"><span class="num">${student.credits.remaining}</span><span>${esc(d.remainingLabel)}</span></div>
           <div class="demo-bar">${bar(student)}</div>
-          <div class="demo-pace">${esc(d.pace)}</div>
+          <div class="demo-pace">${esc(demoPace(curriculum))}</div>
           <small class="demo-caveat">${esc(CAVEAT)}</small>
         </div>`;
   return [

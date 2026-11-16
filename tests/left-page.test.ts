@@ -583,7 +583,7 @@ describe('the checklist', () => {
     review(good(), good({ prefix: 'ENG', number: '131', grade: 'B+' }), 'not a row', 7);
     $('[data-continue]').click();
     // Above the result: how many, what it means, and the way back.
-    expect(tidy($('[data-to-fix]').textContent)).toBe('3 rows of your transcript still need fixing and count nothing. A requirement, or the sequence, may show as still needed because of them. Fix them');
+    expect(tidy($('[data-to-fix]').textContent)).toBe('3 rows of your transcript still need fixing and count nothing. A requirement, or the sequence, may show as still needed because of them. The credits left and the pace may change too. Fix them');
     expect(creditsOf('Composition')).toBe('0 / 6 cr');
     expect(creditsOf('Business core')).toBe('3 / 27 cr');
     $('[data-to-fix] [data-review-again]').click();
@@ -594,7 +594,7 @@ describe('the checklist', () => {
     $('[data-save="1"]').click();
     $('[data-out="2"]').click();
     $('[data-continue]').click();
-    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. Fix it');
+    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left and the pace may change too. Fix it');
     expect(creditsOf('Composition')).toBe('3 / 6 cr');
     $('[data-to-fix] [data-review-again]').click();
     $('[data-out="3"]').click();
@@ -643,9 +643,9 @@ describe('the checklist', () => {
     expect($('.credit').getAttribute('style')).toBeNull();
     expect($('.is-counted').getAttribute('style')).toBe('min-width: 3.306%');
     expect($('.credit-gap').getAttribute('style')).toBe('flex-basis: 0.826%');
-    // The place for the pace answer takes no room until there is one.
-    expect($<HTMLElement>('[data-pace]').hidden).toBe(true);
-    expect($('[data-pace]').textContent).toBe('');
+    // The pace answer is beside the ring.
+    expect($<HTMLElement>('[data-pace]').hidden).toBe(false);
+    expect(tidy($('[data-pace]').textContent)).toContain('On pace for');
   });
 
   it('asks the legacy question before the result', async () => {
@@ -722,5 +722,164 @@ describe('the checklist', () => {
     expect(cards()).toHaveLength(9);
     $('[data-another]').click();
     expect(document.querySelector('[data-drop]')).not.toBeNull();
+  });
+});
+
+// ---- F14: pace, beside the credits left (docs/sprints/F14.md) ----
+describe('pace', () => {
+  const CAVEAT = 'Credits only — course order may add semesters.';
+  const pace = (): string => tidy($('[data-pace]').textContent).replace(/^Looking ahead /, '').replace(` ${CAVEAT}`, '');
+  const valueOf = (end: string): string => tidy($(`[data-stepper="${end}"] [data-value]`).textContent);
+  const noteOf = (end: string): string => tidy($(`#${end}-note`).textContent);
+  const step = (end: string, delta: 1 | -1, times = 1): void => { for (let i = 0; i < times; i++) $(`[data-stepper="${end}"] [data-delta="${delta}"]`).click(); };
+  // The targets offered and the one shown as chosen. (The simulated browser does not honour
+  // the selected option of a list made from HTML text; a real browser is checked by the evaluator.)
+  const targets = (): string[] => [...$<HTMLSelectElement>('[data-pace-target]').options].map(option => option.value);
+  const chosen = (): string => $('[data-pace-target] option[selected]').getAttribute('value') ?? '';
+  const choose = (target: string): void => {
+    const list = $<HTMLSelectElement>('[data-pace-target]');
+    list.focus();
+    list.value = target;
+    list.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  it('follows the pace controls', async () => {
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect(tidy($('[data-pace]').textContent)).toBe(`Looking ahead On pace for Spring 2029 about 16 credits a term ${CAVEAT}`);
+    expect([targets(), chosen()]).toEqual([['Fall 2028', 'Spring 2029', 'Fall 2029', 'Spring 2030', 'Fall 2030'], 'Spring 2029']);
+    expect([valueOf('fewest'), valueOf('most'), $('[data-pace-summers]').getAttribute('aria-checked')]).toEqual(['12', '18', 'false']);
+    // Something the student opened, to see that the controls leave the rest of the page alone.
+    const requirements = [...document.querySelectorAll<HTMLElement>('.req')];
+    requirements[0]!.querySelector('details')!.open = true;
+
+    // An earlier target than can be reached.
+    choose('Fall 2028');
+    expect(pace()).toBe('Not on pace for Fall 2028 At 18 credits a term you finish Spring 2029, one semester after your target.');
+    expect(tidy($('[data-pace]').textContent)).toContain(CAVEAT);
+    expect(chosen()).toBe('Fall 2028');
+    expect(document.activeElement).toBe($('[data-pace-target]'));
+    expect(said()).toBe('Not on pace for Fall 2028. At 18 credits a term you finish Spring 2029, one semester after your target.');
+    // Only the overview card was drawn again.
+    expect([...document.querySelectorAll('.req')]).toEqual(requirements);
+    expect(requirements[0]!.querySelector('details')!.open).toBe(true);
+
+    // More credits a term: reachable now; the note about more than 18 appears under that control.
+    step('most', 1, 3);
+    expect(valueOf('most')).toBe('21');
+    expect(pace()).toBe('On pace for Fall 2028 about 20 credits a term');
+    expect([noteOf('most'), noteOf('fewest')]).toEqual(['Over 18 credits: may cost extra.', '']);
+    expect(document.activeElement).toBe($('[data-stepper="most"] [data-delta="1"]'));
+    expect(targets()).toEqual(['Spring 2028', 'Fall 2028', 'Spring 2029', 'Fall 2029', 'Spring 2030']);
+    // The new value and its note are read out with the answer: the card was drawn again.
+    expect(said()).toBe('Most credits per term: 21 credits. Over 18 credits: may cost extra. On pace for Fall 2028: about 20 credits a term');
+    // Fewer at the low end: its own note; the verdict does not change.
+    step('fewest', -1);
+    expect(said()).toBe('Fewest credits per term: 11 credits. Below 12 credits: below full-time; may affect scholarships. On pace for Fall 2028: about 20 credits a term');
+    expect([valueOf('fewest'), noteOf('fewest')]).toEqual(['11', 'Below 12 credits: below full-time; may affect scholarships.']);
+    expect(pace()).toBe('On pace for Fall 2028 about 20 credits a term');
+    expect(document.activeElement).toBe($('[data-stepper="fewest"] [data-delta="-1"]'));
+
+    // Summers: more terms before the same target; a summer can be chosen.
+    $<HTMLElement>('[data-pace-summers]').focus();
+    $('[data-pace-summers]').click();
+    expect([$('[data-pace-summers]').getAttribute('aria-checked'), tidy($('.switch-value').textContent)]).toEqual(['true', 'On']);
+    expect(document.activeElement).toBe($('[data-pace-summers]'));
+    expect(pace()).toBe('On pace for Fall 2028 about 14 credits a term');
+    expect(said()).toBe('Summers: On. On pace for Fall 2028: about 14 credits a term');
+    expect(targets()).toEqual(['Fall 2027', 'Spring 2028', 'Summer 2028', 'Fall 2028', 'Spring 2029']);
+    choose('Summer 2028');
+    expect(pace()).toBe('On pace for Summer 2028 about 16 credits a term');
+    // Off again: the summer target becomes the Fall after it.
+    $('[data-pace-summers]').click();
+    expect([$('[data-pace-summers]').getAttribute('aria-checked'), chosen()]).toEqual(['false', 'Fall 2028']);
+    expect(pace()).toBe('On pace for Fall 2028 about 20 credits a term');
+    expect(targets().some(target => target.startsWith('Summer'))).toBe(false);
+    // The summer does not come back with the switch: the target is the Fall now.
+    $('[data-pace-summers]').click();
+    expect(chosen()).toBe('Fall 2028');
+    $('[data-pace-summers]').click();
+    expect(app.left.pace).toMatchObject({ summers: false, target: { season: 'Fall', year: 2028 } });
+
+    // The settings are still there after a look at another page.
+    go('#/check');
+    go('#/left');
+    expect([valueOf('fewest'), valueOf('most'), $('[data-pace-summers]').getAttribute('aria-checked'), chosen()]).toEqual(['11', '21', 'false', 'Fall 2028']);
+    expect(pace()).toBe('On pace for Fall 2028 about 20 credits a term');
+
+    // The ends never cross: pushing the most below the fewest takes the fewest along.
+    step('most', -1, 11);
+    expect([valueOf('fewest'), valueOf('most')]).toEqual(['10', '10']);
+    expect(pace()).toBe('Not on pace for Fall 2028 At 10 credits a term you finish Spring 2031, 5 semesters after your target.');
+    // Both ends moved, and both are read out.
+    expect(said()).toBe('Most credits per term: 10 credits. Below 12 credits: below full-time; may affect scholarships. Fewest credits per term: 10 credits. Below 12 credits: below full-time; may affect scholarships. Not on pace for Fall 2028. At 10 credits a term you finish Spring 2031, 5 semesters after your target.');
+    // Down to 1: "−" is switched off, and the keyboard goes to "+".
+    step('fewest', -1, 9);
+    expect(valueOf('fewest')).toBe('1');
+    expect($<HTMLButtonElement>('[data-stepper="fewest"] [data-delta="-1"]').disabled).toBe(true);
+    expect(document.activeElement).toBe($('[data-stepper="fewest"] [data-delta="1"]'));
+    expect(tidy($('[data-stepper="fewest"] output').textContent)).toBe('1 credit');
+
+    // Another transcript starts with its own default target; the range is kept for the visit.
+    $('[data-another]').click();
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect([valueOf('fewest'), valueOf('most')]).toEqual(['1', '10']);
+    expect(pace()).toBe('On pace for Spring 2031 about 9 credits a term');
+    // The same from "Check my courses": forgetting the transcript there keeps the range too.
+    choose('Fall 2031');
+    go('#/check');
+    $('[data-another]').click();
+    expect(app.left.pace).toEqual({ target: null, fewest: 1, most: 10, summers: false });
+    go('#/left');
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect([valueOf('fewest'), valueOf('most'), chosen()]).toEqual(['1', '10', 'Spring 2031']);
+    // The card is named for what it holds.
+    expect($('.overview').getAttribute('aria-label')).toBe('Credits left and pace');
+  });
+
+  it('says pace may change while rows still need fixing', () => {
+    review(good(), good({ prefix: 'ENG', number: '131', grade: 'B+' }));
+    $('[data-continue]').click();
+    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left and the pace may change too. Fix it');
+    // The answer is given all the same, from the rows that were checked.
+    expect(pace()).toBe('On pace for Spring 2029 about 17 credits a term');
+    // Fixed: three credits fewer to take.
+    $('[data-to-fix] [data-review-again]').click();
+    openEdit(1);
+    setField(1, 'grade', 'B');
+    $('[data-save="1"]').click();
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-to-fix]')).toBeNull();
+    expect(pace()).toBe('On pace for Spring 2029 about 16 credits a term');
+  });
+
+  it('gives no pace before the legacy answer, and none without rows', async () => {
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-legacy-first]')).not.toBeNull();
+    expect(document.querySelector('[data-pace], .pace, [data-pace-target]')).toBeNull();
+    expect(tidy($('main').textContent)).not.toMatch(/On pace|Looking ahead|credits a term/);
+    $('[data-legacy="yes"]').click();
+    expect(pace()).toBe('On pace for Spring 2028 about 18 credits a term');
+    // A control draws the card again with the same legacy answer: the credits left do not move.
+    expect(tidy($('.donut strong').textContent)).toBe('89');
+    step('most', 1);
+    expect(tidy($('.donut strong').textContent)).toBe('89');
+    expect(pace()).toBe('On pace for Spring 2028 about 18 credits a term');
+    expect(tidy($('.bar-label.is-counted').textContent)).toBe('26 counted');
+    step('most', -1);
+    $('[data-legacy-change]').click();
+    $('[data-legacy="no"]').click();
+    // Three credits more to take without the legacy elective: one term more.
+    expect(pace()).toBe('On pace for Fall 2028 about 15 credits a term');
+    // Every row left out: nothing to estimate from.
+    $('.review-foot [data-review-again]').click();
+    for (const button of document.querySelectorAll<HTMLElement>('[data-out]')) button.click();
+    for (let left = document.querySelectorAll<HTMLElement>('[data-out]').length; left > 0; left = document.querySelectorAll<HTMLElement>('[data-out]').length) $('[data-out]').click();
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-no-rows]')).not.toBeNull();
+    expect(document.querySelector('[data-pace], .pace')).toBeNull();
   });
 });

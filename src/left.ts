@@ -8,6 +8,9 @@ import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requireme
 import { normalizeCode, type Curriculum } from './curriculum';
 import { code, esc, eyebrow, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
+import {
+  defaultSettings, latestTermOf, paceAnswerHtml, paceControlsHtml, paceOf, paceSentence, rangeSentence, readTerm, stepRange, summersSentence, type PaceSettings,
+} from './pace';
 import { type Problem } from './reader';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
@@ -27,8 +30,10 @@ export interface LeftState {
   draft: Correction | null;
   /** Where "Continue" leads: "Check my courses" when the transcript was asked for there. */
   returnTo: 'left' | 'check';
+  /** The pace settings, kept for the visit. */
+  pace: PaceSettings;
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null, returnTo: 'left' });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null, returnTo: 'left', pace: defaultSettings() });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -63,7 +68,7 @@ const TEXT = {
   resultEyebrow: 'What I have left',
   resultHeading: 'Your degree, in focus.',
   pill: 'Synthetic transcript result',
-  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}.`,
+  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}. The credits left and the pace may change too.`,
   fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
   noRows: 'No row of your transcript was taken on, so there is nothing to show yet.',
   reviewAgain: 'Check what was read',
@@ -220,11 +225,23 @@ export function reviewHtml(state: LeftState, curriculum: Curriculum): string {
 }
 
 /**
+ * The overview card of the result: the credits left, and the pace answer with its controls.
+ * Pace counts the credits left and the extra credits of a sequence course still to take.
+ */
+export function overviewOf(transcript: Transcript, curriculum: Curriculum, legacy: boolean, settings: PaceSettings): { html: string; said: string } {
+  const standings = reviewedStandings(transcript, curriculum.grades);
+  // (Rows still to fix change only the notes of the requirement cards, not this card.)
+  const checklist = checklistOf(standings, curriculum, legacy);
+  const pace = paceOf(checklist.credits.left + checklist.extraLeft, latestTermOf(standings), settings);
+  return { html: overviewHtml(checklist, { beside: paceAnswerHtml(pace), under: paceControlsHtml(pace, settings) }), said: paceSentence(pace) };
+}
+
+/**
  * The result: the credits left and the checklist of the reviewed rows. When the legacy
  * answer would change any of it and has not been given, the question takes its place:
  * nothing that the answer could change is shown before it.
  */
-export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer): string {
+export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer, settings: PaceSettings = defaultSettings()): string {
   const standings = reviewedStandings(transcript, curriculum.grades);
   const fixing = stillToFix(transcript);
   const toFix = fixing.length;
@@ -262,7 +279,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   }
   const checklist = checklistOf(standings, curriculum, legacy === true, unchecked);
   return `${warning}${asks ? `<p class="legacy-line">${esc(LEGACY_LINE)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(CHANGE)}</button></p>
-  ` : ''}${overviewHtml(checklist)}
+  ` : ''}${overviewOf(transcript, curriculum, legacy === true, settings).html}
   ${requirementsHtml(checklist)}
   ${foot}`;
 }
@@ -276,7 +293,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
     ${uploadPanel(state.refusal)}
   </div>`
     : result
-      ? resultHtml(transcript, curriculum, legacy)
+      ? resultHtml(transcript, curriculum, legacy, state.pace)
       : `<p class="review-intro">${esc(TEXT.reviewIntro(transcript.name))}</p>
   <div data-review>${reviewHtml(state, curriculum)}</div>`;
   return `${top('left')}
@@ -307,6 +324,8 @@ export interface LeftHooks {
   continued(): void;
   /** The legacy question was answered, or the answer is to be asked again (null). */
   legacy(answer: boolean | null): void;
+  /** The legacy answer as it stands. */
+  answer(): LegacyAnswer;
 }
 
 /** Wires up the page once it is drawn. */
@@ -332,15 +351,56 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
   main.addEventListener('input', keepTyped);
   main.addEventListener('change', keepTyped);
 
+  // The pace controls. Only the overview card is drawn again, so everything else on the
+  // page stays as the student left it, and the keyboard stays on the control that was used.
+  // `changed` says what the control now shows: the card is drawn again, so it is read out
+  // with the answer.
+  const setPace = (next: PaceSettings, back: string, changed = ''): void => {
+    const { transcript } = state;
+    if (!transcript) return;
+    change({ pace: next });
+    const card = main.querySelector<HTMLElement>('.overview');
+    const drawn = overviewOf(transcript, curriculum, hooks.answer() === true, next);
+    if (card) card.outerHTML = drawn.html;
+    hooks.say(`${changed} ${drawn.said}`.trim());
+    // A "−" that has just been switched off cannot hold the keyboard: its "+" takes it.
+    const control = main.querySelector<HTMLButtonElement | HTMLSelectElement>(back);
+    (control && !control.disabled ? control : main.querySelector<HTMLElement>(back.replace('data-delta="-1"', 'data-delta="1"')))?.focus();
+  };
+  main.addEventListener('change', event => {
+    const chosen = event.target instanceof HTMLSelectElement && event.target.matches('[data-pace-target]') ? event.target : null;
+    const term = chosen ? readTerm(chosen.value) : null;
+    if (term) setPace({ ...state.pace, target: term }, '[data-pace-target]');
+  });
+
   main.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
+    const step = target?.closest<HTMLElement>('[data-stepper] [data-delta]');
+    const end = step?.closest<HTMLElement>('[data-stepper]')?.dataset.stepper;
+    if (step && (end === 'fewest' || end === 'most')) {
+      const next = stepRange(state.pace, end, Number(step.dataset.delta));
+      // The other end is said too when this one took it along.
+      const other = end === 'fewest' ? 'most' : 'fewest';
+      const changed = next[other] === state.pace[other] ? rangeSentence(end, next) : `${rangeSentence(end, next)} ${rangeSentence(other, next)}`;
+      setPace(next, `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`, changed);
+      return;
+    }
+    if (target?.closest('[data-pace-summers]')) {
+      // Switched off, a summer that was the target gives way to the Fall after it, for good.
+      const summers = !state.pace.summers;
+      const chosen = state.pace.target;
+      const next = { ...state.pace, summers, target: !summers && chosen?.season === 'Summer' ? { season: 'Fall' as const, year: chosen.year } : chosen };
+      setPace(next, '[data-pace-summers]', summersSentence(next));
+      return;
+    }
     const lineOf = (name: string): number | null => {
       const value = target?.closest<HTMLElement>(`[data-${name}]`)?.dataset[name];
       return value === undefined || value === '' ? null : Number(value);
     };
     if (target?.closest('[data-browse]')) { hooks.browse(); return; }
     if (target?.closest('[data-another]')) {
-      change({ transcript: null, continued: false, refusal: null, editing: null, draft: null });
+      // The target chosen for this transcript does not go with the next one.
+      change({ transcript: null, continued: false, refusal: null, editing: null, draft: null, pace: { ...state.pace, target: null } });
       hooks.redraw();
       focus('[data-browse]');
       return;

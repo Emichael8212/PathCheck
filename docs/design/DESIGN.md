@@ -346,14 +346,21 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   2026-11-16: such a course "starts at 3 credits and the student can change it".
 - **The summary strip and the two filters are drawn only when the list has a course.**
   The design shows a list that already has six.
-- **"What I have left": what is drawn so far** (F13). The heading, the pill, the ring and
-  the credit bar, the requirements with "All / Not done", and the sequence box are drawn
-  as designed. The place beside the ring (the pace answer), the pace controls, the draft
-  plan and the two action buttons come with F14, F16, F17 and F19. Additions, in the
+- **"What I have left": what is drawn so far** (F13, F14). The heading, the pill, the
+  ring and the credit bar, the pace answer beside the ring with its four controls, the
+  requirements with "All / Not done", and the sequence box are drawn as designed. The
+  draft plan and the two action buttons come with F16, F17 and F19. Pace, where the
+  design shows one case only ("On pace for Spring 2029", "about 16 credits a term"), in
+  the agent's words: "Not on pace for <target>"; "At 18 credits a term you finish Spring
+  2029, one semester after your target." and the same with "before" for the fewest; "No
+  credits left to plan"; "Pace can't be estimated: the latest term on your transcript
+  could not be read." (then no controls). The Summers switch has an "on" look (knob at
+  the other end, accent color); the design shows it off only. Additions, in the
   agent's words unless said otherwise:
   - above the result, when rows of the transcript still need fixing: "<m> rows of your
     transcript still need fixing and count nothing. A requirement, or the sequence, may
-    show as still needed because of them." with "Fix them";
+    show as still needed because of them. The credits left and the pace may change too."
+    with "Fix them";
   - before the result, when the answer would change it: the legacy question (the owner's
     words) with "Your transcript has <code>, which counts as an elective only for legacy
     students.";
