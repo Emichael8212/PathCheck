@@ -71,7 +71,8 @@ const TEXT = {
   credits: (count: number): string => `${count} cr`,
   late: (term: string, why: 'split' | 'moved'): string =>
     `This draft ends in ${term}, later than the pace estimate above: ${why === 'moved' ? 'you moved courses later.' : 'courses can’t be split across semesters.'}`,
-  moved: (what: string, term: string, counted: boolean): string => `${what}${counted ? ',' : ''} moved to ${term}.`,
+  // A name with a comma in it closes with one, so that it is heard as one thing.
+  moved: (what: string, term: string): string => `${what}${what.includes(',') ? ',' : ''} moved to ${term}.`,
 };
 
 /**
@@ -280,5 +281,5 @@ export function planHtml(plan: Plan | null): string {
 export function movedSentence(plan: Plan, key: string): string {
   const semester = plan.semesters.find(one => one.entries.some(entry => entry.key === key));
   const entry = semester?.entries.find(one => one.key === key);
-  return semester && entry ? TEXT.moved(counted(entry), termName(semester.term), entry.nth !== null) : '';
+  return semester && entry ? TEXT.moved(counted(entry), termName(semester.term)) : '';
 }

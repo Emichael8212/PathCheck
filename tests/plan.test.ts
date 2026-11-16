@@ -278,6 +278,7 @@ describe('the draft plan', () => {
     expect(forLegacy.filter(entry => entry.key.startsWith('elective'))).toEqual([]);
     expect(forLegacy.reduce((sum, entry) => sum + entry.credits, 0)).toBe(legacyList.credits.left + legacyList.extraLeft);
     expect(legacyList.extraLeft).toBe(0);
+    expect(movedSentence(plan(legacyRows, {}, {}, true), 'sequence')).toBe('HIS 132, for the history sequence, moved to Fall 2027.');
     // With two more elective places open, they are planned beside it.
     expect(all(plan(['PSY 251', 'HUM 101'], {}, {}, true)).filter(entry => entry.choice !== null && /sequence|elective/.test(entry.choice)).map(entry => [entry.choice, entry.nth])).toEqual([
       ['HIS 132, for the history sequence', null], ['CIS elective', { n: 1, of: 2 }], ['CIS elective', { n: 2, of: 2 }],
