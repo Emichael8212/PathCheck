@@ -38,8 +38,8 @@ export interface Electives {
   readonly minNumber: number;
   readonly maxNumber: number;
   readonly creditsPerCourse: number;
-  /** A course that is already required somewhere is not also an elective. */
-  readonly excludeRequired: boolean;
+  /** A course that is already listed in a block is not also an elective. Always true. */
+  readonly excludeRequired: true;
   /** Electives only for legacy students. */
   readonly legacyOnly: readonly Course[];
 }
@@ -226,7 +226,8 @@ function courseNumber(value: unknown, path: string): number {
 function electives(value: unknown, path: string): Electives {
   const raw = fields(value, path, ['id', 'name', 'credits', 'courseCount', 'namedCourses', 'subjectRule', 'excludeRequiredCourses', 'legacyOnlyCourses']);
   const rule = fields(raw.subjectRule, `${path}.subjectRule`, ['prefixes', 'minCourseNumber', 'maxCourseNumber', 'creditsPerCourse']);
-  if (typeof raw.excludeRequiredCourses !== 'boolean') fail(`${path}.excludeRequiredCourses`, 'must be true or false');
+  // A course listed in a block is never also an elective; data that says otherwise is refused.
+  if (raw.excludeRequiredCourses !== true) fail(`${path}.excludeRequiredCourses`, 'must be true: a course listed in a block is not also an elective');
   const result: Electives = {
     id: text(raw.id, `${path}.id`),
     name: text(raw.name, `${path}.name`),
@@ -237,7 +238,7 @@ function electives(value: unknown, path: string): Electives {
     minNumber: courseNumber(rule.minCourseNumber, `${path}.subjectRule.minCourseNumber`),
     maxNumber: courseNumber(rule.maxCourseNumber, `${path}.subjectRule.maxCourseNumber`),
     creditsPerCourse: positiveWhole(rule.creditsPerCourse, `${path}.subjectRule.creditsPerCourse`),
-    excludeRequired: raw.excludeRequiredCourses as boolean,
+    excludeRequired: true,
     legacyOnly: courses(raw.legacyOnlyCourses, `${path}.legacyOnlyCourses`),
   };
   if (result.subjects.length === 0) fail(`${path}.subjectRule.prefixes`, 'must list at least one subject');

@@ -3,9 +3,43 @@
 Points raised while building one feature that a later feature's contract must take up.
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
-## For F04 and F13 (placing courses; the checklist)
-- Degree and block credits come from the curriculum, never from adding up a transcript
-  row's credits. A withdrawn row still shows credits attempted. (F03 review)
+## For F13 (the checklist)
+- Degree and block credits come from the curriculum (through `placeCourses`), never from
+  adding up a transcript row's credits. A withdrawn row still shows credits attempted.
+  (F03 review; done for placement in F04)
+
+## For F08 (check my courses, no transcript)
+- Owner answer 3 says that of two typed courses for one pick "the first counts".
+  `placeCourses` puts a sequence course (HIS 132, ENG 210) ahead of another course in the
+  same state. Typed GEO 206 then HIS 132 would therefore make HIS 132 count. F08 must
+  either keep typed order or ask the owner which wins. (F04 review)
+- CIS 304 and CIS 415 match the elective rule as written. An open question to the owner in
+  `docs/decision-log.md` asks whether they count. Do not show "Counts toward CIS: elective"
+  for them before it is answered. (F04 QA)
+- `placeCourses` refuses the same course twice. A student may type a course twice, or type
+  one that is already on the transcript: merge before calling it. (F04 QA)
+- Typed courses need a third, weaker state than passed and in progress, with its own
+  credits, so that pace is not mixed with courses really in progress. (F04 review)
+
+## For F12 (check my courses, with a transcript)
+- "This slot is already filled" must not be said for a typed sequence course the student
+  still needs: with HIS 131 and GEO 206 passed, HIS 132 is what completes the sequence.
+  Look at the sequence's missing courses, not only at the pick. (F04 review)
+
+## For F13, F14 and F16 (checklist, pace, plan)
+- All 121 credits can be done while the sequence is still needed (other courses hold the
+  two picks). Never show the degree as complete or on pace from credits alone; the plan
+  must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
+
+## For F05 (legacy)
+- With the legacy answer Yes, PSY 251 can go to its pick or to an elective place. That
+  needs a second pass after the picks are filled: a pick course left over can then claim
+  an elective. (F04 review)
+
+## For F14 (pace)
+- Pace is taken from the totals of `placeCourses` (`src/placement.ts`): remaining = degree
+  credits − done − in progress. Do not add up in-progress rows: a course in progress that
+  fills no place adds nothing. (F04 contract review)
 
 ## For F10 (transcript rows are untrusted)
 - Before a row reaches `rowStanding` or `courseStandings` (`src/transcript.ts`): the grade
@@ -23,11 +57,6 @@ Read this before writing a sprint contract; delete a line when its feature has d
   otherwise. The totals and "Academic Standing" lines are not rows. (F03 contract)
 - Real transfer rows may leave "attempted" empty: check against the transcript format when
   the real reader is built. (F03 review; also F21)
-
-## For F04 (placing courses)
-- A transfer row is placed like any passed course. If its code is not in the curriculum
-  and does not match the elective rule, it does not count: the owner asked for a test of
-  exactly this. (Owner answer, 2026-11-16)
 
 ## For F10 and F11 (the review step)
 - Transfer, AP and CLEP rows are labelled "Transfer credit" in the review step, so the

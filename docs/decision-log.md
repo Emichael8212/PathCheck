@@ -14,6 +14,9 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F02) The app's code lives in `src/` as plain TypeScript modules; the curriculum model is `src/curriculum.ts`. A UI framework is still not chosen; that is decided with F06, the first screen. | Rules and data need no framework, and keeping them free of one makes every academic rule testable on its own. | Move the files. |
 | (2026-11-16, F03) A grade that is not on the scale (for example "B+" or "P") never passes and is reported as "unrecognised", not as "must be repeated"; the review step asks the student to fix it. This applies to ordinary rows only: a transfer row counts whatever its grade column shows (owner answer, 2026-11-16). | The owner said only A, B, C, D, F exist, so such a mark is a misread or something unforeseen. It is not "C or better", so it cannot pass; calling it "must be repeated" would be a claim PathCheck can't back. | Change `rowStanding` in `src/transcript.ts`. |
 | (2026-11-16, F03) When a course has several transcript rows and none passes, its standing is the first that applies of: in progress, unrecognised, must repeat, no credit. | In progress first: the brief says to assume the course will be passed and not to schedule it again. "Must be repeated" only when no row leaves the outcome open; it outranks W and I because the flag belongs to the below-C grade. | Change the order in `src/transcript.ts`. |
+| (2026-11-16, F04) "Place it where it helps most", when a student has more courses than a pick group asks for: a passed course is placed before one in progress; between two in the same state, a course that belongs to a sequence (HIS 132, ENG 210) before one that does not; then the order of the transcript. The three elective places are filled passed before in progress, then in transcript order. | Passed first is the only order that counts a passed course the brief lists for that place. The sequence course goes first because the owner said "HIS 132 fills the Social sciences pick; ENG 210 fills the Humanities pick". The rest only fixes which of two interchangeable courses is named. None of it changes the credits remaining; passed-first can move credits between "done" and "in progress" compared with always giving the pick to the sequence course. | Change the order in `src/placement.ts`. |
+| (2026-11-16, F04) The history or literature sequence is judged on the courses themselves: done when both courses of one alternative are passed, in progress when both are passed or in progress. | Otherwise HIS 132 in progress, while another passed course holds the pick, would read "still needed". The sequence adds no credits either way. | Change `src/placement.ts`. |
+| (2026-11-16, F04) "Not already required" in the elective rule is read as "not listed in any block, whether required or a pick". | It makes no difference for this curriculum: no pick course matches the elective rule (a test asserts it). If the data ever changes so that one does, the reading matters and goes to the owner. | Change `src/placement.ts`. |
 | Curriculum file keeps its name `docs/curriculum/provisional-current.json`; "CIS 300/400-level" is stored as course numbers 300–499. | Name kept as carried over. 300–499 is the plain reading of "300/400-level". | Rename the file / edit `electives.subjectRule`. |
 | The curriculum keeps titles for FIN 201, FLS 161, MGT 203 and MGT 220 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
 | `lastReviewed` in the curriculum file is `null`. | The owner provides the date of the last curriculum review before M3 (brief §12). | Set the date. |
@@ -311,8 +314,16 @@ wording, now in `features.json`:
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- None open. (The 2026-11-16 question about the grade column of transfer rows was answered
-  the same day: see "Owner answers", "Transfer, AP and CLEP rows".)
+- **2026-11-16 (raised in F04's QA; needed for F08).** The brief removed CIS 304 and CIS 415
+  from the curriculum as "a mistake and never used". The elective rule covers any
+  300/400-level CIS course that is not required, so as written both would count as
+  electives if a student typed them or had them on a transcript. Should they count as
+  electives like any other 300/400-level CIS course, or not count at all? Until answered
+  they follow the elective rule as written. Status: asked in chat on 2026-11-16, not
+  answered yet.
+
+(The 2026-11-16 question about the grade column of transfer rows was answered the same
+day: see "Owner answers", "Transfer, AP and CLEP rows".)
 
 ## Milestone checks
 
