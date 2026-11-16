@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import madeUpProgram from './fixtures/made-up-program.json';
 import sampleA from '../synthetic/transcripts/sample-a.json';
+import { onTestDay } from './day';
 import { startApp, type App, type AppWindow } from '../src/app';
 import { curriculum, loadCurriculum } from '../src/curriculum';
 import { emptyLeft, hasResult, leftPage } from '../src/left';
@@ -78,7 +79,7 @@ const start = (kind: PrintWindow = 'says'): void => {
   window.localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
   window.history.replaceState(null, '', '#/left');
-  app = startApp(browser(kind));
+  app = startApp(onTestDay(browser(kind)));
 };
 const result = async (name = 'sample-a'): Promise<void> => {
   await app.takeFile(madeUp(name));

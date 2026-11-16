@@ -942,6 +942,9 @@ details[open] .req-cue { transform: rotate(-90deg); }
   .plan-entry { flex-direction: column; margin-inline: 5px; }
 }
 
+/* ---- The banner of a curriculum whose last review is more than twelve months old: before everything else, on every page and on paper ---- */
+.old-review { margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--line-strong); background: var(--surface-2); color: var(--ink); font-size: 14px; font-weight: 500; line-height: 20px; text-align: center; }
+
 /* ---- On paper only: what the summary is, and the pace settings in the place of their controls ---- */
 .print-only { display: none; }
 .print-head { margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line-strong); color: var(--ink-2); font-size: 13px; line-height: 19px; }
@@ -964,7 +967,8 @@ details[open] .req-cue { transform: rotate(-90deg); }
   /* Every requirement is on paper, whatever "Not done" hides on the screen and whatever is closed. */
   .req[hidden] { display: block !important; }
   details:not([open])::details-content { content-visibility: visible; }
-  .plan-entry, .req, .semester, .overview, .sequence, .note, .print-head { break-inside: avoid; }
+  .plan-entry, .req, .semester, .overview, .sequence, .note, .print-head, .old-review { break-inside: avoid; }
+  .old-review { margin-bottom: 14px; border: 1px solid var(--line-strong); text-align: left; }
   /* Without "Move later" under them the plan's entries need no lines between them. */
   .plan-entry { border-bottom: 0; }
   .semester > ul { padding-bottom: 6px; }

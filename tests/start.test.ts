@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { facts as approvedFacts, start as approvedStart } from '../mockups/data.js';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
+import { TEST_DAY } from './day';
 import { renderPage, startApp, type AppWindow } from '../src/app';
 import { UNKNOWN_COURSE_CREDITS } from '../src/credits';
 import { CurriculumError, curriculum, findCourse, loadCurriculum, programs, type Program } from '../src/curriculum';
@@ -405,6 +406,7 @@ describe('the demo', () => {
       addEventListener: (type: string, listener: (event: { preventDefault(): void }) => void): void => { handlers[type] = listener; },
       matchMedia: (query: string) => ({ matches: query === '(prefers-reduced-motion: reduce)' && reducedMotion }),
       scrollTo: (x: number, y: number): void => { scrolls.push([x, y]); },
+      today: TEST_DAY,
     };
     const go = (to: string): void => { win.location.hash = to; handlers.hashchange?.({ preventDefault: () => undefined }); };
     return { win: win as unknown as AppWindow, timers, handlers, heading, scrolls, page, go, location: win.location, document: win.document };
@@ -520,7 +522,7 @@ describe('the footer', () => {
     const undated = foot({ ...curriculum, lastReviewed: null });
     expect(undated).not.toMatch(/last reviewed|Nov 2026|Invalid|NaN|\bnull\b|undefined/i);
     expect(decode(undated)).toBe(' Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
-    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
+    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake&amp;body=[^"]+">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
   });
 
   it('shows the month and year of a review date in any time zone', () => {

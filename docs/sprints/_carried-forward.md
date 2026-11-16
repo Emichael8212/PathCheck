@@ -3,23 +3,21 @@
 Points raised while building one feature that a later feature's contract must take up.
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
-## For F18 (on every result)
-- The footer is `foot(curriculum, subject)` in `src/shell.ts`: it shows the
-  last-reviewed line from the curriculum file's date and takes the email's subject. Still to
-  do in F18: the 12-month banner, the owner's real address in `src/wording.ts`, and the
-  email pre-filled with the course or result. (F06)
-- **The review date is 2026-11-15**, in the curriculum file (owner answer, 2026-11-16:
-  "Store it in the curriculum file and show "Curriculum last reviewed: Nov 2026". The
-  12-month banner works as written."). The footer shows the line on every page. F17's
-  line and F18 steps 1 and 3 stand as written: F18's banner compares this date with the
-  day the page is opened.
-- **The banner must print too** (F17): the paper is the result page itself. The top of
-  the paper (`printHeadHtml` in `src/print.ts`) carries the footer's sentences from the
-  same constants; if F18 changes those sentences, both change. "Report a mistake" is not
-  printed (`.foot a` in the stylesheet's print rules): if F18 gives the link a visible
-  address worth having on paper, decide it there.
+## For F26 and M3 (the owner's address; the review date)
+- **The contact address is a placeholder**: `REPORT_ADDRESS` in `src/wording.ts`
+  (`report@pathcheck.example`). The owner gives the real one before M3 (brief §12); it
+  changes in that one place. Then decide whether the address should also be readable
+  beside the link (a `mailto:` link does nothing visible where no mail app is set up) and
+  on paper ("Report a mistake" is not printed today). (F06, F17, F18)
+- **The banner appears from 2027-11-16** unless the curriculum is reviewed again: the
+  yearly review sets `lastReviewed` in the curriculum file, and
+  docs/CURRICULUM-HANDOVER.md (M3) must say so. (F18)
 
 ## For F19 (what the result leaves for it)
+- **What F19 remembers must not include the day.** The banner is worked out each time a
+  page is drawn from the day on the device (`today` in `renderPage`); nothing about it is
+  stored. "Clear my data" has nothing of F18 to clear: the email is made when the link
+  is used and kept nowhere. (F18)
 - The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in
   `src/checklist.ts` (`overviewHtml`, `requirementsHtml`), `src/pace.ts` (the answer
   beside the ring, the controls under the bar; `overviewOf` in `src/left.ts`) and

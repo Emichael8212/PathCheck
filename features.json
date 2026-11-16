@@ -353,9 +353,12 @@
         "A banner appears if the curriculum hasn't been reviewed in 12 months, and not otherwise",
         "No result tells the student to \"ask your advisor\""
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F18.md — QA PASS in a real browser (rounds 1 and 2); reviewer: no blocker after round 2",
+      "tests": [
+        "tests/trust.test.ts",
+        "tests/start.test.ts"
+      ]
     },
     {
       "id": "F19",

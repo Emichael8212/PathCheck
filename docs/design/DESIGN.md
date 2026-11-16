@@ -430,6 +430,16 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     elective, 2 of 3"; the mockup had "Move MGT 321 later");
   - "Clear my data", which ends the design's page beside the print button, is not drawn
     until F19.
+- **The banner of an old review** (F18; the brief's "A banner if the curriculum hasn't been
+  reviewed in 12 months"). The design has no place for it: it is a strip across the top
+  of every page, before the top bar (`--surface-2` with a `--line-strong` line under it,
+  14px, centred; on paper a bordered line at the very top), shown only once the review
+  is more than 12 months old: "The curriculum PathCheck uses was last reviewed in Nov
+  2026, more than 12 months ago. Requirements may have changed since: check your portal
+  before you rely on this." (the agent's words).
+- **"Report a mistake"** (F18) looks as in the design. Its email is filled in with what the
+  page showed ("What looks wrong?", "What PathCheck showed:", then the result's own
+  words; the labels are the agent's). The address is a placeholder until the owner's.
 - **The printed summary** (F17). "Print / save PDF for your advisor" is the design's
   button, in the design's row of actions after the draft plan, and the paper follows the
   design's print rules. What the design has no place for:

@@ -9,6 +9,10 @@ export const REPORT_A_MISTAKE = 'Report a mistake';
 // Placeholder: the owner gives the contact address before launch (brief §12).
 export const REPORT_ADDRESS = 'report@pathcheck.example';
 export const LAST_REVIEWED = 'Curriculum last reviewed:';
+/** The banner once the last review is more than twelve months old (brief §4 "On every result"). */
+export const OLD_REVIEW_NAME = 'Curriculum may be out of date';
+export const oldReview = (reviewed: string): string =>
+  `The curriculum ${APP_NAME} uses was last reviewed in ${reviewed}, more than 12 months ago. Requirements may have changed since: check your portal before you rely on this.`;
 
 /** Without a transcript, a "Counts" answer is never shown without this. */
 export const CONDITION = 'unless you’ve already passed it or filled this slot';
