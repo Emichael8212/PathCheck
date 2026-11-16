@@ -98,7 +98,7 @@
         "Each of these rules has an automated test, including no double counting"
       ],
       "passes": true,
-      "evidence": "docs/sprints/F04.md — evaluator QA round 2: PASS (20 checks; Functionality 5, Truthfulness 5)",
+      "evidence": "docs/sprints/F04.md — evaluator QA round 2: PASS (20 checks; Functionality 5, Truthfulness 5); check 21 (CIS 304 and CIS 415 never count) added by owner answer and QA PASS on 2026-11-16",
       "tests": [
         "tests/placement.test.ts"
       ]

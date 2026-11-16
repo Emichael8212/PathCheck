@@ -48,7 +48,7 @@
     "credits": 6,
     "courseCount": 3,
     "namedCourses": [],
-    "subjectRule": { "prefixes": ["XC"], "minCourseNumber": 300, "maxCourseNumber": 399, "creditsPerCourse": 2 },
+    "subjectRule": { "prefixes": ["XC"], "minCourseNumber": 300, "maxCourseNumber": 399, "creditsPerCourse": 2, "exceptCourses": ["XC-350"] },
     "excludeRequiredCourses": true,
     "legacyOnlyCourses": []
   }

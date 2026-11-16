@@ -38,6 +38,8 @@ export interface Electives {
   readonly minNumber: number;
   readonly maxNumber: number;
   readonly creditsPerCourse: number;
+  /** Courses that match the subject-and-number rule but never count, not even as electives. */
+  readonly except: readonly string[];
   /** A course that is already listed in a block is not also an elective. Always true. */
   readonly excludeRequired: true;
   /** Electives only for legacy students. */
@@ -225,7 +227,7 @@ function courseNumber(value: unknown, path: string): number {
 
 function electives(value: unknown, path: string): Electives {
   const raw = fields(value, path, ['id', 'name', 'credits', 'courseCount', 'namedCourses', 'subjectRule', 'excludeRequiredCourses', 'legacyOnlyCourses']);
-  const rule = fields(raw.subjectRule, `${path}.subjectRule`, ['prefixes', 'minCourseNumber', 'maxCourseNumber', 'creditsPerCourse']);
+  const rule = fields(raw.subjectRule, `${path}.subjectRule`, ['prefixes', 'minCourseNumber', 'maxCourseNumber', 'creditsPerCourse', 'exceptCourses']);
   // A course listed in a block is never also an elective; data that says otherwise is refused.
   if (raw.excludeRequiredCourses !== true) fail(`${path}.excludeRequiredCourses`, 'must be true: a course listed in a block is not also an elective');
   const result: Electives = {
@@ -238,6 +240,7 @@ function electives(value: unknown, path: string): Electives {
     minNumber: courseNumber(rule.minCourseNumber, `${path}.subjectRule.minCourseNumber`),
     maxNumber: courseNumber(rule.maxCourseNumber, `${path}.subjectRule.maxCourseNumber`),
     creditsPerCourse: positiveWhole(rule.creditsPerCourse, `${path}.subjectRule.creditsPerCourse`),
+    except: list(rule.exceptCourses, `${path}.subjectRule.exceptCourses`).map((code, i) => readable(dataCode(code, `${path}.subjectRule.exceptCourses[${i}]`))),
     excludeRequired: true,
     legacyOnly: courses(raw.legacyOnlyCourses, `${path}.legacyOnlyCourses`),
   };
@@ -247,6 +250,13 @@ function electives(value: unknown, path: string): Electives {
   });
   distinct(result.subjects, `${path}.subjectRule.prefixes`, 'subject');
   if (result.minNumber > result.maxNumber) fail(`${path}.subjectRule.minCourseNumber`, 'is above maxCourseNumber');
+  distinct(result.except.map(asWritten), `${path}.subjectRule.exceptCourses`, 'course');
+  result.except.forEach((code, i) => {
+    // An exception only makes sense for a course the rule would otherwise let in.
+    const [subject = '', number = ''] = code.split(' ');
+    const matches = result.subjects.includes(subject) && Number(number) >= result.minNumber && Number(number) <= result.maxNumber;
+    if (!matches) fail(`${path}.subjectRule.exceptCourses[${i}] (${asWritten(code)})`, 'does not match the elective rule, so it needs no exception');
+  });
   if (result.credits !== result.courseCount * result.creditsPerCourse) {
     fail(`${path}.credits`, `is ${result.credits} but ${result.courseCount} courses of ${result.creditsPerCourse} credits is ${result.courseCount * result.creditsPerCourse}`);
   }
@@ -370,7 +380,12 @@ export function loadCurriculum(data: unknown): Curriculum {
     sequence: sequence(raw.sequence, 'sequence', blocks),
     electives: electives(raw.electives, 'electives'),
   };
-  checkListedOnce(listings(blocks, curriculum.electives));
+  const all = listings(blocks, curriculum.electives);
+  checkListedOnce(all);
+  curriculum.electives.except.forEach((code, i) => {
+    const listed = all.find(entry => entry.place.course.code === code);
+    if (listed) fail(`electives.subjectRule.exceptCourses[${i}] (${asWritten(code)})`, `never counts, but is also listed in ${listed.where}`);
+  });
 
   const total = sum(blocks.map(b => b.credits)) + curriculum.electives.credits;
   if (total !== curriculum.degreeCredits) fail('degreeCredits', `is ${curriculum.degreeCredits} but the blocks and electives add up to ${total}`);

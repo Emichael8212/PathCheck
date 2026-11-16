@@ -73,7 +73,7 @@ export interface SequenceResult {
 
 /** A course that was passed or is in progress but fills nothing, and why. */
 export type Unplaced =
-  | { readonly code: string; readonly state: FillState; readonly reason: 'not-in-curriculum' | 'electives-full' | 'legacy-only' }
+  | { readonly code: string; readonly state: FillState; readonly reason: 'not-in-curriculum' | 'not-current' | 'electives-full' | 'legacy-only' }
   | {
     readonly code: string;
     readonly state: FillState;
@@ -109,16 +109,17 @@ const creditsOf = (filled: readonly Filled[], state: FillState): number =>
   sum(filled.filter(one => one.state === state).map(one => one.course.credits));
 
 /**
- * Does this code match the elective rule: one of the subjects, a number in the range?
- * Only a course that is listed nowhere is ever asked. A course listed in a block fills (or
- * loses) its own place and is never also an elective, which is what the curriculum's
- * "not already required" says; the loader only accepts data that says so.
+ * Is this course an elective by the rule: one of the subjects, a number in the range, and
+ * not one of the rule's exceptions? Only a course that is listed nowhere is ever asked. A
+ * course listed in a block fills (or loses) its own place and is never also an elective,
+ * which is what the curriculum's "not already required" says; the loader only accepts
+ * data that says so.
  */
-function matchesElectiveRule(curriculum: Curriculum, code: string): boolean {
+export function countsByElectiveRule(curriculum: Curriculum, code: string): boolean {
   const [subject = '', number = ''] = code.split(' ');
   const n = Number(number);
-  const { subjects, minNumber, maxNumber } = curriculum.electives;
-  return subjects.includes(subject) && n >= minNumber && n <= maxNumber;
+  const { subjects, minNumber, maxNumber, except } = curriculum.electives;
+  return subjects.includes(subject) && n >= minNumber && n <= maxNumber && !except.includes(code);
 }
 
 /**
@@ -173,7 +174,10 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
     } else if (places.some(place => place.kind === 'legacy-elective')) {
       // Whether a legacy-only course can count depends on the legacy answer.
       unplaced.push({ order, entry: { code, state, reason: 'legacy-only' } });
-    } else if (matchesElectiveRule(curriculum, code)) {
+    } else if (electives.except.includes(code)) {
+      // It would match the elective rule, but the curriculum says it never counts.
+      unplaced.push({ order, entry: { code, state, reason: 'not-current' } });
+    } else if (countsByElectiveRule(curriculum, code)) {
       // An elective by the rule: its title is not in the curriculum, its credits are the rule's.
       forElective.push({ course: { code, title: '', credits: electives.creditsPerCourse }, state, order, by: 'rule' });
     } else {
