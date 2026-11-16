@@ -4,18 +4,15 @@ Points raised while building one feature that a later feature's contract must ta
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
 ## For F17 and F18 (the printed summary; on every result)
-- The footer is `foot(curriculum, subject)` in `src/shell.ts`: it already leaves the
-  last-reviewed line out when there is no date and takes the email's subject. Still to
+- The footer is `foot(curriculum, subject)` in `src/shell.ts`: it shows the
+  last-reviewed line from the curriculum file's date and takes the email's subject. Still to
   do in F18: the 12-month banner, the owner's real address in `src/wording.ts`, and the
   email pre-filled with the course or result. (F06)
-- **The review date is 2026-11-15** (owner answer, 2026-11-16: "Store it in the curriculum
-  file and show "Curriculum last reviewed: Nov 2026". The 12-month banner works as
-  written."). Before F17, a pull request of its own puts `lastReviewed: 2026-11-15` into
-  `docs/curriculum/provisional-current.json` and updates the tests that expect no date
-  (`tests/curriculum.test.ts` "carries the last-reviewed date"; `tests/start.test.ts`
-  "leaves the last-reviewed line out while there is no date"), DESIGN.md's note that the
-  footer has no such line, and this note. F17's line and F18 steps 1 and 3 then stand as
-  written.
+- **The review date is 2026-11-15**, in the curriculum file (owner answer, 2026-11-16:
+  "Store it in the curriculum file and show "Curriculum last reviewed: Nov 2026". The
+  12-month banner works as written."). The footer shows the line on every page. F17's
+  line and F18 steps 1 and 3 stand as written: F18's banner compares this date with the
+  day the page is opened.
 
 ## For F17 and F19 (what the result leaves for them)
 - The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in

@@ -123,7 +123,7 @@ describe('the three addresses', () => {
     expect(pages.left).toMatch(/<h1 tabindex="-1">See what I have left<\/h1>/);
     expect(pages.left).toContain('<a href="#/left" aria-current="page">What I have left</a>');
     // Before a transcript is brought, the page of the second flow holds its name and the way to bring one.
-    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Your PDF is read, then deleted. Only your result stays in this browser. Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
+    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Your PDF is read, then deleted. Only your result stays in this browser. Not an official degree audit. Curriculum last reviewed: Nov 2026 Report a mistake Not affiliated with Alabama State University ');
     for (const page of [pages.check, pages.left]) expect(decode(page)).not.toMatch(/coming soon|not built|later/i);
     expect(routeOf('#/check')).toBe('check');
     expect(routeOf('#/left')).toBe('left');
@@ -506,14 +506,21 @@ describe('the demo', () => {
 });
 
 describe('the footer', () => {
-  it('leaves the last-reviewed line out while there is no date', () => {
-    expect(curriculum.lastReviewed).toBeNull();
-    expect(reviewedOn(null)).toBeNull();
+  it('shows when the curriculum was last reviewed, on every page', () => {
+    // The owner, 2026-11-16: reviewed on 2026-11-15; show "Curriculum last reviewed: Nov 2026".
+    expect(curriculum.lastReviewed).toBe('2026-11-15');
     for (const [name, page] of Object.entries(pages)) {
-      expect(page, name).not.toMatch(/last reviewed|Nov 2026|Invalid|NaN|\bnull\b|undefined/i);
-      expect(decode(page.slice(page.indexOf('<footer'))), name).toBe(' Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
+      expect(page, name).not.toMatch(/Invalid|NaN|\bnull\b|undefined/i);
+      expect(decode(page.slice(page.indexOf('<footer'))), name).toBe(' Not an official degree audit. Curriculum last reviewed: Nov 2026 Report a mistake Not affiliated with Alabama State University ');
     }
-    expect(foot(curriculum)).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
+  });
+
+  it('leaves the last-reviewed line out when a curriculum has no date', () => {
+    expect(reviewedOn(null)).toBeNull();
+    const undated = foot({ ...curriculum, lastReviewed: null });
+    expect(undated).not.toMatch(/last reviewed|Nov 2026|Invalid|NaN|\bnull\b|undefined/i);
+    expect(decode(undated)).toBe(' Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
+    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
   });
 
   it('shows the month and year of a review date in any time zone', () => {
