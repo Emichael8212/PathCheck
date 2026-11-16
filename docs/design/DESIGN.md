@@ -336,9 +336,10 @@ Each difference comes from the brief or from a dated owner answer in `docs/decis
 The app (`src/`, from F06) is built from this design. Its stylesheet is `src/style.css`,
 which started as a copy of `mockups/style.css`. These differences are intended:
 
-- **No "Curriculum last reviewed" line in the footer.** The owner, 2026-11-16: "leave out
-  "Curriculum last reviewed: Nov 2026"". The curriculum file has no review date and none
-  is invented; the line is shown only when the file has a date.
+- **"Curriculum last reviewed: Nov 2026" in the footer comes from the curriculum file**, not
+  from fixed text: the owner reviewed the curriculum on 2026-11-15 (answer of 2026-11-16,
+  which replaces the earlier "leave out" of the same day). The line is shown only when
+  the file has a date, as its month and year.
 - **No "Mockup: opens synthetic student results." under "Browse files".** It was a note
   about the mockup.
 - **On "Check my courses", a course PathCheck doesn't know has a small dropdown for its

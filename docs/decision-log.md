@@ -653,8 +653,8 @@ steps 1 and 3 stand as written. It closes the question kept "to ask later".
 - "(a)" answers the question put in chat on 2026-11-16: "(a) Give me the date you last
   reviewed the curriculum, and I show the line and the banner rule as written. (b) Reword
   those steps so the line and the banner appear only once a date exists."
-- The date goes into the curriculum file in a pull request of its own, straight after
-  F16 and before F17: the footer already shows "Curriculum last reviewed: <month year>"
+- The date went into the curriculum file in a pull request of its own ("chore: store the
+  curriculum review date"), straight after F16 and before F17: the footer already shows "Curriculum last reviewed: <month year>"
   when the file has a date (F06), so the line appears on every page with that change.
   F16's pull request does not touch the date.
 - "Your choices" in answer 2 are those told to the owner in chat before the answer: the
