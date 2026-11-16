@@ -159,6 +159,8 @@ const countsMore = (a: Placement, b: Placement): boolean =>
  *
  * A legacy-only elective that is also a pick course has two places it could go. It stays
  * a pick course unless, for a legacy student, treating it as an elective counts more.
+ * (The curriculum has one such course. Were there several, each is tried once, in
+ * transcript order, on top of the moves already kept.)
  */
 export function placeCourses(standings: readonly CourseStanding[], curriculum: Curriculum, options: PlaceOptions = {}): Placement {
   checkInput(standings);
@@ -171,7 +173,7 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
     .map(one => one.code)
     .filter(code => {
       const places = findCourse(curriculum, code);
-      return places.some(place => place.kind === 'legacy-elective') && places.some(place => place.kind === 'required' || place.kind === 'pick');
+      return places.some(place => place.kind === 'legacy-elective') && places.some(place => place.kind === 'pick');
     });
   const asElective = new Set<string>();
   for (const code of twoPlaces) {
@@ -184,7 +186,7 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
   return best;
 }
 
-/** One placement: `asElective` names the legacy-only courses that give up their place in a block. */
+/** One placement: `asElective` names the legacy-only courses that give up their pick to be electives. */
 function arrange(standings: readonly CourseStanding[], curriculum: Curriculum, legacy: boolean, asElective: ReadonlySet<string>): Placement {
   const { blocks, electives, sequence } = curriculum;
   const sequenceCourses = new Set(sequence.alternatives.flatMap(alternative => alternative.courses));

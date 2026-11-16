@@ -1,7 +1,7 @@
 // The legacy question: some courses count as electives only for a legacy student, so the
 // student is asked, once, when one of those courses appears. Which courses those are is
 // the curriculum's; nothing about them is written here.
-import { normalizeCode, type Curriculum } from './curriculum';
+import { findCourse, type Curriculum } from './curriculum';
 
 /** The question and its two answers, word for word, for every screen that asks it. */
 export const LEGACY_QUESTION = 'Are you a legacy CIS student?';
@@ -17,11 +17,7 @@ export type LegacyAnswer = boolean | null;
  * on a transcript, whatever its grade.
  */
 export function legacyQuestionNeeded(codes: readonly string[], curriculum: Curriculum): boolean {
-  const legacy = new Set(curriculum.electives.legacyOnly.map(course => course.code));
-  return codes.some(code => {
-    const normal = typeof code === 'string' ? normalizeCode(code) : null;
-    return normal !== null && legacy.has(normal);
-  });
+  return codes.some(code => typeof code === 'string' && findCourse(curriculum, code).some(place => place.kind === 'legacy-elective'));
 }
 
 /** The one key the answer is kept under in the browser's storage. */
@@ -37,6 +33,18 @@ const STORED_NO = 'no';
 // remembered: nothing fails, and the student is asked again next time. A screen keeps the
 // answer in memory for the visit and does not rely on reading it back.
 
+/**
+ * The browser's storage, or null when there is none. With site data blocked, some browsers
+ * fail on the mere mention of `localStorage`, so screens get it here and nowhere else.
+ */
+export function browserStorage(): AnswerStorage | null {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The remembered answer, or null when none was given or storage cannot be used. */
 export function readLegacyAnswer(storage: AnswerStorage | null | undefined): LegacyAnswer {
   try {
@@ -47,8 +55,12 @@ export function readLegacyAnswer(storage: AnswerStorage | null | undefined): Leg
   }
 }
 
-/** Remembers the answer. The student can change it: writing again replaces it. */
+/**
+ * Remembers the answer. The student can change it: writing again replaces it. Only a real
+ * Yes or No is kept: anything else (a button's text, say) is ignored, never read as a Yes.
+ */
 export function writeLegacyAnswer(storage: AnswerStorage | null | undefined, answer: boolean): void {
+  if (typeof answer !== 'boolean') return;
   try {
     storage?.setItem(LEGACY_KEY, answer ? STORED_YES : STORED_NO);
   } catch {

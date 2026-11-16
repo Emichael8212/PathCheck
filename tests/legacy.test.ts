@@ -1,12 +1,12 @@
 // F05: legacy electives (docs/sprints/F05.md; docs/BRIEF.md §5 "Legacy electives" and "No
 // double counting", §4 "Remembering"; owner answer of 2026-11-16 on transfer credit).
 // Every student here is made up.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
 import { curriculum, loadCurriculum, type Curriculum } from '../src/curriculum';
 import {
-  LEGACY_KEY, LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, clearLegacyAnswer, legacyQuestionNeeded, readLegacyAnswer, writeLegacyAnswer,
+  LEGACY_KEY, LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, legacyQuestionNeeded, readLegacyAnswer, writeLegacyAnswer,
   type AnswerStorage, type LegacyAnswer,
 } from '../src/legacy';
 import { placeCourses, type Placement } from '../src/placement';
@@ -382,6 +382,18 @@ describe('remembering the answer', () => {
     expect(Object.fromEntries(items)).toEqual({ 'another-key': 'kept' });
   });
 
+  it('keeps only a real Yes or No', () => {
+    // A screen might hand over a button's text or value by mistake. "No" must never be kept as a Yes.
+    const starts: Record<string, string>[] = [{}, { 'pathcheck.legacy': 'no' }, { 'pathcheck.legacy': 'yes' }];
+    for (const start of starts) {
+      for (const wrong of ['No', 'Yes', 'no', 'yes', 'true', 'false', 1, 0, null, undefined, {}, []]) {
+        const { storage, items } = fakeStorage(start);
+        writeLegacyAnswer(storage, wrong as unknown as boolean);
+        expect(Object.fromEntries(items), JSON.stringify(wrong)).toEqual(start);
+      }
+    }
+  });
+
   it('ignores a stored value it does not recognise', () => {
     for (const stored of ['', 'true', 'false', 'YES', 'Yes', 'No', '1', '0', 'null', 'maybe', ' yes', '{"legacy":true}']) {
       expect(readLegacyAnswer(fakeStorage({ 'pathcheck.legacy': stored }).storage), JSON.stringify(stored)).toBeNull();
@@ -407,5 +419,39 @@ describe('remembering the answer', () => {
     const quota: AnswerStorage = { ...full.storage, setItem: () => { throw new DOMException('Quota exceeded.', 'QuotaExceededError'); } };
     expect(() => writeLegacyAnswer(quota, true)).not.toThrow();
     expect(readLegacyAnswer(quota)).toBe(false);
+  });
+
+  describe('finding the browser\'s storage', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    const stub = (descriptor: PropertyDescriptor): void => { Object.defineProperty(globalThis, 'localStorage', { configurable: true, ...descriptor }); };
+    afterEach(() => {
+      if (original) Object.defineProperty(globalThis, 'localStorage', original);
+      else delete (globalThis as { localStorage?: unknown }).localStorage;
+    });
+
+    it('works when the browser refuses any mention of its storage', () => {
+      // With site data blocked, reading `localStorage` itself throws.
+      stub({ get: () => { throw new DOMException('The operation is insecure.', 'SecurityError'); } });
+      expect(() => globalThis.localStorage).toThrow();
+      expect(browserStorage()).toBeNull();
+      expect(readLegacyAnswer(browserStorage())).toBeNull();
+      expect(() => writeLegacyAnswer(browserStorage(), true)).not.toThrow();
+      expect(() => clearLegacyAnswer(browserStorage())).not.toThrow();
+
+      // No storage at all.
+      stub({ value: undefined });
+      expect(browserStorage()).toBeNull();
+      stub({ value: null });
+      expect(browserStorage()).toBeNull();
+    });
+
+    it('uses the browser\'s storage when there is one', () => {
+      const { storage, items } = fakeStorage();
+      stub({ value: storage });
+      expect(browserStorage()).toBe(storage);
+      writeLegacyAnswer(browserStorage(), true);
+      expect(Object.fromEntries(items)).toEqual({ 'pathcheck.legacy': 'yes' });
+      expect(readLegacyAnswer(browserStorage())).toBe(true);
+    });
   });
 });

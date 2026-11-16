@@ -65,6 +65,8 @@ last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCK
 - Keep the answer in memory for the visit and pass it to `placeCourses` as `{ legacy }`.
   Never rely on reading it back: in private browsing `writeLegacyAnswer` does nothing and
   `readLegacyAnswer` gives "not given yet".
+- Get the storage only through `browserStorage()` (`src/legacy.ts`), never by naming
+  `localStorage` in a screen: with site data blocked, some browsers fail on that alone.
 - Pass `legacyQuestionNeeded` every code that appears, typed or on any reviewed transcript
   row, whatever its grade.
 - For F08: neither the brief nor an owner answer gives the words for a legacy-elective
