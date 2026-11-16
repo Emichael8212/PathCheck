@@ -1160,7 +1160,8 @@ describe('the pace line', () => {
     $('[data-remove="MGT 321"]').click();
     $('[data-remove="MGT 422"]').click();
     expect(line()).toBe('None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
-    expect(said()).toBe('MGT 422 removed. Below 12 credits: below full-time; may affect scholarships. None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
+    // (The note about fewer than 12 credits was said when it appeared, one removal earlier; it is not repeated.)
+    expect(said()).toBe('MGT 422 removed. None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
     // One live region carries it on this page.
     expect(document.querySelectorAll('main [role="status"][data-said]')).toHaveLength(1);
     expect($('[data-pace-line]').closest('[aria-live]')).toBeNull();
