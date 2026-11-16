@@ -583,7 +583,7 @@ describe('the checklist', () => {
     review(good(), good({ prefix: 'ENG', number: '131', grade: 'B+' }), 'not a row', 7);
     $('[data-continue]').click();
     // Above the result: how many, what it means, and the way back.
-    expect(tidy($('[data-to-fix]').textContent)).toBe('3 rows of your transcript still need fixing and count nothing. A requirement, or the sequence, may show as still needed because of them. The credits left and the pace may change too. Fix them');
+    expect(tidy($('[data-to-fix]').textContent)).toBe('3 rows of your transcript still need fixing and count nothing. A requirement, or the sequence, may show as still needed because of them. The credits left, the pace and the draft plan may change too. Fix them');
     expect(creditsOf('Composition')).toBe('0 / 6 cr');
     expect(creditsOf('Business core')).toBe('3 / 27 cr');
     $('[data-to-fix] [data-review-again]').click();
@@ -594,7 +594,7 @@ describe('the checklist', () => {
     $('[data-save="1"]').click();
     $('[data-out="2"]').click();
     $('[data-continue]').click();
-    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left and the pace may change too. Fix it');
+    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left, the pace and the draft plan may change too. Fix it');
     expect(creditsOf('Composition')).toBe('3 / 6 cr');
     $('[data-to-fix] [data-review-again]').click();
     $('[data-out="3"]').click();
@@ -842,7 +842,7 @@ describe('pace', () => {
   it('says pace may change while rows still need fixing', () => {
     review(good(), good({ prefix: 'ENG', number: '131', grade: 'B+' }));
     $('[data-continue]').click();
-    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left and the pace may change too. Fix it');
+    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of it. The credits left, the pace and the draft plan may change too. Fix it');
     // The answer is given all the same, from the rows that were checked.
     expect(pace()).toBe('On pace for Spring 2029 about 17 credits a term');
     // Fixed: three credits fewer to take.
@@ -881,5 +881,138 @@ describe('pace', () => {
     $('[data-continue]').click();
     expect(document.querySelector('[data-no-rows]')).not.toBeNull();
     expect(document.querySelector('[data-pace], .pace')).toBeNull();
+  });
+});
+
+// F16: the draft plan on the page (docs/sprints/F16.md). Its rules are in tests/plan.test.ts.
+describe('the draft plan', () => {
+  const semesters = (): string[] => [...document.querySelectorAll('.semester')].map(one => `${tidy(one.querySelector('h3')?.textContent)} ${tidy(one.querySelector('header .num')?.textContent)}`);
+  const nameOf = (entry: Element): string => tidy(entry.querySelector('.code')?.textContent ?? entry.querySelector('.plan-text p')?.textContent);
+  const entriesOf = (term: string): string[] => {
+    const semester = [...document.querySelectorAll('.semester')].find(one => tidy(one.querySelector('h3')?.textContent) === term);
+    return semester ? [...semester.querySelectorAll('.plan-entry')].map(nameOf) : [];
+  };
+  const termOf = (key: string): string => tidy($(`[data-move="${key}"]`).closest('.semester')?.querySelector('h3')?.textContent);
+  const late = (): string => tidy(document.querySelector('.plan-late')?.textContent);
+  const paceAnswer = (): string => tidy($('[data-pace]').textContent);
+
+  it('moves a course later', async () => {
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect(semesters()).toEqual(['Spring 2027 18 cr', 'Fall 2027 18 cr', 'Spring 2028 15 cr', 'Fall 2028 15 cr', 'Spring 2029 15 cr']);
+    expect(document.querySelectorAll('.plan-entry')).toHaveLength(27);
+    expect(document.querySelectorAll('.plan-entry [data-move]')).toHaveLength(27);
+    expect(tidy($('.plan .draft-label').textContent)).toBe('Draft — Order not checked — your portal checks prerequisites');
+    expect(late()).toBe('');
+    // Something the student opened, and the parts of the page a move must leave alone.
+    const card = $<HTMLDetailsElement>('.req details');
+    card.open = true;
+    const overview = $('.overview');
+    const requirements = $('.reqs');
+
+    expect(termOf('MGT 321')).toBe('Fall 2027');
+    $('[data-move="MGT 321"]').click();
+    expect(termOf('MGT 321')).toBe('Spring 2028');
+    // Said once; the keyboard is still on that entry's button; only the plan was drawn again.
+    expect(said()).toBe('MGT 321 moved to Spring 2028.');
+    expect(document.activeElement).toBe($('[data-move="MGT 321"]'));
+    expect($('[data-move="MGT 321"]').getAttribute('aria-label')).toBe('Move MGT 321 later');
+    expect([$('.overview'), $('.reqs'), $<HTMLDetailsElement>('.req details').open]).toEqual([overview, requirements, true]);
+    // The others flowed again into the room it left: the same credits, nothing lost or doubled.
+    expect(semesters()).toEqual(['Spring 2027 18 cr', 'Fall 2027 18 cr', 'Spring 2028 15 cr', 'Fall 2028 15 cr', 'Spring 2029 15 cr']);
+    expect(document.querySelectorAll('.plan-entry')).toHaveLength(27);
+    expect(entriesOf('Fall 2027')).not.toContain('MGT 321');
+    expect(entriesOf('Fall 2027')).toHaveLength(6);
+    // Again: one further.
+    $('[data-move="MGT 321"]').click();
+    expect([termOf('MGT 321'), said()]).toEqual(['Fall 2028', 'MGT 321 moved to Fall 2028.']);
+    expect(late()).toBe('');
+
+    // An open choice moves by its own place: the second elective, not the first or third.
+    expect(['elective:0', 'elective:1', 'elective:2'].map(key => $(`[data-move="${key}"]`).getAttribute('aria-label'))).toEqual(['Move CIS elective, 1 of 3, later', 'Move CIS elective, 2 of 3, later', 'Move CIS elective, 3 of 3, later']);
+    $('[data-move="elective:1"]').click();
+    expect(['elective:0', 'elective:1', 'elective:2'].map(termOf)).toEqual(['Spring 2029', 'Fall 2029', 'Spring 2029']);
+    expect(said()).toBe('CIS elective moved to Fall 2029.');
+    expect(document.activeElement).toBe($('[data-move="elective:1"]'));
+    // It opened a new last semester, and the final-semester course went with the end. The plan says it now ends later, and why.
+    expect(entriesOf('Fall 2029')).toEqual(['CIS elective', 'MGT 462']);
+    expect(tidy($('[data-move="MGT 462"]').closest('.plan-entry')?.textContent)).toContain('Always the final semester');
+    expect(late()).toBe('This draft ends in Fall 2029, later than the pace estimate above: you moved courses later.');
+    expect(paceAnswer()).toContain('Spring 2029');
+    // The final-semester course itself: alone, one term after the last.
+    $('[data-move="MGT 462"]').click();
+    expect([entriesOf('Spring 2030'), said()]).toEqual([['MGT 462'], 'MGT 462 moved to Spring 2030.']);
+    expect(late()).toBe('This draft ends in Spring 2030, later than the pace estimate above: you moved courses later.');
+
+    // The moves are kept for the visit: on another page and back, and when the pace settings change.
+    go('#/check');
+    go('#/left');
+    expect([termOf('MGT 321'), termOf('elective:1'), termOf('MGT 462')]).toEqual(['Fall 2028', 'Fall 2029', 'Spring 2030']);
+    $('[data-stepper="most"] [data-delta="1"]').click();
+    expect([termOf('MGT 321'), termOf('elective:1'), termOf('MGT 462')]).toEqual(['Fall 2028', 'Fall 2029', 'Spring 2030']);
+    // They are forgotten with the transcript.
+    $('[data-another]').click();
+    expect(app.left.moves).toEqual({});
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect([termOf('MGT 321'), termOf('elective:1'), termOf('MGT 462'), late()]).toEqual(['Fall 2027', 'Spring 2029', 'Spring 2029', '']);
+  });
+
+  it('lays the plan out again when the pace settings change', async () => {
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    const card = $<HTMLDetailsElement>('.req details');
+    card.open = true;
+    const requirements = $('.reqs');
+    const step = (end: string, delta: 1 | -1, times = 1): void => { for (let i = 0; i < times; i++) $(`[data-stepper="${end}"] [data-delta="${delta}"]`).click(); };
+    // More credits a term: fewer semesters, none over the most.
+    step('most', 1, 3);
+    expect(semesters()).toEqual(['Spring 2027 21 cr', 'Fall 2027 21 cr', 'Spring 2028 21 cr', 'Fall 2028 18 cr']);
+    expect(paceAnswer()).toContain('Fall 2028');
+    // Fewer than the courses can fill: the plan runs one term past the estimate, and says so.
+    step('most', -1, 4);
+    expect(semesters()).toEqual(['Spring 2027 15 cr', 'Fall 2027 15 cr', 'Spring 2028 15 cr', 'Fall 2028 15 cr', 'Spring 2029 15 cr', 'Fall 2029 6 cr']);
+    expect(paceAnswer()).toContain('Spring 2029');
+    expect(late()).toBe('This draft ends in Fall 2029, later than the pace estimate above: courses can’t be split across semesters.');
+    step('most', 1);
+    expect(late()).toBe('');
+    // A later target: lighter semesters, ending there.
+    const list = $<HTMLSelectElement>('[data-pace-target]');
+    list.value = 'Fall 2029';
+    list.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(semesters()).toEqual(['Spring 2027 15 cr', 'Fall 2027 15 cr', 'Spring 2028 15 cr', 'Fall 2028 12 cr', 'Spring 2029 12 cr', 'Fall 2029 12 cr']);
+    // Summers on: summers are used.
+    $('[data-pace-summers]').click();
+    expect(semesters().some(one => one.startsWith('Summer '))).toBe(true);
+    $('[data-pace-summers]').click();
+    expect(semesters().some(one => one.startsWith('Summer '))).toBe(false);
+    // The requirements were left alone throughout, and the final-semester course is still last.
+    expect([$('.reqs'), $<HTMLDetailsElement>('.req details').open]).toEqual([requirements, true]);
+    const last = [...document.querySelectorAll('.semester')].pop()!;
+    expect(nameOf([...last.querySelectorAll('.plan-entry')].pop()!)).toBe('MGT 462');
+  });
+
+  it('comes with the result, and not before the legacy answer', async () => {
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-legacy-first]')).not.toBeNull();
+    expect(document.querySelector('.plan, [data-plan], [data-move]')).toBeNull();
+    expect(tidy($('main').textContent)).not.toMatch(/Draft plan|Move later/);
+    $('[data-legacy="yes"]').click();
+    const credits = (): number => [...document.querySelectorAll('.semester header .num')].reduce((sum, one) => sum + Number(tidy(one.textContent).replace(' cr', '')), 0);
+    expect(credits()).toBe(89);
+    expect(credits()).toBe(Number(tidy($('.donut strong').textContent)));
+    // Answered "no": the legacy elective no longer counts, so one more elective place is planned.
+    const places = document.querySelectorAll('.plan-entry.is-choice').length;
+    $('[data-legacy-change]').click();
+    $('[data-legacy="no"]').click();
+    expect(credits()).toBe(92);
+    expect(document.querySelectorAll('.plan-entry.is-choice')).toHaveLength(places + 1);
+    // With no row taken on there is no plan.
+    $('.review-foot [data-review-again]').click();
+    for (let left = document.querySelectorAll<HTMLElement>('[data-out]').length; left > 0; left = document.querySelectorAll<HTMLElement>('[data-out]').length) $('[data-out]').click();
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-no-rows]')).not.toBeNull();
+    expect(document.querySelector('.plan, [data-plan]')).toBeNull();
   });
 });

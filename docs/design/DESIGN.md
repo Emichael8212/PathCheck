@@ -398,6 +398,27 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   "Answer “Are you a legacy CIS student?” to see your pace."; and the legacy question
   itself in the line's place when no typed course shows it. The lists are 44px high and
   named for a screen reader ("Term for these courses", "Target semester").
+- **The draft plan** (F16; the owner approved these choices on 2026-11-16). Drawn as the
+  design has it: the section head, the dashed label, the line under it, the semester
+  bands, the entries, "Open choice", "Move later", "Always the final semester". Where it
+  differs from the screenshot:
+  - **the order is by course level** (the brief), then the curriculum's order. So the
+    three open picks whose lowest course is 100-level (the two Humanities picks and the
+    Social sciences pick) are in the first semester, and MGT 201 and MGT 204, which the
+    screenshot shows there, are in the second; within a level the order is the curriculum's
+    (CIS 329 before CIS 302 and CIS 300). The five semesters, their credits (18, 18, 15,
+    15, 15) and the 27 entries are the screenshot's;
+  - a line the design has no place for, under the plan and only when it ends later than
+    the pace answer implies: "This draft ends in <term>, later than the pace estimate
+    above: courses can’t be split across semesters." or "…: you moved courses later.";
+  - the agent's words: "<block> pick (<courses>)" for a pick with three or fewer courses
+    left and "<block> pick (<code> or another)" follow the design's two examples for
+    other picks; "HIS 132 or ENG 210, for the history or literature sequence" for the
+    sequence course when both sequence picks are held; said to a screen reader only:
+    "<entry> moved to <term>."; a button's name counts entries that read the same ("Move
+    CIS elective, 2 of 3, later");
+  - "Print / save PDF for your advisor" and "Clear my data", which end the design's page,
+    are not drawn until F17 and F19.
 - **"Check my courses" with a transcript** (F12). The heading note and the card "Add your
   transcript for an exact answer" are drawn as designed ("Choose transcript PDF" opens
   the file picker). The design shows them only without a transcript; the other states

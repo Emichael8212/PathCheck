@@ -65,6 +65,8 @@ export interface Checklist {
   readonly unused: readonly Unused[];
   /** Credits still to take beyond the credits left: a sequence course that fills the sequence only. */
   readonly extraLeft: number;
+  /** The sequence courses that can still go through an open pick (when the sequence is "open"); else none. */
+  readonly sequenceThrough: readonly string[];
 }
 
 /** The courses that also have a row still to fix; "any" when such a row's code could not be read. */
@@ -159,6 +161,7 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
   const withoutPlace = new Set(placement.unplaced.map(one => one.code));
   let sequence: Checklist['sequence'] = { kind: 'none' };
   let extraLeft = 0;
+  let sequenceThrough: string[] = [];
   // A sequence whose pick courses the transcript has passed or in progress.
   const onItsWay = alternatives.filter(alternative => alternative.courses.every(held));
   // None of them holds its pick: a sequence course is in progress while a passed course
@@ -181,7 +184,8 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
     const open = throughFor(false);
     const through = open.length > 0 || !legacy ? open : throughFor(true);
     if (through.length > 0) {
-      sequence = { kind: 'open', text: sequenceStillNeeded(through.flatMap(alternative => alternative.courses), through.map(alternative => kind(alternative.name))) };
+      sequenceThrough = through.flatMap(alternative => alternative.courses);
+      sequence = { kind: 'open', text: sequenceStillNeeded(sequenceThrough, through.map(alternative => kind(alternative.name))) };
     } else {
       // Every pick is held by other courses: one sequence course is needed with its own
       // credits as extra. (The sequence courses have the same credits; the most is said.)
@@ -208,7 +212,7 @@ export function checklistOf(standings: readonly CourseStanding[], curriculum: Cu
   const inProgress = new Set([...blockCards, electiveCard].flatMap(card => card.progress.map(item => item.code)));
   const inProgressTerms = [...new Set(standings.filter(one => inProgress.has(one.code)).map(one => one.deciding.row.term.trim()).filter(Boolean))];
   const { done, inProgress: running, remaining, degree } = placement.credits;
-  return { credits: { counted: done, inProgress: running, left: remaining, total: degree }, inProgressTerms, cards: [...blockCards, electiveCard], sequence, unused, extraLeft };
+  return { credits: { counted: done, inProgress: running, left: remaining, total: degree }, inProgressTerms, cards: [...blockCards, electiveCard], sequence, unused, extraLeft, sequenceThrough };
 }
 
 /** Would the legacy answer change anything of the checklist? */

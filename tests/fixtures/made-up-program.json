@@ -4,6 +4,7 @@
   "institution": "Nowhere College",
   "program": "B.S. Made-up Studies",
   "degreeCredits": 20,
+  "finalSemesterCourse": "XBBB-202",
   "lastReviewed": "2026-01-15",
   "sources": [{ "id": "test", "description": "A made-up program used only by the tests." }],
   "grades": { "letters": ["A", "B", "C", "D", "F"], "minimumCounting": "C", "neverCounting": ["W", "I"] },

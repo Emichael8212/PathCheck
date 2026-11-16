@@ -173,6 +173,24 @@ describe('the curriculum matches brief section 5', () => {
     ]);
   });
 
+  it('names the final-semester course', () => {
+    // The brief (§4 Flow B step 5): "MGT 462 Business Policies in the final semester". It is written in the file, not in the code.
+    expect(rawData.finalSemesterCourse).toBe('MGT-462');
+    expect(curriculum.finalSemester).toBe('MGT 462');
+    expect(findCourse(curriculum, curriculum.finalSemester ?? '').map(place => [place.kind, place.course.title])).toEqual([['required', 'Business Policies']]);
+    // Another program names its own; a program may name none.
+    expect(loadCurriculum(madeUp).finalSemester).toBe('XBBB 202');
+    const without = copy();
+    delete without.finalSemesterCourse;
+    expect(loadCurriculum(without).finalSemester).toBeNull();
+    // It must be a course code, and a required course of a block: not a pick, an elective or a course that is nowhere.
+    expect(broken(data => { data.finalSemesterCourse = 'MGT 462'; })).toThrow(/finalSemesterCourse \(MGT 462\): must be 2 to 4 capital letters, a hyphen and 3 digits/);
+    expect(broken(data => { data.finalSemesterCourse = null; })).toThrow(/finalSemesterCourse/);
+    for (const other of ['ENG-131', 'FIN-201', 'ZZZ-999', 'FLS-161']) {
+      expect(broken(data => { data.finalSemesterCourse = other; }), other).toThrow(new RegExp(`finalSemesterCourse \\(${other}\\): is not a required course of any block`));
+    }
+  });
+
   it('carries the last-reviewed date', () => {
     expect(rawData.lastReviewed).toBe(null);
     expect(curriculum.lastReviewed).toBe(null);
@@ -252,7 +270,8 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
   });
 
   it('refuses a data file with a missing field', () => {
-    for (const key of Object.keys(rawData)) {
+    // Every line of the file is needed, but one: a program may name no final-semester course.
+    for (const key of Object.keys(rawData).filter(one => one !== 'finalSemesterCourse')) {
       expect(broken(data => { delete data[key]; }), key).toThrow(new RegExp(`${key}: missing`));
     }
     // lastReviewed may be null, but it must be there.

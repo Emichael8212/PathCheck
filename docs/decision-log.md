@@ -106,6 +106,14 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F15) One target semester for both flows, kept for the visit: chosen on either page, it is the target on both; until chosen it is F14's default. A summer target set on the other page is shown here as itself and compared in calendar order (the Spring before it is "one semester before", the Fall after it "one semester after"; further away, Fall and Spring terms with the target summer as one step). An exact hit reads "at this pace you finish in your target semester". | It is the student's one target; reading a summer target as the Fall after it could call a late finish on target. (Contract review) | `paceLineOf`; `target` hook in `src/app.ts`. |
 | (2026-11-16, F15) When the legacy answer is not given: if a typed row shows the question, the line says "Answer “Are you a legacy CIS student?” to see your pace."; if no row shows it but the answer would change the credits still to take (a legacy course on the transcript), the question itself stands in the line's place, with its reason. No finish is named before the answer. | F05: no verdict before the answer that the answer could change; the credits left come from the checklist, where the answer matters even when no typed course depends on it. (Contract review) | `paceLineFor`. |
 | (2026-11-16, F15) The line sits under the three numbers, one sentence with two small lists in it and the caveat under it; shown only with a reviewed transcript that is used and at least one course. Other sentences in its place (the agent's words): "None of these credits counts toward CIS, so this list doesn't bring you closer to finishing."; F14's "No credits left to plan" and could-not-be-read sentence. While rows still need fixing the card under the list adds "The pace may change too." A change of the list or of either list of the line reads out what happened and the new line as one message. | Brief §4 Flow A step 5; the design has no place for the line. | `paceLineHtml` in `src/check.ts`; `.pace-line` in `src/style.css`. |
+| (2026-11-16, F16) The curriculum file names the course of the final semester (`finalSemesterCourse`: MGT-462). The loader checks that it is a required course; a program whose file has no such line has no final-semester rule. No course code is written in the code. | The brief, §4 Flow B step 5: "MGT 462 Business Policies in the final semester". Approved by the owner on 2026-11-16 (see "Owner answers"). | The line in `docs/curriculum/provisional-current.json`; `finalSemester` in `src/curriculum.ts`. |
+| (2026-11-16, F16) The draft plan holds exactly what the checklist says is still to take: each still-needed required course, one entry for each open place of a pick, one for each open elective place, and the sequence course when both sequence picks are held (the owner, 2026-11-16). Its credits are the credits still to take that pace uses. A course that is passed or in progress is never in it. | Brief §4 Flow B step 5; F16 steps 1 and 2; the owner's answer on the sequence. | `planEntries` in `src/plan.ts`. |
+| (2026-11-16, F16) Order: by the hundred of the course number, lowest first, and within a level the curriculum's order. An open pick has the level of its lowest course; an open elective the highest level of the elective rule; the extra sequence course the level of its lower course. The final-semester course is the last entry of the last semester. This puts the 100-level open picks in the first semester, where the screenshot has 200-level courses. | The brief: "ordered by course level 100 → 400". Layout of a draft labelled "Order not checked", not an academic rule. Approved by the owner on 2026-11-16. | The sort in `planEntries` (`src/plan.ts`). |
+| (2026-11-16, F16) Semesters follow the pace settings (the same range and Summers switch). Each aims at the credits still to place ÷ the semesters left to the end the pace answer implies, within the fewest and the most; it takes the entries that may go there in order, passing over one that does not fit for the next that does. A semester is over the most only for a single course bigger than the most; under the fewest only when it is the last or nothing that may go there still fits; a semester with no entry is not drawn. The final-semester course goes into the last semester when it fits, else into one of its own. | The simplest rule that gives the design's 18, 18, 15, 15, 15 and keeps "each semester within the credit range" (F16 step 2) when courses cannot be split. | `layOut` in `src/plan.ts`. |
+| (2026-11-16, F16) When the plan ends later than the pace answer beside the ring implies, a line under the plan says so and why: "This draft ends in <term>, later than the pace estimate above: courses can’t be split across semesters." or "…: you moved courses later." (the agent's words). | The pace answer counts credits only; the plan must not silently contradict it (evaluator, contract round 1). | `late` in `layOut`; `TEXT.late` in `src/plan.ts`; `.plan-late` in `src/style.css`. |
+| (2026-11-16, F16) "Move later" keeps the entry's earliest term (the term after the one it is in); pressed again, one further. The others flow again under the same rules. From the last semester it opens a new one and the final-semester course goes with the end; moving the final-semester course puts it alone, one term after the last. After a change of the pace settings a move still means its term (Summers off: no earlier than the Fall after its summer). The moves are kept for the visit and forgotten with the transcript. An open choice is its own place; buttons of entries that read the same are counted for a screen reader ("Move CIS elective, 2 of 3, later"). | F16 step 4: "moves it to a later semester and the plan re-flows". Nothing is checked: the student moves what the portal blocks. | `moveLater` in `src/plan.ts`; `LeftState.moves` in `src/left.ts`. |
+| (2026-11-16, F16) The first open pick, in the curriculum's order, through which a sequence can still be completed names that course: "Humanities pick (ENG 210 or another)". A pick with three or fewer courses left lists them. The extra sequence entry reads "HIS 132 or ENG 210, for the history or literature sequence" (the agent's words). | The design shows the Humanities pick naming ENG 210; Humanities comes before Social sciences in the curriculum file. | `TEXT` and `planEntries` in `src/plan.ts`. |
+| (2026-11-16, F16) No plan section when nothing is left to take, when the latest term of the transcript cannot be read, before the legacy answer, or with no row taken on. With rows still to fix the note above the result ends "The credits left, the pace and the draft plan may change too." | The plan is built on the same rows and the same estimate as pace (F13, F14). | `planOf` in `src/plan.ts`; `resultHtml` in `src/left.ts`. |
 
 ## Owner answers
 
@@ -626,6 +634,37 @@ answers, and asks only for what they leave open.
 - "Everything else in F12 is approved" is recorded as given. The words concerned are
   listed in F12's pull request so that the owner can see each of them on the page.
 
+### 2026-11-16 — The review date; F16's choices approved
+
+The owner's message, in full:
+
+"Owner answers, 2026-11-16. Record them in docs/decision-log.md under "Owner answers".
+
+1. Review date: (a). I reviewed the curriculum on 2026-11-15. Store it in the curriculum file and show "Curriculum last reviewed: Nov 2026". The 12-month banner works as written.
+
+2. F16: your choices are approved, including the MGT 462 line in the curriculum file and the order by course level."
+
+**Where this differs from earlier records:** answer 1 replaces the owner's answer of the
+same day "leave out "Curriculum last reviewed: Nov 2026"" (there was no date then): the
+curriculum file gets `lastReviewed: 2026-11-15`, the line is shown, and F17's line and F18
+steps 1 and 3 stand as written. It closes the question kept "to ask later".
+
+*Agent's notes, not owner decisions:*
+- "(a)" answers the question put in chat on 2026-11-16: "(a) Give me the date you last
+  reviewed the curriculum, and I show the line and the banner rule as written. (b) Reword
+  those steps so the line and the banner appear only once a date exists."
+- The date goes into the curriculum file in a pull request of its own, straight after
+  F16 and before F17: the footer already shows "Curriculum last reviewed: <month year>"
+  when the file has a date (F06), so the line appears on every page with that change.
+  F16's pull request does not touch the date.
+- "Your choices" in answer 2 are those told to the owner in chat before the answer: the
+  final-semester line in the curriculum file; the spread of credits over the semesters;
+  the order by level, then the curriculum's order, with the difference from the
+  screenshot; "Move later" (next semester, the others flow, never back earlier); the
+  sequence entry; the line under the plan when it ends later than the pace estimate; a
+  move kept as "not before this term"; buttons that read the same counted for screen
+  readers. The words that are the agent's are listed in F16's pull request all the same.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -643,9 +682,8 @@ rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn
 F08 step 5; the new F09 step; the last-reviewed line; the semester in the heading of
 "Check my courses"; and the three F08 questions.)
 
-**To ask later**, when F17 or F18 starts, whichever is first: with no review date in the
-curriculum file, F17's last-reviewed line and F18 steps 1 and 3 cannot be shown as written
-(see the agent's notes under the answer of 2026-11-16).
+The review date (kept "to ask later" for F17 and F18) was answered on 2026-11-16: the
+owner reviewed the curriculum on 2026-11-15 (see "Owner answers").
 
 ## Milestone checks
 

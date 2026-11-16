@@ -75,6 +75,8 @@ export interface Curriculum {
   readonly degreeCredits: number;
   /** YYYY-MM-DD, or null until the owner gives the date of the last review. */
   readonly lastReviewed: string | null;
+  /** The required course that belongs in a student's final semester, or null when the program names none. */
+  readonly finalSemester: string | null;
   readonly grades: Grades;
   readonly blocks: readonly Block[];
   readonly sequence: Sequence;
@@ -357,7 +359,12 @@ function deepFreeze<T>(value: T): T {
 
 /** Checks a raw data object and returns the curriculum, or throws a CurriculumError. */
 export function loadCurriculum(data: unknown): Curriculum {
-  const raw = fields(data, '', ['schemaVersion', 'id', 'institution', 'program', 'degreeCredits', 'lastReviewed', 'sources', 'grades', 'blocks', 'sequence', 'electives']);
+  // The final-semester course is the one line a program may leave out.
+  const named = typeof data === 'object' && data !== null && Object.hasOwn(data, 'finalSemesterCourse');
+  const raw = fields<string>(data, '', [
+    'schemaVersion', 'id', 'institution', 'program', 'degreeCredits', 'lastReviewed', 'sources', 'grades', 'blocks', 'sequence', 'electives',
+    ...(named ? ['finalSemesterCourse'] : []),
+  ]);
   if (raw.schemaVersion !== SCHEMA_VERSION) fail('schemaVersion', `must be ${SCHEMA_VERSION}`);
   list(raw.sources, 'sources').forEach((item, i) => {
     const source = fields(item, `sources[${i}]`, ['id', 'description']);
@@ -375,11 +382,16 @@ export function loadCurriculum(data: unknown): Curriculum {
     program: text(raw.program, 'program'),
     degreeCredits: positiveWhole(raw.degreeCredits, 'degreeCredits'),
     lastReviewed: reviewDate(raw.lastReviewed, 'lastReviewed'),
+    finalSemester: named ? readable(dataCode(raw.finalSemesterCourse, 'finalSemesterCourse')) : null,
     grades: grades(raw.grades, 'grades'),
     blocks,
     sequence: sequence(raw.sequence, 'sequence', blocks),
     electives: electives(raw.electives, 'electives'),
   };
+  const { finalSemester } = curriculum;
+  if (finalSemester !== null && !blocks.some(b => b.required.some(c => c.code === finalSemester))) {
+    fail(`finalSemesterCourse (${asWritten(finalSemester)})`, 'is not a required course of any block');
+  }
   const all = listings(blocks, curriculum.electives);
   checkListedOnce(all);
   curriculum.electives.except.forEach((code, i) => {
