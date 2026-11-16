@@ -19,7 +19,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F04) "Not already required" in the elective rule is read as "not listed in any block, whether required or a pick". | It makes no difference for this curriculum: no pick course matches the elective rule (a test asserts it). If the data ever changes so that one does, the reading matters and goes to the owner. | Change `src/placement.ts`. |
 | Curriculum file keeps its name `docs/curriculum/provisional-current.json`; "CIS 300/400-level" is stored as course numbers 300–499. | Name kept as carried over. 300–499 is the plain reading of "300/400-level". | Rename the file / edit `electives.subjectRule`. |
 | The curriculum keeps titles for FIN 201, FLS 161, MGT 203 and MGT 220 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
-| `lastReviewed` in the curriculum file is `null`. | The owner provides the date of the last curriculum review before M3 (brief §12). | Set the date. |
+| `lastReviewed` in the curriculum file is 2026-11-15 (it was `null` until the owner gave the date on 2026-11-16; see "Owner answers"). | The owner provides the date of the last curriculum review (brief §12). | Change the date in the curriculum file at the next review. |
 | Evaluator calibration lives in `.claude/agents/evaluator.md`; there is no separate status or calibration document. | Fewer files to keep in sync. | Move the section to its own file. |
 | (2026-11-16, F05) Until the student answers the legacy question, the four legacy courses are counted as for a No. A screen still tells the two apart: while the answer is missing it asks, and shows no verdict for those courses. | "Does it count?" must never say a course counts when it may not. | Count them as for a Yes (not advised), in `placeCourses`. |
 | (2026-11-16, F05) For a legacy student, PSY 251 is placed "where it helps most" (brief §5), extending the F04 reading: it stays a Social sciences pick course unless treating it as an elective gives strictly more credits done, or the same done and strictly more in progress. | It only chooses between the two places the curriculum already gives PSY 251; it never counts a course the rules would not count. | Change `countsMore` or the order in `placeCourses` (`src/placement.ts`). |
@@ -496,6 +496,9 @@ Asked after pull request #12. The owner's words are quoted.
 3. **The last-reviewed line.** Asked what date "Curriculum last reviewed" should show, since
    the curriculum file has none and the mockups' "Nov 2026" was mockup text. The owner:
    "leave out "Curriculum last reviewed: Nov 2026"". → F06 (the footer), F18.
+   (Replaced later the same day by the answer "The review date; F16's choices approved":
+   the owner gave the date, and the line is shown. The notes below describe the time
+   before that.)
 
 *Agent's notes, not owner decisions:*
 - Answer 3 is read as: the line is left out, and no date is invented. The app shows
@@ -654,8 +657,9 @@ steps 1 and 3 stand as written. It closes the question kept "to ask later".
   reviewed the curriculum, and I show the line and the banner rule as written. (b) Reword
   those steps so the line and the banner appear only once a date exists."
 - The date went into the curriculum file in a pull request of its own ("chore: store the
-  curriculum review date"), straight after F16 and before F17: the footer already shows "Curriculum last reviewed: <month year>"
-  when the file has a date (F06), so the line appears on every page with that change.
+  curriculum review date"), straight after F16 and before F17: the footer already shows
+  "Curriculum last reviewed: <month year>" when the file has a date (F06), so the line
+  appears on every page with that change.
   F16's pull request does not touch the date.
 - "Your choices" in answer 2 are those told to the owner in chat before the answer: the
   final-semester line in the curriculum file; the spread of credits over the semesters;
