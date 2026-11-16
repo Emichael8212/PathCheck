@@ -1,5 +1,13 @@
 # M0 design brief (owner, 2026-11-15)
 
+> **Superseded in part.** Later on 2026-11-15 the owner designed PathCheck themselves; that
+> design is the chosen direction (`docs/decision-log.md`, "The owner's own design replaces
+> the three directions"; `docs/design/`). The instructions below to produce three
+> directions and to apply Apple's guidance and Liquid Glass no longer apply. What still
+> applies is the fixed content and wording under "The 3 pages" and the "Requirements" list.
+> One known slip in that content: it says "15 count toward CIS", but its own six courses
+> give 12 (four counting courses at 3 credits); the owner's design and the mockups show 12.
+
 The owner rejected the first three mockups and gave this brief for the next round. It is
 copied as written. Where it differs from `docs/BRIEF.md`, this brief wins (see
 `docs/decision-log.md`). The owner added these instructions with it:

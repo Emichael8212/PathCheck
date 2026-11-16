@@ -11,6 +11,7 @@ export function setupDemo(root, { reducedMotion = false, timers = globalThis } =
   const captions = [...root.querySelectorAll('[data-caption]')];
   const dots = [...root.querySelectorAll('[data-go]')];
   const toggle = root.querySelector('[data-toggle]');
+  const live = root.querySelector('[data-live]');
   let step = 1;
   let timer = null;
 
@@ -28,12 +29,15 @@ export function setupDemo(root, { reducedMotion = false, timers = globalThis } =
     timer = null;
     toggle.dataset.playing = 'false';
     toggle.setAttribute('aria-label', 'Play demo');
+    // Announce the caption only when the student moves the demo, not every few seconds.
+    live.setAttribute('aria-live', 'polite');
   };
   const play = () => {
     stop();
     timer = timers.setInterval(() => show(nextStep(step, frames.length)), STEP_MS);
     toggle.dataset.playing = 'true';
     toggle.setAttribute('aria-label', 'Pause demo');
+    live.setAttribute('aria-live', 'off');
   };
 
   toggle.addEventListener('click', () => (timer === null ? play() : stop()));

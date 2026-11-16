@@ -74,7 +74,7 @@ const demoFrames = () => {
         </div>`;
   const noCard = `
         <div class="demo-card is-no">
-          <div class="demo-card-head">${code(d.no.code, 'strong')}<span class="num muted struck">${esc(d.no.cr)}</span></div>
+          <div class="demo-card-head">${code(d.no.code, 'strong')} <span class="num muted struck">${esc(d.no.cr)}</span></div>
           <div class="demo-answer is-no">${marks.no(16)} ${esc(d.no.answer)}</div>
         </div>`;
   const leftCard = `
@@ -87,7 +87,7 @@ const demoFrames = () => {
         </div>`;
   return [
     `${field(`<span class="code">${esc(d.typed)}<span class="caret"></span></span>`)}
-      <div class="demo-suggest">${code(d.counts.code, 'strong')}<span class="truncate">${esc(d.counts.title)}</span></div>`,
+      <div class="demo-suggest">${code(d.counts.code, 'strong')} <span class="truncate">${esc(d.counts.title)}</span></div>`,
     `${field(placeholder)}
       <div class="demo-cards">${countsCard}
       </div>`,
@@ -124,7 +124,7 @@ const demo = () => {
         <div class="demo-dots" role="group" aria-label="Demo steps">
           ${frames.map((_, i) => `<button type="button" aria-label="Step ${i + 1} of ${frames.length}"${i ? '' : ' aria-current="step"'} data-go="${i + 1}"><span></span></button>`).join('\n          ')}
         </div>
-        <p class="demo-caption" aria-live="polite">
+        <p class="demo-caption" aria-live="off" data-live>
           ${d.steps.map((s, i) => `<span data-caption="${i + 1}"${i ? ' hidden' : ''}><span class="num">${i + 1}/${d.steps.length}</span> ${esc(s)}</span>`).join('\n          ')}
         </p>
       </div>
@@ -160,7 +160,7 @@ const startPage = () => {
       </div>
       <p>${esc(a.desc)}</p>
       <div class="example" role="group" aria-label="Example course result">
-        <div class="example-head">${code(a.example.code)}<span>${esc(a.example.cr)}</span></div>
+        <div class="example-head">${code(a.example.code)} <span>${esc(a.example.cr)}</span></div>
         <p>${esc(a.example.title)}</p>
         <span class="example-answer">${marks.counts(20)}${esc(a.example.answer)}</span>
         <small>${esc(a.example.condition)}</small>
@@ -239,7 +239,7 @@ const checkPage = (typing = false) => {
         <button type="button" class="btn primary add"${typing ? '' : ' disabled'}>${esc(check.add)}</button>
       </div>
       <ul id="suggestions" role="listbox" aria-label="Suggestions" class="suggestions"${typing ? '' : ' hidden'}>${typing ? `
-        <li id="suggestion-1" role="option" aria-selected="true">${code(check.suggestion.code, 'strong')}<span class="truncate">${esc(check.suggestion.title)}</span></li>
+        <li id="suggestion-1" role="option" aria-selected="true">${code(check.suggestion.code, 'strong')} <span class="truncate">${esc(check.suggestion.title)}</span></li>
       ` : ''}</ul>
     </div>
     <div class="filters" role="group" aria-label="Filter courses">
@@ -281,7 +281,7 @@ function bar() {
 
 const item = e => e.open
   ? `<li>${t(e.text)}</li>`
-  : `<li>${code(e.code, 'strong')}${e.title ? esc(e.title) : ''}${e.note ? `<span class="item-note">${esc(e.note)}</span>` : ''}</li>`;
+  : `<li>${code(e.code, 'strong')}${e.title ? ' ' + esc(e.title) : ''}${e.note ? `<span class="item-note">${esc(e.note)}</span>` : ''}</li>`;
 
 const group = (status, list) => list && list.length ? `
           <div>
@@ -306,8 +306,8 @@ const requirement = b => b.status === 'Done' ? `
       </li>` : `
       <li class="req">
         <details>
-          <summary class="req-row">${reqRow(b, icons.arrow(20, 'req-cue'))}
-          </summary>
+          <summary><span class="req-row">${reqRow(b, icons.arrow(20, 'req-cue'))}
+          </span></summary>
           <div class="req-body">${group('Done', b.done)}${group('In progress', b.progress)}${group('Still needed', b.still)}
           </div>
         </details>
@@ -357,9 +357,9 @@ const leftPage = () => {
     <div>
       <div class="credit-bar" role="img" aria-label="${left.counted} credits counted, ${left.inProgress} in progress, ${left.remaining} left of ${left.total} total">${bar()}</div>
       <dl class="legend">
-        <div>${marks.done(15)}<dt>Counted</dt><dd>${left.counted}</dd></div>
-        <div>${marks.progress(15)}<dt>In progress · ${esc(left.inProgressTerm)}</dt><dd>${left.inProgress}</dd></div>
-        <div>${marks.needed(15)}<dt>Left</dt><dd>${left.remaining}</dd></div>
+        <div><dt>${marks.done(15)}Counted</dt><dd>${left.counted}</dd></div>
+        <div><dt>${marks.progress(15)}In progress · ${esc(left.inProgressTerm)}</dt><dd>${left.inProgress}</dd></div>
+        <div><dt>${marks.needed(15)}Left</dt><dd>${left.remaining}</dd></div>
         <div><dt>Total</dt><dd>${left.total}</dd></div>
       </dl>
     </div>

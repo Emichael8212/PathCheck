@@ -80,6 +80,12 @@ has no title).
 
 ### 2026-11-15 — M0 mockups
 
+> **Superseded later the same day** by "The owner's own design replaces the three directions"
+> below. The three directions, the Apple / Liquid Glass instruction and the lifting of the
+> "frosted glass" ban no longer apply. What still stands from this entry: F01 does not pass
+> and is not merged until the owner approves; the wording and content rules that come from
+> `docs/M0-DESIGN-BRIEF.md` "The 3 pages".
+
 - F01 does not pass, and its PR is not merged, until the owner approves a design for PathCheck.
   The evaluator's PASS is not enough on its own.
 - The owner approved none of the first three designs (Worksheet, Credit map, Plain answers).
@@ -105,19 +111,25 @@ https://color-nicks-25285809.figma.site/ (view "Combined · Your picks"; the has
 `#d=d&p=<start|check|left>&t=<light|dark>&w=<desktop|phone>` selects page, theme and width).
 
 - **This design is the chosen direction.** It overrides F01's "3 mockups, owner picks one".
-  The three directions built to `docs/M0-DESIGN-BRIEF.md` (Receipt, Meter, Signs) are deleted.
-  Route, Focus and Workspace on the same site are ignored. "Rationale & questions" is read
-  for the owner's reasoning and is not built as a page.
+  The three directions built to `docs/M0-DESIGN-BRIEF.md` (Receipt, Meter, Signs) are deleted
+  completely. Only "Combined · Your picks" is used; Route, Focus and Workspace on the same
+  site are ignored. "Rationale & questions" is read for the owner's reasoning and is not
+  built as a page.
+- Because of this decision, F01's description and steps and the M0 milestone text in
+  `features.json` (and the M0 line in `CLAUDE.md`) were rewritten. This is the owner
+  approval that `features.json` requires for such a change.
 - **Visual reference from now on:** the screenshots in `docs/design/screens/` (each page,
   light and dark, desktop 1440 and phone 375), taken from the published site.
   `docs/design/DESIGN.md` is written from the site's computed styles and is the design source
   for M1.
-- **Design choices the owner has made. These override brief §8 where they differ:**
+- **Design choices the owner has already made** (the owner: "these override brief §8 where
+  they differ"):
   - Cards around the two choices and around the results are kept.
   - The pill badge "Before registration. Before you pay." is kept.
   - The upload icon in a circle is kept.
   - The small uppercase section labels ("FOR NEXT SEMESTER", etc.) are kept.
-  - The evaluator does not mark these as generic or FAIL (added to its Calibration section).
+  - The owner: the evaluator must not mark these as generic or FAIL; they are added to its
+    Calibration section as owner-approved.
 - **What stays from the brief where the design doesn't show it or gets it wrong:** all colors
   as CSS tokens with light and dark mode; WCAG AA contrast; works at 375px with nothing
   hidden or overlapping; visible keyboard focus; on every result "Curriculum last reviewed:

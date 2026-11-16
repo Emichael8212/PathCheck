@@ -86,6 +86,9 @@ describe('the three mockup pages', () => {
       const { html } = page(which);
       for (const href of ['start.html', 'check.html', 'left.html']) expect(html, `${which} → ${href}`).toContain(`href="${href}"`);
     }
+    // The two page links are shown at every width: on a phone they wrap to a second row.
+    expect(css).toMatch(/\.top nav \{ order: 3; display: flex;[^}]*width: 100%;/);
+    expect(css).not.toMatch(/\.top nav[^{]*\{[^}]*display: none/);
     // The old directions are gone completely.
     for (const old of ['a-receipt', 'b-meter', 'c-signs', 'shared.js', 'base.css', 'index.css']) expect(existsSync(join(root, old)), old).toBe(false);
   });
@@ -182,6 +185,7 @@ describe('page 1: Start', () => {
     expect(html.match(/<div class="demo-step" data-step="\d" hidden>/g)).toHaveLength(3);
     expect(html).toMatch(/<button type="button" class="demo-toggle" aria-label="Pause demo" data-playing="true" data-toggle>/);
     expect(html.match(/<button type="button" aria-label="Step \d of 4"/g)).toHaveLength(4);
+    expect(html).toContain('<p class="demo-caption" aria-live="off" data-live>');
     start.demo.steps.forEach((caption, i) => expect(text).toContain(`${i + 1}/4 ${caption}`));
     const frames = html.match(/<div class="demo-step"[\s\S]*?(?=<div class="demo-step"|<div class="demo-controls">)/g).map(decode);
     expect(frames[0]).toContain('mgt 3 MGT 321 Principles of Management');
@@ -308,6 +312,7 @@ describe('page 3: What I have left', () => {
       expect(bar.match(/class="is-counted"/g) ?? [], name).toHaveLength(counted);
       // As in the design: a Done requirement is a plain row; the others open to show their courses.
       expect(item.includes('<details>'), name).toBe(status !== 'Done');
+      expect(item.includes('<summary><span class="req-row">'), name).toBe(status !== 'Done');
       expect(item.includes({ 'Done': 'mark-done', 'In progress': 'mark-progress', 'Still needed': 'mark-needed' }[status]), name).toBe(true);
     });
     expect(text).toContain('The rest of your degree Requirements All Not done Credits counted / needed · Open a requirement for courses.');
@@ -348,6 +353,9 @@ describe('page 3: What I have left', () => {
   it('prints without the top bar and controls, on white, with every requirement open', () => {
     const print = css.slice(css.lastIndexOf('@media print'));
     expect(print).toMatch(/\.top, \.no-print \{ display: none !important; \}/);
+    // The bars, the ring and the tinted rows are backgrounds; browsers drop them unless asked.
+    expect(print).toMatch(/body \{ -webkit-print-color-adjust: exact; print-color-adjust: exact; \}/);
+    expect(print).toMatch(/\.req \{ border: 1px solid var\(--line\); box-shadow: none; \}/);
     const [light, , printTokens] = tokenBlocks(css);
     expect(printTokens['--bg']).toBe('#ffffff');
     expect(printTokens['--surface']).toBe('#ffffff');
@@ -375,7 +383,8 @@ describe('the things that move', () => {
       '[data-go]': [1, 2, 3, 4].map(n => el({ go: String(n) })),
     };
     const toggle = el({ playing: 'true' });
-    return { parts, toggle, querySelectorAll: sel => parts[sel], querySelector: () => toggle };
+    const live = el();
+    return { parts, toggle, live, querySelectorAll: sel => parts[sel], querySelector: sel => ({ '[data-toggle]': toggle, '[data-live]': live })[sel] };
   };
   const fakeTimers = () => {
     const t = { tick: null, cleared: 0, setInterval: (fn, ms) => { t.tick = fn; t.ms = ms; return 7; }, clearInterval: () => { t.cleared++; t.tick = null; } };
@@ -389,6 +398,8 @@ describe('the things that move', () => {
     const demo = setupDemo(root, { timers });
     expect(timers.ms).toBe(STEP_MS);
     expect(demo.playing).toBe(true);
+    // While it plays by itself the caption is not announced every few seconds.
+    expect(root.live.getAttribute('aria-live')).toBe('off');
     expect(root.parts['[data-step]'].map(frame => frame.hidden)).toEqual([false, true, true, true]);
     timers.tick();
     expect(demo.step).toBe(2);
@@ -405,6 +416,7 @@ describe('the things that move', () => {
     expect(demo.playing).toBe(false);
     expect(root.toggle.getAttribute('aria-label')).toBe('Play demo');
     expect(root.toggle.dataset.playing).toBe('false');
+    expect(root.live.getAttribute('aria-live')).toBe('polite');
     root.toggle.handlers.click();
     expect(demo.playing).toBe(true);
     expect(root.toggle.getAttribute('aria-label')).toBe('Pause demo');
@@ -482,11 +494,25 @@ describe('the basics kept from the brief', () => {
   });
 
   it('meets WCAG AA contrast in light and dark', () => {
-    const [light, dark] = tokenBlocks(css);
-    for (const [scheme, tokens] of [['light', light], ['dark', dark]]) {
+    const [light, dark, print] = tokenBlocks(css);
+    for (const [scheme, tokens] of [['light', light], ['dark', dark], ['print', print]]) {
       for (const [fg, bg] of TEXT_PAIRS) expect(contrast(tokens[fg], tokens[bg]), `${scheme} ${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
       for (const [fg, bg] of MARK_PAIRS) expect(contrast(tokens[fg], tokens[bg]), `${scheme} ${fg} on ${bg}`).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it('outlines every control whose edge is its only cue with the strong line color', () => {
+    // WCAG 1.4.11: a border that alone shows where a control is needs 3:1. Those borders use
+    // --line-strong (tested above against every background). Buttons with a text label may
+    // carry a quieter --line border, as the design does for the filters and the tabs.
+    for (const selector of ['.select', '.search input', '.field select', '.stepper', '.switch', '.switch-track', '.drop', '.demo-toggle', '.btn.secondary', '.req-bar span', '.credit-bar']) {
+      const rule = css.match(new RegExp(`(?:^|\\n)${selector.replace(/[.]/g, '\\.')} \\{([^}]*)\\}`));
+      expect(rule, selector).toBeTruthy();
+      expect(rule[1], selector).toMatch(/border(-color)?: [^;]*var\(--line-strong\)/);
+    }
+    // Every label on a quiet-bordered button is text that meets 4.5:1 on its own.
+    expect(css).toMatch(/\.filters button \{[^}]*border: 1px solid var\(--line\);[^}]*color: var\(--ink-2\);/);
+    expect(css).toMatch(/\.tabs button \{[^}]*color: var\(--ink-2\);/);
   });
 
   it('shows keyboard focus on everything', () => {

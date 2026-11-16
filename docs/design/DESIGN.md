@@ -98,8 +98,9 @@ two values are given (phone → desktop).
 - **Card padding:** 28px → 35px (entry panels), 26px → 32px (overview), 22px (demo frame,
   summary cells), 20px (transcript card), 19px (example), 16px (requirement rows, notes).
 - **Lists:** requirement rows 8px apart; semesters 14px apart; filters 8px apart.
-- **Controls:** every control is at least 44px tall. Buttons 46px, inputs 48px, selects and
-  the stepper 44px, Remove 44×44, "Move later" 44px.
+- **Controls:** every control is at least 44px tall. Buttons 46px, the add field and the major dropdown 48px, the
+  target-semester select, the stepper and the switch 44px, Remove 44×44, "Move later" 44px.
+  The demo's step dashes are 32×44.
 - **Layout steps:** 650px (two columns on Start, nav appears, plan in three columns),
   768px (pace controls in a row, requirement row on one line), 1000px (desktop table,
   semester label beside its courses).
@@ -142,7 +143,8 @@ project (20-unit grid); no icon pack.
 
 - **Top bar:** wordmark (links to Start); two nav links, "Check my courses" and "What I have
   left", as pills (current page: `--accent` on `--accent-soft`); "Not an official degree
-  audit." at the right. Below 650px the nav links are not shown.
+  audit." at the right. Below 650px the published design does not show the nav links; the
+  mockups put them on a second row under the wordmark (see "Kept from the brief").
 - **Footer:** top border; "Not an official degree audit." (bold) · "Curriculum last
   reviewed: Nov 2026" · "Report a mistake" (underlined link); second line "Not affiliated
   with Alabama State University". 12px.
@@ -250,7 +252,9 @@ every requirement prints opened; the page is white.
 These come from `docs/BRIEF.md`, not from the design, and stay in force:
 
 - All colors are tokens with light and dark values; contrast meets WCAG AA.
-- At 375px nothing is hidden or overlapping; keyboard focus is always visible.
+- At 375px nothing is hidden or overlapping; keyboard focus is always visible. Because of
+  this the two nav links are shown on a phone, on a second row of the top bar (the
+  published design hides them below 650px).
 - Every result shows "Curriculum last reviewed: <date>", "Not an official degree audit",
   "Report a mistake" and "Not affiliated with Alabama State University".
 - Exact wording of brief §4 and §5. Two places where the published design left it out, and
@@ -263,7 +267,21 @@ These come from `docs/BRIEF.md`, not from the design, and stay in force:
 
 ## Open conflicts
 
-Parts of the design that differ from the brief or from an earlier owner answer. They are
-kept exactly as designed in the mockups and are listed in PR #4 under "Conflicts with the
-brief" for the owner to decide. Until the owner answers, M1 must not treat them as settled.
-The owner's answers are recorded in `docs/decision-log.md`.
+Parts of the design that differ from the brief or from an earlier owner answer. The mockups
+keep them exactly as designed, and PR #4 lists them under "Conflicts with the brief" for the
+owner to decide. **Until the owner answers, M1 must not treat them as settled.** The answers
+will be recorded in `docs/decision-log.md`. Details are in `docs/sprints/F01.md`.
+
+- a. The "Your major" dropdown on Start (brief §3, §4 and §6).
+- b. "12 Count toward CIS" in the page-2 summary has no condition beside it.
+- c. The "Doesn't count / unconfirmed" filter and the third answer "Can't confirm — …".
+- d. Requirements are closed until opened, and Done requirements cannot be opened (owner
+  answer on F13).
+- e. Only "Most credits per term" can be changed, not a 12–18 range, and "+" stops at 18.
+- f. Items on the brief §8 banned list beyond the four the owner approved: the uppercase
+  grey table header, the legend under the credit bar, pill-shaped tabs, the indigo-blue
+  primary button, the numbered chips.
+- g. "Counts" and "Done" share one mark.
+- h. The owner's M0 brief says "15 count toward CIS"; the design and the mockups show 12.
+- i. "Your transcript PDF is read and discarded; nothing is stored." beside brief §4
+  (the last result stays in the browser) and §7 (say what is sent).
