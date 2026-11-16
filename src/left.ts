@@ -1,15 +1,18 @@
 // "See what I have left": the student brings their transcript PDF, checks what was read,
 // and goes on. The upload panel is the approved design's; the review step is made of its
-// pieces (rows, buttons, type, colors). The checklist that follows is another feature.
+// pieces (rows, buttons, type, colors). After "Continue" comes the result: the credits left
+// and the checklist (src/checklist.ts).
 //
 // Text printed on a transcript is shown as text. Nothing here says a course counts.
-import { type Curriculum } from './curriculum';
-import { code, esc, icons, marks } from './html';
+import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml, type Unchecked } from './checklist';
+import { normalizeCode, type Curriculum } from './curriculum';
+import { code, esc, eyebrow, icons, marks } from './html';
+import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
 import { type Problem } from './reader';
-import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
+import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
 import { type Refusal } from './upload';
-import { ANOTHER_FORGETS, PRIVACY, USE_ANOTHER, notCurrent } from './wording';
+import { ANOTHER_FORGETS, CHANGE, LEGACY_LINE, PRIVACY, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
 
 /** Where the student is in this flow. */
 export interface LeftState {
@@ -55,7 +58,15 @@ const TEXT = {
   another: USE_ANOTHER,
   anotherNote: ANOTHER_FORGETS,
   returns: `You’ll go back to “${FLOW_NAME.check}”.`,
-  resultHeading: FLOW_NAME.left,
+  uploadHeading: FLOW_NAME.left,
+  // The result (docs/design/DESIGN.md "Page 3").
+  resultEyebrow: 'What I have left',
+  resultHeading: 'Your degree, in focus.',
+  pill: 'Synthetic transcript result',
+  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}.`,
+  fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
+  noRows: 'No row of your transcript was taken on, so there is nothing to show yet.',
+  reviewAgain: 'Check what was read',
 };
 
 const WHAT: Record<Exclude<Problem, 'not-a-row'>, string> = {
@@ -208,26 +219,74 @@ export function reviewHtml(state: LeftState, curriculum: Curriculum): string {
   </div>`;
 }
 
-export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft()): string {
+/**
+ * The result: the credits left and the checklist of the reviewed rows. When the legacy
+ * answer would change any of it and has not been given, the question takes its place:
+ * nothing that the answer could change is shown before it.
+ */
+export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer): string {
+  const standings = reviewedStandings(transcript, curriculum.grades);
+  const fixing = stillToFix(transcript);
+  const toFix = fixing.length;
+  // The courses that also have a row still to fix. A row whose code could not be read
+  // could be any course: then no failed attempt is called final.
+  const codes = fixing.map(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`));
+  const unchecked: Unchecked = codes.includes(null) ? 'any' : new Set(codes.flatMap(one => one ?? []));
+  const warning = toFix === 0 ? '' : `<div class="note" data-to-fix>
+    <p>${icons.doc(20)}${esc(TEXT.toFix(toFix))}</p>
+    <button type="button" class="text-link" data-review-again>${esc(TEXT.fix(toFix))}</button>
+  </div>
+  `;
+  const foot = `<p class="review-count" data-handed-on>${esc(countLine(transcript))}</p>
+  <div class="review-foot">
+    <button type="button" class="btn secondary" data-review-again>${esc(TEXT.reviewAgain)}</button>
+    <button type="button" class="btn secondary" data-another>${esc(TEXT.another)}</button>
+    <p class="condition">${esc(TEXT.anotherNote)}</p>
+  </div>`;
+  if (takenOn(transcript).length === 0) return `${warning}<p class="empty-hint" data-no-rows>${esc(TEXT.noRows)}</p>
+  ${foot}`;
+  const asks = legacyChanges(standings, curriculum, unchecked);
+  if (asks && legacy === null) {
+    const because = legacyOnTranscript(standings, curriculum);
+    return `${warning}<div class="note legacy-first" data-legacy-first>
+    <div class="legacy-ask" role="group" aria-label="${esc(LEGACY_QUESTION)}">
+      <p>${esc(LEGACY_QUESTION)}</p>
+      <div class="legacy-buttons">
+        <button type="button" class="btn secondary" data-legacy="yes">${esc(LEGACY_YES)}</button>
+        <button type="button" class="btn secondary" data-legacy="no">${esc(LEGACY_NO)}</button>
+      </div>${because.length > 0 ? `
+      <p class="condition">${esc(transcriptHasLegacy(because))}</p>` : ''}
+    </div>
+  </div>
+  ${foot}`;
+  }
+  const checklist = checklistOf(standings, curriculum, legacy === true, unchecked);
+  return `${warning}${asks ? `<p class="legacy-line">${esc(LEGACY_LINE)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(CHANGE)}</button></p>
+  ` : ''}${overviewHtml(checklist)}
+  ${requirementsHtml(checklist)}
+  ${foot}`;
+}
+
+export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(), legacy: LegacyAnswer = null): string {
   const { transcript } = state;
-  const heading = transcript && !state.continued ? TEXT.reviewHeading : TEXT.resultHeading;
+  const result = transcript !== null && state.continued;
+  const heading = !transcript ? TEXT.uploadHeading : result ? TEXT.resultHeading : TEXT.reviewHeading;
   const body = !transcript
     ? `<div class="upload" data-upload>
     ${uploadPanel(state.refusal)}
   </div>`
-    : state.continued
-      ? `<p class="review-count" data-handed-on>${esc(countLine(transcript))}</p>
-  <div class="review-foot">
-    <button type="button" class="btn secondary" data-another>${esc(TEXT.another)}</button>
-  </div>`
+    : result
+      ? resultHtml(transcript, curriculum, legacy)
       : `<p class="review-intro">${esc(TEXT.reviewIntro(transcript.name))}</p>
   <div data-review>${reviewHtml(state, curriculum)}</div>`;
   return `${top('left')}
 <main class="left wrap">
   <div class="page-head">
-    <div>
+    <div>${result ? `
+      ${eyebrow(TEXT.resultEyebrow)}` : ''}
       <h1 tabindex="-1">${esc(heading)}</h1>
-    </div>
+    </div>${result ? `
+    <span class="pill">${icons.doc(15)}${esc(TEXT.pill)}</span>` : ''}
   </div>
   ${body}
 </main>
@@ -246,6 +305,8 @@ export interface LeftHooks {
   say(text: string): void;
   /** "Continue" was pressed: the reviewed rows are handed on. */
   continued(): void;
+  /** The legacy question was answered, or the answer is to be asked again (null). */
+  legacy(answer: boolean | null): void;
 }
 
 /** Wires up the page once it is drawn. */
@@ -286,6 +347,36 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     }
     const { transcript } = state;
     if (!transcript) return;
+    // On the result: back to the review, as it was left.
+    if (target?.closest('[data-review-again]')) {
+      change({ continued: false, editing: null, draft: null });
+      hooks.redraw();
+      focus('h1');
+      return;
+    }
+    // "All" or "Not done": the done requirements are hidden or shown. Nothing is drawn
+    // again, so whatever the student opened stays open.
+    const filter = target?.closest<HTMLElement>('[data-reqs]');
+    if (filter) {
+      const notDone = filter.dataset.reqs === 'not-done';
+      for (const button of main.querySelectorAll<HTMLElement>('[data-reqs]')) button.setAttribute('aria-pressed', String(button === filter));
+      for (const card of main.querySelectorAll<HTMLElement>('.req[data-status]')) card.hidden = notDone && card.dataset.status === 'Done';
+      return;
+    }
+    // The legacy question, before the result; and the line that lets the student change the answer.
+    const answer = target?.closest<HTMLElement>('[data-legacy]')?.dataset.legacy;
+    if (answer === 'yes' || answer === 'no') {
+      hooks.legacy(answer === 'yes');
+      hooks.say(`${LEGACY_LINE} ${answer === 'yes' ? LEGACY_YES : LEGACY_NO}`);
+      focus('[data-legacy-change]');
+      return;
+    }
+    if (target?.closest('[data-legacy-change]')) {
+      hooks.legacy(null);
+      hooks.say(LEGACY_QUESTION);
+      focus('[data-legacy="yes"]');
+      return;
+    }
     if (target?.closest('[data-continue]')) {
       change({ continued: true, editing: null, draft: null });
       hooks.redraw();

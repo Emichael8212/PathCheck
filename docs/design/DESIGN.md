@@ -346,6 +346,39 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   2026-11-16: such a course "starts at 3 credits and the student can change it".
 - **The summary strip and the two filters are drawn only when the list has a course.**
   The design shows a list that already has six.
+- **"What I have left": what is drawn so far** (F13). The heading, the pill, the ring and
+  the credit bar, the requirements with "All / Not done", and the sequence box are drawn
+  as designed. The place beside the ring (the pace answer), the pace controls, the draft
+  plan and the two action buttons come with F14, F16, F17 and F19. Additions, in the
+  agent's words unless said otherwise:
+  - above the result, when rows of the transcript still need fixing: "<m> rows of your
+    transcript still need fixing and count nothing. A requirement, or the sequence, may
+    show as still needed because of them." with "Fix them";
+  - before the result, when the answer would change it: the legacy question (the owner's
+    words) with "Your transcript has <code>, which counts as an elective only for legacy
+    students.";
+    afterwards "Legacy CIS student: Yes" with "Change";
+  - notes on a course: "Repeat; the earlier D doesn't count." (the design's); "Must be
+    repeated; the D doesn't count."; on a pick, "<code>: the D doesn't count. It must be
+    repeated, or another course of this pick taken."; on the electives, "<code>: the D
+    doesn't count. It must be repeated, or another elective taken.";
+  - the sequence box with one pick open ("Still needed: ENG 210 to complete a literature
+    sequence.") and with none ("Needed for the history or literature sequence (3 extra
+    credits): HIS 132 or ENG 210."), and then under the credit bar "Plus 3 extra credits
+    for the history or literature sequence." (from the owner's answer of 2026-11-16);
+    when a sequence course is in progress while a passed course holds its pick, "In
+    progress: HIS 132 for the history sequence (3 extra credits). It fills the sequence
+    requirement only." with the in-progress mark, and under the bar "Plus 3 extra credits
+    in progress for the history sequence.";
+  - the labels of the credit bar start where their parts start, as designed, and wrap
+    instead of overlapping when a part is very small (a new student; a nearly finished
+    one);
+  - under the requirements, closed until opened: "<n> courses on your transcript are not
+    counted toward CIS", each with its reason;
+  - at the end: the line of counts of the review, "Check what was read" and "Use another
+    transcript"; with no row taken on, "No row of your transcript was taken on, so there
+    is nothing to show yet.";
+  - the cards are in the curriculum's order (the screenshots show the done ones first).
 - **"Check my courses" with a transcript** (F12). The heading note and the card "Add your
   transcript for an exact answer" are drawn as designed ("Choose transcript PDF" opens
   the file picker). The design shows them only without a transcript; the other states
@@ -364,7 +397,7 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     brief's), "Already in progress." (the owner's, 2026-11-16), all three drawn as
     "Doesn't count"; a "Counts" keeps its outlined mark and loses its
     condition; under the legacy question on a row that is no legacy course, "Your
-    transcript has <code>, which counts only for legacy students.";
+    transcript has <code>, which counts as an elective only for legacy students.";
   - a sequence course whose pick another course already holds (the owner's words,
     2026-11-16): while the other sequence's pick is open, "Doesn't count — same slot as
     <course>. Take ENG 210 for the sequence.", drawn as "Doesn't count"; when both picks

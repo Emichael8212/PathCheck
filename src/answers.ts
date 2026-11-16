@@ -11,7 +11,7 @@
 import { findCourse, type Curriculum } from './curriculum';
 import { type Entry } from './entries';
 import { LEGACY_QUESTION } from './legacy';
-import { countsByElectiveRule, placeCourses } from './placement';
+import { countsByElectiveRule, placeCourses, wouldTakePick } from './placement';
 import { type CourseStanding } from './transcript';
 import {
   ALREADY_PASSED, CONDITION, COUNTS_AS_LEGACY_ELECTIVE, IN_PROGRESS_AGAIN, LEGACY_STUDENTS_ONLY, NOT_IN_CURRICULUM, SLOT_FILLED, countsAsElective, countsToward,
@@ -62,7 +62,7 @@ const heldOn = (transcript: TranscriptUse | null): Map<string, 'passed' | 'in-pr
   new Map((transcript?.standings ?? []).flatMap(one => (one.standing === 'passed' || one.standing === 'in-progress' ? [[one.code, one.standing] as const] : [])));
 
 /** For each sequence, its courses that sit in a pick. (The others are required anyway.) */
-const sequencePicks = (curriculum: Curriculum): { name: string; courses: string[] }[] =>
+export const sequencePicks = (curriculum: Curriculum): { name: string; courses: string[] }[] =>
   curriculum.sequence.alternatives.map(alternative => ({
     name: alternative.name,
     courses: alternative.courses.filter(code => findCourse(curriculum, code).some(found => found.kind === 'pick')),
@@ -110,9 +110,8 @@ function verdicts(entries: readonly Entry[], curriculum: Curriculum, legacy: boo
     const earlier = planned.slice(0, planned.indexOf(code));
     return alternatives.filter(alternative => alternative.courses.every(one => held.has(one) || holdsPick.has(one) || earlier.includes(one))).length >= sequence.choose;
   };
-  /** Do the transcript's own courses leave this course's pick open? */
-  const pickOpen = (code: string): boolean => placement.blocks.flatMap(one => one.picks)
-    .some(pick => pick.options.some(option => option.code === code) && pick.filled.filter(filled => filled.state !== 'planned').length < pick.choose);
+  /** Could this course still take its pick, beside the transcript and the list? */
+  const pickOpen = (code: string): boolean => wouldTakePick(transcript?.standings ?? [], curriculum, { legacy, planned }, code);
   const creditsOf = (code: string): number => findCourse(curriculum, code)[0]?.course.credits ?? electives.creditsPerCourse;
   for (const one of placement.unplaced) {
     if (one.state !== 'planned') continue;
