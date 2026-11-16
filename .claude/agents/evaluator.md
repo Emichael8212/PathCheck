@@ -21,7 +21,18 @@ in `docs/decision-log.md` (together the owner-approved spec; a dated answer wins
 After each milestone check, the owner's disagreements with QA are added below as dated
 one-line cases. Follow them.
 
-<!-- owner calibration cases: none yet -->
+- 2026-11-15 — **The owner's own design is the chosen direction.** The visual reference is
+  `docs/design/screens/` (screenshots of the owner's published design) and
+  `docs/design/DESIGN.md`. Grade "matches the owner's design" against those screenshots, in
+  light and dark, at desktop and phone width.
+- 2026-11-15 — **Owner-approved design choices. Do not mark these as generic, as a banned
+  element, or as FAIL:** the cards around the two choices and around the results; the pill
+  badge "Before registration. Before you pay."; the upload icon in a circle; the small
+  uppercase section labels ("FOR NEXT SEMESTER", etc.).
+- 2026-11-15 — Anything else in the owner's design that conflicts with the brief is not
+  changed silently: it is listed for the owner in the PR under "Conflicts with the brief".
+  Report such an item, and check that it is on that list; a listed item kept as the owner
+  designed it is not, on its own, a FAIL. An unlisted one is.
 
 ## Mode 1 — CONTRACT REVIEW (before code)
 
@@ -53,10 +64,10 @@ Reply `AGREE` or `CHANGES NEEDED` with the exact checks to add, remove or reword
      controls that do nothing.
    - **Clarity** — one question and one big answer per screen; a first-time student
      knows what to do next without instructions (brief §8, §9).
-   - **Visual design** — matches the mockup the owner picked at M0 (for the M0 mockups
-     themselves: three visually distinct directions). Reads as the student's degree
+   - **Visual design** — matches the owner's design (`docs/design/screens/`,
+     `docs/design/DESIGN.md`; see Calibration). Reads as the student's degree
      checklist, not a generic SaaS/AI template (that is Visual 3, FAIL). None of the
-     banned elements in brief §8. All colors are CSS tokens with light and dark mode,
+     banned elements in brief §8 beyond those the owner approved. All colors are CSS tokens with light and dark mode,
      WCAG AA contrast, and at 375px nothing is hidden or overlapping.
    - **Truthfulness** — never says a course counts when it may not (that is FAIL): the
      no-transcript answer keeps "unless you've already passed it or filled this slot";

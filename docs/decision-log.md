@@ -98,6 +98,48 @@ has no title).
     sciences, Humanities, Pre-professional in the brief's example).
   - Do not merge or move ahead with the design until the owner approves.
 
+### 2026-11-15 — The owner's own design replaces the three directions
+
+The owner designed PathCheck in Figma Make and published it at
+https://color-nicks-25285809.figma.site/ (view "Combined · Your picks"; the hash
+`#d=d&p=<start|check|left>&t=<light|dark>&w=<desktop|phone>` selects page, theme and width).
+
+- **This design is the chosen direction.** It overrides F01's "3 mockups, owner picks one".
+  The three directions built to `docs/M0-DESIGN-BRIEF.md` (Receipt, Meter, Signs) are deleted.
+  Route, Focus and Workspace on the same site are ignored. "Rationale & questions" is read
+  for the owner's reasoning and is not built as a page.
+- **Visual reference from now on:** the screenshots in `docs/design/screens/` (each page,
+  light and dark, desktop 1440 and phone 375), taken from the published site.
+  `docs/design/DESIGN.md` is written from the site's computed styles and is the design source
+  for M1.
+- **Design choices the owner has made. These override brief §8 where they differ:**
+  - Cards around the two choices and around the results are kept.
+  - The pill badge "Before registration. Before you pay." is kept.
+  - The upload icon in a circle is kept.
+  - The small uppercase section labels ("FOR NEXT SEMESTER", etc.) are kept.
+  - The evaluator does not mark these as generic or FAIL (added to its Calibration section).
+- **What stays from the brief where the design doesn't show it or gets it wrong:** all colors
+  as CSS tokens with light and dark mode; WCAG AA contrast; works at 375px with nothing
+  hidden or overlapping; visible keyboard focus; on every result "Curriculum last reviewed:
+  <date>", "Not an official degree audit", "Report a mistake", "Not affiliated with Alabama
+  State University"; the exact wording of brief §4 and §5.
+- **The design is not changed silently.** Anything else in it that conflicts with the brief
+  is listed in the PR under "Conflicts with the brief" and the owner is asked: anything in
+  §6 "Not built", any text that says a course counts when it may not, any academic rule
+  shown differently from §5, any wording that says "ask your advisor". No academic rule is
+  invented to fit a screen.
+- **Rebuilt in plain project code.** Figma Make's component libraries, toasts and icon packs
+  are not copied into the project.
+- **M0 ends when the owner approves** the mockups built from this design. PR #4 is not
+  merged before that.
+- *Agent's note, not an owner decision:* the first copy of this message also said to replace
+  the "Your major" dropdown with plain text. The owner re-sent the message without that
+  line, so the dropdown is kept as designed and listed under "Conflicts with the brief"
+  (brief §3: CIS only, no multi-major UI; §4: nothing to fill in first).
+- *Agent's note:* the instruction to apply Apple's interface guidance and Liquid Glass
+  belonged to the replaced directions. The owner's design uses no glass, and it is followed
+  as it is.
+
 ## Milestone checks
 
 | Milestone | Date | Owner's answer |

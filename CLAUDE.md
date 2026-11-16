@@ -67,7 +67,7 @@ changes; fix what it reports. Keep state in files (sprint file, `features.json`,
 
 | | Delivered | Owner checks |
 |---|---|---|
-| M0 | 3 design mockups | Picks one (sequence rule confirmed 2026-11-15) |
+| M0 | The owner's design as static mockups (`docs/design/`) | Approves the mockups (sequence rule confirmed 2026-11-15) |
 | M1 | Flow A + Flow B with synthetic transcripts, on localhost | Both flows on phone and desktop |
 | M2 | Real upload on a staging address | Uploads their own transcript |
 | M3 | Public site | Final check, then launch |
