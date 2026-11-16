@@ -617,7 +617,8 @@ svg { display: block; flex-shrink: 0; }
 
 .pace { margin-top: 25px; padding-top: 22px; border-top: 1px solid var(--line); }
 .pace-grid { display: grid; gap: 16px; margin-top: 12px; }
-.field { display: grid; gap: 6px; }
+.field { display: flex; flex-direction: column; }
+.field > * + * { margin-top: 6px; }
 .field > label, .field > span { font-size: 14px; font-weight: 600; line-height: 20px; }
 .field select {
   min-height: 44px;
@@ -644,6 +645,9 @@ svg { display: block; flex-shrink: 0; }
 .switch-track span { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink-2); }
 .switch-value { font-weight: 600; }
 .field-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; }
+/* Empty until it applies; it stays in the page so screen readers hear it appear. */
+.field-note:empty { margin-top: 0; }
+.stepper button:disabled { opacity: 0.4; }
 
 .reqs { margin-top: 44px; }
 .tabs { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); }

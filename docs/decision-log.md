@@ -195,12 +195,18 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   result stays in this browser." It is shown before the first upload, next to the upload
   control. → F11, F19.
 
-**Where these differ from the brief:** §3 and §4 (the major dropdown, a); §8 banned list
-(pill-shaped tabs, the indigo main button and the numbered chips are approved, f3–f5; with
-the four choices approved earlier the same day). The uppercase grey table header and
-legends stay banned (f1, f2).
-
 *Agent's notes, not owner decisions:*
+- The "→ F06" style pointers above are the agent's cross-references to `features.json`.
+- Where these answers differ from the brief: §3 and §4 (the major dropdown, a); §8 banned
+  list (pill-shaped tabs, the indigo main button and the numbered chips are approved,
+  f3–f5, with the four choices approved earlier the same day). The uppercase grey table
+  header and legends stay banned (f1, f2).
+- **Not changed, waiting for the owner:** `features.json` still says "there is no multi-major
+  UI" (F02) and "There is no sign-in, account, advisor screen or major picker" (F06).
+  Answer a keeps a one-option major dropdown, so those two steps need rewording; feature
+  steps are only changed with the owner's approval, so this is asked in PR #4.
+- The two credit controls never cross (pushing one past the other takes it along) and
+  neither goes below 1 credit. That is how the control behaves, not an academic rule.
 - The owner wrote the major as "B.S. Computer Information Systems"; the published design
   had "B.S. - Computer Information Systems". The mockups use the owner's wording.
 - The owner's brief names no courses for the three Done requirements. So that "Show
@@ -209,7 +215,7 @@ legends stay banned (f1, f2).
   curriculum file).
 - `docs/design/screens/` now holds screenshots of the updated mockups, re-taken as the
   owner asked. The screenshots of the published site as it stood before these answers are
-  in the git history (commit c0169f4).
+  kept beside them in `docs/design/screens/published/`.
 
 ## Milestone checks
 

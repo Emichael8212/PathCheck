@@ -28,8 +28,8 @@ const page = which => { const html = render(which); return { html, text: decode(
 const pages = ['start', 'check', 'check-typing', 'left'];
 
 describe('the owner’s design is the reference', () => {
-  it('has a screenshot of every page in light and dark, at desktop and phone width', () => {
-    const dir = join(repo, 'docs', 'design', 'screens');
+  it.each([['the design as it is now', []], ['the owner’s published site', ['published']]])('has a screenshot of every page in light and dark, at desktop and phone width: %s', (_, sub) => {
+    const dir = join(repo, 'docs', 'design', 'screens', ...sub);
     for (const name of ['start', 'check', 'left']) {
       for (const theme of ['light', 'dark']) {
         for (const [width, px] of [['desktop', 1440], ['phone', 375]]) {
@@ -41,8 +41,8 @@ describe('the owner’s design is the reference', () => {
         }
       }
     }
-    // Nothing else is kept in that folder.
-    expect(readdirSync(dir).filter(file => !file.endsWith('.png'))).toEqual([]);
+    // Nothing else is kept there, apart from the folder of the published site's screenshots.
+    expect(readdirSync(dir).filter(file => !file.endsWith('.png'))).toEqual(sub.length ? [] : ['published']);
   });
 
   it('DESIGN.md records the same color tokens the mockups use', () => {
@@ -241,6 +241,8 @@ describe('page 2: Check my courses', () => {
       'Remember: you need HIS 132 or ENG 210 for the history/literature sequence.',
       'Add your transcript for an exact answer', PRIVACY, 'Choose transcript PDF',
     ]) expect(text).toContain(more);
+    // The privacy sentence is in the transcript card, beside its upload button (answer i).
+    expect(decode(html.match(/<section class="exact"[\s\S]*?<\/section>/)[0]).trim()).toBe(`Add your transcript for an exact answer ${PRIVACY} Choose transcript PDF`);
   });
 
   it('works its summary numbers out from the rows', () => {
@@ -274,8 +276,9 @@ describe('page 2: Check my courses', () => {
   });
 
   it('has a normal-case table header, not an uppercase grey one', () => {
-    const head = css.match(/\n {2}\.table-head \{[^}]*\}/)[0];
-    expect(head).not.toMatch(/text-transform|letter-spacing/);
+    const rules = css.match(/[^{}]*table-head[^{}]*\{[^}]*\}/g);
+    expect(rules.length).toBeGreaterThanOrEqual(2);
+    for (const rule of rules) expect(rule).not.toMatch(/text-transform|letter-spacing/);
     expect(text).toContain('Course Credits Does it count? Remove');
   });
 
@@ -311,6 +314,7 @@ describe('page 3: What I have left', () => {
     expect(html).toMatch(/<label for="target">Target semester<\/label>\s*<select id="target">\s*<option>Fall 2028<\/option><option selected>Spring 2029<\/option><option>Fall 2029<\/option><option>Spring 2030<\/option><option>Fall 2030<\/option>/);
     for (const [name, label, value] of [['fewest', 'Fewest credits per term', 12], ['most', 'Most credits per term', 18]]) {
       const field = html.match(new RegExp(`<div class="field" data-stepper="${name}">[\\s\\S]*?</p>`))[0];
+      expect(field).toContain(`<div class="stepper" role="group" aria-labelledby="${name}-label" aria-describedby="${name}-note">`);
       expect(field).toContain(`<span id="${name}-label">${label}</span>`);
       expect(field).toContain(`<button type="button" aria-label="${label}: one fewer" data-delta="-1">−</button>`);
       expect(field).toContain(`<output class="num"><span data-value>${value}</span> credits</output>`);
@@ -318,9 +322,11 @@ describe('page 3: What I have left', () => {
       // No hard limit: neither button is switched off.
       expect(field).not.toContain('disabled');
     }
-    // The neutral notes exist but are not shown at 12 and 18.
-    expect(html).toContain('<p class="field-note" data-note hidden>Below 12 credits: below full-time; may affect scholarships.</p>');
-    expect(html).toContain('<p class="field-note" data-note hidden>Over 18 credits: may cost extra.</p>');
+    // The neutral notes are empty at 12 and 18. Each sits in a polite live region tied to its
+    // control, so when it applies it is shown and read out.
+    expect(html).toContain('<p class="field-note" id="fewest-note" data-note="Below 12 credits: below full-time; may affect scholarships." aria-live="polite"></p>');
+    expect(html).toContain('<p class="field-note" id="most-note" data-note="Over 18 credits: may cost extra." aria-live="polite"></p>');
+    expect(text).not.toMatch(/Below 12 credits|Over 18 credits/);
     expect(html).toMatch(/<button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="summers-label">/);
     expect(text).toContain('Fewest credits per term − 12 credits +');
     expect(text).toContain('Most credits per term − 18 credits +');
@@ -355,6 +361,9 @@ describe('page 3: What I have left', () => {
       expect(item.includes({ 'Done': 'mark-done', 'In progress': 'mark-progress', 'Still needed': 'mark-needed' }[status]), name).toBe(true);
     });
     expect(text).toContain('The rest of your degree Requirements All Not done Credits counted / needed.');
+    // Only one of "Show courses" / "Hide courses" is ever displayed.
+    expect(css).toContain('.req-show .when-open, details[open] .req-show .when-closed { display: none; }');
+    expect(css).toContain('details[open] .req-show .when-open { display: inline; }');
   });
 
   it('shows each open requirement’s courses exactly as in the brief', () => {
@@ -482,10 +491,12 @@ describe('the things that move', () => {
     expect(stepCredits(start12to18, 'most', 1)).toEqual({ fewest: 12, most: 19 });
     expect(stepCredits({ fewest: 12, most: 30 }, 'most', 1)).toEqual({ fewest: 12, most: 31 });
     expect(stepCredits(start12to18, 'fewest', -1)).toEqual({ fewest: 11, most: 18 });
-    // The two ends cannot cross, and Fewest stops at 1.
-    expect(stepCredits({ fewest: 12, most: 12 }, 'most', -1)).toEqual({ fewest: 12, most: 12 });
-    expect(stepCredits({ fewest: 18, most: 18 }, 'fewest', 1)).toEqual({ fewest: 18, most: 18 });
+    // The two ends never cross: pushing one past the other takes the other along.
+    expect(stepCredits({ fewest: 12, most: 12 }, 'most', -1)).toEqual({ fewest: 11, most: 11 });
+    expect(stepCredits({ fewest: 18, most: 18 }, 'fewest', 1)).toEqual({ fewest: 19, most: 19 });
+    // The only stop is 1 credit.
     expect(stepCredits({ fewest: 1, most: 18 }, 'fewest', -1)).toEqual({ fewest: 1, most: 18 });
+    expect(stepCredits({ fewest: 1, most: 1 }, 'most', -1)).toEqual({ fewest: 1, most: 1 });
     // Neutral notes: under 12, and over 18. Exactly 12 and 18 carry none.
     expect(creditNotes(start12to18)).toEqual({ fewest: false, most: false });
     expect(creditNotes({ fewest: 11, most: 19 })).toEqual({ fewest: true, most: true });
@@ -494,22 +505,28 @@ describe('the things that move', () => {
   it('pressing + on Most past 18 shows "may cost extra"; − on Fewest under 12 shows the scholarship note', () => {
     const field = value => {
       const valueEl = { textContent: String(value) };
-      const note = { hidden: true };
+      const note = { textContent: '', dataset: { note: `note for ${value}` } };
       const buttons = [el({ delta: '-1' }), el({ delta: '1' })];
-      return { valueEl, note, buttons, querySelector: sel => (sel === '[data-value]' ? valueEl : note), querySelectorAll: () => buttons };
+      const parts = { '[data-value]': valueEl, '[data-note]': note, '[data-delta="-1"]': buttons[0] };
+      return { valueEl, note, buttons, querySelector: sel => parts[sel], querySelectorAll: () => buttons };
     };
     const fields = { fewest: field(12), most: field(18) };
     const credits = setupCredits({ querySelector: sel => fields[sel.includes('fewest') ? 'fewest' : 'most'] });
-    expect([fields.fewest.note.hidden, fields.most.note.hidden]).toEqual([true, true]);
+    expect([fields.fewest.note.textContent, fields.most.note.textContent]).toEqual(['', '']);
     fields.most.buttons[1].handlers.click();
     expect(fields.most.valueEl.textContent).toBe('19');
-    expect(fields.most.note.hidden).toBe(false);
+    expect(fields.most.note.textContent).toBe('note for 18');
     fields.most.buttons[0].handlers.click();
-    expect(fields.most.note.hidden).toBe(true);
+    expect(fields.most.note.textContent).toBe('');
     fields.fewest.buttons[0].handlers.click();
     expect(fields.fewest.valueEl.textContent).toBe('11');
-    expect(fields.fewest.note.hidden).toBe(false);
+    expect(fields.fewest.note.textContent).toBe('note for 12');
     expect(credits.state).toEqual({ fewest: 11, most: 18 });
+    // "−" is switched off only at 1 credit.
+    expect(fields.fewest.buttons[0].disabled).toBe(false);
+    for (let i = 0; i < 10; i++) fields.fewest.buttons[0].handlers.click();
+    expect(credits.state.fewest).toBe(1);
+    expect(fields.fewest.buttons[0].disabled).toBe(true);
   });
 
   it('printing opens every requirement, then puts them back', () => {
@@ -640,8 +657,12 @@ describe('the mockup content', () => {
       if (course.title) expect(course.title, course.code).toBe(known.get(course.code).title);
     }
     expect(named.filter(course => !course.title).map(course => course.code)).toEqual(['ACT 214', 'MGT 202', 'PED 114']);
-    // One course from each Composition pair, never both of a pair.
-    expect(left.blocks[1].done.map(course => course.code)).toEqual(['ENG 131', 'ENG 132']);
+    // Composition is two picks: the student has exactly one course from each pair.
+    const pairs = curriculum.blocks.find(block => block.name === 'Composition').choices.map(choice => choice.courses.map(course => course.courseId.replace('-', ' ')));
+    const passed = left.blocks.find(block => block.name === 'Composition').done.map(course => course.code);
+    expect(pairs).toHaveLength(2);
+    for (const pair of pairs) expect(passed.filter(code => pair.includes(code)), pair.join(' / ')).toHaveLength(1);
+    expect(passed).toHaveLength(2);
     // MKT 410 fits the elective rule and BIO 230 is in no list.
     expect(known.has('MKT 410')).toBe(false);
     expect(curriculum.electives.subjectRule.prefixes).toContain('MKT');

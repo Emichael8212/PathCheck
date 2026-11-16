@@ -336,15 +336,16 @@ const planEntry = e => e.choice ? `
           </li>`;
 
 // One end of the credit range. Both ends can be changed; a neutral note appears under 12
-// and over 18. PathCheck sets no hard limit.
+// and over 18 (behavior.js writes it into the live region, so it is also read out).
+// PathCheck sets no hard limit.
 const stepper = (name, f) => `<div class="field" data-stepper="${name}">
           <span id="${name}-label">${esc(f.label)}</span>
-          <div class="stepper" role="group" aria-labelledby="${name}-label">
+          <div class="stepper" role="group" aria-labelledby="${name}-label" aria-describedby="${name}-note">
             <button type="button" aria-label="${esc(f.label)}: one fewer" data-delta="-1">−</button>
             <output class="num"><span data-value>${f.value}</span> credits</output>
             <button type="button" aria-label="${esc(f.label)}: one more" data-delta="1">+</button>
           </div>
-          <p class="field-note" data-note hidden>${esc(f.note)}</p>
+          <p class="field-note" id="${name}-note" data-note="${esc(f.note)}" aria-live="polite"></p>
         </div>`;
 
 const leftPage = () => {

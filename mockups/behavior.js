@@ -65,9 +65,15 @@ export function setupPrint(doc, win) {
 // the portal enforces the real one. A neutral note appears under 12 and over 18.
 export const FULL_TIME = 12;
 export const USUAL_MOST = 18;
+// The two ends never cross: pushing one past the other takes the other along. Neither goes
+// below 1 credit.
 export function stepCredits({ fewest, most }, which, delta) {
-  if (which === 'fewest') return { fewest: Math.min(most, Math.max(1, fewest + delta)), most };
-  return { fewest, most: Math.max(fewest, most + delta) };
+  if (which === 'fewest') {
+    const next = Math.max(1, fewest + delta);
+    return { fewest: next, most: Math.max(most, next) };
+  }
+  const next = Math.max(1, most + delta);
+  return { fewest: Math.min(fewest, next), most: next };
 }
 export const creditNotes = ({ fewest, most }) => ({ fewest: fewest < FULL_TIME, most: most > USUAL_MOST });
 
@@ -79,7 +85,11 @@ export function setupCredits(doc) {
     const notes = creditNotes(state);
     for (const name of ['fewest', 'most']) {
       fields[name].querySelector('[data-value]').textContent = String(state[name]);
-      fields[name].querySelector('[data-note]').hidden = !notes[name];
+      // The note lives in a polite live region: writing it shows it and has it read out.
+      const note = fields[name].querySelector('[data-note]');
+      note.textContent = notes[name] ? note.dataset.note : '';
+      // The only stop is 1 credit, and the button says so.
+      fields[name].querySelector('[data-delta="-1"]').disabled = state[name] <= 1;
     }
   };
   for (const name of ['fewest', 'most']) {

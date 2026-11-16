@@ -7,6 +7,9 @@ PR #4"). Colors, type, spacing and radii were read from the published site's com
 
 - **Visual reference:** the screenshots in `docs/design/screens/`. They show the mockups
   after the owner's answers. If this file and a screenshot disagree, the screenshot wins.
+- **The owner's site as published**, before the answers: `docs/design/screens/published/`.
+  Use it for everything the answers did not change; where the two folders differ, the
+  difference must be one listed at the end of this file.
 - **Working example:** `mockups/` (`style.css`, `view.js`) is this design in plain project code.
 - **Where it differs from the published site:** see "Differences from the published site"
   at the end. Each one comes from the brief or from a dated owner answer.
@@ -22,8 +25,9 @@ is 375 wide.
 | 2 Check my courses | `check-*` | `check-typing-*`: typing "mgt 3", suggestion open, MGT 321 not yet added |
 | 3 What I have left | `left-*` | `left-open-*`: the three Done requirements opened with "Show courses"; `left-notes-*`: Fewest at 11 and Most at 19, both notes showing |
 
-The screenshots of the published site as it stood before the owner's answers are in the git
-history (commit c0169f4).
+`docs/design/screens/published/` has the same file names (without `left-notes-*`), taken
+from the published site on 2026-11-15, before the owner's answers. There, `left-open-*`
+shows every requirement opened.
 
 ## Color tokens
 
@@ -87,7 +91,8 @@ two values are given (phone → desktop).
 | Field labels, card text, course titles, conditions | 14px / 20px | 400–600 | |
 | Table rows, answers, plan codes, intro paragraph | 13px / 1.5–1.8 | answers 600 | |
 | Table header (desktop only), summary labels and condition, field notes | 12px | 400 | normal case, `--ink-2` |
-| Nav links, filters, tabs, footer, bar labels, status words, "Show courses" | 11–12px | 600–700 | |
+| Nav links, filters, tabs, status words, "Show courses" | 11–12px | 600–700 | |
+| Footer; bar labels (the number is 700) | 11–12px | 400 | |
 | Section label (eyebrow) | 11px / 1.5 | 700 | 0.12em, uppercase, `--ink-2` |
 | "Open choice" label | 10px | 700 | 0.06em, uppercase |
 | Header note, example condition | 10px | 400 | |
@@ -142,7 +147,9 @@ Marks are inline SVG drawn in the project (20-unit grid); no icon pack.
 - **Credit bar:** counted is solid `--counts`; in progress is hatched (`--progress` stripes
   on `--progress-soft`); the rest is the open track. Each part is labelled where it is:
   "13 in progress · Fall 2026" above the hatched part; "27 counted" and "81 left" under the
-  start of their parts; "121 total" under the right end. There is no legend.
+  start of their parts; "121 total" under the right end. There is no legend. The labels
+  fit with this student's numbers; M1 must handle a part too narrow for its label (for
+  example by stacking the labels) so that two labels never overlap.
 - **Requirement bar:** one segment per credit, 12px high, 2px apart; counted segments are
   solid, the others outlined.
 - **Open choice** (a pick or elective in the plan): a dashed left edge and the label "OPEN
@@ -248,7 +255,11 @@ Under a divider, "MAKE THE ESTIMATE YOURS" with four controls in a row:
 Both ends of the credit range can be changed, and PathCheck sets no hard limit (the portal
 enforces the real one). A neutral note appears under the control when it applies: under 12,
 "Below 12 credits: below full-time; may affect scholarships."; over 18, "Over 18 credits:
-may cost extra." At 12 and 18 there is no note.
+may cost extra." At 12 and 18 there is no note. The note is plain grey text, not a warning,
+and it is announced to screen readers when it appears. The two ends never cross: pushing
+one past the other takes it along. Neither goes below 1 credit, where its "−" is switched
+off. In the app the pace answer above must follow these controls (F14); in the mockup it
+does not.
 
 **Requirements.** Label "THE REST OF YOUR DEGREE", heading, and an "All / Not done" pill
 toggle at the right; one line: "Credits counted / needed." Nine cards (white, radius 12,
