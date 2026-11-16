@@ -34,6 +34,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F06) Until their flows are built, `#/check` and `#/left` show only the top bar, the flow's name and the footer. | "Each choice opens its flow" can be checked now; nothing unbuilt is announced. | F07 and F11 replace them. |
 | (2026-11-16, F06) The demo's "On pace for Spring 2029" is example text for the made-up student, shown with its caveat. | The pace code is F14. | F14 checks it against the pace code and the sequence, or changes it. |
 | (2026-11-16, F06) "Report a mistake" is an email link to the placeholder address `report@pathcheck.example` until the owner gives the real one (brief §12). | As in the approved mockups; the owner provides the address before launch. | Set `REPORT_ADDRESS` in `src/wording.ts` (F18). |
+| (2026-11-16, F07) F07 is not marked passing by its own pull request. Entering courses is merged with tests, with `passes: false` and a BLOCKED line in `docs/sprints/F07.md`; F08's pull request marks it passing. | Its steps 3 and 4, and half of step 2, are about answers, and the answers are F08. | Show one kind of answer inside F07 (splits F08's logic over two features). |
+| (2026-11-16, F07) What is suggested while typing: courses the curriculum lists whose code starts with the typed text (spaces, dashes and letter case ignored), then those whose title has the typed words, in order, at the start of its words. At least two characters; at most six suggestions. | Simplest matching that finds a course by code or by title, as the brief asks. | Change `suggest` in `src/entries.ts`. |
+| (2026-11-16, F07) "Add" or Enter adds the typed text when it is a complete course code, in or out of the curriculum; otherwise the highlighted suggestion; otherwise nothing, with a line saying what to type. The same course is never in the list twice. | A whole code is what the student asked for; a course entered twice would be counted twice. | Change `addCourse` in `src/entries.ts`. |
+| (2026-11-16, F07) With no courses entered the table is not drawn and one line says "Add the courses you plan to take next semester." Two more lines can appear under the field: what to type, and "<code> is already in your list." | The design has no empty list and no message for text that cannot be added. | Reword in `src/check.ts`; listed in the pull request for the owner. |
+| (2026-11-16, F07) The heading of "Check my courses" is the flow's name, with no small label above it and no semester. | The design's heading is the next semester; which semester is "next" on a given date is the owner's to say (open question below). | Put the semester back when the owner has answered. |
+| (2026-11-16, F07) Tests of typing and the keyboard run in a simulated browser, `happy-dom` 21.0.4 (exact version), a development-only dependency. It is not in what the student downloads. | The page's behaviour can be tested on every run, not only by hand. The F06 decision (no framework) is about the app itself. | Remove it and the test file `tests/check-page.test.ts`. |
+| (2026-11-16, F07) The entered courses are kept in memory for the visit (`CourseList` in `src/app.ts`): they survive moving between pages and are gone after a reload. | Keeping them across visits, with "Clear my data", is F19. | — F19 replaces this. |
 
 ## Owner answers
 
@@ -436,7 +443,15 @@ Asked after pull request #12. The owner's words are quoted.
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-None open now. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+- **2026-11-16 (F07; needed for the heading of "Check my courses", and later for pace).** The
+  design's heading on "Check my courses" is the next semester ("Spring 2027"). Which
+  semester is "next" on a given date? Proposed: August to December shows the next year's
+  Spring; January to July shows the same year's Fall; summer terms are ignored. Or no
+  semester in the heading at all. Until answered the heading says "Check my courses" and
+  nothing is worked out from the date. Status: asked in chat on 2026-11-16 and in F07's
+  pull request, not answered yet.
+
+Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
 F08 step 5; the new F09 step; and the last-reviewed line.)
 

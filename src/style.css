@@ -499,6 +499,10 @@ svg { display: block; flex-shrink: 0; }
 }
 .suggestions li { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 16px; font-size: 14px; line-height: 20px; }
 .suggestions [aria-selected="true"] { background: var(--accent-soft); }
+/* What to type, or why nothing was added. Empty, it takes no room. */
+.field-message { margin-top: 8px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
+.field-message:empty { margin-top: 0; }
+.empty-hint { color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .filters button {
   display: inline-flex;

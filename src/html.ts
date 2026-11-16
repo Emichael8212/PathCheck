@@ -24,6 +24,7 @@ export const marks = {
 export const icons = {
   arrow: (size = 20, cls = ''): string => svg(size, line('M3 10h13M11.2 5.2L16 10l-4.8 4.8'), cls),
   doc: (size = 20): string => svg(size, line('M5 2h7l4 4v12H5z', 1.8) + line('M12 2v4h4M8 11h5M8 14h5', 1.8)),
+  x: (size = 18): string => svg(size, line('M5 5l10 10M15 5L5 15')),
   upload: (size = 28): string => svg(size, line('M8 21H7a5 5 0 0 1-.4-10A7.5 7.5 0 0 1 21 9a6 6 0 0 1 0 12h-1M14 25V13M10 17l4-4 4 4', 1.7), '', 28),
   play: (size = 14): string => svg(size, `<path d="M3 1l10 6-10 6z" fill="currentColor"/>`, 'i-play', 14),
   pause: (size = 14): string => svg(size, `<rect x="2" y="1" width="3.5" height="12" fill="currentColor"/><rect x="8.5" y="1" width="3.5" height="12" fill="currentColor"/>`, 'i-pause', 14),

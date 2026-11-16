@@ -1,14 +1,16 @@
 // The app: one page, three addresses. Shows the page for the address, and keeps doing so
 // as the student moves about.
+import { checkPage, setupCheck, type CourseList } from './check';
 import { programs as allPrograms, type Program } from './curriculum';
+import { type Entry } from './entries';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { HREF, flowPage, routeOf, titleOf, type Route } from './shell';
 import { startPage } from './start';
 
-export const renderPage = (route: Route, programs: readonly Program[] = allPrograms): string => {
+export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, entries: readonly Entry[] = []): string => {
   const [program] = programs;
   if (!program) throw new Error('PathCheck has no program to show.');
-  return route === 'start' ? startPage(programs) : flowPage(route, program.curriculum);
+  return route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, entries) : flowPage(route, program.curriculum);
 };
 
 /** As much of the browser as the app uses. */
@@ -34,16 +36,20 @@ export function startApp(win: AppWindow): { readonly route: Route; readonly demo
   if (!root) throw new Error('The page has no place to show PathCheck.');
   let route: Route = 'start';
   let demo: Demo | null = null;
+  // What the student has entered stays while they move between pages, for this visit.
+  const courses: CourseList = { entries: [] };
 
   const show = (moved: boolean): void => {
     // The demo's timer belongs to the Start page: it stops when the student leaves.
     demo?.stop();
     demo = null;
     route = routeOf(win.location.hash);
-    root.innerHTML = renderPage(route);
+    root.innerHTML = renderPage(route, allPrograms, courses.entries);
     win.document.title = titleOf(route);
     const player = root.querySelector('[data-demo]') as DemoRoot | null;
     if (player) demo = setupDemo(player, { reducedMotion: win.matchMedia('(prefers-reduced-motion: reduce)').matches, timers: win });
+    const [program] = allPrograms;
+    if (route === 'check' && program) setupCheck(root as unknown as ParentNode, courses, program.curriculum);
     if (moved) {
       // A new page starts at its top, with the keyboard and a screen reader on its heading.
       (root.querySelector('h1') as { focus(): void } | null)?.focus();

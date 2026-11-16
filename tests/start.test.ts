@@ -120,8 +120,8 @@ describe('the three addresses', () => {
     expect(pages.left).toMatch(/<h1 tabindex="-1">See what I have left<\/h1>/);
     expect(pages.left).toContain('<a href="#/left" aria-current="page">What I have left</a>');
     // A flow's page holds its name and nothing that is not built yet.
-    expect(decode(pages.check)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. Check my courses Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
-    expect(decode(pages.left)).not.toMatch(/coming soon|not built|later/i);
+    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
+    for (const page of [pages.check, pages.left]) expect(decode(page)).not.toMatch(/coming soon|not built|later/i);
     expect(routeOf('#/check')).toBe('check');
     expect(routeOf('#/left')).toBe('left');
   });
