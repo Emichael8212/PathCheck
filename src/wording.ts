@@ -41,6 +41,24 @@ export const waitingFor = (question: string): string => `Answer “${question}�
 /** `courses` are the sequence's courses that sit in a pick; `kinds` names the sequences. */
 export const sequenceReminder = (courses: readonly string[], kinds: string): string => `Remember: you need ${courses.join(' or ')} for the ${kinds} sequence.`;
 
+// ---- The answers with a transcript (brief §4 Flow A step 3; docs/sprints/F12.md) ----
+export const ALREADY_PASSED = 'You already passed this';
+export const SLOT_FILLED = 'This slot is already filled';
+/** A typed course that has no grade yet on the transcript (the owner's words, 2026-11-16). */
+export const IN_PROGRESS_AGAIN = 'Already in progress.';
+// A sequence course whose pick another course already holds (the owner's answer of 2026-11-16).
+/** A sequence can still be completed through an open pick: `take` are that pick's sequence courses. */
+export const sameSlotTake = (holders: readonly string[], take: readonly string[]): string =>
+  `Doesn’t count — same slot as ${listOf(holders)}. Take ${take.join(' or ')} for the sequence.`;
+/**
+ * Every pick of a sequence is held by other courses: the course fills the sequence
+ * requirement only. `sequence` is its name in the curriculum, `credits` the course's own.
+ */
+export const neededForSequence = (sequence: string, credits: number): string => `Needed for the ${sequence} (${credits} extra ${credits === 1 ? 'credit' : 'credits'}).`;
+/** Under the legacy question when it is asked because of courses on the transcript. */
+export const transcriptHasLegacy = (codes: readonly string[]): string =>
+  `Your transcript has ${listOf(codes)}, which ${codes.length === 1 ? 'counts' : 'count'} only for legacy students.`;
+
 // ---- The numbers above the list in "Check my courses" (brief §4; docs/design/DESIGN.md) ----
 export const TOTAL_CREDITS = 'Total credits';
 export const COUNT_TOWARD = 'Count toward CIS';
@@ -52,6 +70,10 @@ export const WAITING_FOR_LEGACY = 'Waiting for your legacy answer.';
 /** The two neutral notes, in the approved design's sentences; the numbers are the brief's. */
 export const belowFullTime = (credits: number): string => `Below ${credits} credits: below full-time; may affect scholarships.`;
 export const overUsualMost = (credits: number): string => `Over ${credits} credits: may cost extra.`;
+
+// ---- A transcript that is there (the review step; "Check my courses") ----
+export const USE_ANOTHER = 'Use another transcript';
+export const ANOTHER_FORGETS = 'Choosing another transcript forgets your corrections.';
 
 // ---- The review step ----
 /**

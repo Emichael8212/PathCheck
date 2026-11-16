@@ -117,6 +117,66 @@ describe('pick groups', () => {
   });
 });
 
+describe('planned courses', () => {
+  const plan = (rows: string[], planned: string[], legacy = false): Placement => placeCourses(courseStandings(rows.map(rowOf), curriculum.grades), curriculum, { legacy, planned });
+  const unplacedOf = (result: Placement) => result.unplaced.map(one => `${one.code} ${one.state} ${one.reason}`);
+
+  it("places planned courses after the transcript's", () => {
+    // A planned course fills an open required place, an open pick and an open elective place.
+    const open = plan(['ENG 131'], ['MGT 321', 'ENG 132', 'FIN 201']);
+    expect(requiredState(open, 'MGT 321')).toBe('planned');
+    expect(filledIn(open, 'composition', 1)).toEqual(['ENG 132 planned']);
+    expect(electivesOf(open)).toEqual(['FIN 201 planned']);
+    // It never takes a pick from a course that is passed or in progress, sequence course or not.
+    expect(filledIn(plan(['GEO 206'], ['HIS 132']), 'social-sciences', 0)).toEqual(['GEO 206 done']);
+    expect(filledIn(plan(['GEO 206:-'], ['HIS 132']), 'social-sciences', 0)).toEqual(['GEO 206 in-progress']);
+    expect(unplacedOf(plan(['GEO 206:-'], ['HIS 132']))).toEqual(['HIS 132 planned pick-filled']);
+    // Electives: the transcript's first, passed before in progress, then the planned ones in the order given.
+    const electives = plan(['MKT 410:-', 'FIN 201'], ['CIS 499', 'ECO 301']);
+    expect(electivesOf(electives)).toEqual(['FIN 201 done', 'MKT 410 in-progress', 'CIS 499 planned']);
+    expect(unplacedOf(electives)).toEqual(['ECO 301 planned electives-full']);
+    // Among planned courses: the sequence course wins its pick, then the order given.
+    expect(filledIn(plan([], ['GEO 206', 'HIS 132']), 'social-sciences', 0)).toEqual(['HIS 132 planned']);
+    expect(filledIn(plan([], ['GEO 206', 'SOC 110']), 'social-sciences', 0)).toEqual(['GEO 206 planned']);
+    // A planned course that the transcript already has passed or in progress is left to its standing.
+    const twice = plan(['MGT 321', 'ENG 131:-'], ['MGT 321', 'ENG 131']);
+    expect(requiredState(twice, 'MGT 321')).toBe('done');
+    expect(filledIn(twice, 'composition', 0)).toEqual(['ENG 131 in-progress']);
+    // One that was failed is planned again.
+    expect(requiredState(plan(['MGT 321:D'], ['MGT 321']), 'MGT 321')).toBe('planned');
+  });
+
+  it('adds no credits for a planned course', () => {
+    const before = plan(['ENG 131', 'MGT 321:-'], []);
+    const after = plan(['ENG 131', 'MGT 321:-'], ['CIS 300', 'FIN 201', 'ENG 132', 'HIS 132']);
+    expect(after.credits).toEqual(before.credits);
+    expect(after.blocks.map(one => one.credits)).toEqual(before.blocks.map(one => one.credits));
+    expect(after.electives.credits).toEqual(before.electives.credits);
+    // The sequence is judged on the transcript, never on a planned course.
+    expect(plan(['HIS 131'], ['HIS 132']).sequence.state).toBe('needed');
+    // Without planned courses nothing changes at all.
+    expect(placeCourses(courseStandings(['ENG 131', 'GEO 206:-'].map(rowOf), curriculum.grades), curriculum, { planned: [] })).toEqual(place(['ENG 131', 'GEO 206:-']));
+  });
+
+  it('lets a legacy student use a planned legacy course where it counts most', () => {
+    // Its pick is held: for a legacy student it is an elective; otherwise it has no place.
+    expect(electivesOf(plan(['GEO 206'], ['PSY 251'], true))).toEqual(['PSY 251 planned']);
+    expect(unplacedOf(plan(['GEO 206'], ['PSY 251'], false))).toEqual(['PSY 251 planned pick-filled']);
+    // Its pick is open: it stays a pick course.
+    expect(filledIn(plan([], ['PSY 251'], true), 'social-sciences', 0)).toEqual(['PSY 251 planned']);
+    // On the transcript, with a planned course for the same pick: the elective place frees the pick.
+    const freed = plan(['PSY 251'], ['GEO 206'], true);
+    expect(electivesOf(freed)).toEqual(['PSY 251 done']);
+    expect(filledIn(freed, 'social-sciences', 0)).toEqual(['GEO 206 planned']);
+    expect(freed.credits.done).toBe(plan(['PSY 251'], [], true).credits.done);
+  });
+
+  it('refuses a planned code that is not in its normal form, or given twice', () => {
+    expect(() => plan([], ['mgt 321'])).toThrow(/not in its normal form/);
+    expect(() => plan([], ['MGT 321', 'MGT 321'])).toThrow(/same planned course twice/);
+  });
+});
+
 describe('courses outside the curriculum, and transfer credit', () => {
   it('does not count a course outside the curriculum', () => {
     const result = place(['BIO 230', 'XYZ 101:A']);

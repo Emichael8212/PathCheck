@@ -9,7 +9,7 @@ import { type Problem } from './reader';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
 import { type Refusal } from './upload';
-import { PRIVACY, notCurrent } from './wording';
+import { ANOTHER_FORGETS, PRIVACY, USE_ANOTHER, notCurrent } from './wording';
 
 /** Where the student is in this flow. */
 export interface LeftState {
@@ -22,8 +22,10 @@ export interface LeftState {
   editing: number | null;
   /** What the student has typed in the open edit, kept while the page is drawn again. */
   draft: Correction | null;
+  /** Where "Continue" leads: "Check my courses" when the transcript was asked for there. */
+  returnTo: 'left' | 'check';
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null, returnTo: 'left' });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -50,8 +52,9 @@ const TEXT = {
   fields: { term: 'Term', prefix: 'Prefix', number: 'Number', attempted: 'Credits', grade: 'Grade', noGrade: 'No grade yet', transfer: 'Transfer credit' },
   nothingRead: 'No courses were read from this transcript.',
   continue: 'Continue',
-  another: 'Use another transcript',
-  anotherNote: 'Choosing another transcript forgets your corrections.',
+  another: USE_ANOTHER,
+  anotherNote: ANOTHER_FORGETS,
+  returns: `You’ll go back to “${FLOW_NAME.check}”.`,
   resultHeading: FLOW_NAME.left,
 };
 
@@ -199,7 +202,8 @@ export function reviewHtml(state: LeftState, curriculum: Curriculum): string {
   </section>`).join('\n  ')}
   <div class="review-foot">
     <p class="review-count">${esc(fixingLine(transcript))}</p>
-    <button type="button" class="btn primary" data-continue>${esc(TEXT.continue)} ${icons.arrow()}</button>
+    <button type="button" class="btn primary" data-continue>${esc(TEXT.continue)} ${icons.arrow()}</button>${state.returnTo === 'check' ? `
+    <p class="condition" data-returns>${esc(TEXT.returns)}</p>` : ''}
     ${another}
   </div>`;
 }
@@ -240,6 +244,8 @@ export interface LeftHooks {
   correct(line: number, correction: Correction): void;
   /** Says something to a screen reader, in a place the page being drawn again does not replace. */
   say(text: string): void;
+  /** "Continue" was pressed: the reviewed rows are handed on. */
+  continued(): void;
 }
 
 /** Wires up the page once it is drawn. */
@@ -284,6 +290,7 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
       change({ continued: true, editing: null, draft: null });
       hooks.redraw();
       focus('h1');
+      hooks.continued();
       return;
     }
     const edit = lineOf('edit');

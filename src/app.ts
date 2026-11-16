@@ -1,20 +1,20 @@
 // The app: one page, three addresses. Shows the page for the address, and keeps doing so
 // as the student moves about.
-import { checkPage, emptyList, setupCheck, type CourseList } from './check';
+import { NO_TRANSCRIPT, checkPage, emptyList, setupCheck, type CheckView, type CourseList, type OnCheck } from './check';
 import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
-import { ANOTHER_FIRST, emptyLeft, leftPage, refusalText, setupLeft, type LeftState } from './left';
+import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, refusalText, setupLeft, type LeftState } from './left';
 import { browserStorage, readLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
-import { correctRow, openTranscript } from './review';
+import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
 import { HREF, routeOf, titleOf, type Route } from './shell';
 import { startPage } from './start';
 import { readFile, type ChosenFile, type Refusal } from './upload';
 
-export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, list: CourseList = emptyList(), left: LeftState = emptyLeft()): string => {
+export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, list: CourseList = emptyList(), left: LeftState = emptyLeft(), onCheck: OnCheck = NO_TRANSCRIPT): string => {
   const [program] = programs;
   if (!program) throw new Error('PathCheck has no program to show.');
-  return route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list) : leftPage(program.curriculum, left);
+  return route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left);
 };
 
 type Listener = (event: AppEvent) => void;
@@ -69,6 +69,20 @@ export function startApp(win: AppWindow): App {
   const left: LeftState = emptyLeft();
   const part = <T>(selector: string): T | null => root.querySelector(selector) as T | null;
 
+  // "Check my courses" uses the same transcript once it is reviewed. Why a file chosen on
+  // that page was not taken is said there.
+  let checkRefusal: Refusal | null = null;
+  let checkView: CheckView | null = null;
+  const onCheck = (): OnCheck => {
+    const { transcript } = left;
+    if (!transcript) return { state: 'none', refusal: checkRefusal ? refusalText(checkRefusal) : null };
+    if (!left.continued) return { state: 'reviewing' };
+    const toFix = stillToFix(transcript).length;
+    // With no row taken on there is nothing to go by; with rows still to fix nothing is exact.
+    const use = takenOn(transcript).length > 0 ? { standings: reviewedStandings(transcript, curriculum.grades), exact: toFix === 0 } : null;
+    return { state: 'added', name: transcript.name, use, counts: countLine(transcript), toFix };
+  };
+
   // One polite status line for what happens on a page that is drawn again as a whole: made
   // once, beside the page, so that what is said in it is read out.
   const status = ((): { replaceChildren(text: string): void } | null => {
@@ -90,18 +104,30 @@ export function startApp(win: AppWindow): App {
     // The demo's timer belongs to the Start page: it stops when the student leaves.
     demo?.stop();
     demo = null;
+    if (moved) checkRefusal = null;
     route = routeOf(win.location.hash);
-    root.innerHTML = renderPage(route, allPrograms, courses, left);
+    root.innerHTML = renderPage(route, allPrograms, courses, left, onCheck());
     win.document.title = titleOf(route);
     const player = part<DemoRoot>('[data-demo]');
     if (player) demo = setupDemo(player, { reducedMotion: win.matchMedia('(prefers-reduced-motion: reduce)').matches, timers: win });
-    if (route === 'check') setupCheck(root as unknown as ParentNode, courses, curriculum);
+    checkView = route === 'check' ? setupCheck(root as unknown as ParentNode, courses, curriculum, onCheck, {
+      browse,
+      forget: () => { Object.assign(left, emptyLeft()); checkRefusal = null; },
+      // The review, with its corrections as they are; "Continue" there comes back here.
+      review: () => { Object.assign(left, { continued: false, editing: null, draft: null, returnTo: 'check' }); goTo('left'); },
+    }) : null;
     if (route === 'left' && part('main.left')) {
       setupLeft(root as unknown as ParentNode, left, curriculum, {
         browse,
         redraw: () => show(false),
         correct: (line, correction) => { if (left.transcript) left.transcript = correctRow(left.transcript, line, correction, curriculum); },
         say,
+        // Back to "Check my courses" when the transcript was asked for there.
+        continued: () => {
+          if (left.returnTo !== 'check') return;
+          left.returnTo = 'left';
+          goTo('check');
+        },
       }, next => { Object.assign(left, next); });
     }
     if (moved) {
@@ -115,15 +141,16 @@ export function startApp(win: AppWindow): App {
 
   // The address the app has just moved to by itself and already shown.
   let shownAlready: string | null = null;
-  /** Shows the page of the transcript flow, wherever the student is. */
-  const showLeft = (): void => {
-    if (routeOf(win.location.hash) !== 'left') {
+  /** Shows a page of one of the two flows, wherever the student is. */
+  function goTo(to: 'left' | 'check'): void {
+    if (routeOf(win.location.hash) !== to) {
       // The browser tells the page of the new address a moment later; it is shown now.
-      shownAlready = HREF.left;
-      win.location.hash = HREF.left;
+      shownAlready = HREF[to];
+      win.location.hash = HREF[to];
     }
     show(true);
-  };
+  }
+  const showLeft = (): void => goTo('left');
 
   // Each file taken has a number: only the last one chosen may change the page.
   let latest = 0;
@@ -135,6 +162,8 @@ export function startApp(win: AppWindow): App {
       return;
     }
     const mine = ++latest;
+    // Where the file was chosen: a transcript asked for on "Check my courses" comes back there.
+    const from = route;
     let refusal: Refusal | null = null;
     let transcript: LeftState['transcript'] = null;
     try {
@@ -147,7 +176,17 @@ export function startApp(win: AppWindow): App {
     }
     // Another file was chosen meanwhile: this one changes nothing.
     if (mine !== latest) return;
-    Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null });
+    if (refusal && from === 'check' && route === 'check') {
+      // Not taken: the student stays on "Check my courses", and the card says why.
+      checkRefusal = refusal;
+      checkView?.refresh();
+      say(refusalText(refusal));
+      part<{ focus(): void }>('[data-choose]')?.focus();
+      return;
+    }
+    // (A file refused after the student left "Check my courses" brings nobody back there.)
+    const returnTo = from === 'check' && !refusal ? 'check' : from === 'left' ? left.returnTo : 'left';
+    Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null, returnTo });
     showLeft();
     if (refusal) {
       // The reason is on the page and is read out; the keyboard is where another file is chosen.

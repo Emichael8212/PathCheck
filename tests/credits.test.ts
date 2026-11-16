@@ -5,11 +5,12 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error The approved mockups are plain JavaScript, with no type declarations.
 import { left as approvedLeft } from '../mockups/data.js';
-import { answersFor } from '../src/answers';
+import { answersFor, type TranscriptUse } from '../src/answers';
 import { summaryHtml } from '../src/check';
 import { FULL_TIME, MOST_UNKNOWN_CREDITS, UNKNOWN_COURSE_CREDITS, USUAL_MOST, noteFor, totalsOf, type Totals } from '../src/credits';
 import { curriculum, normalizeCode } from '../src/curriculum';
 import { entryFor, setCredits, type Entry } from '../src/entries';
+import { courseStandings } from '../src/transcript';
 import { belowFullTime, overUsualMost } from '../src/wording';
 
 const entries = (codes: readonly string[]): Entry[] => codes.map(code => entryFor(normalizeCode(code) ?? code, curriculum));
@@ -49,15 +50,15 @@ describe('the total', () => {
   });
 
   it('leaves a course that waits for the legacy answer out of both counts', () => {
-    expect(totals(entries(['FLS 161', 'MGT 321']))).toEqual({ total: 6, counts: 3, doesNotCount: 0, waiting: 3, pending: true });
+    expect(totals(entries(['FLS 161', 'MGT 321']))).toEqual({ total: 6, counts: 3, doesNotCount: 0, waiting: 3, needed: 0, pending: true });
     // The legacy course asks; the elective after it waits; both are in the total only.
-    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']))).toEqual({ total: 12, counts: 6, doesNotCount: 0, waiting: 6, pending: true });
-    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), true)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0, pending: false });
-    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), false)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0, pending: false });
-    expect(totals(entries(['PSY 251', 'GEO 206']))).toEqual({ total: 6, counts: 0, doesNotCount: 0, waiting: 6, pending: true });
+    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']))).toEqual({ total: 12, counts: 6, doesNotCount: 0, waiting: 6, needed: 0, pending: true });
+    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), true)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0, needed: 0, pending: false });
+    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), false)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0, needed: 0, pending: false });
+    expect(totals(entries(['PSY 251', 'GEO 206']))).toEqual({ total: 6, counts: 0, doesNotCount: 0, waiting: 6, needed: 0, pending: true });
     // A waiting course with no credits is still a course that waits.
     const noCredits = [{ credits: 0 }, { credits: 3 }];
-    expect(totalsOf(noCredits, [{ kind: 'ask' }, { kind: 'counts' }])).toEqual({ total: 3, counts: 3, doesNotCount: 0, waiting: 0, pending: true });
+    expect(totalsOf(noCredits, [{ kind: 'ask' }, { kind: 'counts' }])).toEqual({ total: 3, counts: 3, doesNotCount: 0, waiting: 0, needed: 0, pending: true });
   });
 });
 
@@ -133,9 +134,17 @@ describe('whatever the list', () => {
   };
   const pool = ['PSY 251', 'FLS 161', 'MGT 220', 'HIS 132', 'GEO 206', 'ENG 131', 'ENG 140', 'ORI 100', 'BIOL 127', 'MGT 321', 'FIN 201', 'MKT 410', 'CIS 499', 'ECO 301', 'ACT 350', 'CIS 304', 'BIO 230', 'XYZ 101'];
 
+  // A made-up transcript whose picks are held while no sequence is on its way: a typed
+  // sequence course is then needed without adding credits (F12).
+  const picksHeld: TranscriptUse = {
+    standings: courseStandings(['HIS 131', 'GEO 206', 'HUM 101', 'FIN 201'].map(code => ({ code, term: 'Fall 2025', credits: 3, grade: 'B', transfer: false })), curriculum.grades),
+    exact: true,
+  };
+
   it('adds up for any list', () => {
     const next = random(SEED);
     let waited = 0;
+    let needed = 0;
     for (let i = 0; i < 500; i++) {
       const codes = [...new Set(Array.from({ length: 1 + Math.floor(next() * 9) }, () => pool[Math.floor(next() * pool.length)] as string))];
       let list: readonly Entry[] = entries(codes);
@@ -148,6 +157,14 @@ describe('whatever the list', () => {
         const of = (kinds: string[]): number => list.reduce((credits, entry, at) => (kinds.includes(answers[at]?.kind ?? '') ? credits + entry.credits : credits), 0);
         expect(sums.total, label).toBe(list.reduce((credits, entry) => credits + entry.credits, 0));
         expect(sums.total, label).toBe(sums.counts + sums.doesNotCount + sums.waiting);
+        expect(sums.needed, label).toBe(0);
+        // With a transcript a course can be needed for a sequence: in the total, in neither count.
+        const exactAnswers = answersFor(list, curriculum, legacy, picksHeld);
+        const exact = totalsOf(list, exactAnswers);
+        expect(exact.total, label).toBe(sums.total);
+        expect(exact.total, label).toBe(exact.counts + exact.doesNotCount + exact.waiting + exact.needed);
+        expect(exact.needed, label).toBe(list.reduce((credits, entry, at) => (exactAnswers[at]?.kind === 'needed' ? credits + entry.credits : credits), 0));
+        if (exact.needed > 0) needed++;
         expect(sums.counts, label).toBe(of(['counts']));
         expect(sums.doesNotCount, label).toBe(of(['no']));
         // Rows wait only while the legacy answer is missing.
@@ -167,5 +184,6 @@ describe('whatever the list', () => {
       }
     }
     expect(waited).toBeGreaterThan(30);
+    expect(needed).toBeGreaterThan(30);
   });
 });

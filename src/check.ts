@@ -5,7 +5,7 @@
 //
 // What the student types is never put into the page as it is: only a course code worked
 // out from it.
-import { answersFor, legacyMatters, reminderFor, type Answer } from './answers';
+import { answersFor, legacyMatters, reminderFor, type Answer, type TranscriptUse } from './answers';
 import { FULL_TIME, MOST_UNKNOWN_CREDITS, USUAL_MOST, creditsOf, noteFor, totalsOf } from './credits';
 import { type Course, type Curriculum } from './curriculum';
 import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entries';
@@ -13,7 +13,7 @@ import { code, esc, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { FLOW_NAME, foot, top } from './shell';
 import { countsExample } from './start';
-import { COUNT_CONDITION, COUNT_TOWARD, DO_NOT_COUNT, TOTAL_CREDITS, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
+import { ANOTHER_FORGETS, COUNT_CONDITION, COUNT_TOWARD, DO_NOT_COUNT, PRIVACY, TOTAL_CREDITS, USE_ANOTHER, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
 
 const TEXT = {
   addLabel: 'Add a course',
@@ -30,6 +30,16 @@ const TEXT = {
   legacyLine: 'Legacy CIS student:',
   change: 'Change',
   summary: 'Credits',
+  noTranscript: 'No transcript added',
+  transcriptAdded: 'Transcript added',
+  exactTitle: 'Add your transcript for an exact answer',
+  choose: 'Choose transcript PDF',
+  waiting: 'Your transcript is waiting to be checked.',
+  review: 'Check what was read',
+  uses: (name: string): string => `Your answers use your transcript (${name}).`,
+  notUsed: (name: string): string => `No row of your transcript (${name}) was taken on, so these answers don’t use it.`,
+  notExact: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing, so these answers are not exact yet.`,
+  fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
 };
 const creditsFor = (courseCode: string): string => `Credits for ${courseCode}`;
 // The example code in this message is the Start page's example course, from the curriculum.
@@ -48,6 +58,53 @@ export interface CourseList {
 }
 export const emptyList = (legacy: LegacyAnswer = null): CourseList => ({ entries: [], legacy, filter: 'all' });
 
+/** Where the student's transcript stands, as this page needs it. */
+export type OnCheck =
+  /** None yet. `refusal` is why the last file chosen here was not taken. */
+  | { readonly state: 'none'; readonly refusal: string | null }
+  /** Uploaded, and waiting in the review step. */
+  | { readonly state: 'reviewing' }
+  /**
+   * Reviewed. `use` is what the answers use, or null when no row was taken on; `counts` is
+   * the review's line of counts; `toFix` is how many rows still need fixing.
+   */
+  | { readonly state: 'added'; readonly name: string; readonly use: TranscriptUse | null; readonly counts: string; readonly toFix: number };
+export const NO_TRANSCRIPT: OnCheck = { state: 'none', refusal: null };
+const useOf = (transcript: OnCheck): TranscriptUse | null => (transcript.state === 'added' ? transcript.use : null);
+
+/** The note at the right of the heading. */
+export const statusText = (transcript: OnCheck): string => (useOf(transcript) ? TEXT.transcriptAdded : TEXT.noTranscript);
+
+/** The card under the list: add a transcript, go and check it, or what the answers use. */
+export function transcriptCard(transcript: OnCheck): string {
+  const card = (title: string, lines: string, action: string): string => `<section class="exact" aria-labelledby="exact-title">
+    <div class="exact-text">
+      ${icons.doc(20)}
+      <div>
+        <h2 id="exact-title">${esc(title)}</h2>${lines}
+      </div>
+    </div>
+    <div class="exact-action">${action}
+    </div>
+  </section>`;
+  if (transcript.state === 'none') {
+    return `${card(TEXT.exactTitle, `
+        <p>${esc(PRIVACY)}</p>`, `
+      <button type="button" class="btn primary" data-choose>${esc(TEXT.choose)} ${icons.arrow()}</button>`)}
+  <p class="field-message" data-refusal>${transcript.refusal ? esc(transcript.refusal) : ''}</p>`;
+  }
+  if (transcript.state === 'reviewing') {
+    return card(TEXT.waiting, '', `
+      <button type="button" class="btn secondary" data-review>${esc(TEXT.review)} ${icons.arrow()}</button>`);
+  }
+  return card(transcript.use ? TEXT.uses(transcript.name) : TEXT.notUsed(transcript.name), `
+        <p>${esc(transcript.counts)}</p>${transcript.use && transcript.toFix > 0 ? `
+        <p class="exact-warning">${esc(TEXT.notExact(transcript.toFix))}</p>
+        <button type="button" class="text-link" data-review>${esc(TEXT.fix(transcript.toFix))}</button>` : ''}`, `
+      <button type="button" class="btn secondary" data-another>${esc(USE_ANOTHER)}</button>
+      <p>${esc(ANOTHER_FORGETS)}</p>`);
+}
+
 // A sentence with every course code inside it set in the code face.
 const COURSE_CODE = /\b[A-Z]{2,4} \d{3}\b/g;
 const withCodes = (text: string): string => esc(text).replace(COURSE_CODE, found => `<span class="code">${found}</span>`);
@@ -65,7 +122,15 @@ const answerCell = (answer: Answer): string => {
           <div class="legacy-buttons">
             <button type="button" class="btn secondary" data-legacy="yes">${esc(LEGACY_YES)}</button>
             <button type="button" class="btn secondary" data-legacy="no">${esc(LEGACY_NO)}</button>
-          </div>
+          </div>${answer.because ? `
+          <p class="condition">${withCodes(answer.because)}</p>` : ''}
+        </div>`;
+  }
+  // Needed, but adding nothing: neither mark.
+  if (answer.kind === 'needed') {
+    return `
+        <div>
+          <p class="answer">${esc(answer.text)}</p>
         </div>`;
   }
   if (answer.kind === 'waiting') {
@@ -77,7 +142,7 @@ const answerCell = (answer: Answer): string => {
   return `
         ${answer.kind === 'counts' ? marks.counts(20) : marks.no(20)}
         <div>
-          <p class="answer ${answer.kind === 'counts' ? 'is-counts' : 'is-no'}">${withCodes(answer.text)}</p>${answer.kind === 'counts' ? `
+          <p class="answer ${answer.kind === 'counts' ? 'is-counts' : 'is-no'}">${withCodes(answer.text)}</p>${answer.kind === 'counts' && answer.condition ? `
           <p class="condition">${esc(answer.condition)}</p>` : ''}
         </div>`;
 };
@@ -109,16 +174,21 @@ export function noteText(list: CourseList): string | null {
   return note === 'under' ? belowFullTime(FULL_TIME) : note === 'over' ? overUsualMost(USUAL_MOST) : null;
 }
 
-/** The three numbers above the list: total credits, those that count and those that don't. Nothing for an empty list. */
-export function summaryHtml(list: CourseList, curriculum: Curriculum): string {
+/**
+ * The three numbers above the list: total credits, those that count and those that don't.
+ * Nothing for an empty list. The count is conditional, and says so, unless a transcript
+ * makes the answers exact.
+ */
+export function summaryHtml(list: CourseList, curriculum: Curriculum, transcript: OnCheck = NO_TRANSCRIPT): string {
   if (list.entries.length === 0) return '';
-  const totals = totalsOf(list.entries, answersFor(list.entries, curriculum, list.legacy));
+  const use = useOf(transcript);
+  const totals = totalsOf(list.entries, answersFor(list.entries, curriculum, list.legacy, use));
   const note = noteText(list);
   // Under both counts for the eye; read out once.
   const waiting = (heard: boolean): string => (totals.pending ? `<span class="summary-condition"${heard ? '' : ' aria-hidden="true"'}>${esc(WAITING_FOR_LEGACY)}</span>` : '');
   return `<div class="summary" role="group" aria-label="${esc(TEXT.summary)}">
     <div><span class="num">${totals.total}</span><span class="summary-label">${esc(TOTAL_CREDITS)}</span>${note ? `<span class="summary-condition">${esc(note)}</span>` : ''}</div>
-    <div><span class="num is-counts">${totals.counts}</span><span class="summary-label">${esc(COUNT_TOWARD)}</span><span class="summary-condition">${esc(COUNT_CONDITION)}</span>${waiting(true)}</div>
+    <div><span class="num is-counts">${totals.counts}</span><span class="summary-label">${esc(COUNT_TOWARD)}</span>${use?.exact ? '' : `<span class="summary-condition">${esc(COUNT_CONDITION)}</span>`}${waiting(true)}</div>
     <div><span class="num is-no">${totals.doesNotCount}</span><span class="summary-label">${esc(DO_NOT_COUNT)}</span>${waiting(false)}</div>
   </div>`;
 }
@@ -130,30 +200,32 @@ export const filtersHtml = (list: CourseList): string => (list.entries.length ==
     </div>`);
 
 /** The list of entered courses with their answers, and what goes under it; or the line that says there are none yet. */
-export function entriesHtml(list: CourseList, curriculum: Curriculum): string {
+export function entriesHtml(list: CourseList, curriculum: Curriculum, transcript: OnCheck = NO_TRANSCRIPT): string {
   const { entries, legacy, filter } = list;
   if (entries.length === 0) return `<p class="empty-hint">${esc(TEXT.empty)}</p>`;
-  const answers = answersFor(entries, curriculum, legacy);
+  const use = useOf(transcript);
+  const answers = answersFor(entries, curriculum, legacy, use);
   const rows = entries.map((entry, i) => ({ entry, answer: answers[i] as Answer })).filter(one => filter === 'all' || one.answer.kind === 'no');
-  const reminder = reminderFor(entries, curriculum);
+  const reminder = reminderFor(entries, curriculum, use);
   return `${rows.length === 0 ? `<p class="empty-hint">${esc(TEXT.noneMarkedNo)}</p>` : `<div class="table" role="table" aria-label="${esc(TEXT.table)}">
     <div class="table-head" role="row">
       ${TEXT.columns.map((heading, i) => `<span role="columnheader"${i === 3 ? ' class="sr-only"' : ''}>${esc(heading)}</span>`).join('\n      ')}
     </div>${rows.map(one => row(one.entry, one.answer)).join('')}
-  </div>`}${legacy !== null && legacyMatters(entries, curriculum) ? `
+  </div>`}${legacy !== null && legacyMatters(entries, curriculum, use) ? `
   <p class="legacy-line">${esc(TEXT.legacyLine)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(TEXT.change)}</button></p>` : ''}${reminder ? `
   <p class="note">${icons.doc(20)}${withCodes(reminder)}</p>` : ''}`;
 }
 
-export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList()): string => `${top('check')}
+export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList(), transcript: OnCheck = NO_TRANSCRIPT): string => `${top('check')}
 <main class="check">
   <div class="page-head">
     <div>
       <h1 tabindex="-1">${esc(FLOW_NAME.check)}</h1>
     </div>
+    <span class="page-status" data-status>${esc(statusText(transcript))}</span>
   </div>
 
-  <div data-summary>${summaryHtml(list, curriculum)}</div>
+  <div data-summary>${summaryHtml(list, curriculum, transcript)}</div>
 
   <div class="toolbar">
     <div class="search">
@@ -168,13 +240,30 @@ export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList()
     <div data-filters>${filtersHtml(list)}</div>
   </div>
 
-  <div data-entries>${entriesHtml(list, curriculum)}</div>
+  <div data-entries>${entriesHtml(list, curriculum, transcript)}</div>
+  <div data-transcript>${transcriptCard(transcript)}</div>
   <p class="sr-only" role="status" aria-live="polite" data-said></p>
 </main>
 ${foot(curriculum, `PathCheck: ${FLOW_NAME.check}`, true)}`;
 
-/** Wires up the page once it is drawn. */
-export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curriculum): void {
+/** What the page asks of the app about the transcript. */
+export interface CheckHooks {
+  /** Opens the file picker. */
+  browse(): void;
+  /** Forgets the transcript. */
+  forget(): void;
+  /** Opens the review step, to come back here after it. */
+  review(): void;
+}
+/** The page once it is wired up. */
+export interface CheckView {
+  /** Draws again everything that depends on the transcript. What is typed in the field stays. */
+  refresh(): void;
+}
+const NO_HOOKS: CheckHooks = { browse: () => undefined, forget: () => undefined, review: () => undefined };
+
+/** Wires up the page once it is drawn. `transcript` gives where the transcript stands now. */
+export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curriculum, transcript: () => OnCheck = () => NO_TRANSCRIPT, hooks: CheckHooks = NO_HOOKS): CheckView {
   const input = root.querySelector<HTMLInputElement>('#add-course');
   const add = root.querySelector<HTMLButtonElement>('[data-add]');
   const menu = root.querySelector<HTMLElement>('#suggestions');
@@ -183,7 +272,9 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const filters = root.querySelector<HTMLElement>('[data-filters]');
   const region = root.querySelector<HTMLElement>('[data-entries]');
   const said = root.querySelector<HTMLElement>('[data-said]');
-  if (!input || !add || !menu || !message || !summary || !filters || !region || !said) throw new Error('The "Check my courses" page is missing a part it needs.');
+  const status = root.querySelector<HTMLElement>('[data-status]');
+  const card = root.querySelector<HTMLElement>('[data-transcript]');
+  if (!input || !add || !menu || !message || !summary || !filters || !region || !said || !status || !card) throw new Error('The "Check my courses" page is missing a part it needs.');
 
   // What is suggested for the text in the field, which of them is highlighted, and whether
   // the list is showing. Leaving the field hides the list but keeps the highlight, so that
@@ -216,9 +307,14 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const drawList = (): void => {
     // The filters go with the list: an empty list has none, and the next one starts with all its rows.
     if (list.entries.length === 0) list.filter = 'all';
-    summary.innerHTML = summaryHtml(list, curriculum);
+    summary.innerHTML = summaryHtml(list, curriculum, transcript());
     filters.innerHTML = filtersHtml(list);
-    region.innerHTML = entriesHtml(list, curriculum);
+    region.innerHTML = entriesHtml(list, curriculum, transcript());
+  };
+  const refresh = (): void => {
+    status.textContent = statusText(transcript());
+    card.innerHTML = transcriptCard(transcript());
+    drawList();
   };
   // What changed is read out; a note about the total is added when it appears or changes,
   // not every time the list changes under it.
@@ -304,7 +400,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     const chosen = event.target instanceof HTMLSelectElement && event.target.dataset.credits ? event.target : null;
     if (!chosen) return;
     list.entries = setCredits(list.entries, chosen.dataset.credits ?? '', Number(chosen.value));
-    summary.innerHTML = summaryHtml(list, curriculum);
+    summary.innerHTML = summaryHtml(list, curriculum, transcript());
     // The new total is read out, with the note if one has appeared.
     announce(`${TOTAL_CREDITS}: ${creditsOf(list.entries)}.`);
   });
@@ -341,4 +437,18 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     const buttons = region.querySelectorAll<HTMLElement>('[data-remove]');
     (buttons[Math.min(at, buttons.length - 1)] ?? input).focus();
   });
+
+  // The transcript card: choose a PDF, go to the review, or forget the transcript.
+  card.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('[data-choose]')) hooks.browse();
+    else if (target?.closest('[data-review]')) hooks.review();
+    else if (target?.closest('[data-another]')) {
+      hooks.forget();
+      refresh();
+      say(said, TEXT.noTranscript);
+      card.querySelector<HTMLElement>('[data-choose]')?.focus();
+    }
+  });
+  return { refresh };
 }

@@ -643,6 +643,9 @@ svg { display: block; flex-shrink: 0; }
 .exact-text > svg { margin-top: 3px; color: var(--accent); }
 .exact h2 { font-size: 14px; font-weight: 600; }
 .exact p { margin-top: 6px; color: var(--ink-2); font-size: 11px; }
+/* A transcript that is there: what the answers use, and what is still open. */
+.exact .exact-warning { color: var(--ink); font-size: 13px; line-height: 1.6; }
+.exact .text-link { font-size: 14px; }
 
 /* ================= Page 3: "See what I have left" ================= */
 .left { padding-block: 28px 60px; }

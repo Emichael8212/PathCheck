@@ -5,11 +5,15 @@
 // place as done; a course in progress fills it as in progress: it is assumed to pass, so
 // the place is taken, but it is never done. Anything else fills nothing.
 //
+// Courses the student only means to take can be placed too, as planned: the weakest
+// state. A planned course takes only a place that no passed and no in-progress course
+// holds, and it adds nothing to the credits done or in progress.
+//
 // Credits always come from the curriculum, never from a transcript row.
 import { findCourse, normalizeCode, type Block, type Course, type Curriculum } from './curriculum';
 import { type CourseStanding } from './transcript';
 
-export type FillState = 'done' | 'in-progress';
+export type FillState = 'done' | 'in-progress' | 'planned';
 
 /** A course that fills a place. */
 export interface Filled {
@@ -42,6 +46,7 @@ export interface BlockPlacement {
   readonly block: Block;
   readonly required: readonly RequiredPlace[];
   readonly picks: readonly PickPlace[];
+  /** Planned courses are in neither `done` nor `inProgress`: their places are still `needed`. */
   readonly credits: Credits;
 }
 
@@ -73,7 +78,7 @@ export interface SequenceResult {
   readonly alternatives: readonly SequenceAlternativeResult[];
 }
 
-/** A course that was passed or is in progress but fills nothing, and why. */
+/** A course that was passed, is in progress or is planned but fills nothing, and why. */
 export type Unplaced =
   | { readonly code: string; readonly state: FillState; readonly reason: 'not-in-curriculum' | 'not-current' | 'electives-full' | 'legacy-only' }
   | {
@@ -144,18 +149,45 @@ export interface PlaceOptions {
    * fill an elective place; No, or no answer yet, never does.
    */
   readonly legacy?: boolean | null;
+  /**
+   * Courses the student means to take, by code in its normal form, in the order given. One
+   * that is already passed or in progress is left to its standing.
+   */
+  readonly planned?: readonly string[];
 }
 
-/** Does `a` count more than `b`: more credits done, or the same done and more in progress? */
-const countsMore = (a: Placement, b: Placement): boolean =>
-  a.credits.done > b.credits.done || (a.credits.done === b.credits.done && a.credits.inProgress > b.credits.inProgress);
+/** The credits of the planned courses that hold a place. */
+const plannedCredits = (placement: Placement): number => sum([
+  ...placement.blocks.flatMap(one => [...one.required.filter(place => place.state === 'planned'), ...one.picks.flatMap(pick => pick.filled.filter(filled => filled.state === 'planned'))]),
+  ...placement.electives.filled.filter(filled => filled.state === 'planned'),
+].map(one => one.course.credits));
+
+/** Does `a` count more than `b`: more credits done; then more in progress; then more planned? */
+const countsMore = (a: Placement, b: Placement): boolean => {
+  if (a.credits.done !== b.credits.done) return a.credits.done > b.credits.done;
+  if (a.credits.inProgress !== b.credits.inProgress) return a.credits.inProgress > b.credits.inProgress;
+  return plannedCredits(a) > plannedCredits(b);
+};
+
+/** The planned courses to place: checked like the standings, without those the transcript already has. */
+function plannedOf(standings: readonly CourseStanding[], planned: readonly string[]): string[] {
+  const seen = new Set<string>();
+  for (const code of planned) {
+    if (normalizeCode(code) !== code) throw new TypeError(`placeCourses was given a planned course code that is not in its normal form: ${JSON.stringify(code)}`);
+    if (seen.has(code)) throw new TypeError(`placeCourses was given the same planned course twice: ${code}`);
+    seen.add(code);
+  }
+  const has = new Set(standings.filter(one => one.standing === 'passed' || one.standing === 'in-progress').map(one => one.code));
+  return planned.filter(code => !has.has(code));
+}
 
 /**
  * Places every course a student has passed or is taking.
  *
  * When more courses could fill a place than it has room for, they are taken in this
- * order: passed before in progress; in a pick group, a course that belongs to a sequence
- * before one that does not; then the order of the transcript.
+ * order: passed before in progress, and both before planned; in a pick group, a course
+ * that belongs to a sequence before one that does not; then the order of the transcript,
+ * and for planned courses the order given.
  *
  * A legacy-only elective that is also a pick course has two places it could go. It stays
  * a pick course unless, for a legacy student, treating it as an elective counts more.
@@ -164,20 +196,19 @@ const countsMore = (a: Placement, b: Placement): boolean =>
  */
 export function placeCourses(standings: readonly CourseStanding[], curriculum: Curriculum, options: PlaceOptions = {}): Placement {
   checkInput(standings);
+  const planned = plannedOf(standings, options.planned ?? []);
   const legacy = options.legacy === true;
-  let best = arrange(standings, curriculum, legacy, new Set());
+  let best = arrange(standings, planned, curriculum, legacy, new Set());
   if (!legacy) return best;
 
-  const twoPlaces = standings
-    .filter(one => one.standing === 'passed' || one.standing === 'in-progress')
-    .map(one => one.code)
+  const twoPlaces = [...standings.filter(one => one.standing === 'passed' || one.standing === 'in-progress').map(one => one.code), ...planned]
     .filter(code => {
       const places = findCourse(curriculum, code);
       return places.some(place => place.kind === 'legacy-elective') && places.some(place => place.kind === 'pick');
     });
   const asElective = new Set<string>();
   for (const code of twoPlaces) {
-    const moved = arrange(standings, curriculum, legacy, new Set([...asElective, code]));
+    const moved = arrange(standings, planned, curriculum, legacy, new Set([...asElective, code]));
     if (countsMore(moved, best)) {
       asElective.add(code);
       best = moved;
@@ -187,7 +218,7 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
 }
 
 /** One placement: `asElective` names the legacy-only courses that give up their pick to be electives. */
-function arrange(standings: readonly CourseStanding[], curriculum: Curriculum, legacy: boolean, asElective: ReadonlySet<string>): Placement {
+function arrange(standings: readonly CourseStanding[], planned: readonly string[], curriculum: Curriculum, legacy: boolean, asElective: ReadonlySet<string>): Placement {
   const { blocks, electives, sequence } = curriculum;
   const sequenceCourses = new Set(sequence.alternatives.flatMap(alternative => alternative.courses));
   const stateOf = new Map<string, FillState>();
@@ -198,12 +229,8 @@ function arrange(standings: readonly CourseStanding[], curriculum: Curriculum, l
   const unplaced: { order: number; entry: Unplaced }[] = [];
   const pickKey = (blockId: string, group: number): string => `${blockId}#${group}`;
 
-  standings.forEach((standing, order) => {
-    if (standing.standing !== 'passed' && standing.standing !== 'in-progress') return;
-    const { code } = standing;
-    const state: FillState = standing.standing === 'passed' ? 'done' : 'in-progress';
-    stateOf.set(code, state);
-
+  // Where a course can go, by its code.
+  const claim = (code: string, state: FillState, order: number): void => {
     const places = findCourse(curriculum, code);
     const inBlock = places.find(place => place.kind === 'required' || place.kind === 'pick');
     const named = places.find(place => place.kind === 'named-elective');
@@ -231,9 +258,18 @@ function arrange(standings: readonly CourseStanding[], curriculum: Curriculum, l
     } else {
       unplaced.push({ order, entry: { code, state, reason: 'not-in-curriculum' } });
     }
+  };
+  standings.forEach((standing, order) => {
+    if (standing.standing !== 'passed' && standing.standing !== 'in-progress') return;
+    const state: FillState = standing.standing === 'passed' ? 'done' : 'in-progress';
+    // The sequence is judged on what the transcript has, never on a planned course.
+    stateOf.set(standing.code, state);
+    claim(standing.code, state, order);
   });
+  planned.forEach((code, at) => claim(code, 'planned', standings.length + at));
 
-  const doneFirst = (a: Claim, b: Claim): number => Number(a.state !== 'done') - Number(b.state !== 'done');
+  const RANK: Record<FillState, number> = { 'done': 0, 'in-progress': 1, 'planned': 2 };
+  const doneFirst = (a: Claim, b: Claim): number => RANK[a.state] - RANK[b.state];
   const inOrder = (a: Claim, b: Claim): number => a.order - b.order;
   const sequenceFirst = (a: Claim, b: Claim): number => Number(!sequenceCourses.has(a.course.code)) - Number(!sequenceCourses.has(b.course.code));
 

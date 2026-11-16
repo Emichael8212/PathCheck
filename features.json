@@ -114,7 +114,7 @@
         "Automated tests cover legacy Yes and legacy No"
       ],
       "passes": false,
-      "evidence": "docs/sprints/F05.md — rule, wording and remembered answer merged with tests; not passing yet: the on-screen question is pending F08, F11 and F13",
+      "evidence": "docs/sprints/F05.md — rule, wording and remembered answer merged with tests; the question shown on \"Check my courses\" (F08, F12); not passing yet: the on-screen question in the checklist is pending F13",
       "tests": [
         "tests/legacy.test.ts"
       ]
@@ -246,9 +246,15 @@
         "A course that is in progress on the transcript is not shown as counting again",
         "Automated tests cover already passed, slot filled, in progress, below C / W / I, repeats, and transfer/AP"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F12.md — QA PASS in a real browser (round 1: 19 checks; round 2: the owner's wording of 2026-11-16)",
+      "tests": [
+        "tests/answers.test.ts",
+        "tests/placement.test.ts",
+        "tests/credits.test.ts",
+        "tests/check.test.ts",
+        "tests/check-page.test.ts"
+      ]
     },
     {
       "id": "F13",
