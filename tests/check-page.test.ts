@@ -675,7 +675,8 @@ describe('the numbers', () => {
     expect(creditsField('BIO 230')).toBe(select);
     expect(rowElements()[1]).toBe(row);
     expect(document.activeElement).toBe(select);
-    expect(select.value).toBe('4');
+    // The new total is read out.
+    expect(said()).toBe('Total credits: 7.');
     // An unknown course's credits never count toward CIS.
     choose('BIO 230', 9);
     expect(numbers()).toEqual([12, 3, 9]);
@@ -703,14 +704,14 @@ describe('the numbers', () => {
     choose('BIO 230', 2);
     expect(numbers()[0]).toBe(11);
     expect(stripText()).toContain(UNDER);
-    // The note is read out when it appears...
-    expect(said()).toBe(UNDER);
+    // The note is read out when it appears, after the new total...
+    expect(said()).toBe(`Total credits: 11. ${UNDER}`);
     choose('BIO 230', 1);
     // ...and not again while it stays.
-    expect(said()).toBe('');
+    expect(said()).toBe('Total credits: 10.');
     choose('BIO 230', 3);
     expect(stripText()).not.toMatch(/Below|Over/);
-    expect(said()).toBe('');
+    expect(said()).toBe('Total credits: 12.');
     add('mkt 321');
     add('cis 300');
     expect(numbers()[0]).toBe(18);
@@ -719,7 +720,7 @@ describe('the numbers', () => {
     expect(numbers()[0]).toBe(19);
     expect(stripText()).toContain(OVER);
     expect(stripText()).not.toContain(UNDER);
-    expect(said()).toBe(OVER);
+    expect(said()).toBe(`Total credits: 19. ${OVER}`);
   });
 
   it('follows the legacy answer in the numbers', () => {

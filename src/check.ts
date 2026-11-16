@@ -6,7 +6,7 @@
 // What the student types is never put into the page as it is: only a course code worked
 // out from it.
 import { answersFor, legacyMatters, reminderFor, type Answer } from './answers';
-import { FULL_TIME, MOST_UNKNOWN_CREDITS, USUAL_MOST, noteFor, totalsOf } from './credits';
+import { FULL_TIME, MOST_UNKNOWN_CREDITS, USUAL_MOST, creditsOf, noteFor, totalsOf } from './credits';
 import { type Course, type Curriculum } from './curriculum';
 import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entries';
 import { code, esc, icons, marks } from './html';
@@ -105,7 +105,7 @@ const row = (entry: Entry, answer: Answer): string => `
 /** The neutral note that goes with the list's total, or nothing. */
 export function noteText(list: CourseList): string | null {
   if (list.entries.length === 0) return null;
-  const note = noteFor(list.entries.reduce((credits, entry) => credits + entry.credits, 0));
+  const note = noteFor(creditsOf(list.entries));
   return note === 'under' ? belowFullTime(FULL_TIME) : note === 'over' ? overUsualMost(USUAL_MOST) : null;
 }
 
@@ -114,11 +114,12 @@ export function summaryHtml(list: CourseList, curriculum: Curriculum): string {
   if (list.entries.length === 0) return '';
   const totals = totalsOf(list.entries, answersFor(list.entries, curriculum, list.legacy));
   const note = noteText(list);
-  const waiting = totals.waiting > 0 ? `<span class="summary-condition">${esc(WAITING_FOR_LEGACY)}</span>` : '';
+  // Under both counts for the eye; read out once.
+  const waiting = (heard: boolean): string => (totals.pending ? `<span class="summary-condition"${heard ? '' : ' aria-hidden="true"'}>${esc(WAITING_FOR_LEGACY)}</span>` : '');
   return `<div class="summary" role="group" aria-label="${esc(TEXT.summary)}">
     <div><span class="num">${totals.total}</span><span class="summary-label">${esc(TOTAL_CREDITS)}</span>${note ? `<span class="summary-condition">${esc(note)}</span>` : ''}</div>
-    <div><span class="num is-counts">${totals.counts}</span><span class="summary-label">${esc(COUNT_TOWARD)}</span><span class="summary-condition">${esc(COUNT_CONDITION)}</span>${waiting}</div>
-    <div><span class="num is-no">${totals.doesNotCount}</span><span class="summary-label">${esc(DO_NOT_COUNT)}</span>${waiting}</div>
+    <div><span class="num is-counts">${totals.counts}</span><span class="summary-label">${esc(COUNT_TOWARD)}</span><span class="summary-condition">${esc(COUNT_CONDITION)}</span>${waiting(true)}</div>
+    <div><span class="num is-no">${totals.doesNotCount}</span><span class="summary-label">${esc(DO_NOT_COUNT)}</span>${waiting(false)}</div>
   </div>`;
 }
 
@@ -304,7 +305,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     if (!chosen) return;
     list.entries = setCredits(list.entries, chosen.dataset.credits ?? '', Number(chosen.value));
     summary.innerHTML = summaryHtml(list, curriculum);
-    announce('');
+    // The new total is read out, with the note if one has appeared.
+    announce(`${TOTAL_CREDITS}: ${creditsOf(list.entries)}.`);
   });
 
   region.addEventListener('click', event => {

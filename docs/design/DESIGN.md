@@ -344,6 +344,8 @@ which started as a copy of `mockups/style.css`. These differences are intended:
 - **On "Check my courses", a course PathCheck doesn't know has a small dropdown for its
   credits** (0 to 12, starting at 3) where the design shows "3" as text. The owner,
   2026-11-16: such a course "starts at 3 credits and the student can change it".
+- **The summary strip and the two filters are drawn only when the list has a course.**
+  The design shows a list that already has six.
 - **Lines the design has no place for, on "Check my courses"** (agent's wording unless
   said otherwise; each listed for the owner in its pull request): with no courses, "Add
   the courses you plan to take next semester."; under the field, what to type and

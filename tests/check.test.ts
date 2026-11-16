@@ -443,6 +443,10 @@ describe('the numbers above the list', () => {
   it('says when the two counts wait for the legacy answer', () => {
     const waiting = 'Waiting for your legacy answer.';
     expect(decode(strip(typed('FLS 161', 'MGT 321')))).toBe(` 6 Total credits Below 12 credits: below full-time; may affect scholarships. 3 Count toward CIS ${CONDITION} ${waiting} 0 Don’t count ${waiting} `);
+    // Under both counts for the eye; read out once.
+    expect(strip(typed('FLS 161', 'MGT 321')).match(/<span class="summary-condition"( aria-hidden="true")?>Waiting for your legacy answer\.<\/span>/g)).toEqual([
+      '<span class="summary-condition">Waiting for your legacy answer.</span>', '<span class="summary-condition" aria-hidden="true">Waiting for your legacy answer.</span>',
+    ]);
     expect(decode(strip(typed('FLS 161', 'MGT 321'), true))).toBe(` 6 Total credits Below 12 credits: below full-time; may affect scholarships. 6 Count toward CIS ${CONDITION} 0 Don’t count `);
     expect(decode(strip(typed('FLS 161', 'MGT 321'), false))).toBe(` 6 Total credits Below 12 credits: below full-time; may affect scholarships. 3 Count toward CIS ${CONDITION} 3 Don’t count `);
     expect(strip(six)).not.toContain(waiting);

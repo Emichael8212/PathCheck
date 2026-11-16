@@ -505,14 +505,14 @@ svg { display: block; flex-shrink: 0; }
 .empty-hint { color: var(--ink-2); font-size: 14px; line-height: 20px; }
 /* The credits of a course PathCheck doesn't know: the one number on the page the student sets. */
 .credits-select {
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 6px;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-  font-size: 14px;
+  font-size: 16px;
 }
 /* The legacy question on a course's row, a row that waits for it, and the line to change the answer. */
 .legacy-ask { display: grid; gap: 8px; }

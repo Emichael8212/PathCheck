@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 // @ts-expect-error The approved mockups are plain JavaScript, with no type declarations.
 import { left as approvedLeft } from '../mockups/data.js';
 import { answersFor } from '../src/answers';
+import { summaryHtml } from '../src/check';
 import { FULL_TIME, MOST_UNKNOWN_CREDITS, UNKNOWN_COURSE_CREDITS, USUAL_MOST, noteFor, totalsOf, type Totals } from '../src/credits';
 import { curriculum, normalizeCode } from '../src/curriculum';
 import { entryFor, setCredits, type Entry } from '../src/entries';
@@ -48,12 +49,15 @@ describe('the total', () => {
   });
 
   it('leaves a course that waits for the legacy answer out of both counts', () => {
-    expect(totals(entries(['FLS 161', 'MGT 321']))).toEqual({ total: 6, counts: 3, doesNotCount: 0, waiting: 3 });
+    expect(totals(entries(['FLS 161', 'MGT 321']))).toEqual({ total: 6, counts: 3, doesNotCount: 0, waiting: 3, pending: true });
     // The legacy course asks; the elective after it waits; both are in the total only.
-    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']))).toEqual({ total: 12, counts: 6, doesNotCount: 0, waiting: 6 });
-    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), true)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0 });
-    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), false)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0 });
-    expect(totals(entries(['PSY 251', 'GEO 206']))).toEqual({ total: 6, counts: 0, doesNotCount: 0, waiting: 6 });
+    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']))).toEqual({ total: 12, counts: 6, doesNotCount: 0, waiting: 6, pending: true });
+    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), true)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0, pending: false });
+    expect(totals(entries(['FLS 161', 'MKT 410', 'CIS 499', 'ECO 301']), false)).toEqual({ total: 12, counts: 9, doesNotCount: 3, waiting: 0, pending: false });
+    expect(totals(entries(['PSY 251', 'GEO 206']))).toEqual({ total: 6, counts: 0, doesNotCount: 0, waiting: 6, pending: true });
+    // A waiting course with no credits is still a course that waits.
+    const noCredits = [{ credits: 0 }, { credits: 3 }];
+    expect(totalsOf(noCredits, [{ kind: 'ask' }, { kind: 'counts' }])).toEqual({ total: 3, counts: 3, doesNotCount: 0, waiting: 0, pending: true });
   });
 });
 
@@ -149,7 +153,11 @@ describe('whatever the list', () => {
         // Rows wait only while the legacy answer is missing.
         const pending = answers.some(answer => answer.kind === 'ask' || answer.kind === 'waiting');
         if (legacy !== null) expect(pending, label).toBe(false);
-        expect(sums.waiting > 0 || (pending && sums.waiting === 0 && of(['ask', 'waiting']) === 0), label).toBe(pending);
+        expect(sums.pending, label).toBe(pending);
+        expect(sums.waiting > 0, label).toBe(pending);
+        expect(sums.waiting, label).toBe(of(['ask', 'waiting']));
+        // The page says it is waiting exactly when a row is.
+        expect(summaryHtml({ entries: list, legacy, filter: 'all' }, curriculum).includes('Waiting for your legacy answer.'), label).toBe(pending);
         if (pending) waited++;
         // An unknown course's credits are never among those that count.
         for (const entry of list) {
