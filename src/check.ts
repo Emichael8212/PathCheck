@@ -13,7 +13,7 @@ import { code, esc, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { FLOW_NAME, foot, top } from './shell';
 import { countsExample } from './start';
-import { ANOTHER_FORGETS, COUNT_CONDITION, COUNT_TOWARD, DO_NOT_COUNT, PRIVACY, TOTAL_CREDITS, USE_ANOTHER, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
+import { ANOTHER_FORGETS, CHANGE, COUNT_CONDITION, LEGACY_LINE, COUNT_TOWARD, DO_NOT_COUNT, PRIVACY, TOTAL_CREDITS, USE_ANOTHER, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
 
 const TEXT = {
   addLabel: 'Add a course',
@@ -27,8 +27,8 @@ const TEXT = {
   all: 'All courses',
   onlyNo: 'Doesn’t count',
   noneMarkedNo: 'No course in your list is marked “Doesn’t count”.',
-  legacyLine: 'Legacy CIS student:',
-  change: 'Change',
+  legacyLine: LEGACY_LINE,
+  change: CHANGE,
   summary: 'Credits',
   noTranscript: 'No transcript added',
   transcriptAdded: 'Transcript added',

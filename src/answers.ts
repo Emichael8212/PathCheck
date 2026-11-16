@@ -62,7 +62,7 @@ const heldOn = (transcript: TranscriptUse | null): Map<string, 'passed' | 'in-pr
   new Map((transcript?.standings ?? []).flatMap(one => (one.standing === 'passed' || one.standing === 'in-progress' ? [[one.code, one.standing] as const] : [])));
 
 /** For each sequence, its courses that sit in a pick. (The others are required anyway.) */
-const sequencePicks = (curriculum: Curriculum): { name: string; courses: string[] }[] =>
+export const sequencePicks = (curriculum: Curriculum): { name: string; courses: string[] }[] =>
   curriculum.sequence.alternatives.map(alternative => ({
     name: alternative.name,
     courses: alternative.courses.filter(code => findCourse(curriculum, code).some(found => found.kind === 'pick')),

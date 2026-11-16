@@ -450,7 +450,7 @@ describe('going on', () => {
     expect(app.left.continued).toBe(true);
     // The corrected course is handed on; the one left out and the one still to fix are not.
     expect(codesHandedOn()).toEqual(['MGT 321', 'ENG 131']);
-    expect(heading()).toBe('See what I have left');
+    expect(heading()).toBe('Your degree, in focus.');
     expect(document.activeElement).toBe($('h1'));
     expect(tidy($('[data-handed-on]').textContent)).toBe('2 rows taken on. 1 left out because it still needs fixing. 1 left out as not on your transcript.');
     expect(document.querySelector('.review-row')).toBeNull();
@@ -492,5 +492,189 @@ describe('going on', () => {
     expect(fresh.left.transcript).toBeNull();
     expect(document.querySelector('[data-drop]')).not.toBeNull();
     fresh.stop();
+  });
+});
+
+// ---- F13: the checklist, after "Continue" (docs/sprints/F13.md) ----
+describe('the checklist', () => {
+  const cards = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('.req')];
+  const cardOf = (name: string): HTMLElement => {
+    const found = cards().find(card => tidy(card.querySelector('.req-name')?.textContent) === name);
+    if (!found) throw new Error(`no requirement ${name}`);
+    return found;
+  };
+  const statusOf = (name: string): string => tidy(cardOf(name).querySelector('.req-status')?.textContent);
+  const creditsOf = (name: string): string => tidy(cardOf(name).querySelector('.req-credits')?.textContent);
+  const listOf = (name: string): string => tidy(cardOf(name).querySelector('.req-body')?.textContent);
+  const ring = (): string => tidy($('.donut strong').textContent);
+
+  it('shows and hides the requirements', async () => {
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect(heading()).toBe('Your degree, in focus.');
+    expect(tidy($('.eyebrow').textContent)).toBe('What I have left');
+    expect(tidy($('.pill').textContent)).toBe('Synthetic transcript result');
+    expect(ring()).toBe('81');
+    expect(cards()).toHaveLength(9);
+    // Done requirements start closed; the others start open, with their courses.
+    const open = (name: string): boolean => cardOf(name).querySelector('details')!.open;
+    expect(cards().map(card => [tidy(card.querySelector('.req-status')?.textContent), card.querySelector('details')!.open])).toEqual([
+      ['Done', false], ['Done', false], ['In progress', true], ['In progress', true], ['Done', false], ['In progress', true], ['Still needed', true], ['Still needed', true], ['Still needed', true],
+    ]);
+    // Every requirement has the toggle, on a control the keyboard reaches.
+    for (const card of cards()) {
+      expect(card.querySelector('summary')).not.toBeNull();
+      expect(tidy(card.querySelector('.req-show')?.textContent)).toBe('Show courses Hide courses');
+    }
+    // The student opens a done requirement, and closes one that is not done.
+    cardOf('Composition').querySelector('details')!.open = true;
+    cardOf('Major (CIS)').querySelector('details')!.open = false;
+    // "Not done" hides the done ones; nothing else changes, and nothing is drawn again.
+    const before = cards();
+    $('[data-reqs="not-done"]').click();
+    expect(cards().filter(card => !card.hidden).map(card => tidy(card.querySelector('.req-name')?.textContent))).toEqual(['Humanities', 'Social sciences', 'Pre-professional', 'Business core', 'Major (CIS)', 'CIS electives']);
+    expect([$('[data-reqs="all"]').getAttribute('aria-pressed'), $('[data-reqs="not-done"]').getAttribute('aria-pressed')]).toEqual(['false', 'true']);
+    expect(cards()).toEqual(before);
+    expect(open('Major (CIS)')).toBe(false);
+    $('[data-reqs="all"]').click();
+    expect(cards().every(card => !card.hidden)).toBe(true);
+    expect([$('[data-reqs="all"]').getAttribute('aria-pressed'), $('[data-reqs="not-done"]').getAttribute('aria-pressed')]).toEqual(['true', 'false']);
+    expect(open('Composition')).toBe(true);
+    expect(open('Major (CIS)')).toBe(false);
+    // Nothing of this transcript is left uncounted: no such list.
+    expect(document.querySelector('.unused')).toBeNull();
+  });
+
+  it('follows the corrected rows', () => {
+    review(good(), good({ prefix: 'ENG', number: '131' }), good({ prefix: 'BIO', number: '230', description: 'Human Anatomy' }));
+    // A grade corrected to one below C, and a row that is not the student's.
+    openEdit(1);
+    setField(1, 'grade', 'D');
+    $('[data-save="1"]').click();
+    $('[data-out="0"]').click();
+    $('[data-continue]').click();
+    expect(ring()).toBe('121');
+    // The course left out is not used: it is still needed, with no note.
+    expect(statusOf('Business core')).toBe('Still needed');
+    expect(listOf('Business core')).toContain('MGT 321 Principles of Management');
+    expect(listOf('Business core')).not.toContain('doesn’t count');
+    // The corrected grade does not count, and its pick says so.
+    expect(creditsOf('Composition')).toBe('0 / 6 cr');
+    expect(listOf('Composition')).toContain('1 of ENG 131 / ENG 140 ENG 131: the D doesn’t count. It must be repeated, or another course of this pick taken.');
+    // A passed course that fills nothing is in the list under the requirements, closed until asked for.
+    const unused = $<HTMLDetailsElement>('.unused');
+    expect(unused.open).toBe(false);
+    expect(tidy(unused.querySelector('summary')?.textContent)).toBe('1 course on your transcript is not counted toward CIS Show courses Hide courses');
+    expect(tidy(unused.querySelector('ul')?.textContent)).toBe('BIO 230 Doesn’t count toward CIS — not in the CIS curriculum');
+    // Back in the review the corrections are as they were left; undoing them changes the checklist.
+    $('.review-foot [data-review-again]').click();
+    expect(heading()).toBe('Check what was read');
+    expect(document.activeElement).toBe($('h1'));
+    expect(rowOf(0)).toContain('Put back');
+    expect(rowOf(1)).toContain('D Doesn’t count — below C');
+    $('[data-back="0"]').click();
+    $('[data-continue]').click();
+    expect(ring()).toBe('118');
+    expect(creditsOf('Business core')).toBe('3 / 27 cr');
+    expect(listOf('Business core')).toContain('Done MGT 321 Principles of Management');
+  });
+
+  it('says when rows still need fixing', () => {
+    review(good(), good({ prefix: 'ENG', number: '131', grade: 'B+' }), 'not a row', 7);
+    $('[data-continue]').click();
+    // Above the result: how many, what it means, and the way back.
+    expect(tidy($('[data-to-fix]').textContent)).toBe('3 rows of your transcript still need fixing and count nothing. A requirement, or the sequence, may show as still needed because of them. Fix them');
+    expect(creditsOf('Composition')).toBe('0 / 6 cr');
+    expect(creditsOf('Business core')).toBe('3 / 27 cr');
+    $('[data-to-fix] [data-review-again]').click();
+    expect(heading()).toBe('Check what was read');
+    expect(rowOf(1)).toContain('Needs fixing: the grade');
+    openEdit(1);
+    setField(1, 'grade', 'B');
+    $('[data-save="1"]').click();
+    $('[data-out="2"]').click();
+    $('[data-continue]').click();
+    expect(tidy($('[data-to-fix]').textContent)).toBe('1 row of your transcript still needs fixing and counts nothing. A requirement, or the sequence, may show as still needed because of them. Fix it');
+    expect(creditsOf('Composition')).toBe('3 / 6 cr');
+    $('[data-to-fix] [data-review-again]').click();
+    $('[data-out="3"]').click();
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-to-fix]')).toBeNull();
+  });
+
+  it('asks the legacy question before the result', async () => {
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-continue]').click();
+    // Nothing of the result is on the page before the answer: no number, no status.
+    const asking = $('[data-legacy-first]');
+    expect(tidy(asking.textContent)).toBe('Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts only for legacy students.');
+    expect(asking.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('Are you a legacy CIS student?');
+    expect(document.querySelector('.req, .donut, .credit, .sequence, .unused, .legacy-line')).toBeNull();
+    expect(tidy($('main').textContent)).not.toMatch(/Done|In progress|Still needed|credits left|\d+ counted/);
+    $<HTMLElement>('[data-legacy="yes"]').focus();
+    $('[data-legacy="yes"]').click();
+    // Yes: the legacy course is an elective, done.
+    expect(document.querySelector('[data-legacy-first]')).toBeNull();
+    expect(creditsOf('CIS electives')).toBe('6 / 9 cr');
+    expect(listOf('CIS electives')).toContain('FLS 161 Spanish I');
+    expect(ring()).toBe('89');
+    expect(tidy($('.unused summary').textContent)).toContain('1 course on your transcript is not counted');
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
+    expect(document.activeElement).toBe($('[data-legacy-change]'));
+    expect(said()).toBe('Legacy CIS student: Yes');
+    // It is the answer "Check my courses" uses, remembered in the browser.
+    expect(window.localStorage.getItem('pathcheck.legacy')).not.toBeNull();
+    go('#/check');
+    go('#/left');
+    expect(document.querySelector('[data-legacy-first]')).toBeNull();
+    expect(creditsOf('CIS electives')).toBe('6 / 9 cr');
+    // "Change" asks again; No: the course counts nothing, and is listed with its reason.
+    $('[data-legacy-change]').click();
+    expect(document.querySelector('.req')).toBeNull();
+    expect(document.activeElement).toBe($('[data-legacy="yes"]'));
+    expect(window.localStorage.getItem('pathcheck.legacy')).toBeNull();
+    $('[data-legacy="no"]').click();
+    expect(creditsOf('CIS electives')).toBe('3 / 9 cr');
+    expect(ring()).toBe('92');
+    expect(listOf('CIS electives')).not.toContain('FLS 161');
+    expect(tidy($('.unused ul').textContent)).toContain('FLS 161 Spanish I Doesn’t count toward CIS. Legacy students only.');
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: No Change');
+    // A new visit with the same transcript does not ask again.
+    app.stop();
+    document.body.innerHTML = '<div id="app"></div>';
+    app = startApp(window as unknown as AppWindow);
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-legacy-first]')).toBeNull();
+    expect(creditsOf('CIS electives')).toBe('3 / 9 cr');
+    // A transcript whose result the answer cannot change shows no question and no line about it.
+    $('[data-another]').click();
+    window.localStorage.clear();
+    app.stop();
+    document.body.innerHTML = '<div id="app"></div>';
+    app = startApp(window as unknown as AppWindow);
+    await app.takeFile(madeUp('sample-a'));
+    $('[data-continue]').click();
+    expect(document.querySelector('[data-legacy-first], .legacy-line')).toBeNull();
+    expect(cards()).toHaveLength(9);
+  });
+
+  it('shows an empty result for a transcript with no row', () => {
+    review(good());
+    $('[data-out="0"]').click();
+    $('[data-continue]').click();
+    expect(heading()).toBe('Your degree, in focus.');
+    expect(tidy($('[data-no-rows]').textContent)).toBe('No row of your transcript was taken on, so there is nothing to show yet.');
+    // Nothing is shown as done, counted or left.
+    expect(document.querySelector('.req, .donut, .credit, .sequence')).toBeNull();
+    expect(tidy($('[data-handed-on]').textContent)).toBe('0 rows taken on. 1 left out as not on your transcript.');
+    // Both ways on are there.
+    $('.review-foot [data-review-again]').click();
+    expect(heading()).toBe('Check what was read');
+    $('[data-back="0"]').click();
+    $('[data-continue]').click();
+    expect(cards()).toHaveLength(9);
+    $('[data-another]').click();
+    expect(document.querySelector('[data-drop]')).not.toBeNull();
   });
 });

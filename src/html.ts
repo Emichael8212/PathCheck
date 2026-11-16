@@ -19,6 +19,10 @@ const tick = 'M5.9 10.3l2.8 2.8 5.5-5.9';
 export const marks = {
   counts: (size = 20): string => svg(size, `<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/>${line(tick, 2.2)}`, 'mark mark-counts'),
   no: (size = 20): string => svg(size, `<rect x="1" y="1" width="18" height="18" rx="3" fill="currentColor"/>${cut('M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8')}`, 'mark mark-no'),
+  // The three statuses of a requirement: a filled tick, a half-filled ring, a dashed ring.
+  done: (size = 16): string => svg(size, `<circle cx="10" cy="10" r="9" fill="currentColor"/>${cut(tick)}`, 'mark mark-done'),
+  progress: (size = 16): string => svg(size, `<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor"/>`, 'mark mark-progress'),
+  needed: (size = 16): string => svg(size, `<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3.2 2.4"/>`, 'mark mark-needed'),
 };
 
 export const icons = {

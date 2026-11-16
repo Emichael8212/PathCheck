@@ -773,6 +773,17 @@ details[open] .req-cue { transform: rotate(-90deg); }
   font-weight: 700;
 }
 .sequence > svg { margin-top: 2px; }
+/* Additions to the design: the extra credits beside the bar, the courses that fill
+   nothing (closed until asked for), and the question that comes before the result. */
+.credit-extra { margin-top: 12px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
+.unused { margin-top: 12px; border-radius: var(--radius); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+.unused summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; min-height: 44px; padding: 12px 16px; list-style: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; }
+.unused summary::-webkit-details-marker { display: none; }
+.unused ul { display: grid; gap: 8px; padding: 16px; border-top: 1px solid var(--line); }
+.unused li { font-size: 13px; line-height: 1.7; }
+.unused .code.strong { margin-right: calc(8px - 0.2em); font-weight: 600; }
+.legacy-first { max-width: 560px; }
+[data-to-fix] { margin-top: 0; margin-bottom: 20px; }
 
 .plan { margin-top: 50px; }
 .draft-label {

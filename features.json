@@ -269,7 +269,10 @@
       ],
       "passes": false,
       "evidence": "",
-      "tests": []
+      "tests": [
+        "tests/checklist.test.ts",
+        "tests/left-page.test.ts"
+      ]
     },
     {
       "id": "F14",

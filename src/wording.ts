@@ -71,6 +71,26 @@ export const WAITING_FOR_LEGACY = 'Waiting for your legacy answer.';
 export const belowFullTime = (credits: number): string => `Below ${credits} credits: below full-time; may affect scholarships.`;
 export const overUsualMost = (credits: number): string => `Over ${credits} credits: may cost extra.`;
 
+// ---- The checklist (brief §4 Flow B step 3; docs/design/DESIGN.md "Page 3"; docs/sprints/F13.md) ----
+/** On a course in progress that was attempted before, below the lowest grade that counts (the design's sentence). */
+export const repeatInProgress = (grade: string): string => `Repeat; the earlier ${grade} doesn’t count.`;
+/** On a still-needed course whose best attempt was below the lowest grade that counts (brief §5: flag "must be repeated"). */
+export const mustBeRepeated = (grade: string): string => `Must be repeated; the ${grade} doesn’t count.`;
+/** The same for a course of a pick, or an elective: another course can fill the place. */
+export const pickFailed = (courseCode: string, grade: string): string => `${courseCode}: the ${grade} doesn’t count. It must be repeated, or another course of this pick taken.`;
+export const electiveFailed = (courseCode: string, grade: string): string => `${courseCode}: the ${grade} doesn’t count. It must be repeated, or another elective taken.`;
+/** What the sequence still needs while a pick is open; `kinds` name the sequences ("history", "literature"). */
+export const sequenceStillNeeded = (codes: readonly string[], kinds: readonly string[]): string => `Still needed: ${codes.join(' or ')} to complete a ${kinds.join(' or ')} sequence.`;
+const extraCredits = (credits: number): string => `${credits} extra ${credits === 1 ? 'credit' : 'credits'}`;
+/** With every pick held by other courses (the owner's answer of 2026-11-16, for Flow B). */
+export const sequenceExtra = (kinds: readonly string[], credits: number, codes: readonly string[]): string =>
+  `Needed for the ${kinds.join(' or ')} sequence (${extraCredits(credits)}): ${codes.join(' or ')}.`;
+/** Beside the credits left, which those extra credits are not part of. */
+export const extraForSequence = (credits: number, kinds: readonly string[]): string => `Plus ${extraCredits(credits)} for the ${kinds.join(' or ')} sequence.`;
+/** The line that shows the legacy answer, with the way to change it. */
+export const LEGACY_LINE = 'Legacy CIS student:';
+export const CHANGE = 'Change';
+
 // ---- A transcript that is there (the review step; "Check my courses") ----
 export const USE_ANOTHER = 'Use another transcript';
 export const ANOTHER_FORGETS = 'Choosing another transcript forgets your corrections.';

@@ -4,7 +4,7 @@ import { NO_TRANSCRIPT, checkPage, emptyList, setupCheck, type CheckView, type C
 import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, refusalText, setupLeft, type LeftState } from './left';
-import { browserStorage, readLegacyAnswer } from './legacy';
+import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
 import { HREF, routeOf, titleOf, type Route } from './shell';
@@ -14,7 +14,7 @@ import { readFile, type ChosenFile, type Refusal } from './upload';
 export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, list: CourseList = emptyList(), left: LeftState = emptyLeft(), onCheck: OnCheck = NO_TRANSCRIPT): string => {
   const [program] = programs;
   if (!program) throw new Error('PathCheck has no program to show.');
-  return route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left);
+  return route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left, list.legacy);
 };
 
 type Listener = (event: AppEvent) => void;
@@ -122,6 +122,13 @@ export function startApp(win: AppWindow): App {
         redraw: () => show(false),
         correct: (line, correction) => { if (left.transcript) left.transcript = correctRow(left.transcript, line, correction, curriculum); },
         say,
+        // One legacy answer for both flows, remembered in the browser.
+        legacy: answer => {
+          courses.legacy = answer;
+          if (answer === null) clearLegacyAnswer(browserStorage());
+          else writeLegacyAnswer(browserStorage(), answer);
+          show(false);
+        },
         // Back to "Check my courses" when the transcript was asked for there.
         continued: () => {
           if (left.returnTo !== 'check') return;

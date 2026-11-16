@@ -860,7 +860,7 @@ describe('with a transcript', () => {
     expect(document.querySelector('[data-returns]')).toBeNull();
     $('[data-continue]').click();
     expect(app.route).toBe('left');
-    expect(heading()).toBe('See what I have left');
+    expect(heading()).toBe('Your degree, in focus.');
   });
 
   it('says on the card why a file was not taken', async () => {
