@@ -393,27 +393,40 @@ from? The owner: "leave it open for the student to add it."
 - `features.json` F09 has no step for this yet. A new step is proposed to the owner in the
   pull request that records this answer; the tests above are built in F09 either way.
 
+### 2026-11-16 — Three answers: F08 step 5, a new F09 step, and the last-reviewed line
+
+Asked after pull request #12. The owner's words are quoted.
+
+1. **F08 step 5.** Asked whether the new sentence was meant for every course that doesn't
+   count. The owner: BIO 230 "keeps "Doesn't count toward CIS — not in the CIS curriculum".
+   What you applied is correct." So only CIS 304 and CIS 415 show "Doesn't count toward
+   CIS — <code> isn't in the current CIS curriculum."; F08 step 5 stays as it is.
+2. **A new step for F09.** Approved ("Yes"), with the wording proposed. Added to
+   `features.json` as F09 step 5: "A course PathCheck doesn't know starts at 3 credits and the student can change it; a course PathCheck knows uses its curriculum credits and can't be edited. An unknown course's credits add to the semester total only, never to what counts toward CIS"
+3. **The last-reviewed line.** Asked what date "Curriculum last reviewed" should show, since
+   the curriculum file has none and the mockups' "Nov 2026" was mockup text. The owner:
+   "leave out "Curriculum last reviewed: Nov 2026"". → F06 (the footer), F18.
+
+*Agent's notes, not owner decisions:*
+- Answer 3 is read as: the line is left out, and no date is invented. The app shows
+  "Curriculum last reviewed: <date>" only when the curriculum file has a date, so it comes
+  back by itself if the owner gives one (brief §12 lists the date among what the owner
+  provides before M3).
+- F18 step 1 says every result shows "Curriculum last reviewed: <date>", and step 3 has a
+  banner when the curriculum hasn't been reviewed in 12 months. With no date neither can
+  be shown. F18's contract must put this to the owner (give a date, or reword the two
+  steps) before F18 is built; the steps are not changed here.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- **2026-11-16 (needed for F08).** The owner approved F08 step 5 "with one change": it
-  "must use my full message". The step as proposed already had that sentence in full for
-  CIS 304 and CIS 415, so it was applied as proposed. Did the owner mean the new sentence
-  ("Doesn't count toward CIS — <code> isn't in the current CIS curriculum.") for every
-  course that doesn't count, BIO 230 included, in place of "not in the CIS curriculum"?
-  Until answered, other courses keep the sentence of the brief and the approved design.
-  Status: asked in pull request #12, not answered yet.
-- **2026-11-16 (needed for F09).** `features.json` F09 has no step for the owner's answer
-  on the credits of a course PathCheck doesn't know. Proposed new step: "A course PathCheck
-  doesn't know starts at 3 credits and the student can change it; a course PathCheck knows
-  uses its curriculum credits and can't be edited. An unknown course's credits add to the
-  semester total only, never to what counts toward CIS". Status: asked in pull request
-  #12, not approved yet. The owner's three tests are built in F09 either way.
-
-(Answered on 2026-11-16, see "Owner answers": the grade column of transfer rows; whether
-CIS 304 and CIS 415 count; and the credits of a course PathCheck doesn't know.)
+- None open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+  rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
+  F08 step 5; the new F09 step; and the last-reviewed line.)
+- To be asked when F18 starts: with no review date in the curriculum file, F18 steps 1 and
+  3 cannot be shown as written (see the agent's notes under the answer of 2026-11-16).
 
 ## Milestone checks
 
