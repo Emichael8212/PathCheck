@@ -1085,8 +1085,16 @@ describe('the pace line', () => {
     expect([$('[data-line-term]').getAttribute('aria-label'), $('[data-line-target]').getAttribute('aria-label')]).toEqual(['Term for these courses', 'Target semester']);
     // It sits under the three numbers.
     expect($('[data-summary]').lastElementChild).toBe($('[data-pace-line]'));
-    // Forgetting the transcript takes the line away.
+    // Forgetting the transcript takes the line away; the next transcript starts with its own first term.
+    choose('[data-line-term]', 'Fall 2027');
+    expect(shown('[data-line-term]')).toBe('Fall 2027');
     $('[data-another]').click();
+    expect(document.querySelector('[data-pace-line]')).toBeNull();
+    await withTranscript('sample-b');
+    $('[data-pace-line] [data-legacy="no"]')?.click();
+    expect(shown('[data-line-term]')).toBe('Spring 2026');
+    $('[data-another]').click();
+    window.localStorage.clear();
     expect(document.querySelector('[data-pace-line]')).toBeNull();
     // A transcript with no row taken on gives none either.
     Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: ['not a row'] }, curriculum), continued: true });

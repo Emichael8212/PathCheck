@@ -565,6 +565,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     else if (target?.closest('[data-review]')) hooks.review();
     else if (target?.closest('[data-another]')) {
       hooks.forget();
+      list.term = null;
       refresh();
       say(said, TEXT.noTranscript);
       card.querySelector<HTMLElement>('[data-choose]')?.focus();

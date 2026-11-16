@@ -197,6 +197,8 @@ export function startApp(win: AppWindow): App {
     }
     // (A file refused after the student left "Check my courses" brings nobody back there.)
     const returnTo = from === 'check' && !refusal ? 'check' : from === 'left' ? left.returnTo : 'left';
+    // A new transcript: the term chosen for the pace line of the last one does not go with it.
+    if (transcript) courses.term = null;
     Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null, returnTo });
     showLeft();
     if (refusal) {
