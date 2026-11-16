@@ -113,10 +113,12 @@
         "The answer is remembered in the browser and the student can change it",
         "Automated tests cover legacy Yes and legacy No"
       ],
-      "passes": false,
-      "evidence": "docs/sprints/F05.md — rule, wording and remembered answer merged with tests; the question shown on \"Check my courses\" (F08, F12); not passing yet: the on-screen question in the checklist is pending F13",
+      "passes": true,
+      "evidence": "docs/sprints/F05.md — rule, wording and remembered answer; the question shown, answered and changed in a browser on \"Check my courses\" (F08, F12) and on the checklist (F13's QA rounds 1 and 2)",
       "tests": [
-        "tests/legacy.test.ts"
+        "tests/legacy.test.ts",
+        "tests/checklist.test.ts",
+        "tests/left-page.test.ts"
       ]
     },
     {
@@ -226,12 +228,13 @@
         "In-progress rows show \"In progress\"; below C, W and I rows are shown as not counting; rows in the transfer-credit section are labelled 'Transfer credit' and treated as passed, whatever their grade column shows; whether each one counts follows the normal curriculum rules.",
         "Continuing uses the reviewed rows, including the student's fixes"
       ],
-      "passes": false,
-      "evidence": "docs/sprints/F11.md — QA round 2 PASS in a real browser (16 checks); not passing yet: step 5 (continuing uses the reviewed rows) is checked on screen with F13",
+      "passes": true,
+      "evidence": "docs/sprints/F11.md — QA PASS (round 2); step 5 shown on screen by the checklist: F13's QA rounds 1 and 2 (docs/sprints/F13.md)",
       "tests": [
         "tests/upload.test.ts",
         "tests/review.test.ts",
-        "tests/left-page.test.ts"
+        "tests/left-page.test.ts",
+        "tests/checklist.test.ts"
       ]
     },
     {
@@ -267,8 +270,8 @@
         "Blocks that are Still needed or In progress show the remaining courses directly; Done blocks are collapsed and can be opened",
         "If neither HIS 132 nor ENG 210 is completed or planned, the checklist shows \"Still needed: HIS 132 or ENG 210 to complete a history or literature sequence.\""
       ],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "docs/sprints/F13.md — QA PASS in a real browser (rounds 1 and 2: 16 checks); reviewer: no blocker after round 3",
       "tests": [
         "tests/checklist.test.ts",
         "tests/left-page.test.ts"
