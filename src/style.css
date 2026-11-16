@@ -503,6 +503,14 @@ svg { display: block; flex-shrink: 0; }
 .field-message { margin-top: 8px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .field-message:empty { margin-top: 0; }
 .empty-hint { color: var(--ink-2); font-size: 14px; line-height: 20px; }
+/* The legacy question on a course's row, a row that waits for it, and the line to change the answer. */
+.legacy-ask { display: grid; gap: 8px; }
+.legacy-ask p { font-weight: 600; }
+.legacy-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.legacy-buttons .btn { min-height: 44px; padding-inline: 20px; }
+.answer.is-waiting { color: var(--ink-2); font-weight: 400; }
+.legacy-line { margin-top: 16px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
+.legacy-line strong { color: var(--ink); }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .filters button {
   display: inline-flex;

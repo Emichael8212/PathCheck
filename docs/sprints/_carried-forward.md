@@ -8,42 +8,13 @@ Read this before writing a sprint contract; delete a line when its feature has d
   adding up a transcript row's credits. A withdrawn row still shows credits attempted.
   (F03 review; done for placement in F04)
 
-## For F08 (check my courses, no transcript)
-- **F08 finishes F07.** F07's entering is merged but F07 is BLOCKED in
-  `docs/sprints/F07.md`. F08's contract must contain these three on-screen checks, and
-  F08's pull request marks F07 passing (`passes`, `evidence`) and removes its BLOCKED line:
-  a course that is not in the curriculum can be entered and gets its answer; courses can
-  be added and removed before and after answers are shown; every answer row shows the
-  course title under its code.
-- The list is `CourseList` (`src/check.ts`, held by `startApp`): entries in typed order,
-  never the same course twice, each an `Entry` (`src/entries.ts`) with `kind` "listed",
-  "elective" (by the rule only) or "unknown" (CIS 304 and CIS 415 are "unknown").
-  "listed" means only "in a curriculum list, with a title and credits": the legacy-only
-  electives are "listed" too. Whether a course counts is decided by placing it and by the
-  legacy answer, never by `kind`. (F07 review)
-- The table is drawn by `entriesHtml` in `src/check.ts` with three cells per row. The
-  design's third column, "Does it count?", is left free for F08, with the row tint, the
-  two filters, the summary's counts and the sequence reminder. `tests/check.test.ts` "says
-  nothing yet about what counts" must be replaced, not loosened.
-- Only the list and the suggestions are redrawn; the field never is. Keep it so.
-- At 375 the open suggestion menu covers the top of the first course row; in the design it
-  covers the filter row, which F08 adds. Check it again when the filters are there.
-  (F07 QA)
-- Use the sentences in `src/wording.ts`: `countsToward(block name)`, `CONDITION` and
-  `NOT_IN_CURRICULUM`. The Start page's examples show the same constants, so a change
-  changes both. (F06)
-- Settled by the owner on 2026-11-16: the sequence course wins its slot whatever the
-  typed order, as `placeCourses` already does; otherwise the first typed counts.
-- CIS 304 and CIS 415 never count (owner answer, 2026-11-16). `placeCourses` leaves them
-  unplaced with the reason "not-current", and `countsByElectiveRule` says no. Flow A must
-  answer, in the owner's words, "Doesn't count toward CIS — <code> isn't in the current CIS
-  curriculum.", and never the elective answer. The owner asked for a Flow A test of both
-  courses, and of another 300/400-level CIS course that still counts as an elective.
-  F08 steps 2, 5 and 7 now say so (owner approval, 2026-11-16).
-- `placeCourses` refuses the same course twice. A student may type a course twice, or type
-  one that is already on the transcript: merge before calling it. (F04 QA)
-- Typed courses need a third, weaker state than passed and in progress, with its own
-  credits, so that pace is not mixed with courses really in progress. (F04 review)
+## For F09 (the summary strip)
+- The design's summary strip is F09's: total credits; credits that count, with "unless
+  you've already passed them or filled their slots" under it (owner answer b); credits
+  that don't count. Take the two counts from `answersFor` (`src/answers.ts`): a course
+  counts when its answer's `kind` is "counts" and doesn't when it is "no". A row that
+  shows the legacy question or waits for it is in neither count until it is answered: say
+  so in F09's contract. (F08)
 
 ## For F09 (credit total)
 - Each row already shows its credits (`Entry.credits`): the curriculum's, the elective
@@ -84,6 +55,16 @@ Read this before writing a sprint contract; delete a line when its feature has d
   as not counting: never the elective answer, never under a block. In Flow A it uses the
   owner's sentence, with or without a transcript. (F04 fix review)
 
+## For F12, F14 and F15 (typed courses beside a transcript)
+- Without a transcript every typed course is placed in the same state (in progress). With
+  a transcript, typed courses need a third, weaker state than passed and in progress,
+  with its own credits, so that a planned course never takes a place from a passed one
+  and pace is not mixed with courses really in progress. (F04 review; F08)
+- With a transcript the answers change: "You already passed this", "This slot is already
+  filled", and "Counts toward CIS: <block>" without the condition (F12's steps). The
+  sentences of `src/wording.ts` and `answersFor` in `src/answers.ts` are the place to add
+  them; the condition belongs to the no-transcript answers only. (F08)
+
 ## For F12 (check my courses, with a transcript)
 - The design has "No transcript added" at the right of the page heading, and the card "Add
   your transcript for an exact answer" under the list. Neither is drawn yet. (F07)
@@ -96,11 +77,15 @@ Read this before writing a sprint contract; delete a line when its feature has d
   two picks). Never show the degree as complete or on pace from credits alone; the plan
   must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
 
-## For F08, F11 and F13 (the legacy question on screen)
+## For F11 and F13 (the legacy question on screen)
 F05's rule is merged but F05 is not passing: it is BLOCKED in `docs/sprints/F05.md` until
-these three screens have shown the question. Each of their contracts must contain the
+the screens that need the question have shown it. F08 ("Check my courses") has done its
+part: the question on the row, Yes and No, the line to change the answer, remembering it.
+F11 (the review step) and F13 (the checklist) remain; each contract must contain the
 on-screen checks below, checked by the evaluator in a browser. The pull request of the
-last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line.
+last of them marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line. Reuse
+what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the sentences in
+`src/wording.ts`, and the answer held in `CourseList.legacy` by `startApp`.
 - On-screen checks: the question appears for FLS 161, MGT 220 and MGT 203, typed in any
   form, and for PSY 251 only when another course is in its Social sciences pick (owner
   answer, 2026-11-16: PSY 251 alone is an ordinary course of that block); it does not
@@ -118,10 +103,9 @@ last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCK
   `localStorage` in a screen: with site data blocked, some browsers fail on that alone.
 - Pass `legacyQuestionNeeded` every code that appears, typed or on any reviewed transcript
   row, whatever its grade.
-- For F08: neither the brief nor an owner answer gives the words for a legacy-elective
-  answer, or says under which block PSY 251 is shown for a legacy student. Ask the owner;
-  invent nothing. Any "counts" answer keeps "unless you've already passed it or filled
-  this slot".
+- The owner's words (2026-11-16): Yes "Counts toward CIS: elective (legacy)"; No "Doesn't
+  count toward CIS. Legacy students only."; not answered: the question in place of an
+  answer, never "Counts" before it.
 - With Yes, an elective place can be filled `by: 'legacy'`, and PSY 251 can be an elective
   while another course holds its pick. (F05)
 
