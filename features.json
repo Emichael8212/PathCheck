@@ -97,9 +97,11 @@
         "An automated test checks that the core blocks total 42 hours",
         "Each of these rules has an automated test, including no double counting"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F04.md — evaluator QA round 2: PASS (20 checks; Functionality 5, Truthfulness 5)",
+      "tests": [
+        "tests/placement.test.ts"
+      ]
     },
     {
       "id": "F05",
