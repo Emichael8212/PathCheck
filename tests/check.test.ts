@@ -120,7 +120,11 @@ describe('what is suggested', () => {
 
   it('suggests nothing for too little text', () => {
     expect(FEWEST_CHARACTERS).toBe(2);
-    for (const text of ['', ' ', '   ', 'm', ' m ', 'c', '3', '-', '--', '- -', ' – ', 'a-', '-a', 'a -', '?', '…']) expect(suggest(text, curriculum), JSON.stringify(text)).toEqual([]);
+    for (const text of ['', ' ', '   ', 'm', ' m ', 'c', '3', '-', '--', '- -', ' – ', 'a-', '-a', 'a -', '?', '…', 'a.', 'a,', 'm?', 'a/', '.a', 'a:', '(m)', 'a…', '..', '?!']) expect(suggest(text, curriculum), JSON.stringify(text)).toEqual([]);
+    // Two letters are enough, whatever stands between them.
+    expect(suggest('m.g', curriculum)).toEqual([]);
+    expect(suggest('m g', curriculum).length).toBeGreaterThan(0);
+    expect(addCourse([], 'a.', suggest('a.', curriculum)[0] ?? null, curriculum)).toEqual({ entries: [], problem: 'not-a-course' });
     // Nothing but dashes must never add the curriculum's first course.
     expect(addCourse([], '--', suggest('--', curriculum)[0] ?? null, curriculum)).toEqual({ entries: [], problem: 'not-a-course' });
     expect(suggest('mg', curriculum).length).toBeGreaterThan(0);

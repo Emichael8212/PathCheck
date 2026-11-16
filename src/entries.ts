@@ -49,9 +49,9 @@ function matchesTitle(typed: readonly string[], title: string): boolean {
  * Only courses the curriculum lists are ever suggested.
  */
 export function suggest(text: string, curriculum: Curriculum, limit = MOST_SUGGESTIONS): Course[] {
-  // Spaces and dashes are not characters of a code or a title: "a-" is one letter, "--" none.
+  // Only letters and digits count towards the minimum: "a-" and "a." are one, "--" none.
   const start = withoutSeparators(text);
-  if (start.length < FEWEST_CHARACTERS) return [];
+  if (start.replace(/[^A-Z0-9]/g, '').length < FEWEST_CHARACTERS) return [];
   const courses = listedCourses(curriculum);
   const byCode = courses.filter(course => withoutSeparators(course.code).startsWith(start));
   const typed = words(text);

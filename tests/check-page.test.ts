@@ -4,6 +4,8 @@
 // field loses focus, touch, real input methods) is also checked by the evaluator in a real one.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { startApp, type AppWindow } from '../src/app';
+import { setupCheck } from '../src/check';
+import { curriculum } from '../src/curriculum';
 
 const $ = <T extends HTMLElement>(selector: string): T => {
   const found = document.querySelector<T>(selector);
@@ -120,7 +122,7 @@ describe('typing in the field', () => {
     const third = options()[2]!;
     const wanted = optionCodes()[2]!;
     // The highlight follows the mouse.
-    third.querySelector('.truncate')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    third.querySelector('.truncate')!.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
     expect(options().map(one => one.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true', 'false', 'false', 'false']);
     expect(field().getAttribute('aria-activedescendant')).toBe('suggestion-3');
     // Pressing on the list does not take the keyboard out of the field.
@@ -156,11 +158,29 @@ describe('typing in the field', () => {
     expect(menu().hidden).toBe(true);
   });
 
+  it('leaves the highlight alone when the list opens under a resting mouse', () => {
+    type('cis');
+    // The list appears under a pointer that is not moving: the browser says "over", not "moved".
+    options()[2]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    options()[2]!.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    expect(field().getAttribute('aria-activedescendant')).toBe('suggestion-1');
+    const first = optionCodes()[0]!;
+    key('Enter');
+    expect(rows()[0]?.startsWith(first)).toBe(true);
+  });
+
+  it('fails loudly when a part of the page is missing', () => {
+    const broken = document.createElement('div');
+    broken.innerHTML = '<input id="add-course"><ul id="suggestions"></ul>';
+    expect(() => setupCheck(broken, { entries: [] }, curriculum)).toThrow(/missing a part/);
+    expect(() => setupCheck(document.createElement('div'), { entries: [] }, curriculum)).toThrow(/missing a part/);
+  });
+
   it('moves the highlight without drawing the list again', () => {
     type('cis');
     const before = options();
     key('ArrowDown');
-    before[3]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    before[3]!.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
     key('ArrowUp');
     // The same six elements: a press that began on one still ends on it.
     expect(options()).toEqual(before);

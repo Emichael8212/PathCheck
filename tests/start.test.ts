@@ -76,7 +76,9 @@ describe('the Start page', () => {
     expect(NOT_AFFILIATED).toBe('Not affiliated with Alabama State University');
     for (const [name, page] of Object.entries(pages)) {
       expect(page, name).toMatch(/<a class="wordmark" href="#\/">PathCheck<span class="dot">\.<\/span><\/a>/);
-      expect(page, name).toMatch(/<footer class="foot( foot-wide)?">[\s\S]*<p>Not affiliated with Alabama State University<\/p>\s*<\/footer>/);
+      // The footer spans the page on "Check my courses" only, as in the design.
+      expect(page, name).toContain(name === 'check' ? '<footer class="foot foot-wide">' : '<footer class="foot">');
+      expect(page, name).toMatch(/<footer class="foot[^"]*">[\s\S]*<p>Not affiliated with Alabama State University<\/p>\s*<\/footer>/);
       expect(page, name).not.toMatch(/<img|logo|<picture|background-image/i);
     }
   });

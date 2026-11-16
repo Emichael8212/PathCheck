@@ -168,7 +168,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   menu.addEventListener('mousedown', event => event.preventDefault());
   add.addEventListener('mousedown', event => event.preventDefault());
   add.addEventListener('click', () => addNow(null));
-  menu.addEventListener('mouseover', event => {
+  // Only a pointer that moves: a list opening under a resting mouse changes nothing.
+  menu.addEventListener('mousemove', event => {
     const index = optionAt(event.target);
     if (index !== null && index !== active) highlight(index);
   });
