@@ -8,48 +8,31 @@ Read this before writing a sprint contract; delete a line when its feature has d
   last-reviewed line out when there is no date and takes the email's subject. Still to
   do in F18: the 12-month banner, the owner's real address in `src/wording.ts`, and the
   email pre-filled with the course or result. (F06)
-- The owner said to leave out "Curriculum last reviewed: Nov 2026" (2026-11-16): the
-  curriculum file has no review date and none is invented. F17's last-reviewed line and
-  F18 steps 1 and 3 need a date. Before building whichever comes first, ask the owner:
-  give a date, or reword those steps. (Owner answer, 2026-11-16)
+- **The review date is 2026-11-15** (owner answer, 2026-11-16: "Store it in the curriculum
+  file and show "Curriculum last reviewed: Nov 2026". The 12-month banner works as
+  written."). Before F17, a pull request of its own puts `lastReviewed: 2026-11-15` into
+  `docs/curriculum/provisional-current.json` and updates the tests that expect no date
+  (`tests/curriculum.test.ts` "carries the last-reviewed date"; `tests/start.test.ts`
+  "leaves the last-reviewed line out while there is no date"), DESIGN.md's note that the
+  footer has no such line, and this note. F17's line and F18 steps 1 and 3 then stand as
+  written.
 
-## For F16, F17 and F19 (what the checklist leaves for them)
+## For F17 and F19 (what the result leaves for them)
 - The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in
-  `src/checklist.ts` (`overviewHtml`, `requirementsHtml`) and `src/pace.ts` (the answer
-  beside the ring, the controls under the bar; `overviewOf` in `src/left.ts`). The draft
-  plan goes after the requirements (F16); "Print / save PDF" and "Clear my data" at the end
-  (F17, F19). The stylesheet already has the design's rules for all of them. (F13)
-- The legacy question comes before the whole result (`legacyChanges`): the plan must not
-  be drawn before it is answered either. (F13)
-- While rows still need fixing the result says so above itself ("… The credits left and
-  the pace may change too."); the plan should carry the same caution: it is built on the
-  same rows. (F13, F14)
+  `src/checklist.ts` (`overviewHtml`, `requirementsHtml`), `src/pace.ts` (the answer
+  beside the ring, the controls under the bar; `overviewOf` in `src/left.ts`) and
+  `src/plan.ts` (the draft plan after the requirements, inside `[data-plan]`: `planOf`,
+  `planHtml`). "Print / save PDF" and "Clear my data" go at the end (F17, F19). The
+  stylesheet already has the design's rules for them. (F13, F16)
+- The plan prints with the result; "Move later" is `.no-print`. The line under the plan
+  (`.plan-late`), when there is one, prints too: it is part of what the plan says. (F16,
+  for F17)
+- The student's moves are `LeftState.moves` (for each moved entry, its earliest term),
+  kept in memory for the visit beside the pace settings (`LeftState.pace`). If F19's
+  "last result" is to come back as the student left it, both belong to it, and "Clear my
+  data" forgets both. (F14, F16, for F19)
 - Requirements are `<details>`, and so is the list of courses not counted
   (`details.unused`); for print every one of them must be opened and the toggles, "All / Not done" and the two end buttons hidden (`.no-print`). (F13, for F17)
-
-## For F16 (what pace gives it)
-- Terms: `readTerm`, `termAfter`, `termName`, `latestTermOf` in `src/pace.ts`. The first
-  term ahead is `termAfter(latest, summers)`. A term that cannot be read gives no
-  estimate.
-- The settings (`PaceSettings`: target, fewest, most, summers) are `LeftState.pace`, kept
-  for the visit. The plan (F16) must use the same range and summers, and end in the
-  target when on pace. The target is shared with the pace line of "Check my courses"
-  (F15): one target semester for the visit, whichever page sets it.
-- The credits still to take are `checklist.credits.left + checklist.extraLeft`
-  (`overviewOf` in `src/left.ts`): the plan must hold exactly those, the extra sequence
-  course included.
-- Typed courses are placed as *planned* (`options.planned` in `placeCourses`): the plan
-  must not treat them as taken. The pace line's own term (`CourseList.term`) is for that
-  line only. (F12, F15)
-
-## For F16 (the plan)
-- **The draft plan schedules the extra sequence course** (owner answer, 2026-11-16): when
-  both picks are held and no sequence is on its way, the plan has HIS 132 or ENG 210 with
-  its 3 extra credits, although no pick is open. F16's contract needs the check and the
-  test. (Pace counts those credits since F14: `extraLeft`.)
-- All 121 credits can be done while the sequence is still needed (other courses hold the
-  two picks). Never show the degree as complete or on pace from credits alone; the plan
-  must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
 
 ## For F19 (clear my data)
 - The credits the student gave a course PathCheck doesn't know are part of the list

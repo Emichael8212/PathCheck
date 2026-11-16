@@ -12,6 +12,7 @@ import {
   defaultSettings, latestTermOf, paceAnswerHtml, paceControlsHtml, paceOf, paceSentence, rangeSentence, readTerm, stepRange, summersSentence, type PaceSettings,
 } from './pace';
 import { type Problem } from './reader';
+import { moveLater, movedSentence, planHtml, planOf, type Moves, type Plan } from './plan';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
 import { type Refusal } from './upload';
@@ -32,8 +33,10 @@ export interface LeftState {
   returnTo: 'left' | 'check';
   /** The pace settings, kept for the visit. */
   pace: PaceSettings;
+  /** The entries of the draft plan the student moved later, each with its earliest term. */
+  moves: Moves;
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null, returnTo: 'left', pace: defaultSettings() });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -68,7 +71,7 @@ const TEXT = {
   resultEyebrow: 'What I have left',
   resultHeading: 'Your degree, in focus.',
   pill: 'Synthetic transcript result',
-  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}. The credits left and the pace may change too.`,
+  toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}. The credits left, the pace and the draft plan may change too.`,
   fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
   noRows: 'No row of your transcript was taken on, so there is nothing to show yet.',
   reviewAgain: 'Check what was read',
@@ -241,7 +244,7 @@ export function overviewOf(transcript: Transcript, curriculum: Curriculum, legac
  * answer would change any of it and has not been given, the question takes its place:
  * nothing that the answer could change is shown before it.
  */
-export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer, settings: PaceSettings = defaultSettings()): string {
+export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer, settings: PaceSettings = defaultSettings(), moves: Moves = {}): string {
   const standings = reviewedStandings(transcript, curriculum.grades);
   const fixing = stillToFix(transcript);
   const toFix = fixing.length;
@@ -281,6 +284,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   return `${warning}${asks ? `<p class="legacy-line">${esc(LEGACY_LINE)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(CHANGE)}</button></p>
   ` : ''}${overviewOf(transcript, curriculum, legacy === true, settings).html}
   ${requirementsHtml(checklist)}
+  <div data-plan>${planHtml(planOf(standings, curriculum, legacy === true, latestTermOf(standings), settings, moves))}</div>
   ${foot}`;
 }
 
@@ -293,7 +297,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
     ${uploadPanel(state.refusal)}
   </div>`
     : result
-      ? resultHtml(transcript, curriculum, legacy, state.pace)
+      ? resultHtml(transcript, curriculum, legacy, state.pace, state.moves)
       : `<p class="review-intro">${esc(TEXT.reviewIntro(transcript.name))}</p>
   <div data-review>${reviewHtml(state, curriculum)}</div>`;
   return `${top('left')}
@@ -351,8 +355,21 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
   main.addEventListener('input', keepTyped);
   main.addEventListener('change', keepTyped);
 
-  // The pace controls. Only the overview card is drawn again, so everything else on the
-  // page stays as the student left it, and the keyboard stays on the control that was used.
+  // The draft plan as the settings and the moves now have it. Only its own part of the page is drawn again.
+  const planNow = (): Plan | null => {
+    const { transcript } = state;
+    if (!transcript) return null;
+    const standings = reviewedStandings(transcript, curriculum.grades);
+    return planOf(standings, curriculum, hooks.answer() === true, latestTermOf(standings), state.pace, state.moves);
+  };
+  const drawPlan = (): Plan | null => {
+    const plan = planNow();
+    const box = main.querySelector<HTMLElement>('[data-plan]');
+    if (box) box.innerHTML = planHtml(plan);
+    return plan;
+  };
+  // The pace controls. Only the overview card and the draft plan are drawn again, so everything else on
+  // the page stays as the student left it, and the keyboard stays on the control that was used.
   // `changed` says what the control now shows: the card is drawn again, so it is read out
   // with the answer.
   const setPace = (next: PaceSettings, back: string, changed = ''): void => {
@@ -362,6 +379,8 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const card = main.querySelector<HTMLElement>('.overview');
     const drawn = overviewOf(transcript, curriculum, hooks.answer() === true, next);
     if (card) card.outerHTML = drawn.html;
+    // The plan follows the same settings.
+    drawPlan();
     hooks.say(`${changed} ${drawn.said}`.trim());
     // A "−" that has just been switched off cannot hold the keyboard: its "+" takes it.
     const control = main.querySelector<HTMLButtonElement | HTMLSelectElement>(back);
@@ -385,6 +404,17 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
       setPace(next, `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`, changed);
       return;
     }
+    // "Move later": the entry goes no earlier than the next term, and the rest flows again.
+    const moved = target?.closest<HTMLElement>('[data-move]')?.dataset.move;
+    if (moved !== undefined) {
+      const before = planNow();
+      if (!before) return;
+      change({ moves: moveLater(before, moved, state.pace, state.moves) });
+      const after = drawPlan();
+      hooks.say(after ? movedSentence(after, moved) : '');
+      [...main.querySelectorAll<HTMLElement>('[data-move]')].find(button => button.dataset.move === moved)?.focus();
+      return;
+    }
     if (target?.closest('[data-pace-summers]')) {
       // Switched off, a summer that was the target gives way to the Fall after it, for good.
       const summers = !state.pace.summers;
@@ -400,7 +430,7 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     if (target?.closest('[data-browse]')) { hooks.browse(); return; }
     if (target?.closest('[data-another]')) {
       // The target chosen for this transcript does not go with the next one.
-      change({ transcript: null, continued: false, refusal: null, editing: null, draft: null, pace: { ...state.pace, target: null } });
+      change({ transcript: null, continued: false, refusal: null, editing: null, draft: null, pace: { ...state.pace, target: null }, moves: {} });
       hooks.redraw();
       focus('[data-browse]');
       return;

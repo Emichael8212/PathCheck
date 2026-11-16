@@ -320,9 +320,13 @@
         "Each course has a Move later button; pressing it moves the course to a later semester and the plan re-flows",
         "It is a draft only: nothing is adopted, and there is no drag-and-drop, preview/apply/undo, prerequisite check or offering check"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F16.md — QA PASS in a real browser (round 2, after the code review's fixes); reviewer: no blocker after round 2 (round 1 found the legacy student's sequence course missing from the plan; fixed)",
+      "tests": [
+        "tests/plan.test.ts",
+        "tests/left-page.test.ts",
+        "tests/curriculum.test.ts"
+      ]
     },
     {
       "id": "F17",
