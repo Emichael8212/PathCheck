@@ -317,7 +317,7 @@ describe('page 3: What I have left', () => {
       expect(field).toContain(`<div class="stepper" role="group" aria-labelledby="${name}-label" aria-describedby="${name}-note">`);
       expect(field).toContain(`<span id="${name}-label">${label}</span>`);
       expect(field).toContain(`<button type="button" aria-label="${label}: one fewer" data-delta="-1">−</button>`);
-      expect(field).toContain(`<output class="num"><span data-value>${value}</span> credits</output>`);
+      expect(field).toContain(`<output class="num"><span data-value>${value}</span> <span data-unit>credits</span></output>`);
       expect(field).toContain(`<button type="button" aria-label="${label}: one more" data-delta="1">+</button>`);
       // No hard limit: neither button is switched off.
       expect(field).not.toContain('disabled');
@@ -507,8 +507,9 @@ describe('the things that move', () => {
       const valueEl = { textContent: String(value) };
       const note = { textContent: '', dataset: { note: `note for ${value}` } };
       const buttons = [el({ delta: '-1' }), el({ delta: '1' })];
-      const parts = { '[data-value]': valueEl, '[data-note]': note, '[data-delta="-1"]': buttons[0] };
-      return { valueEl, note, buttons, querySelector: sel => parts[sel], querySelectorAll: () => buttons };
+      const unit = { textContent: 'credits' };
+      const parts = { '[data-value]': valueEl, '[data-unit]': unit, '[data-note]': note, '[data-delta="-1"]': buttons[0] };
+      return { valueEl, unit, note, buttons, querySelector: sel => parts[sel], querySelectorAll: () => buttons };
     };
     const fields = { fewest: field(12), most: field(18) };
     const credits = setupCredits({ querySelector: sel => fields[sel.includes('fewest') ? 'fewest' : 'most'] });
@@ -527,6 +528,8 @@ describe('the things that move', () => {
     for (let i = 0; i < 10; i++) fields.fewest.buttons[0].handlers.click();
     expect(credits.state.fewest).toBe(1);
     expect(fields.fewest.buttons[0].disabled).toBe(true);
+    expect(`${fields.fewest.valueEl.textContent} ${fields.fewest.unit.textContent}`).toBe('1 credit');
+    expect(`${fields.most.valueEl.textContent} ${fields.most.unit.textContent}`).toBe('18 credits');
   });
 
   it('printing opens every requirement, then puts them back', () => {

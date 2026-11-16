@@ -85,6 +85,7 @@ export function setupCredits(doc) {
     const notes = creditNotes(state);
     for (const name of ['fewest', 'most']) {
       fields[name].querySelector('[data-value]').textContent = String(state[name]);
+      fields[name].querySelector('[data-unit]').textContent = state[name] === 1 ? 'credit' : 'credits';
       // The note lives in a polite live region: writing it shows it and has it read out.
       const note = fields[name].querySelector('[data-note]');
       note.textContent = notes[name] ? note.dataset.note : '';

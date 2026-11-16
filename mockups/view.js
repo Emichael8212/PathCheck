@@ -342,7 +342,7 @@ const stepper = (name, f) => `<div class="field" data-stepper="${name}">
           <span id="${name}-label">${esc(f.label)}</span>
           <div class="stepper" role="group" aria-labelledby="${name}-label" aria-describedby="${name}-note">
             <button type="button" aria-label="${esc(f.label)}: one fewer" data-delta="-1">−</button>
-            <output class="num"><span data-value>${f.value}</span> credits</output>
+            <output class="num"><span data-value>${f.value}</span> <span data-unit>credits</span></output>
             <button type="button" aria-label="${esc(f.label)}: one more" data-delta="1">+</button>
           </div>
           <p class="field-note" id="${name}-note" data-note="${esc(f.note)}" aria-live="polite"></p>
