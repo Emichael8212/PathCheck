@@ -224,6 +224,11 @@ svg { display: block; flex-shrink: 0; }
   width: 100%;
   max-width: 1160px;
   margin: auto auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 24px;
   padding: 24px;
   border-top: 1px solid var(--line);
   color: var(--ink-2);
@@ -233,7 +238,9 @@ svg { display: block; flex-shrink: 0; }
 .foot-wide { max-width: none; }
 .foot > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
 .foot strong { color: var(--ink); font-weight: 600; }
-.foot > p { margin-top: 3px; }
+/* "Not affiliated…" sits at the right, level with the other three; it drops below them
+   only when the line is too narrow to hold all four. */
+.foot > p { margin: 0; }
 .text-link {
   display: inline-flex;
   align-items: center;

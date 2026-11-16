@@ -201,10 +201,9 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   list (pill-shaped tabs, the indigo main button and the numbered chips are approved,
   f3–f5, with the four choices approved earlier the same day). The uppercase grey table
   header and legends stay banned (f1, f2).
-- **Not changed, waiting for the owner:** `features.json` still says "there is no multi-major
-  UI" (F02) and "There is no sign-in, account, advisor screen or major picker" (F06).
-  Answer a keeps a one-option major dropdown, so those two steps need rewording; feature
-  steps are only changed with the owner's approval, so this is asked in PR #4.
+- `features.json` said "there is no multi-major UI" (F02) and "There is no sign-in, account,
+  advisor screen or major picker" (F06), which answer a contradicts. The owner approved new
+  wording for both the same day (next entry).
 - The two credit controls never cross (pushing one past the other takes it along) and
   neither goes below 1 credit. That is how the control behaves, not an academic rule.
 - The owner wrote the major as "B.S. Computer Information Systems"; the published design
@@ -216,6 +215,30 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
 - `docs/design/screens/` now holds screenshots of the updated mockups, re-taken as the
   owner asked. The screenshots of the published site as it stood before these answers are
   kept beside them in `docs/design/screens/published/`.
+
+### 2026-11-15 — F02 and F06 wording approved; footer and requirement toggles
+
+- **Approved: reword two feature steps** so they agree with answer a (the major dropdown).
+  The owner's final wording, now in `features.json`:
+  - F02: "the only major shown is B.S. Computer Information Systems. The dropdown has no
+    other options (no 'coming soon' or disabled majors)."
+  - F06: "There is no sign-in, account or advisor screen. The major dropdown has one option,
+    B.S. Computer Information Systems, already selected, and no other options (no 'coming
+    soon' or disabled majors)."
+- **Footer.** "Not affiliated with Alabama State University" sits at the bottom right, at
+  the same height as "Not an official degree audit.", "Curriculum last reviewed: Nov 2026"
+  and "Report a mistake".
+- **Requirements.** In progress and Still needed requirements also have the "Show courses" /
+  "Hide courses" toggle, just as Done ones do.
+- **PR #4** gets a descriptive title, and its description is about adding the design the
+  owner agreed on, which the application's UI will be built upon.
+- PR #4 is not merged. The work stops at M0 for the owner's check.
+
+*Agent's notes, not owner decisions:*
+- In progress and Still needed requirements start open, so their courses still show
+  straight away (answer d); the toggle lets the student hide them. Done ones start closed.
+- On a phone the footer line is too narrow for all four items, so "Not affiliated with
+  Alabama State University" drops below the other three, at the left.
 
 ## Milestone checks
 

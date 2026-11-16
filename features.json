@@ -51,7 +51,7 @@
       "milestone": "M1",
       "description": "Curriculum loaded as data: the one B.S. CIS curriculum (121 credits), stored so other majors can be added later",
       "steps": [
-        "The app reads the curriculum from the data file in docs/curriculum/, so another College of Business major could be added later as data; there is no multi-major UI",
+        "The app reads the curriculum from the data file in docs/curriculum/, so another College of Business major could be added later as data; the only major shown is B.S. Computer Information Systems. The dropdown has no other options (no 'coming soon' or disabled majors).",
         "The blocks, credits, required courses and choices match the table in brief section 5 exactly, and the block credits total 121",
         "CIS 304, CIS 415 and any replacement, older-code or not-offered entry do not exist anywhere",
         "There is no catalog-year or start-year question or field",
@@ -116,7 +116,7 @@
       "steps": [
         "Opening the site shows two big choices, \"Check my courses\" and \"See what I have left\", with nothing to fill in first",
         "The name PathCheck and \"Not affiliated with Alabama State University\" are shown; there is no ASU logo or school colors",
-        "There is no sign-in, account, advisor screen or major picker",
+        "There is no sign-in, account or advisor screen. The major dropdown has one option, B.S. Computer Information Systems, already selected, and no other options (no 'coming soon' or disabled majors).",
         "Each choice opens its flow"
       ],
       "passes": false,

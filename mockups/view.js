@@ -304,18 +304,15 @@ const reqBody = b => `
           </div>`;
 const showCue = `<span class="req-show no-print"><span class="when-closed">${esc(left.show)}</span><span class="when-open">${esc(left.hide)}</span>${icons.arrow(16, 'req-cue')}</span>`;
 
-// Owner, 2026-11-15: In progress and Still needed requirements show their courses straight
-// away; a Done requirement is collapsed and opens with "Show courses".
-const requirement = b => b.status === 'Done' ? `
+// Owner, 2026-11-15: every requirement has the same "Show courses" / "Hide courses" toggle.
+// In progress and Still needed requirements start open, so what is left is seen straight
+// away; a Done requirement starts closed.
+const requirement = b => `
       <li class="req">
-        <details>
+        <details${b.status === 'Done' ? '' : ' open'}>
           <summary><span class="req-row">${reqRow(b, showCue)}
           </span></summary>${reqBody(b)}
         </details>
-      </li>` : `
-      <li class="req">
-        <div class="req-row">${reqRow(b, '<span></span>')}
-        </div>${reqBody(b)}
       </li>`;
 
 const planEntry = e => e.choice ? `

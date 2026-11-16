@@ -23,7 +23,7 @@ is 375 wide.
 |---|---|---|
 | 1 Start | `start-*` | `start-demo-step2…4-light-*`: the other three demo steps |
 | 2 Check my courses | `check-*` | `check-typing-*`: typing "mgt 3", suggestion open, MGT 321 not yet added |
-| 3 What I have left | `left-*` | `left-open-*`: the three Done requirements opened with "Show courses"; `left-notes-*`: Fewest at 11 and Most at 19, both notes showing |
+| 3 What I have left | `left-*` | `left-open-*`: every requirement opened, the three Done ones included; `left-notes-*`: Fewest at 11 and Most at 19, both notes showing |
 
 `docs/design/screens/published/` has the same file names (without `left-notes-*`), taken
 from the published site on 2026-11-15, before the owner's answers. There, `left-open-*`
@@ -160,9 +160,10 @@ Marks are inline SVG drawn in the project (20-unit grid); no icon pack.
 - **Top bar:** wordmark (links to Start); two nav links, "Check my courses" and "What I have
   left", as pills (current page: `--accent` on `--accent-soft`); "Not an official degree
   audit." at the right. Below 650px the nav links are on a second row under the wordmark.
-- **Footer:** top border; "Not an official degree audit." (bold) · "Curriculum last
-  reviewed: Nov 2026" · "Report a mistake" (underlined email link); second line "Not
-  affiliated with Alabama State University". 12px.
+- **Footer:** top border; one line. At the left: "Not an official degree audit." (bold) ·
+  "Curriculum last reviewed: Nov 2026" · "Report a mistake" (underlined email link). At the
+  right, at the same height: "Not affiliated with Alabama State University". 12px. When the
+  line is too narrow for all four (a phone), the affiliation line drops below the others.
 - **Section label (eyebrow):** small uppercase label above a heading.
 - **Buttons:** primary = `--accent` fill; secondary = `--surface` with a `--line-strong`
   border. Arrow icon after the label on buttons that move forward.
@@ -264,13 +265,14 @@ does not.
 **Requirements.** Label "THE REST OF YOUR DEGREE", heading, and an "All / Not done" pill
 toggle at the right; one line: "Credits counted / needed." Nine cards (white, radius 12,
 8px apart). Each has a row with columns `220px 150px 1fr 80px 112px`: name · status mark
-and word · segmented bar · "3 / 12 cr" · (on Done rows) "Show courses".
+and word · segmented bar · "3 / 12 cr" · the toggle "Show courses" / "Hide courses".
+Every requirement has the toggle.
 
-- **In progress and Still needed** requirements show their courses straight away, under the
-  row: up to three columns (Done, In progress, Still needed), each a small titled list of
-  code + title.
-- **Done** requirements are collapsed. "Show courses" opens the list of the courses that
-  filled them; it then reads "Hide courses".
+- **In progress and Still needed** requirements start open, so their courses show straight
+  away, under the row: up to three columns (Done, In progress, Still needed), each a small
+  titled list of code + title. "Hide courses" closes them.
+- **Done** requirements start closed. "Show courses" opens the list of the courses that
+  filled them.
 
 Under the list, a dashed box: "Still needed: HIS 132 or ENG 210 to complete a history or
 literature sequence."
@@ -285,12 +287,11 @@ dashed left edge and the label "OPEN CHOICE". MGT 462 carries "Always the final 
 
 **Phone (375).** One column. The ring (155px) sits above the pace answer; the four pace
 controls stack. The toggle moves under the heading. A requirement row becomes three lines:
-name and status, the bar, then credits (and "Show courses" at the right on Done rows). The
-course lists stack. Each semester is a header band (term left, credits right) over a list
+name and status, the bar, then credits with the toggle at the right. The course lists stack. Each semester is a header band (term left, credits right) over a list
 with "Move later" at the right of each entry. The two action buttons wrap.
 
-**Print.** The top bar, the toggle, "Show courses", "Move later" and the action buttons are
-not printed; every requirement prints opened; the ring, bars and tinted rows are printed;
+**Print.** The top bar, the "All / Not done" toggle, "Show courses" / "Hide courses", "Move
+later" and the action buttons are not printed; every requirement prints opened; the ring, bars and tinted rows are printed;
 the page is white.
 
 ## Differences from the published site
@@ -315,7 +316,9 @@ Each difference comes from the brief or from a dated owner answer in `docs/decis
 - b. The count at the top of page 2 carries its condition when there is no transcript.
 - c. No third answer; the filter says "Doesn't count".
 - d. In progress and Still needed requirements show their courses; Done ones open with
-  "Show courses".
+  "Show courses". Every requirement has the Show / Hide toggle.
+- Footer: "Not affiliated with Alabama State University" at the right, level with the
+  other three items (the published site has it on a second line).
 - e. "Fewest" and "Most" credits per term, both editable, with neutral notes and no hard limit.
 - f. No uppercase grey table header; no legend (the bar is labelled directly). Pill-shaped
   tabs, the indigo main button and the numbered chips are kept.

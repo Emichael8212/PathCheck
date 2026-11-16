@@ -94,6 +94,17 @@ describe('the three mockup pages', () => {
     for (const old of ['a-receipt', 'b-meter', 'c-signs', 'shared.js', 'base.css', 'index.css']) expect(existsSync(join(root, old)), old).toBe(false);
   });
 
+  it('put "Not affiliated…" at the right of the footer, level with the other three lines', () => {
+    const rule = css.match(/\n\.foot \{[^}]*\}/)[0];
+    expect(rule).toMatch(/display: flex;\s*flex-wrap: wrap;\s*justify-content: space-between;\s*align-items: center;/);
+    expect(css).toMatch(/\.foot > p \{ margin: 0; \}/);
+    for (const which of pages) {
+      const footer = page(which).html.match(/<footer class="foot[^"]*">[\s\S]*?<\/footer>/)[0];
+      // Two children: the three lines on the left, then the affiliation line.
+      expect(footer).toMatch(/<footer class="foot[^"]*">\s*<div>[\s\S]*?<\/div>\s*<p>Not affiliated with Alabama State University<\/p>\s*<\/footer>/);
+    }
+  });
+
   it('show the name, the disclaimer and the "on every result" lines on every page', () => {
     for (const which of pages) {
       const { html, text } = page(which);
@@ -345,18 +356,18 @@ describe('page 3: What I have left', () => {
       const [name, credits, status] = expected[i];
       const [counted, needed] = credits.replace(' cr', '').split(' / ').map(Number);
       const done = status === 'Done';
-      const row = decode(item.match(/class="req-row">[\s\S]*?(?=<\/span><\/summary>|<\/div>\s*<div class="req-body">)/)[0].replace('class="req-row">', ''));
-      expect(row.trim(), name).toBe(`${name} ${status} ${credits}${done ? ' Show courses Hide courses' : ''}`);
+      const row = decode(item.match(/class="req-row">[\s\S]*?(?=<\/span><\/summary>)/)[0].replace('class="req-row">', ''));
+      expect(row.trim(), name).toBe(`${name} ${status} ${credits} Show courses Hide courses`);
       // One bar segment per credit; the counted ones are filled.
       const bar = item.match(/<span class="req-bar" aria-hidden="true">((?:<span[^>]*><\/span>)+)<\/span>/)[1];
       expect(bar.match(/<span[^>]*><\/span>/g), name).toHaveLength(needed);
       expect(bar.match(/class="is-counted"/g) ?? [], name).toHaveLength(counted);
-      // Owner, answer d: In progress and Still needed show their courses straight away;
-      // a Done requirement is collapsed and opens with "Show courses".
+      // Owner: every requirement has the Show courses / Hide courses toggle. In progress and
+      // Still needed start open, so what is left shows straight away; Done starts closed.
       expect(item.includes('<details>'), name).toBe(done);
-      expect(item.includes('<summary><span class="req-row">'), name).toBe(done);
-      expect(item.includes('<span class="when-closed">Show courses</span>'), name).toBe(done);
-      expect(item).not.toContain('<details open');
+      expect(item.includes('<details open>'), name).toBe(!done);
+      expect(item).toContain('<summary><span class="req-row">');
+      expect(item).toContain('<span class="when-closed">Show courses</span><span class="when-open">Hide courses</span>');
       expect(item.match(/<div class="req-body">/g), name).toHaveLength(1);
       expect(item.includes({ 'Done': 'mark-done', 'In progress': 'mark-progress', 'Still needed': 'mark-needed' }[status]), name).toBe(true);
     });
