@@ -2,6 +2,8 @@
 // docs/design/DESIGN.md "Page 3"; the owner's rule of 2026-11-16 for the term that comes
 // next, and "never derive the term from today's date"). The rules and the page as text;
 // clicking is in tests/left-page.test.ts. Every student here is made up.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error The approved mockups are plain JavaScript, with no type declarations.
 import { left as approved } from '../mockups/data.js';
@@ -159,7 +161,7 @@ describe('the answer', () => {
     expect(answer(1, 'Spr 2026')).toBe('On pace for Fall 2026 about 1 credit a term');
     // The sentence read out when a control changes the answer.
     expect(paceSentence(paceOf(81, readTerm('Fall 2026'), settings()))).toBe('On pace for Spring 2029: about 16 credits a term');
-    expect(paceSentence(paceOf(81, readTerm('Fall 2026'), settings({ target: term('Fall 2028') })))).toBe('Not on pace for Fall 2028: At 18 credits a term you finish Spring 2029, one semester after your target.');
+    expect(paceSentence(paceOf(81, readTerm('Fall 2026'), settings({ target: term('Fall 2028') })))).toBe('Not on pace for Fall 2028. At 18 credits a term you finish Spring 2029, one semester after your target.');
     // The list: the term before the default, the default, the three after; and the student's own choice.
     const options = (over: Partial<PaceSettings> = {}): string[] => { const pace = paceOf(81, readTerm('Fall 2026'), settings(over)); return pace.kind === 'on' || pace.kind === 'off' ? pace.options.map(termName) : []; };
     expect(options()).toEqual(['Fall 2028', 'Spring 2029', 'Fall 2029', 'Spring 2030', 'Fall 2030']);
@@ -327,6 +329,9 @@ describe('what is still to take', () => {
     expect(paceOf(0, readTerm('Fall 2026'), settings())).toEqual({ kind: 'none' });
     expect(paceOf(0, null, settings())).toEqual({ kind: 'none' });
     expect(paceOf(5, null, settings())).toEqual({ kind: 'unreadable' });
+    // Values the controls never give cannot make it run without end: the most is at least 1, a whole number.
+    expect(paceOf(5, readTerm('Fall 2026'), settings({ most: 0, fewest: 0 }))).toMatchObject({ kind: 'on', terms: 5 });
+    expect(paceOf(5, readTerm('Fall 2026'), settings({ most: 2.9, fewest: 7 }))).toMatchObject({ kind: 'on', terms: 3 });
     expect(paceHeadline(paceOf(5, null, settings()))).toBe('');
   });
 });
@@ -425,6 +430,8 @@ describe('whatever the numbers', () => {
     const html = startPage(programs);
     expect(decode(html)).toContain(`${student.credits.remaining} credits left ${said} ${CAVEAT}`);
     expect(html.match(/On pace for/g)).toHaveLength(1);
+    // The line is worked out, not written out: the Start page's source has no such sentence in it.
+    expect(readFileSync(join(import.meta.dirname, '..', 'src', 'start.ts'), 'utf8')).not.toMatch(/On pace|Spring 20\d\d/);
     // That student still needs a sequence course, with its pick open: no extra credits to add.
     expect(student.sequence.state).toBe('needed');
     expect(student.blocks.flatMap(block => block.picks).filter(group => group.options.some(option => ['HIS 132', 'ENG 210'].includes(option.code))).every(group => group.open > 0)).toBe(true);

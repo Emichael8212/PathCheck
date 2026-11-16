@@ -112,7 +112,8 @@ export function startApp(win: AppWindow): App {
     if (player) demo = setupDemo(player, { reducedMotion: win.matchMedia('(prefers-reduced-motion: reduce)').matches, timers: win });
     checkView = route === 'check' ? setupCheck(root as unknown as ParentNode, courses, curriculum, onCheck, {
       browse,
-      forget: () => { Object.assign(left, emptyLeft()); checkRefusal = null; },
+      // The transcript and its corrections go; the pace range chosen for the visit stays.
+      forget: () => { Object.assign(left, { ...emptyLeft(), pace: { ...left.pace, target: null } }); checkRefusal = null; },
       // The review, with its corrections as they are; "Continue" there comes back here.
       review: () => { Object.assign(left, { continued: false, editing: null, draft: null, returnTo: 'check' }); goTo('left'); },
     }) : null;

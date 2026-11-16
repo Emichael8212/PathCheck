@@ -724,7 +724,7 @@ svg { display: block; flex-shrink: 0; }
 .switch[aria-checked="true"] .switch-track { border-color: var(--accent); background: var(--accent-soft); }
 .switch[aria-checked="true"] .switch-track span { left: 18px; background: var(--accent); }
 .field-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; }
-/* Empty until it applies; it stays in the page so screen readers hear it appear. */
+/* Empty until it applies; the app says it in its status line when it appears. */
 .field-note:empty { margin-top: 0; }
 .stepper button:disabled { opacity: 0.4; }
 

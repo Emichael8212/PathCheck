@@ -8,7 +8,9 @@ import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requireme
 import { normalizeCode, type Curriculum } from './curriculum';
 import { code, esc, eyebrow, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
-import { defaultSettings, latestTermOf, paceAnswerHtml, paceControlsHtml, paceOf, paceSentence, readTerm, stepRange, type PaceSettings } from './pace';
+import {
+  defaultSettings, latestTermOf, paceAnswerHtml, paceControlsHtml, paceOf, paceSentence, rangeSentence, readTerm, stepRange, summersSentence, type PaceSettings,
+} from './pace';
 import { type Problem } from './reader';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
@@ -226,9 +228,10 @@ export function reviewHtml(state: LeftState, curriculum: Curriculum): string {
  * The overview card of the result: the credits left, and the pace answer with its controls.
  * Pace counts the credits left and the extra credits of a sequence course still to take.
  */
-export function overviewOf(transcript: Transcript, curriculum: Curriculum, legacy: boolean, settings: PaceSettings, unchecked: Unchecked = new Set()): { html: string; said: string } {
+export function overviewOf(transcript: Transcript, curriculum: Curriculum, legacy: boolean, settings: PaceSettings): { html: string; said: string } {
   const standings = reviewedStandings(transcript, curriculum.grades);
-  const checklist = checklistOf(standings, curriculum, legacy, unchecked);
+  // (Rows still to fix change only the notes of the requirement cards, not this card.)
+  const checklist = checklistOf(standings, curriculum, legacy);
   const pace = paceOf(checklist.credits.left + checklist.extraLeft, latestTermOf(standings), settings);
   return { html: overviewHtml(checklist, { beside: paceAnswerHtml(pace), under: paceControlsHtml(pace, settings) }), said: paceSentence(pace) };
 }
@@ -276,7 +279,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   }
   const checklist = checklistOf(standings, curriculum, legacy === true, unchecked);
   return `${warning}${asks ? `<p class="legacy-line">${esc(LEGACY_LINE)} <strong>${esc(legacy ? LEGACY_YES : LEGACY_NO)}</strong> <button type="button" class="text-link" data-legacy-change>${esc(CHANGE)}</button></p>
-  ` : ''}${overviewOf(transcript, curriculum, legacy === true, settings, unchecked).html}
+  ` : ''}${overviewOf(transcript, curriculum, legacy === true, settings).html}
   ${requirementsHtml(checklist)}
   ${foot}`;
 }
@@ -350,17 +353,16 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
 
   // The pace controls. Only the overview card is drawn again, so everything else on the
   // page stays as the student left it, and the keyboard stays on the control that was used.
-  const setPace = (next: PaceSettings, back: string): void => {
+  // `changed` says what the control now shows: the card is drawn again, so it is read out
+  // with the answer.
+  const setPace = (next: PaceSettings, back: string, changed = ''): void => {
     const { transcript } = state;
     if (!transcript) return;
     change({ pace: next });
     const card = main.querySelector<HTMLElement>('.overview');
-    const fixing = stillToFix(transcript);
-    const codes = fixing.map(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`));
-    const unchecked: Unchecked = codes.includes(null) ? 'any' : new Set(codes.flatMap(one => one ?? []));
-    const drawn = overviewOf(transcript, curriculum, hooks.answer() === true, next, unchecked);
+    const drawn = overviewOf(transcript, curriculum, hooks.answer() === true, next);
     if (card) card.outerHTML = drawn.html;
-    hooks.say(drawn.said);
+    hooks.say(`${changed} ${drawn.said}`.trim());
     // A "−" that has just been switched off cannot hold the keyboard: its "+" takes it.
     const control = main.querySelector<HTMLButtonElement | HTMLSelectElement>(back);
     (control && !control.disabled ? control : main.querySelector<HTMLElement>(back.replace('data-delta="-1"', 'data-delta="1"')))?.focus();
@@ -376,11 +378,16 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const step = target?.closest<HTMLElement>('[data-stepper] [data-delta]');
     const end = step?.closest<HTMLElement>('[data-stepper]')?.dataset.stepper;
     if (step && (end === 'fewest' || end === 'most')) {
-      setPace(stepRange(state.pace, end, Number(step.dataset.delta)), `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`);
+      const next = stepRange(state.pace, end, Number(step.dataset.delta));
+      setPace(next, `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`, rangeSentence(end, next));
       return;
     }
     if (target?.closest('[data-pace-summers]')) {
-      setPace({ ...state.pace, summers: !state.pace.summers }, '[data-pace-summers]');
+      // Switched off, a summer that was the target gives way to the Fall after it, for good.
+      const summers = !state.pace.summers;
+      const chosen = state.pace.target;
+      const next = { ...state.pace, summers, target: !summers && chosen?.season === 'Summer' ? { season: 'Fall' as const, year: chosen.year } : chosen };
+      setPace(next, '[data-pace-summers]', summersSentence(next));
       return;
     }
     const lineOf = (name: string): number | null => {

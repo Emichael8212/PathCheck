@@ -13,22 +13,23 @@ Read this before writing a sprint contract; delete a line when its feature has d
   F18 steps 1 and 3 need a date. Before building whichever comes first, ask the owner:
   give a date, or reword those steps. (Owner answer, 2026-11-16)
 
-## For F14 and F15 (typed courses beside a transcript)
+## For F15 (typed courses beside a transcript)
 - Typed courses are placed as *planned* (`options.planned` in `placeCourses`): a planned
   course never takes a place from a passed or in-progress one, and adds nothing to
   `credits.done` or `credits.inProgress`. Pace must not mix planned courses with courses
   really in progress; the credits of the typed list are `totalsOf(…).total`. (F12)
 
-## For F14, F16, F17 and F19 (what the checklist leaves for them)
+## For F16, F17 and F19 (what the checklist leaves for them)
 - The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in
   `src/checklist.ts` (`overviewHtml`, `requirementsHtml`) and `src/pace.ts` (the answer
   beside the ring, the controls under the bar; `overviewOf` in `src/left.ts`). The draft
   plan goes after the requirements (F16); "Print / save PDF" and "Clear my data" at the end
   (F17, F19). The stylesheet already has the design's rules for all of them. (F13)
-- The legacy question comes before the whole result (`legacyChanges`): pace and the plan
-  must not be drawn before it is answered either. (F13)
-- While rows still need fixing the result says so above itself; pace and the plan
-  should carry the same caution (they are built on the same rows). (F13)
+- The legacy question comes before the whole result (`legacyChanges`): the plan must not
+  be drawn before it is answered either. (F13)
+- While rows still need fixing the result says so above itself ("… The credits left and
+  the pace may change too."); the plan should carry the same caution: it is built on the
+  same rows. (F13, F14)
 - Requirements are `<details>`, and so is the list of courses not counted
   (`details.unused`); for print every one of them must be opened and the toggles, "All / Not done" and the two end buttons hidden (`.no-print`). (F13, for F17)
 
@@ -46,11 +47,11 @@ Read this before writing a sprint contract; delete a line when its feature has d
 - `paceOf` and its sentences (`TEXT.finish` in `src/pace.ts`) are the place for F15's
   "at this pace you finish <term>, one semester after your target". (F14)
 
-## For F14 and F16 (pace, plan)
+## For F16 (the plan)
 - **The draft plan schedules the extra sequence course** (owner answer, 2026-11-16): when
   both picks are held and no sequence is on its way, the plan has HIS 132 or ENG 210 with
   its 3 extra credits, although no pick is open. F16's contract needs the check and the
-  test; pace (F14) must count those extra credits among what is left.
+  test. (Pace counts those credits since F14: `extraLeft`.)
 - All 121 credits can be done while the sequence is still needed (other courses hold the
   two picks). Never show the degree as complete or on pace from credits alone; the plan
   must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)

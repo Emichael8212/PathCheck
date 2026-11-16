@@ -222,7 +222,7 @@ export const legacyOnTranscript = (standings: readonly CourseStanding[], curricu
 // ---- The page ----
 const TEXT = {
   creditsLeft: 'credits left',
-  overview: 'Credits left',
+  overview: 'Credits left and pace',
   counted: 'counted',
   inProgress: 'in progress',
   left: 'left',

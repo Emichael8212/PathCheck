@@ -16,7 +16,7 @@ const SEASONS: readonly Season[] = ['Spring', 'Summer', 'Fall'];
 /** A term's place in time: later terms have larger numbers. */
 const place = (term: Term): number => term.year * SEASONS.length + SEASONS.indexOf(term.season);
 export const termName = (term: Term): string => `${term.season} ${term.year}`;
-export const sameTerm = (a: Term, b: Term): boolean => place(a) === place(b);
+const sameTerm = (a: Term, b: Term): boolean => place(a) === place(b);
 
 /**
  * A term as printed on a transcript or typed in the review: a season and a four-digit
@@ -108,9 +108,11 @@ const termsTo = (start: Term, target: Term, summers: boolean): number => {
 export function paceOf(credits: number, latest: Term | null, settings: PaceSettings): Pace {
   if (credits <= 0) return { kind: 'none' };
   if (latest === null) return { kind: 'unreadable' };
-  const { most, summers } = settings;
-  // The ends of the range never cross; should they be given crossed, the most decides.
-  const fewest = Math.min(settings.fewest, most);
+  const { summers } = settings;
+  // The controls keep both ends whole numbers of at least 1 that never cross; should other
+  // values be given, the most decides and nothing here can run without end.
+  const most = Math.max(1, Math.floor(settings.most));
+  const fewest = Math.max(1, Math.min(Math.floor(settings.fewest), most));
   const start = termAfter(latest, summers);
   const termsAtMost = Math.ceil(credits / most);
   const earliest = termAt(start, termsAtMost, summers);
@@ -163,8 +165,8 @@ export function paceSentence(pace: Pace): string {
   if (pace.kind === 'none') return TEXT.none;
   if (pace.kind === 'unreadable') return TEXT.unreadable;
   const { detail } = pace;
-  const line = detail.kind === 'about' ? TEXT.about(pace.perTerm) : TEXT.finish(detail.at, termName(detail.finish), detail.semesters, detail.kind);
-  return `${pace.kind === 'on' ? TEXT.on(termName(pace.target)) : TEXT.off(termName(pace.target))}: ${line}`;
+  const headline = pace.kind === 'on' ? TEXT.on(termName(pace.target)) : TEXT.off(termName(pace.target));
+  return detail.kind === 'about' ? `${headline}: ${TEXT.about(pace.perTerm)}` : `${headline}. ${TEXT.finish(detail.at, termName(detail.finish), detail.semesters, detail.kind)}`;
 }
 
 /** Beside the ring: the answer, its detail and, with every estimate, the caveat. */
@@ -191,7 +193,15 @@ const stepper = (name: 'fewest' | 'most', label: string, value: number, note: st
         </div>`;
 
 /** The neutral note under an end of the range, or nothing: below full-time, or over the usual most. */
-export const rangeNote = (value: number): string | null => (value < FULL_TIME ? belowFullTime(FULL_TIME) : value > USUAL_MOST ? overUsualMost(USUAL_MOST) : null);
+const rangeNote = (value: number): string | null => (value < FULL_TIME ? belowFullTime(FULL_TIME) : value > USUAL_MOST ? overUsualMost(USUAL_MOST) : null);
+
+/** What a control now shows, for a screen reader: the card is drawn again, so the new value and its note are said. */
+export const rangeSentence = (end: 'fewest' | 'most', settings: PaceSettings): string => {
+  const value = settings[end];
+  const note = rangeNote(value);
+  return `${TEXT[end]}: ${value} ${TEXT.credits(value)}.${note ? ` ${note}` : ''}`;
+};
+export const summersSentence = (settings: PaceSettings): string => `${TEXT.summers}: ${TEXT.onOff(settings.summers)}.`;
 
 /** Under the credit bar: the four controls. Nothing when there is no estimate to adjust. */
 export function paceControlsHtml(pace: Pace, settings: PaceSettings): string {
