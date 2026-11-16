@@ -147,7 +147,8 @@ describe('one course, after repeats', () => {
     for (const shown of ['A', 'D', 'TR', null]) {
       expect(courseStandings([transfer('ECO 251', shown), row('ECO 251', 'C')], grades), String(shown)).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: false, grade: 'C' } } }]);
     }
-    expect(courseStandings([transfer('ECO 251', 'A'), transfer('ECO 251', null)], grades)).toMatchObject([{ deciding: { row: { grade: 'A' } } }]);
+    // Between two transfer rows the first decides, not the one whose column looks better.
+    expect(courseStandings([transfer('ECO 251', null), transfer('ECO 251', 'A')], grades)).toMatchObject([{ deciding: { row: { grade: null } } }]);
     const both = courseStandings([transfer('ECO 251', null), row('ECO 251', null)], grades);
     expect(both).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: true } } }]);
   });
