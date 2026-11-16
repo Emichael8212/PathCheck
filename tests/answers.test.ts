@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
 import { answersFor, legacyMatters, levelOf, reminderFor, type Answer } from '../src/answers';
-import { curriculum, findCourse, loadCurriculum, normalizeCode, type Curriculum } from '../src/curriculum';
+import { curriculum, loadCurriculum, normalizeCode, type Curriculum } from '../src/curriculum';
 import { entryFor, type Entry } from '../src/entries';
 import { placeCourses } from '../src/placement';
 import { courseStandings } from '../src/transcript';
@@ -136,6 +136,13 @@ describe('the legacy courses', () => {
     // With another course of that pick, which of the two counts depends on the answer.
     expect(ask(['PSY 251', 'GEO 206'])).toEqual(['?', `… ${WAITING}`]);
     expect(ask(['GEO 206', 'PSY 251'])).toEqual(['✓ Counts toward CIS — Social sciences', '?']);
+    // When the answer would change nothing, nothing is asked: with the three elective
+    // places full, PSY 251 keeps its pick for a legacy student too.
+    expect(ask(['PSY 251', 'GEO 206', 'MKT 410', 'CIS 499', 'ECO 301']).slice(0, 2)).toEqual([
+      '✓ Counts toward CIS — Social sciences', '✗ Doesn’t count — it fills the same requirement as PSY 251.',
+    ]);
+    expect(legacyMatters(entries(['PSY 251', 'GEO 206', 'MKT 410', 'CIS 499', 'ECO 301']), curriculum)).toBe(false);
+    for (const legacy of [YES, NO]) expect(ask(['PSY 251', 'GEO 206', 'MKT 410', 'CIS 499', 'ECO 301'], legacy)[0]).toBe('✓ Counts toward CIS — Social sciences');
     // The sequence course holds the pick either way, so it has its answer already.
     expect(ask(['PSY 251', 'HIS 132'])).toEqual(['?', '✓ Counts toward CIS — Social sciences']);
     expect(ask(['HIS 132', 'PSY 251'])).toEqual(['✓ Counts toward CIS — Social sciences', '?']);
@@ -228,7 +235,16 @@ describe('whatever the list', () => {
         expect([...counting].sort(), `${label} / ${legacy}`).toEqual([...placed].sort());
         // With the answer known every row is a verdict, and nothing else.
         for (const answer of answers) expect(['counts', 'no'], label).toContain(answer.kind);
-        expect(counting.filter(code => findCourse(curriculum, code).every(place => place.kind !== 'required' && place.kind !== 'pick')).length, label).toBeLessThanOrEqual(3);
+        // Three electives at most, a legacy elective among them, whatever else the course is listed as.
+        const asElective = answers.filter(answer => answer.kind === 'counts' && /: elective \(|— CIS electives$/.test(answer.text));
+        expect(asElective.length, label).toBeLessThanOrEqual(3);
+        expect(asElective.length, label).toBe(placement.electives.filled.length);
+        // A course named as filling a place is itself a course that counts.
+        for (const answer of answers) {
+          if (answer.kind !== 'no') continue;
+          const named = /(?:same requirement as|already filled by) (.+)\.$/.exec(answer.text)?.[1]?.split(/, | and /) ?? [];
+          for (const code of named) expect(counting, `${label} / ${answer.text}`).toContain(code);
+        }
         for (const never of ['CIS 304', 'CIS 415', 'BIO 230', 'XYZ 101']) expect(counting, label).not.toContain(never);
         if (!legacy) for (const never of ['FLS 161', 'MGT 220', 'MGT 203']) expect(counting, label).not.toContain(never);
       }

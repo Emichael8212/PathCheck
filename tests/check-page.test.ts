@@ -615,4 +615,26 @@ describe('the answers', () => {
     expect(document.querySelector('[data-filter]')).toBeNull();
     expect($('.empty-hint').textContent).toBe('Add the courses you plan to take next semester.');
   });
+
+  it('starts a new list with all its rows after one was emptied under the filter', () => {
+    add('bio 230');
+    $('[data-filter="no"]').click();
+    $('[data-remove="BIO 230"]').click();
+    expect(document.querySelector('[data-filter]')).toBeNull();
+    expect($('.empty-hint').textContent).toBe('Add the courses you plan to take next semester.');
+    add('mgt 321');
+    expect(rows()).toEqual(['MGT 321 Principles of Management 3 cr']);
+    expect($('[data-filter="all"]').getAttribute('aria-pressed')).toBe('true');
+    expect($('[data-filter="no"]').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('says which legacy answer the rows now follow', () => {
+    add('fls 161');
+    $('[data-legacy="yes"]').click();
+    expect(said()).toBe('Legacy CIS student: Yes');
+    $('[data-legacy-change]').click();
+    expect(said()).toBe('Are you a legacy CIS student?');
+    $('[data-legacy="no"]').click();
+    expect(said()).toBe('Legacy CIS student: No');
+  });
 });

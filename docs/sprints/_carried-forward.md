@@ -8,15 +8,13 @@ Read this before writing a sprint contract; delete a line when its feature has d
   adding up a transcript row's credits. A withdrawn row still shows credits attempted.
   (F03 review; done for placement in F04)
 
-## For F09 (the summary strip)
+## For F09 (credit total and the summary strip)
 - The design's summary strip is F09's: total credits; credits that count, with "unless
   you've already passed them or filled their slots" under it (owner answer b); credits
   that don't count. Take the two counts from `answersFor` (`src/answers.ts`): a course
   counts when its answer's `kind` is "counts" and doesn't when it is "no". A row that
   shows the legacy question or waits for it is in neither count until it is answered: say
   so in F09's contract. (F08)
-
-## For F09 (credit total)
 - Each row already shows its credits (`Entry.credits`): the curriculum's, the elective
   rule's, or `UNKNOWN_COURSE_CREDITS` for a course PathCheck doesn't know. F09 makes the
   last one editable and adds the total. (F07)
@@ -87,22 +85,24 @@ last of them marks F05 passing (`passes`, `evidence`) and removes its BLOCKED li
 what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the sentences in
 `src/wording.ts`, and the answer held in `CourseList.legacy` by `startApp`.
 - On-screen checks: the question appears for FLS 161, MGT 220 and MGT 203, typed in any
-  form, and for PSY 251 only when another course is in its Social sciences pick (owner
-  answer, 2026-11-16: PSY 251 alone is an ordinary course of that block); it does not
+  form, and for PSY 251 only when its answer depends on the legacy answer (another course
+  in its Social sciences pick, with an elective place free; owner answer, 2026-11-16:
+  PSY 251 alone is an ordinary course of that block); it does not
   appear without them; it uses `LEGACY_QUESTION`, `LEGACY_YES` and
   `LEGACY_NO` (`src/legacy.ts`) exactly; Yes and No visibly change the result; the answer
   survives a reload; the student can change it and the result updates; it is not asked
   again once answered; it works with the keyboard only and at 375px.
-- No verdict before the answer. While the question is unanswered, no "counts" or "doesn't
-  count" is shown for any of the four courses: `placeCourses` treats no answer as No, and
-  "Doesn't count" would be false for a legacy student.
+- No verdict before the answer that the answer could change. Work out the result for Yes
+  and for No, as `answersFor` does (`src/answers.ts`): a course whose result is the same
+  either way shows it (PSY 251 alone counts for Social sciences); a legacy course whose
+  result differs shows the question; any other course whose result differs waits.
 - Keep the answer in memory for the visit and pass it to `placeCourses` as `{ legacy }`.
   Never rely on reading it back: in private browsing `writeLegacyAnswer` does nothing and
   `readLegacyAnswer` gives "not given yet".
 - Get the storage only through `browserStorage()` (`src/legacy.ts`), never by naming
   `localStorage` in a screen: with site data blocked, some browsers fail on that alone.
-- Pass `legacyQuestionNeeded` every code that appears, typed or on any reviewed transcript
-  row, whatever its grade.
+- Whether to ask is decided by that comparison, not by `legacyQuestionNeeded`
+  (`src/legacy.ts`), which is true for PSY 251 alone and would ask too often.
 - The owner's words (2026-11-16): Yes "Counts toward CIS: elective (legacy)"; No "Doesn't
   count toward CIS. Legacy students only."; not answered: the question in place of an
   answer, never "Counts" before it.

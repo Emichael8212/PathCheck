@@ -44,7 +44,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F08) The typed courses are placed with the transcript code (`placeCourses`): all in one state (in progress), in typed order, with the legacy answer. Each course's answer is read off that placement. | The two flows cannot disagree (owner, 2026-11-16); the sequence course wins its slot and electives are taken in order without new code. | Write separate rules for typed courses in `src/answers.ts`. |
 | (2026-11-16, F08) Before the legacy question is answered, a row whose sentence would differ between Yes and No shows no verdict: a legacy course shows the question; any other course shows "Answer “Are you a legacy CIS student?” to see this." A row whose sentence is the same either way shows it. | The owner: never "Counts" before the answer, and never "Counts" for a place the student's own list fills. Either verdict could be wrong until the answer is known. The waiting sentence is the agent's; listed in the pull request. | Reword `waitingFor` in `src/wording.ts`. |
 | (2026-11-16, F08) PSY 251 with the answer Yes, its pick held by a sequence course and the three elective places full, shows the same-requirement sentence. | One of the owner's sentences had to be chosen; this one names the place the curriculum lists PSY 251 for. | Use the places-filled sentence instead, in `src/answers.ts`. |
-| (2026-11-16, F08) A pick that takes more than one course names all the courses that fill it ("<A> and <B>"). | The owner's sentence names one course; the CIS curriculum has no such pick, the made-up test program has. | — only the made-up program is affected. |
+| (2026-11-16, F08) A pick that takes more than one course names all the courses that fill it ("<A> and <B>"). | The owner's sentence names one course; the CIS curriculum has no such pick, the made-up test program has. | Name only the first course, in `sameRequirement` (`src/wording.ts`). |
 | (2026-11-16, F08) Once the legacy question is answered, a line under the list says "Legacy CIS student: Yes" (or No) with "Change", shown while a course it matters for is in the list. "Change" puts the question back. | The owner: the answer can be changed. The design has no place for it. Agent's wording; listed in the pull request. | Reword or move in `src/check.ts`. |
 | (2026-11-16, F08) The sequence reminder is not shown for an empty list. The "Doesn't count" filter with nothing to list says "No course in your list is marked “Doesn't count”." | Nothing to be reminded about yet; an empty filtered list needs a word. Agent's wording; listed in the pull request. | Change `reminderFor` in `src/answers.ts`; reword in `src/check.ts`. |
 | (2026-11-16, F08) F08 draws no numbers: the summary strip of the design (total credits, credits that count, credits that don't) is built in F09 from the answers. | The total is F09's feature; the strip is one piece. | Build the two counts in F08. |
@@ -513,9 +513,12 @@ sciences course and is not asked about. The step's text is not changed (that nee
 owner); it now reads more narrowly for PSY 251.
 
 *Agent's notes, not owner decisions:*
-- "When its social-sciences pick is already taken" is read as: another typed course is in
-  that pick, in either order. With PSY 251 typed first and GEO 206 second, which of the two
-  counts depends on the legacy answer, so the question is needed there too.
+- "When its social-sciences pick is already taken" is read as: PSY 251 is asked about
+  whenever its answer depends on the legacy answer. That is when another typed course is
+  in that pick, in either order, and an elective place is free for PSY 251: with PSY 251
+  typed first and GEO 206 second, which of the two counts depends on the answer. When the
+  answer would change nothing (the three elective places already full), no question is
+  asked.
 - "Counts toward CIS: elective (legacy)" is shown, like every "Counts" answer without a
   transcript, with the condition "unless you've already passed it or filled this slot"
   under it (F08 step 6: a plain "Counts toward CIS" with no condition is never shown).

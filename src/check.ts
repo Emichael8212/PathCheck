@@ -180,6 +180,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const say = (where: HTMLElement, text: string): void => where.replaceChildren(text);
   // Every answer is worked out again from the whole list.
   const drawList = (): void => {
+    // The filters go with the list: an empty list has none, and the next one starts with all its rows.
+    if (list.entries.length === 0) list.filter = 'all';
     filters.innerHTML = filtersHtml(list);
     region.innerHTML = entriesHtml(list, curriculum);
   };
@@ -261,6 +263,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       list.legacy = answer === 'yes';
       writeLegacyAnswer(browserStorage(), list.legacy);
       drawList();
+      // Every row has changed: say which answer they now follow.
+      say(said, `${TEXT.legacyLine} ${list.legacy ? LEGACY_YES : LEGACY_NO}`);
       (region.querySelector<HTMLElement>('[data-legacy-change]') ?? input).focus();
       return;
     }
@@ -268,6 +272,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       list.legacy = null;
       clearLegacyAnswer(browserStorage());
       drawList();
+      say(said, LEGACY_QUESTION);
       (region.querySelector<HTMLElement>('[data-legacy]') ?? input).focus();
       return;
     }
