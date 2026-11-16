@@ -38,7 +38,8 @@ describe('one row', () => {
     expect(['X', 'Y', 'Z', 'Q', 'A', 'W'].map(grade => standing(grade, other))).toEqual(['passed', 'passed', 'must-repeat', 'no-credit', 'unrecognised', 'unrecognised']);
     // No grade is written in the code: no quoted single capital letter anywhere in it.
     const source = readFileSync(join(import.meta.dirname, '..', 'src', 'transcript.ts'), 'utf8');
-    expect(source.match(/(['"`])[A-Z][+-]?\1/g)).toBe(null);
+    expect(source.match(/(['"`])[A-Za-z]{1,2}[+-]?\1/g)).toBe(null);
+    expect(source.match(/\[[A-Za-z]-[A-Za-z]\]|\[[A-Z]{3,}\]/g)).toBe(null);
   });
 
   it('does not pass a grade that is not on the scale', () => {
@@ -149,9 +150,17 @@ describe('one course, after repeats', () => {
       if (result.standing === 'must-repeat') {
         expect(each.some(one => one === 'passed' || one === 'in-progress' || one === 'unrecognised'), label).toBe(false);
       }
-      // The deciding row has the course's standing and is one of its rows.
+      expect(result.standing === 'unrecognised', label).toBe(!each.includes('passed') && !each.includes('in-progress') && each.includes('unrecognised'));
+      expect(courseStandings(rows, grades), label).toHaveLength(1);
+      // The deciding row has the course's standing, is one of its rows, and no other row
+      // with that standing has a better grade on the scale.
       expect(result.deciding.standing, label).toBe(result.standing);
       expect(rows).toContain(result.deciding.row);
+      const onScale = (one: TranscriptRow): number => { const at = grades.letters.indexOf(one.grade ?? ''); return at < 0 ? Infinity : at; };
+      const sameStanding = rows.filter(one => own(one) === result.standing);
+      expect(onScale(result.deciding.row), label).toBe(Math.min(...sameStanding.map(onScale)));
+      // ...and of equally good rows it is the first.
+      expect(result.deciding.row, label).toBe(sameStanding.find(one => onScale(one) === onScale(result.deciding.row)));
       // The same rows in any order give the same standing.
       const before = seen.get(label);
       if (before) expect(result.standing, label).toBe(before);
@@ -184,6 +193,16 @@ describe('a whole transcript', () => {
     expect(results.map(one => one.rows.length)).toEqual([1, 2, 1, 1, 1]);
     expect(results[4]?.deciding.row.credits).toBe(1);
     expect(courseStandings([], grades)).toEqual([]);
+  });
+
+  it('does not change the rows it is given', () => {
+    const rows = Object.freeze([row('ECO 251', 'D'), row('eco251', null), transfer('ORI 100', null)].map(one => Object.freeze(one)));
+    const before = JSON.stringify(rows);
+    const results = courseStandings(rows, grades);
+    expect(JSON.stringify(rows)).toBe(before);
+    // The result points at the very rows it was given, so a screen can map back to them.
+    expect(results[0]?.rows[0]?.row).toBe(rows[0]);
+    expect(results[1]?.deciding.row).toBe(rows[2]);
   });
 
   it('does not let one course affect another', () => {

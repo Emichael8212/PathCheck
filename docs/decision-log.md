@@ -262,7 +262,10 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   pull request when CI is green and the reviewer finds no blocker, and stops at the end of
   M1 for the owner's check.
 
-### Open questions to the owner
+## Open questions to the owner
+
+These are questions, not answers. The rule each one mentions is the agent's cautious
+stand-in until the owner answers; it is not an owner decision.
 
 - **2026-11-16 (F03; needed before F21, M2).** On the real unofficial transcript, what does
   the grade column show on a transfer, AP or CLEP row: blank, a mark such as "T", "TR" or

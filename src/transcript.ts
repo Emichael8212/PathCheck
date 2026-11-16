@@ -45,10 +45,11 @@ export interface CourseStanding {
   readonly rows: readonly JudgedRow[];
 }
 
-// When no row passes, the first of these that any row has. In progress comes first: the
-// course is assumed to pass and must not be scheduled again. "Must repeat" is said only
-// when no row leaves the outcome open, and a later mark that earns no credit does not undo it.
-const PRECEDENCE: readonly Standing[] = ['passed', 'in-progress', 'unrecognised', 'must-repeat', 'no-credit'];
+// A course takes the first of these that any of its rows has. In progress comes right
+// after passed: the course is assumed to pass and must not be scheduled again. "Must
+// repeat" is said only when no row leaves the outcome open, and a later mark that earns no
+// credit does not undo it. Every standing must have a place here; the type checks that.
+const PLACE: Record<Standing, number> = { 'passed': 0, 'in-progress': 1, 'unrecognised': 2, 'must-repeat': 3, 'no-credit': 4 };
 
 /** The grade column, without spaces and in capitals; empty when no grade is shown. */
 const mark = (grade: string | null | undefined): string => (grade ?? '').trim().toUpperCase();
@@ -84,7 +85,8 @@ export function courseStandings(rows: readonly TranscriptRow[], grades: Grades):
   }
 
   return [...byCode].map(([code, judged]) => {
-    const standing = PRECEDENCE.find(candidate => judged.some(one => one.standing === candidate)) ?? 'unrecognised';
+    // Every group has at least one row, so there is always a first standing.
+    const standing = judged.map(one => one.standing).reduce((first, next) => (PLACE[next] < PLACE[first] ? next : first));
     // Among the rows with that standing, the best grade decides; with no grade to compare,
     // or a tie, the first in transcript order.
     const position = (one: JudgedRow): number => {
