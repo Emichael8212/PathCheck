@@ -69,21 +69,193 @@ this layout only, never real data) → F10:
   follow-up PR.
 - `npm audit` (7 moderate, development-only lint tooling): left as is.
 
-**One reading by the agent, to confirm:** the rule-matched elective answer in Flow A
-without a transcript keeps the brief's condition after the owner's wording in answer 2
-(brief §1 priority 1). Full sentence: "Counts toward CIS: elective (300/400-level MKT) —
-unless you've already passed it or filled this slot".
+**Confirmed by the owner (2026-11-15):** in Flow A without a transcript, a rule-matched
+elective shows "Counts toward CIS: elective (300/400-level MKT) — unless you've already
+passed it or filled this slot".
 
 **Where these answers differ from the brief:** §5 and §10 (the sequence rule is no longer
 an M0 item); §8 "everything else stays hidden until asked for" (F13: remaining courses of
 Still needed / In progress blocks are shown directly); §4 Flow A (a rule-matched elective
 has no title).
 
+### 2026-11-15 — M0 mockups
+
+> **Superseded later the same day** by "The owner's own design replaces the three directions"
+> below. The three directions, the Apple / Liquid Glass instruction and the lifting of the
+> "frosted glass" ban no longer apply. What still stands from this entry: F01 does not pass
+> and is not merged until the owner approves; the wording and content rules that come from
+> `docs/M0-DESIGN-BRIEF.md` "The 3 pages".
+
+- F01 does not pass, and its PR is not merged, until the owner approves a design for PathCheck.
+  The evaluator's PASS is not enough on its own.
+- The owner approved none of the first three designs (Worksheet, Credit map, Plain answers).
+- New round: three directions built to `docs/M0-DESIGN-BRIEF.md` (the owner's brief, copied as
+  written), with Apple's interface guidance applied, including Liquid Glass. Where that brief
+  differs from `docs/BRIEF.md`, it wins:
+  - "Frosted glass" comes off the banned list in brief §8. The rest of the list stays.
+  - M0 now covers three pages (Start, "Check my courses" result, "See what I have left"
+    result), not two.
+  - No-transcript answer for a curriculum course: "Counts toward CIS — <block>" with
+    "unless you've already passed it or filled this slot" as a second line. The elective
+    sentence stays "Counts toward CIS: elective (300/400-level MKT)" with the same second line.
+  - A course outside the curriculum is shown with its credits (BIO 230, 3 cr) and is included
+    in the credit total.
+  - A block with courses in progress and courses missing reads "In progress" (Social
+    sciences, Humanities, Pre-professional in the brief's example).
+  - Do not merge or move ahead with the design until the owner approves.
+
+### 2026-11-15 — The owner's own design replaces the three directions
+
+The owner designed PathCheck in Figma Make and published it at
+https://color-nicks-25285809.figma.site/ (view "Combined · Your picks"; the hash
+`#d=d&p=<start|check|left>&t=<light|dark>&w=<desktop|phone>` selects page, theme and width).
+
+- **This design is the chosen direction.** It overrides F01's "3 mockups, owner picks one".
+  The three directions built to `docs/M0-DESIGN-BRIEF.md` (Receipt, Meter, Signs) are deleted
+  completely. Only "Combined · Your picks" is used; Route, Focus and Workspace on the same
+  site are ignored. "Rationale & questions" is read for the owner's reasoning and is not
+  built as a page.
+- Because of this decision, F01's description and steps and the M0 milestone text in
+  `features.json` (and the M0 line in `CLAUDE.md`) were rewritten. This is the owner
+  approval that `features.json` requires for such a change.
+- **Visual reference from now on:** the screenshots in `docs/design/screens/` (each page,
+  light and dark, desktop 1440 and phone 375), taken from the published site.
+  `docs/design/DESIGN.md` is written from the site's computed styles and is the design source
+  for M1.
+- **Design choices the owner has already made** (the owner: "these override brief §8 where
+  they differ"):
+  - Cards around the two choices and around the results are kept.
+  - The pill badge "Before registration. Before you pay." is kept.
+  - The upload icon in a circle is kept.
+  - The small uppercase section labels ("FOR NEXT SEMESTER", etc.) are kept.
+  - The owner: the evaluator must not mark these as generic or FAIL; they are added to its
+    Calibration section as owner-approved.
+- **What stays from the brief where the design doesn't show it or gets it wrong:** all colors
+  as CSS tokens with light and dark mode; WCAG AA contrast; works at 375px with nothing
+  hidden or overlapping; visible keyboard focus; on every result "Curriculum last reviewed:
+  <date>", "Not an official degree audit", "Report a mistake", "Not affiliated with Alabama
+  State University"; the exact wording of brief §4 and §5.
+- **The design is not changed silently.** Anything else in it that conflicts with the brief
+  is listed in the PR under "Conflicts with the brief" and the owner is asked: anything in
+  §6 "Not built", any text that says a course counts when it may not, any academic rule
+  shown differently from §5, any wording that says "ask your advisor". No academic rule is
+  invented to fit a screen.
+- **Rebuilt in plain project code.** Figma Make's component libraries, toasts and icon packs
+  are not copied into the project.
+- **M0 ends when the owner approves** the mockups built from this design. PR #4 is not
+  merged before that.
+- *Agent's note, not an owner decision:* the first copy of this message also said to replace
+  the "Your major" dropdown with plain text. The owner re-sent the message without that
+  line, so the dropdown is kept as designed and listed under "Conflicts with the brief"
+  (brief §3: CIS only, no multi-major UI; §4: nothing to fill in first).
+- *Agent's note:* the instruction to apply Apple's interface guidance and Liquid Glass
+  belonged to the replaced directions. The owner's design uses no glass, and it is followed
+  as it is.
+
+### 2026-11-15 — Answers to the nine conflicts on PR #4
+
+The owner's design had nine conflicts with the brief (PR #4, a–i). These are the answers.
+They are applied to the mockups and to `docs/design/DESIGN.md`.
+
+- **a. "Your major" dropdown: keep it.** Other majors will be added later.
+  - "B.S. Computer Information Systems" is pre-selected, so nothing has to be filled in
+    before the two choices.
+  - It has only that one option. No "coming soon" or disabled majors.
+  - This overrides brief §3 and §4 for this control only. It is not "what-if for other
+    majors" (§6). Nothing else multi-major is built. → F06.
+- **b. The count at the top of page 2 carries the condition.** Without a transcript: "12
+  count toward CIS — unless you've already passed them or filled their slots". With a
+  transcript the condition is dropped, because the answer is exact. This is priority 1:
+  never say "counts" without a condition when it may not. → F09, F12.
+- **c. No third answer.** A course not in the curriculum doesn't count. "Can't confirm —
+  this course isn't in PathCheck yet" is removed; the only answer is "Doesn't count toward
+  CIS — not in the CIS curriculum". The filter says "Doesn't count". → F08.
+- **d. Requirements follow the PR #1 decision, not the design.** In progress and Still
+  needed requirements show their remaining courses straight away. Done requirements are
+  collapsed and can be opened with "Show courses". → F13.
+- **e. Credits per term: two controls, "Fewest" and "Most"**, defaulting to 12 and 18, both
+  editable. → F14.
+  - Going above 18 is allowed, with the neutral note "may cost extra".
+  - Under 12 shows "below full-time; may affect scholarships".
+  - PathCheck sets no hard limit. The portal enforces the real one.
+- **f. The other brief §8 patterns:**
+  - f1. Uppercase grey table header (page 2, desktop): removed. Normal-case text.
+  - f2. Legend under the credit bar (page 3): removed. The bar's segments are labelled
+    directly.
+  - f3. Pill-shaped tabs (the top links; "All / Not done"): kept.
+  - f4. Indigo main button: kept.
+  - f5. Numbered chips: "01" and "02" on the Start choices and "1 / 2 / 3" under "See it
+    work" are kept.
+- **g. "Counts" and "Done" get different marks.** "Done" keeps the filled green tick.
+  "Counts" gets its own mark (an outlined tick), so a conditional answer never looks as
+  certain as a finished requirement. The five statuses (Counts, Doesn't count, Done, In
+  progress, Still needed) stay visually distinct, and every mark has its text label.
+- **h. 12 is correct, everywhere.** The "15" in the owner's earlier design brief was a mistake.
+- **i. The privacy sentence is replaced** with "Your PDF is read, then deleted. Only your
+  result stays in this browser." It is shown before the first upload, next to the upload
+  control. → F11, F19.
+
+*Agent's notes, not owner decisions:*
+- The "→ F06" style pointers above are the agent's cross-references to `features.json`.
+- Where these answers differ from the brief: §3 and §4 (the major dropdown, a); §8 banned
+  list (pill-shaped tabs, the indigo main button and the numbered chips are approved,
+  f3–f5, with the four choices approved earlier the same day). The uppercase grey table
+  header and legends stay banned (f1, f2).
+- `features.json` said "there is no multi-major UI" (F02) and "There is no sign-in, account,
+  advisor screen or major picker" (F06), which answer a contradicts. The owner approved new
+  wording for both the same day (next entry).
+- The two credit controls never cross (pushing one past the other takes it along) and
+  neither goes below 1 credit. That is how the control behaves, not an academic rule.
+- The owner wrote the major as "B.S. Computer Information Systems"; the published design
+  had "B.S. - Computer Information Systems". The mockups use the owner's wording.
+- The owner's brief names no courses for the three Done requirements. So that "Show
+  courses" has something to show, the synthetic student is given ORI 100; ENG 131 and
+  ENG 132; BIO 127, BIOL 127, BIO 128, BIOL 128 and MAT 137 (titles and credits from the
+  curriculum file).
+- `docs/design/screens/` now holds screenshots of the updated mockups, re-taken as the
+  owner asked. The screenshots of the published site as it stood before these answers are
+  kept beside them in `docs/design/screens/published/`.
+
+### 2026-11-15 — F02 and F06 wording approved; footer and requirement toggles
+
+- **Approved: reword two feature steps** so they agree with answer a (the major dropdown).
+  The owner's final wording, now in `features.json`:
+  - F02: "the only major shown is B.S. Computer Information Systems. The dropdown has no
+    other options (no 'coming soon' or disabled majors)."
+  - F06: "There is no sign-in, account or advisor screen. The major dropdown has one option,
+    B.S. Computer Information Systems, already selected, and no other options (no 'coming
+    soon' or disabled majors)."
+- **Footer.** "Not affiliated with Alabama State University" sits at the bottom right, at
+  the same height as "Not an official degree audit.", "Curriculum last reviewed: Nov 2026"
+  and "Report a mistake".
+- **Requirements.** In progress and Still needed requirements also have the "Show courses" /
+  "Hide courses" toggle, just as Done ones do.
+- **PR #4** gets a descriptive title, and its description is about adding the design the
+  owner agreed on, which the application's UI will be built upon.
+- PR #4 is not merged. The work stops at M0 for the owner's check.
+
+*Agent's notes, not owner decisions:*
+- In progress and Still needed requirements start open, so their courses still show
+  straight away (answer d); the toggle lets the student hide them. Done ones start closed.
+- When the footer line gets narrow, the three items on the left wrap first and "Not
+  affiliated with Alabama State University" stays at the right, level with the first of
+  them. Only under about 630px wide (a phone) is there no room beside them; there it drops
+  below the other three, at the left.
+
+### 2026-11-15 — M0 approved; GitHub milestones
+
+- **The owner approved PR #4** ("I approve Pr 4"). This is the M0 check: the design in
+  `docs/design/` and the mockups are approved. F01 is marked passing and PR #4 is merged.
+- **GitHub milestones.** The owner created four: "M0: Design", "M1: Working prototype", "M2:
+  Transcript upload", "M3: Public launch". Each PR is attached to its milestone when it is
+  opened. The owner closes a milestone themselves, once the agent has given proof that it is
+  ready to be closed. `features.json` stays the source of truth.
+
 ## Milestone checks
 
 | Milestone | Date | Owner's answer |
 |---|---|---|
-| M0 | | (sequence rule confirmed 2026-11-15, see above) |
+| M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
 | M1 | | |
 | M2 | | |
 | M3 | | |

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PathCheck mockup: What I have left</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { render } from './view.js';
+      document.getElementById('app').innerHTML = render('left');
+      const { setupCredits, setupPrint } = await import('./behavior.js');
+      setupCredits(document);
+      setupPrint(document, window);
+    </script>
+  </body>
+</html>

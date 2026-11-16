@@ -8,8 +8,8 @@
   "milestones": [
     {
       "id": "M0",
-      "delivered": "3 design mockups",
-      "ownerChecks": "picks one"
+      "delivered": "the owner's design as static mockups",
+      "ownerChecks": "approves the mockups"
     },
     {
       "id": "M1",
@@ -31,26 +31,29 @@
     {
       "id": "F01",
       "milestone": "M0",
-      "description": "Three visually distinct static mockups of Flow A's result and Flow B's checklist + plan, for the owner to pick one",
+      "description": "Static mockups of the Start page, the \"Check my courses\" result and the \"See what I have left\" result that match the owner's own design, for the owner to approve",
       "steps": [
-        "Open each of the 3 mockups from one index page; each shows Flow A's result and Flow B's degree checklist + draft plan, using synthetic data only",
-        "The three are visually distinct directions, and each reads as the student's CIS degree checklist (Done / In progress / Still needed) without copying any vendor's look",
-        "Each shows one question and one big answer per screen, with everything else hidden until asked for",
-        "None uses a banned element: pill tab steppers, frosted glass, a card around everything, icon-in-circle feature lists, uppercase grey table headers, a default blue primary button, toasts, legends, multiple side panels",
-        "All colors are CSS tokens with light and dark mode, contrast meets WCAG AA, and at 375px wide nothing is hidden or overlapping",
-        "Each shows the name PathCheck and \"Not affiliated with Alabama State University\", with no ASU logo or school colors",
-        "Stop: the owner picks one mockup; the answer is recorded in docs/decision-log.md"
+        "The owner's published design (\"Combined · Your picks\") is the chosen direction: its three pages are screenshotted in light and dark at 1440px and 375px into docs/design/screens/, and docs/design/DESIGN.md records its color tokens, fonts, type sizes, spacing, radii, status marks and page layouts",
+        "Open the three mockups from one index page: Start, the \"Check my courses\" result, and the \"See what I have left\" result with checklist, pace and draft plan. Each matches the owner's screenshots in light and dark, at desktop and phone width, with synthetic student data only",
+        "The owner's design choices are kept: cards around the two choices and the results, the pill badge \"Before registration. Before you pay.\", the upload icon in a circle, the small uppercase section labels",
+        "Kept from the brief where the design doesn't show it or gets it wrong: all colors are CSS tokens with light and dark values; contrast meets WCAG AA; at 375px nothing is hidden or overlapping; keyboard focus is visible; every result shows \"Curriculum last reviewed: <date>\", \"Not an official degree audit\", \"Report a mistake\" and \"Not affiliated with Alabama State University\"; the wording of brief sections 4 and 5 is exact",
+        "No no-transcript \"Counts\" answer is shown without \"unless you've already passed it or filled this slot\"; the pace answer is shown with \"Credits only — course order may add semesters\"; the plan is labelled \"Order not checked — your portal checks prerequisites\"",
+        "The design is not changed silently: every remaining conflict with the brief (anything in section 6, any text that says a course counts when it may not, any academic rule shown differently from section 5, any \"ask your advisor\" wording) is listed for the owner in the PR under \"Conflicts with the brief\"",
+        "The look is rebuilt in plain project code: no Figma Make component library, toast or icon pack is copied in",
+        "Stop: the owner approves the mockups side by side with the published design; F01 passes and its PR is merged only then; the answer is recorded in docs/decision-log.md"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F01.md",
+      "tests": [
+        "tests/mockups.test.js"
+      ]
     },
     {
       "id": "F02",
       "milestone": "M1",
       "description": "Curriculum loaded as data: the one B.S. CIS curriculum (121 credits), stored so other majors can be added later",
       "steps": [
-        "The app reads the curriculum from the data file in docs/curriculum/, so another College of Business major could be added later as data; there is no multi-major UI",
+        "The app reads the curriculum from the data file in docs/curriculum/, so another College of Business major could be added later as data; the only major shown is B.S. Computer Information Systems. The dropdown has no other options (no 'coming soon' or disabled majors).",
         "The blocks, credits, required courses and choices match the table in brief section 5 exactly, and the block credits total 121",
         "CIS 304, CIS 415 and any replacement, older-code or not-offered entry do not exist anywhere",
         "There is no catalog-year or start-year question or field",
@@ -115,7 +118,7 @@
       "steps": [
         "Opening the site shows two big choices, \"Check my courses\" and \"See what I have left\", with nothing to fill in first",
         "The name PathCheck and \"Not affiliated with Alabama State University\" are shown; there is no ASU logo or school colors",
-        "There is no sign-in, account, advisor screen or major picker",
+        "There is no sign-in, account or advisor screen. The major dropdown has one option, B.S. Computer Information Systems, already selected, and no other options (no 'coming soon' or disabled majors).",
         "Each choice opens its flow"
       ],
       "passes": false,
