@@ -6,10 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { check as approvedCheck } from '../mockups/data.js';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
-import { alreadyThere, checkPage, entriesHtml, filtersHtml, notACourse, suggestionsHtml, type CourseList } from '../src/check';
+import { alreadyThere, checkPage, entriesHtml, filtersHtml, notACourse, noteText, suggestionsHtml, summaryHtml, type CourseList } from '../src/check';
 import { UNKNOWN_COURSE_CREDITS } from '../src/credits';
 import { curriculum, findCourse, loadCurriculum, type Course } from '../src/curriculum';
-import { FEWEST_CHARACTERS, MOST_SUGGESTIONS, addCourse, entryFor, listedCourses, removeCourse, suggest, type Entry } from '../src/entries';
+import { FEWEST_CHARACTERS, MOST_SUGGESTIONS, addCourse, entryFor, listedCourses, removeCourse, setCredits, suggest, type Entry } from '../src/entries';
 
 const decode = (html: string): string => html
   .replace(/<svg[\s\S]*?<\/svg>/g, ' ')
@@ -381,5 +381,94 @@ describe('the answers on the page', () => {
     expect(drawn(typed('MGT 321', 'BIO 230'), true)).not.toContain('legacy-line');
     expect(drawn(typed('PSY 251', 'MGT 321'), true)).not.toContain('legacy-line');
     expect(drawn([], true)).not.toContain('legacy-line');
+  });
+});
+
+// F09: the numbers above the list (docs/sprints/F09.md).
+describe('the numbers above the list', () => {
+  const typed = (...codes: string[]): Entry[] => codes.reduce<Entry[]>((list, one) => added(list, one), []);
+  const strip = (entries: readonly Entry[], legacy: boolean | null = null): string => summaryHtml(listed(entries, legacy), curriculum);
+  const six = typed('ACT 215', 'MGT 321', 'MKT 410', 'BIO 230', 'ENG 131', 'ENG 140');
+  const CONDITION = 'unless you’ve already passed them or filled their slots';
+
+  it('shows the three numbers of the design', () => {
+    expect(decode(strip(six))).toBe(` 18 Total credits 12 Count toward CIS ${CONDITION} 6 Don’t count `);
+    // The labels and the condition are the approved mockup's.
+    expect(approvedCheck.summaryLabels).toEqual(['Total credits', 'Count toward CIS', 'Don’t count']);
+    expect(approvedCheck.countCondition).toBe(CONDITION);
+    // The design's colors: plain, "counts", "doesn't count".
+    expect(strip(six).match(/<span class="num[^"]*">\d+<\/span>/g)).toEqual(['<span class="num">18</span>', '<span class="num is-counts">12</span>', '<span class="num is-no">6</span>']);
+    // Between the heading and the field, and nothing at all for an empty list.
+    const page = checkPage(curriculum, listed(six));
+    expect(page).toContain(`<div data-summary>${strip(six)}</div>`);
+    expect(page.indexOf('data-summary')).toBeGreaterThan(page.indexOf('</h1>'));
+    expect(page.indexOf('data-summary')).toBeLessThan(page.indexOf('class="toolbar"'));
+    expect(strip([])).toBe('');
+    expect(checkPage(curriculum)).toContain('<div data-summary></div>');
+    expect(decode(strip(typed('ORI 100')))).toContain(' 1 Total credits ');
+  });
+
+  it('labels the numbers', () => {
+    expect(strip(six)).toMatch(/^<div class="summary" role="group" aria-label="Credits">/);
+    // Each number is followed at once by its label, in the same cell.
+    expect(strip(six).match(/<div><span class="num[^"]*">\d+<\/span><span class="summary-label">[^<]+<\/span>/g)).toHaveLength(3);
+  });
+
+  it('never shows the count without its condition', () => {
+    for (const entries of [six, typed('BIO 230'), typed('MGT 321'), typed('FLS 161', 'MGT 321')]) {
+      for (const legacy of [true, false, null]) {
+        expect(strip(entries, legacy)).toMatch(new RegExp(`<span class="num is-counts">\\d+</span><span class="summary-label">Count toward CIS</span><span class="summary-condition">${CONDITION}</span>`));
+      }
+    }
+  });
+
+  it('puts the note under the total, and only when it applies', () => {
+    const under = 'Below 12 credits: below full-time; may affect scholarships.';
+    const over = 'Over 18 credits: may cost extra.';
+    const first = (html: string): string => decode(html.split('<div>')[1] ?? '').trim();
+    expect(first(strip(typed('MGT 321')))).toBe(`3 Total credits ${under}`);
+    expect(first(strip(typed('ORI 100')))).toBe(`1 Total credits ${under}`);
+    expect(first(strip(typed('MGT 321', 'ENG 131', 'ACT 215', 'BIO 230')))).toBe('12 Total credits');
+    expect(first(strip(six))).toBe('18 Total credits');
+    expect(first(strip([...six, ...typed('ORI 100')]))).toBe(`19 Total credits ${over}`);
+    for (const html of [strip(six), strip(typed('MGT 321', 'ENG 131', 'ACT 215', 'BIO 230'))]) expect(html).not.toMatch(/Below|Over/);
+    expect(strip(typed('MGT 321'))).not.toContain(over);
+    expect(noteText(listed(typed('MGT 321')))).toBe(under);
+    expect(noteText(listed(six))).toBeNull();
+    expect(noteText(listed([]))).toBeNull();
+    // An edited unknown course moves the note.
+    expect(noteText(listed(setCredits(six, 'BIO 230', 4)))).toBe(over);
+  });
+
+  it('says when the two counts wait for the legacy answer', () => {
+    const waiting = 'Waiting for your legacy answer.';
+    expect(decode(strip(typed('FLS 161', 'MGT 321')))).toBe(` 6 Total credits Below 12 credits: below full-time; may affect scholarships. 3 Count toward CIS ${CONDITION} ${waiting} 0 Don’t count ${waiting} `);
+    // Under both counts for the eye; read out once.
+    expect(strip(typed('FLS 161', 'MGT 321')).match(/<span class="summary-condition"( aria-hidden="true")?>Waiting for your legacy answer\.<\/span>/g)).toEqual([
+      '<span class="summary-condition">Waiting for your legacy answer.</span>', '<span class="summary-condition" aria-hidden="true">Waiting for your legacy answer.</span>',
+    ]);
+    expect(decode(strip(typed('FLS 161', 'MGT 321'), true))).toBe(` 6 Total credits Below 12 credits: below full-time; may affect scholarships. 6 Count toward CIS ${CONDITION} 0 Don’t count `);
+    expect(decode(strip(typed('FLS 161', 'MGT 321'), false))).toBe(` 6 Total credits Below 12 credits: below full-time; may affect scholarships. 3 Count toward CIS ${CONDITION} 3 Don’t count `);
+    expect(strip(six)).not.toContain(waiting);
+    expect(strip(typed('PSY 251'))).not.toContain(waiting);
+  });
+
+  it("lets only an unknown course's credits be changed", () => {
+    const html = drawn(typed('MGT 321', 'ORI 100', 'FLS 161', 'MKT 410', 'BIO 230', 'CIS 304'), true);
+    const cells = html.match(/<span role="cell" class="cell-cr num">[\s\S]*?<span class="cr-unit"> cr<\/span><\/span>/g) ?? [];
+    expect(cells).toHaveLength(6);
+    // Courses PathCheck knows: their credits as text.
+    expect(cells.slice(0, 4)).toEqual(['3', '1', '3', '3'].map(credits => `<span role="cell" class="cell-cr num">${credits}<span class="cr-unit"> cr</span></span>`));
+    // Courses it doesn't know: a labelled dropdown from 0 to 12, on 3.
+    for (const [cell, code] of [[cells[4]!, 'BIO 230'], [cells[5]!, 'CIS 304']] as const) {
+      expect(cell).toContain(`<select class="credits-select" aria-label="Credits for ${code}" data-credits="${code}">`);
+      expect(cell.match(/<option value="(\d+)"( selected)?>\1<\/option>/g)).toHaveLength(13);
+      expect(cell.match(/<option value="\d+" selected>/g)).toEqual(['<option value="3" selected>']);
+      expect(cell).toContain('<option value="0">0</option>');
+      expect(cell).toContain('<option value="12">12</option>');
+    }
+    expect(html.match(/<select/g)).toHaveLength(2);
+    // The dropdown shows what the student chose.
+    expect(drawn(setCredits(typed('BIO 230'), 'BIO 230', 7)).match(/<option value="\d+" selected>/g)).toEqual(['<option value="7" selected>']);
   });
 });

@@ -1,6 +1,6 @@
 // The courses a student enters in "Check my courses": what to suggest while they type, and
 // what adding and removing do. Nothing here says whether a course counts.
-import { UNKNOWN_COURSE_CREDITS } from './credits';
+import { MOST_UNKNOWN_CREDITS, UNKNOWN_COURSE_CREDITS } from './credits';
 import { findCourse, normalizeCode, withoutSeparators, type Course, type Curriculum } from './curriculum';
 import { countsByElectiveRule } from './placement';
 
@@ -83,6 +83,17 @@ export function addCourse(entries: readonly Entry[], text: string, highlighted: 
   if (entries.some(entry => entry.code === code)) return { entries, problem: 'already-there', code };
   const added = entryFor(code, curriculum);
   return { entries: [...entries, added], added };
+}
+
+/**
+ * Changes the credits of a course PathCheck doesn't know. Any other course keeps the
+ * credits it has from the curriculum, and a number that is not a whole number in range
+ * changes nothing.
+ */
+export function setCredits(entries: readonly Entry[], code: string, credits: number): readonly Entry[] {
+  if (!Number.isInteger(credits) || credits < 0 || credits > MOST_UNKNOWN_CREDITS) return entries;
+  if (!entries.some(entry => entry.code === code && entry.kind === 'unknown' && entry.credits !== credits)) return entries;
+  return entries.map(entry => (entry.code === code && entry.kind === 'unknown' ? { ...entry, credits } : entry));
 }
 
 export const removeCourse = (entries: readonly Entry[], code: string): Entry[] => entries.filter(entry => entry.code !== code);

@@ -185,9 +185,13 @@
         "From 12 to 18 credits shows no note",
         "A course PathCheck doesn't know starts at 3 credits and the student can change it; a course PathCheck knows uses its curriculum credits and can't be edited. An unknown course's credits add to the semester total only, never to what counts toward CIS"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F09.md — evaluator QA round 1 in a real browser: PASS (17 checks; Functionality 5, Clarity 4, Visual design 4, Truthfulness 5)",
+      "tests": [
+        "tests/credits.test.ts",
+        "tests/check.test.ts",
+        "tests/check-page.test.ts"
+      ]
     },
     {
       "id": "F10",

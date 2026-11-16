@@ -341,6 +341,20 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   is invented; the line is shown only when the file has a date.
 - **No "Mockup: opens synthetic student results." under "Browse files".** It was a note
   about the mockup.
+- **On "Check my courses", a course PathCheck doesn't know has a small dropdown for its
+  credits** (0 to 12, starting at 3) where the design shows "3" as text. The owner,
+  2026-11-16: such a course "starts at 3 credits and the student can change it".
+- **The summary strip and the two filters are drawn only when the list has a course.**
+  The design shows a list that already has six.
+- **Lines the design has no place for, on "Check my courses"** (agent's wording unless
+  said otherwise; each listed for the owner in its pull request): with no courses, "Add
+  the courses you plan to take next semester."; under the field, what to type and
+  "<code> is already in your list."; the legacy question on a course's row (the owner's
+  words) and, on a row that depends on it, "Answer “Are you a legacy CIS student?” to see
+  this."; under the list, "Legacy CIS student: Yes" with "Change"; under "Total credits",
+  the note below 12 or over 18 (the sentences of the pace controls); under the two counts,
+  "Waiting for your legacy answer."; with the "Doesn't count" filter and nothing to
+  list, "No course in your list is marked “Doesn't count”.".
 - **The heading of "Check my courses" is "Check my courses", not a semester**, and the
   small label above it is left out so the page does not say it twice. The owner,
   2026-11-16: "no semester in the heading. It says "Check my courses". Nothing is derived

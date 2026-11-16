@@ -40,3 +40,15 @@ export const notInCurrentCurriculum = (courseCode: string): string => `Doesn’t
 export const waitingFor = (question: string): string => `Answer “${question}” to see this.`;
 /** `courses` are the sequence's courses that sit in a pick; `kinds` names the sequences. */
 export const sequenceReminder = (courses: readonly string[], kinds: string): string => `Remember: you need ${courses.join(' or ')} for the ${kinds} sequence.`;
+
+// ---- The numbers above the list in "Check my courses" (brief §4; docs/design/DESIGN.md) ----
+export const TOTAL_CREDITS = 'Total credits';
+export const COUNT_TOWARD = 'Count toward CIS';
+export const DO_NOT_COUNT = 'Don’t count';
+/** Without a transcript the count is conditional, like every answer under it. */
+export const COUNT_CONDITION = 'unless you’ve already passed them or filled their slots';
+/** Shown under the two counts while a row still waits for the legacy answer. */
+export const WAITING_FOR_LEGACY = 'Waiting for your legacy answer.';
+/** The two neutral notes, in the approved design's sentences; the numbers are the brief's. */
+export const belowFullTime = (credits: number): string => `Below ${credits} credits: below full-time; may affect scholarships.`;
+export const overUsualMost = (credits: number): string => `Over ${credits} credits: may cost extra.`;
