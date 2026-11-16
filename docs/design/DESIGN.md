@@ -331,6 +331,17 @@ Each difference comes from the brief or from a dated owner answer in `docs/decis
 - i. The privacy sentence is "Your PDF is read, then deleted. Only your result stays in this
   browser."
 
+## Where the app differs from the screenshots
+
+The app (`src/`, from F06) is built from this design. Its stylesheet is `src/style.css`,
+which started as a copy of `mockups/style.css`. These differences are intended:
+
+- **No "Curriculum last reviewed" line in the footer.** The owner, 2026-11-16: "leave out
+  "Curriculum last reviewed: Nov 2026"". The curriculum file has no review date and none
+  is invented; the line is shown only when the file has a date.
+- **No "Mockup: opens synthetic student results." under "Browse files".** It was a note
+  about the mockup.
+
 ## Open conflicts
 
 None. Anything found later that conflicts with the brief is listed in the PR for the owner

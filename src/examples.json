@@ -1,0 +1,8 @@
+{
+  "counts": "MGT 321",
+  "doesNotCount": "BIO 230",
+  "student": {
+    "passed": ["ORI 100", "ENG 131", "ENG 132", "BIO 127", "BIOL 127", "BIO 128", "BIOL 128", "MAT 137", "HIS 131", "CIS 205", "CIS 206"],
+    "inProgress": ["ECO 251", "HUM 103", "ACT 214", "MGT 202", "PED 114"]
+  }
+}
