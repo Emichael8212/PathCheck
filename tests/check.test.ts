@@ -44,9 +44,11 @@ describe('what is suggested', () => {
     expect(MOST_SUGGESTIONS).toBe(6);
     expect(codes(suggest('cis', curriculum))).toEqual(cis.slice(0, 6));
     expect(codes(suggest('CIS 3', curriculum))).toEqual(cis.filter(code => code.startsWith('CIS 3')).slice(0, 6));
-    // A whole code suggests that course.
-    expect(codes(all('mgt 321'))).toEqual(['MGT 321']);
-    expect(codes(all('mgt-321'))).toEqual(['MGT 321']);
+    // A whole code suggests that course, however it is written: what can be added can be suggested.
+    for (const text of ['mgt 321', 'mgt-321', 'MGT–321', 'mgt\u00a0321', 'ＭＧＴ３２１', 'mgt\u200b321']) {
+      expect(codes(all(text)), JSON.stringify(text)).toEqual(['MGT 321']);
+      expect(codes(added([], text)), JSON.stringify(text)).toEqual(['MGT 321']);
+    }
   });
 
   it('suggests by title', () => {
@@ -63,6 +65,13 @@ describe('what is suggested', () => {
     expect(all('rinciples')).toEqual([]);
     expect(titled('management of')).not.toContain('Principles of Management');
     expect(all('management principles')).toEqual([]);
+    // A title can be typed as it is printed, with its dashes and strokes.
+    expect(titled('pre-calculus')).toEqual(['Pre-Calculus Algebra']);
+    expect(titled('Pre Calculus alg')).toEqual(['Pre-Calculus Algebra']);
+    expect(titled('law/legal')).toEqual(['Business Law/Legal']);
+    expect(titled('business law/legal')).toEqual(['Business Law/Legal']);
+    expect(titled('african-american')).toEqual(['Humanities Through the African-American Experience']);
+    expect(titled('special topics: bus')).toEqual(['Special Topics: Business Communications']);
     // Code matches come before title matches.
     const mixed = all('ma');
     const byCode = mixed.map(one => one.code.startsWith('MA'));
@@ -111,7 +120,9 @@ describe('what is suggested', () => {
 
   it('suggests nothing for too little text', () => {
     expect(FEWEST_CHARACTERS).toBe(2);
-    for (const text of ['', ' ', '   ', 'm', ' m ', 'c', '3']) expect(suggest(text, curriculum), JSON.stringify(text)).toEqual([]);
+    for (const text of ['', ' ', '   ', 'm', ' m ', 'c', '3', '-', '--', '- -', ' – ', 'a-', '-a', 'a -', '?', '…']) expect(suggest(text, curriculum), JSON.stringify(text)).toEqual([]);
+    // Nothing but dashes must never add the curriculum's first course.
+    expect(addCourse([], '--', suggest('--', curriculum)[0] ?? null, curriculum)).toEqual({ entries: [], problem: 'not-a-course' });
     expect(suggest('mg', curriculum).length).toBeGreaterThan(0);
     expect(suggest('mgt 3', curriculum, 0)).toEqual([]);
   });
@@ -159,7 +170,7 @@ describe('adding and removing', () => {
 
   it('refuses text that is not a course', () => {
     const before = added([], 'eng 131');
-    for (const text of ['basket weaving', 'ZZZ', 'PSY 9', '321', 'MGT 3211', 'MGT 321, CIS 300', 'MGT 321 CIS 300', '<img src=x onerror=alert(1)>', 'x'.repeat(500), '', '   ']) {
+    for (const text of ['basket weaving', 'ZZZ', 'PSY 9', '321', 'MGT 3211', 'MGT 321, CIS 300', 'MGT 321 CIS 300', '<img src=x onerror=alert(1)>', 'x'.repeat(500), '', '   ', '--']) {
       expect(suggest(text, curriculum), text).toEqual([]);
       const result = addCourse(before, text, null, curriculum);
       expect(result, text).toEqual({ entries: before, problem: 'not-a-course' });
@@ -213,9 +224,13 @@ describe('the page', () => {
     expect(page).toMatch(/<button type="button" class="btn primary add" data-add disabled>Add<\/button>/);
     expect(page).toMatch(/<ul id="suggestions" role="listbox" aria-label="Suggestions" class="suggestions" hidden><\/ul>/);
     expect(page).toMatch(/<p id="add-message" class="field-message" role="status" aria-live="polite"><\/p>/);
+    // The message is a live region only: were it also the field's description, some screen readers would read it twice.
+    expect(input[0]).not.toContain('aria-describedby');
     expect(page).toMatch(/<p class="sr-only" role="status" aria-live="polite" data-said><\/p>/);
     expect(page).toContain('<a href="#/check" aria-current="page">Check my courses</a>');
     expect(page).not.toMatch(/<form/);
+    // The footer spans the page, as in the design of this page.
+    expect(page).toContain('<footer class="foot foot-wide">');
   });
 
   it('exposes each suggestion with its place in the list', () => {

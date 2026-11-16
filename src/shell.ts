@@ -42,10 +42,10 @@ export function reviewedOn(date: string | null): string | null {
   return parts && month ? `${month} ${parts[1]}` : null;
 }
 
-export const foot = (curriculum: Curriculum, subject = `${APP_NAME}: report a mistake`): string => {
+export const foot = (curriculum: Curriculum, subject = `${APP_NAME}: report a mistake`, wide = false): string => {
   const reviewed = reviewedOn(curriculum.lastReviewed);
   return `
-<footer class="foot">
+<footer class="foot${wide ? ' foot-wide' : ''}">
   <div>
     <strong>${esc(NOT_OFFICIAL)}</strong>${reviewed ? `
     <span>${esc(`${LAST_REVIEWED} ${reviewed}`)}</span>` : ''}

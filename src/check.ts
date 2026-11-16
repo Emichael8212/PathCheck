@@ -62,7 +62,7 @@ export const checkPage = (curriculum: Curriculum, entries: readonly Entry[] = []
     <div class="search">
       <label for="add-course">${esc(TEXT.addLabel)}</label>
       <div class="search-row">
-        <input id="add-course" type="text" role="combobox" aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list" aria-describedby="add-message" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="${esc(TEXT.placeholder)}">
+        <input id="add-course" type="text" role="combobox" aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="${esc(TEXT.placeholder)}">
         <button type="button" class="btn primary add" data-add disabled>${esc(TEXT.add)}</button>
       </div>
       <ul id="suggestions" role="listbox" aria-label="${esc(TEXT.suggestions)}" class="suggestions" hidden></ul>
@@ -73,7 +73,7 @@ export const checkPage = (curriculum: Curriculum, entries: readonly Entry[] = []
   <div data-entries>${entriesHtml(entries)}</div>
   <p class="sr-only" role="status" aria-live="polite" data-said></p>
 </main>
-${foot(curriculum, `PathCheck: ${FLOW_NAME.check}`)}`;
+${foot(curriculum, `PathCheck: ${FLOW_NAME.check}`, true)}`;
 
 /** The list the student has entered. It is kept while they move between pages. */
 export interface CourseList {
@@ -88,21 +88,35 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const message = root.querySelector<HTMLElement>('#add-message');
   const region = root.querySelector<HTMLElement>('[data-entries]');
   const said = root.querySelector<HTMLElement>('[data-said]');
-  if (!input || !add || !menu || !message || !region || !said) return;
+  if (!input || !add || !menu || !message || !region || !said) throw new Error('The "Check my courses" page is missing a part it needs.');
 
+  // What is suggested for the text in the field, which of them is highlighted, and whether
+  // the list is showing. Leaving the field hides the list but keeps the highlight, so that
+  // "Add" still adds the course the student was looking at.
   let suggestions: Course[] = [];
   let active = 0;
+  let showing = false;
 
-  const draw = (): void => {
-    const open = suggestions.length > 0;
-    menu.innerHTML = suggestionsHtml(suggestions, active);
+  const mark = (): void => {
+    const open = showing && suggestions.length > 0;
     menu.hidden = !open;
     input.setAttribute('aria-expanded', String(open));
     if (open) input.setAttribute('aria-activedescendant', `suggestion-${active + 1}`);
     else input.removeAttribute('aria-activedescendant');
+    // Only the highlight moves: the options themselves stay, under the pointer and for a screen reader.
+    menu.querySelectorAll('[role="option"]').forEach((option, i) => option.setAttribute('aria-selected', String(i === active)));
   };
-  const close = (): void => { suggestions = []; active = 0; draw(); };
-  const highlight = (index: number): void => { active = index; draw(); };
+  const offer = (courses: Course[]): void => {
+    suggestions = courses;
+    active = 0;
+    showing = true;
+    menu.innerHTML = suggestionsHtml(suggestions, active);
+    mark();
+  };
+  const close = (): void => offer([]);
+  const highlight = (index: number): void => { active = index; mark(); };
+  // A fresh piece of text each time, so that the same sentence is read out again.
+  const say = (where: HTMLElement, text: string): void => where.replaceChildren(text);
 
   const addNow = (course: Course | null): void => {
     const result = addCourse(list.entries, course ? '' : input.value, course ?? suggestions[active] ?? null, curriculum);
@@ -111,47 +125,49 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       region.innerHTML = entriesHtml(list.entries);
       input.value = '';
       add.disabled = true;
-      message.textContent = '';
-      said.textContent = added(result.added.code);
+      say(message, '');
+      say(said, added(result.added.code));
       close();
     } else {
-      message.textContent = result.problem === 'already-there' ? alreadyThere(result.code) : notACourse(curriculum);
+      say(message, result.problem === 'already-there' ? alreadyThere(result.code) : notACourse(curriculum));
     }
     input.focus();
   };
 
   input.addEventListener('input', () => {
-    message.textContent = '';
+    say(message, '');
     add.disabled = input.value.trim() === '';
-    suggestions = suggest(input.value, curriculum);
-    active = 0;
-    draw();
+    offer(suggest(input.value, curriculum));
   });
   input.addEventListener('keydown', event => {
     // Text still being put together by an input method is not finished: leave its keys alone.
     if (event.isComposing || event.keyCode === 229) return;
+    const open = showing && suggestions.length > 0;
     if (event.key === 'Enter') {
       event.preventDefault();
       if (input.value.trim() !== '') addNow(null);
     } else if (event.key === 'Escape') {
-      if (suggestions.length > 0) { event.preventDefault(); close(); }
-    } else if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && suggestions.length > 0) {
+      if (open) { event.preventDefault(); close(); }
+    } else if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && open) {
       event.preventDefault();
       const step = event.key === 'ArrowDown' ? 1 : -1;
       highlight((active + step + suggestions.length) % suggestions.length);
     }
   });
-  // Leaving the field (Tab, or a click elsewhere) closes the list and keeps the text.
-  input.addEventListener('blur', close);
-  add.addEventListener('click', () => addNow(null));
+  // Leaving the field (Tab, or a press elsewhere) hides the list and keeps the text; coming
+  // back shows it again.
+  input.addEventListener('blur', () => { showing = false; mark(); });
+  input.addEventListener('focus', () => { showing = true; mark(); });
 
   const optionAt = (target: EventTarget | null): number | null => {
     const option = target instanceof Element ? target.closest<HTMLElement>('[data-index]') : null;
     return option ? Number(option.dataset.index) : null;
   };
-  // A press on the list must not take the keyboard out of the field: the list would close
-  // before the click lands.
+  // A press on the list or on "Add" must not take the keyboard out of the field: the list
+  // would be gone before the click lands.
   menu.addEventListener('mousedown', event => event.preventDefault());
+  add.addEventListener('mousedown', event => event.preventDefault());
+  add.addEventListener('click', () => addNow(null));
   menu.addEventListener('mouseover', event => {
     const index = optionAt(event.target);
     if (index !== null && index !== active) highlight(index);
@@ -169,7 +185,7 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     const at = list.entries.findIndex(entry => entry.code === gone);
     list.entries = removeCourse(list.entries, gone);
     region.innerHTML = entriesHtml(list.entries);
-    said.textContent = removed(gone);
+    say(said, removed(gone));
     // The keyboard goes to the next course's Remove button, or back to the field.
     const buttons = region.querySelectorAll<HTMLElement>('[data-remove]');
     (buttons[Math.min(at, buttons.length - 1)] ?? input).focus();

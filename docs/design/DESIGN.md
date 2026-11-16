@@ -341,6 +341,10 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   is invented; the line is shown only when the file has a date.
 - **No "Mockup: opens synthetic student results." under "Browse files".** It was a note
   about the mockup.
+- **The heading of "Check my courses" is "Check my courses", not a semester**, and the
+  small label above it is left out so the page does not say it twice. The owner,
+  2026-11-16: "no semester in the heading. It says "Check my courses". Nothing is derived
+  from today's date."
 
 ## Open conflicts
 

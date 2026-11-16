@@ -28,8 +28,10 @@ const key = (name: string, more: KeyboardEventInit = {}): KeyboardEvent => {
   field().dispatchEvent(event);
   return event;
 };
+// The address is changed without the simulated browser's own, later, hashchange: the page
+// is told once, at once.
 const go = (hash: string): void => {
-  window.location.hash = hash;
+  window.history.replaceState(null, '', hash);
   window.dispatchEvent(new Event('hashchange'));
 };
 const add = (text: string): void => { type(text); key('Enter'); };
@@ -37,7 +39,7 @@ const add = (text: string): void => { type(text); key('Enter'); };
 let app: ReturnType<typeof startApp>;
 beforeEach(() => {
   document.body.innerHTML = '<div id="app"></div>';
-  window.location.hash = '#/check';
+  window.history.replaceState(null, '', '#/check');
   app = startApp(window as unknown as AppWindow);
 });
 
@@ -76,12 +78,40 @@ describe('typing in the field', () => {
     expect(menu().hidden).toBe(true);
     expect(document.activeElement).toBe(field());
     expect($<HTMLButtonElement>('[data-add]').disabled).toBe(true);
-    // "MGT", then the Add button: the first suggestion.
+  });
+
+  it('adds the highlighted suggestion with the Add button', () => {
+    // A press on the button must not take the keyboard out of the field...
     type('MGT');
     const mgt = optionCodes()[0]!;
+    const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    $('[data-add]').dispatchEvent(press);
+    expect(press.defaultPrevented).toBe(true);
     $('[data-add]').click();
-    expect(rows()[1]?.startsWith(mgt)).toBe(true);
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]?.startsWith(mgt)).toBe(true);
     expect(document.activeElement).toBe(field());
+    // ...and when it does anyway (a tap, or Tab to the button), the course the student was
+    // looking at is still the one that is added.
+    type('mgt 3');
+    key('ArrowDown');
+    key('ArrowUp');
+    const looked = optionCodes()[0]!;
+    field().blur();
+    expect(menu().hidden).toBe(true);
+    $('[data-add]').click();
+    expect(rows()).toHaveLength(2);
+    expect(rows()[1]?.startsWith(looked)).toBe(true);
+    expect(message()).toBe('');
+    expect(field().value).toBe('');
+    expect(document.activeElement).toBe(field());
+    // With a second suggestion highlighted, that one.
+    type('cis');
+    key('ArrowDown');
+    const second = optionCodes()[1]!;
+    field().blur();
+    $('[data-add]').click();
+    expect(rows()[2]?.startsWith(second)).toBe(true);
   });
 
   it('adds a suggestion on click', () => {
@@ -113,6 +143,30 @@ describe('typing in the field', () => {
     expect(field().value).toBe('mgt 3');
     expect(rows()).toEqual([]);
     expect(field().getAttribute('aria-expanded')).toBe('false');
+    expect(field().hasAttribute('aria-activedescendant')).toBe(false);
+    // Back in the field, the list is there again, as it was.
+    field().focus();
+    expect(menu().hidden).toBe(false);
+    expect(field().getAttribute('aria-expanded')).toBe('true');
+    expect(optionCodes()).toContain('MGT 321');
+    // After Escape it stays closed, also when the field is left and entered again.
+    key('Escape');
+    field().blur();
+    field().focus();
+    expect(menu().hidden).toBe(true);
+  });
+
+  it('moves the highlight without drawing the list again', () => {
+    type('cis');
+    const before = options();
+    key('ArrowDown');
+    before[3]!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    key('ArrowUp');
+    // The same six elements: a press that began on one still ends on it.
+    expect(options()).toEqual(before);
+    options().forEach((option, i) => expect(option).toBe(before[i]));
+    expect(options().map(one => one.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true', 'false', 'false', 'false']);
+    expect(field().getAttribute('aria-activedescendant')).toBe('suggestion-3');
   });
 
   it('adds what was typed when it is a whole code', () => {
@@ -145,7 +199,13 @@ describe('typing in the field', () => {
     type('MGT 321, CIS 30');
     expect(message()).toBe('');
     expect($('#add-message').getAttribute('aria-live')).toBe('polite');
-    expect(field().getAttribute('aria-describedby')).toBe('add-message');
+    // Said twice, it is put on the page twice: a screen reader hears it again.
+    type('ZZZ');
+    key('Enter');
+    const first = $('#add-message').firstChild;
+    key('Enter');
+    expect(message()).toBe('Type a course code like MGT 321, or pick a course from the list.');
+    expect($('#add-message').firstChild).not.toBe(first);
     // Enter in an empty field does nothing at all.
     type('');
     key('Enter');
@@ -260,6 +320,25 @@ describe('typing in the field', () => {
       expect($('main').textContent).not.toContain(text.slice(0, 12));
     }
     expect(document.title).toBe('Check my courses — PathCheck');
+  });
+});
+
+describe('a dropped file', () => {
+  it('is not opened, and changes nothing on this page', () => {
+    add('mgt 321');
+    for (const type of ['dragover', 'drop']) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'dataTransfer', { value: { types: ['Files'] } });
+      window.dispatchEvent(event);
+      expect(event.defaultPrevented, type).toBe(true);
+    }
+    expect(window.location.hash).toBe('#/check');
+    expect(rows()).toHaveLength(1);
+    // Dragged text is the field's own business.
+    const text = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(text, 'dataTransfer', { value: { types: ['text/plain'] } });
+    window.dispatchEvent(text);
+    expect(text.defaultPrevented).toBe(false);
   });
 });
 

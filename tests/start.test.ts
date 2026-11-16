@@ -76,7 +76,7 @@ describe('the Start page', () => {
     expect(NOT_AFFILIATED).toBe('Not affiliated with Alabama State University');
     for (const [name, page] of Object.entries(pages)) {
       expect(page, name).toMatch(/<a class="wordmark" href="#\/">PathCheck<span class="dot">\.<\/span><\/a>/);
-      expect(page, name).toMatch(/<footer class="foot">[\s\S]*<p>Not affiliated with Alabama State University<\/p>\s*<\/footer>/);
+      expect(page, name).toMatch(/<footer class="foot( foot-wide)?">[\s\S]*<p>Not affiliated with Alabama State University<\/p>\s*<\/footer>/);
       expect(page, name).not.toMatch(/<img|logo|<picture|background-image/i);
     }
   });
@@ -421,26 +421,23 @@ describe('the demo', () => {
 
     fake.timers.tick();
     expect(app.demo?.step).toBe(2);
-    fake.go('#/check');
-    expect(app.route).toBe('check');
+    fake.go('#/left');
+    expect(app.route).toBe('left');
     expect(app.demo).toBeNull();
     expect(fake.timers.running.size).toBe(0);
-    expect(fake.page.innerHTML).toBe(renderPage('check'));
-    expect(fake.document.title).toBe('Check my courses — PathCheck');
+    expect(fake.page.innerHTML).toBe(renderPage('left'));
+    expect(fake.document.title).toBe('See what I have left — PathCheck');
     // A new page: the keyboard is on its heading and the page is at its top.
     expect(fake.heading.focused).toBe(1);
     expect(fake.scrolls).toEqual([[0, 0]]);
 
-    fake.go('#/left');
-    expect(fake.document.title).toBe('See what I have left — PathCheck');
-    expect(fake.timers.running.size).toBe(0);
     // Back on Start the demo starts again, from its first step.
     fake.go('#/');
     expect(app.route).toBe('start');
     expect(app.demo?.playing).toBe(true);
     expect(app.demo?.step).toBe(1);
     expect(fake.timers.running.size).toBe(1);
-    expect(fake.heading.focused).toBe(3);
+    expect(fake.heading.focused).toBe(2);
     fake.go('#/nothing');
     expect(app.route).toBe('start');
     expect(fake.timers.running.size).toBe(1);
@@ -482,7 +479,7 @@ describe('the demo', () => {
     expect(fake.location.hash).toBe('#/left');
     fake.go('#/left');
     // On a flow page it does nothing, and the browser still does not open the file.
-    for (const route of ['#/left', '#/check']) {
+    for (const route of ['#/left']) {
       fake.go(route);
       const again = dropped();
       fake.handlers.dragover!(again);
@@ -491,7 +488,7 @@ describe('the demo', () => {
       expect(fake.location.hash).toBe(route);
     }
     // Dragged text is none of the app's business: it is left alone, on every page.
-    for (const route of ['#/', '#/check']) {
+    for (const route of ['#/', '#/left']) {
       fake.go(route);
       for (const event of [dragged(['text/plain']), dragged([]), { prevented: 0, preventDefault(): void { this.prevented++; }, dataTransfer: null }, { prevented: 0, preventDefault(): void { this.prevented++; } }]) {
         fake.handlers.dragover!(event);

@@ -1,7 +1,7 @@
 // The courses a student enters in "Check my courses": what to suggest while they type, and
 // what adding and removing do. Nothing here says whether a course counts.
 import { UNKNOWN_COURSE_CREDITS } from './credits';
-import { findCourse, normalizeCode, type Course, type Curriculum } from './curriculum';
+import { findCourse, normalizeCode, withoutSeparators, type Course, type Curriculum } from './curriculum';
 import { countsByElectiveRule } from './placement';
 
 /**
@@ -22,17 +22,19 @@ export const FEWEST_CHARACTERS = 2;
 
 /** Every course the curriculum lists, once, in the curriculum's order. */
 export function listedCourses(curriculum: Curriculum): Course[] {
-  const all = [
+  const byCode = new Map<string, Course>();
+  for (const course of [
     ...curriculum.blocks.flatMap(block => [...block.required, ...block.picks.flatMap(group => group.courses)]),
     ...curriculum.electives.named,
     ...curriculum.electives.legacyOnly,
-  ];
-  const seen = new Set<string>();
-  return all.filter(course => !seen.has(course.code) && Boolean(seen.add(course.code)));
+  ]) {
+    if (!byCode.has(course.code)) byCode.set(course.code, course);
+  }
+  return [...byCode.values()];
 }
 
-const compact = (text: string): string => text.normalize('NFKC').toUpperCase().replace(/[\s-]+/g, '');
-const words = (text: string): string[] => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+/** The words of a title or of typed text: letters and digits, split at everything else. */
+const words = (text: string): string[] => text.normalize('NFKC').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 
 /** Do the typed words, in order, each start the title's words from some word on? */
 function matchesTitle(typed: readonly string[], title: string): boolean {
@@ -42,16 +44,17 @@ function matchesTitle(typed: readonly string[], title: string): boolean {
 
 /**
  * The courses to suggest for what has been typed: those whose code starts with it (spaces,
- * dashes and letter case ignored), then those whose title has it at the start of a word.
+ * dashes and letter case ignored, exactly as when a code is added), then those whose title
+ * has the typed words, in order, at the start of its words.
  * Only courses the curriculum lists are ever suggested.
  */
 export function suggest(text: string, curriculum: Curriculum, limit = MOST_SUGGESTIONS): Course[] {
-  if (text.trim().length < FEWEST_CHARACTERS) return [];
+  // Spaces and dashes are not characters of a code or a title: "a-" is one letter, "--" none.
+  const start = withoutSeparators(text);
+  if (start.length < FEWEST_CHARACTERS) return [];
   const courses = listedCourses(curriculum);
-  const start = compact(text);
-  const byCode = courses.filter(course => compact(course.code).startsWith(start));
-  // Typed words are split at spaces only: a comma or other mark inside one matches no title.
-  const typed = text.trim().toLowerCase().split(/\s+/);
+  const byCode = courses.filter(course => withoutSeparators(course.code).startsWith(start));
+  const typed = words(text);
   const byTitle = courses.filter(course => !byCode.includes(course) && matchesTitle(typed, course.title));
   return [...byCode, ...byTitle].slice(0, limit);
 }
