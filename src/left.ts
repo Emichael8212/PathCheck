@@ -13,6 +13,7 @@ import {
 } from './pace';
 import { type Problem } from './reader';
 import { moveLater, movedSentence, planHtml, planOf, type Moves, type Plan } from './plan';
+import { printActionsHtml, printHeadHtml } from './print';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
 import { FLOW_NAME, foot, top } from './shell';
 import { type Refusal } from './upload';
@@ -285,6 +286,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   ` : ''}${overviewOf(transcript, curriculum, legacy === true, settings).html}
   ${requirementsHtml(checklist)}
   <div data-plan>${planHtml(planOf(standings, curriculum, legacy === true, latestTermOf(standings), settings, moves))}</div>
+  ${printActionsHtml()}
   ${foot}`;
 }
 
@@ -301,7 +303,8 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
       : `<p class="review-intro">${esc(TEXT.reviewIntro(transcript.name))}</p>
   <div data-review>${reviewHtml(state, curriculum)}</div>`;
   return `${top('left')}
-<main class="left wrap">
+<main class="left wrap">${result ? `
+  ${printHeadHtml(curriculum)}` : ''}
   <div class="page-head">
     <div>${result ? `
       ${eyebrow(TEXT.resultEyebrow)}` : ''}
@@ -330,6 +333,8 @@ export interface LeftHooks {
   legacy(answer: boolean | null): void;
   /** The legacy answer as it stands. */
   answer(): LegacyAnswer;
+  /** Opens the browser's print window with the result opened for paper; null where the browser cannot print. */
+  print: (() => void) | null;
 }
 
 /** Wires up the page once it is drawn. */
@@ -352,6 +357,8 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const draft = state.editing === null ? null : typed(state.editing);
     if (draft) change({ draft });
   };
+  // No button that does nothing: where the browser cannot print there is none.
+  if (!hooks.print) main.querySelector('[data-print]')?.closest('.actions')?.remove();
   main.addEventListener('input', keepTyped);
   main.addEventListener('change', keepTyped);
 
@@ -402,6 +409,12 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
       const other = end === 'fewest' ? 'most' : 'fewest';
       const changed = next[other] === state.pace[other] ? rangeSentence(end, next) : `${rangeSentence(end, next)} ${rangeSentence(other, next)}`;
       setPace(next, `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`, changed);
+      return;
+    }
+    // The printed summary: the browser's own print window. The keyboard stays on the button.
+    if (target?.closest('[data-print]')) {
+      hooks.print?.();
+      focus('[data-print]');
       return;
     }
     // "Move later": the entry goes no earlier than the next term, and the rest flows again.

@@ -580,6 +580,8 @@ svg { display: block; flex-shrink: 0; }
 .review-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 28px; }
 .review-count { flex-basis: 100%; color: var(--ink-2); font-size: 14px; line-height: 1.7; }
 .review-count:empty { display: none; }
+/* Under the result, the count keeps its distance from the plan and the print button above it. */
+[data-plan] ~ .review-count { margin-top: 20px; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .filters button {
   display: inline-flex;
@@ -940,6 +942,13 @@ details[open] .req-cue { transform: rotate(-90deg); }
   .plan-entry { flex-direction: column; margin-inline: 5px; }
 }
 
+/* ---- On paper only: what the summary is, and the pace settings in the place of their controls ---- */
+.print-only { display: none; }
+.print-head { margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line-strong); color: var(--ink-2); font-size: 13px; line-height: 19px; }
+.print-head p { margin: 0; }
+.print-head strong { color: var(--ink); font-size: 15px; font-weight: 700; line-height: 22px; }
+.pace-settings { margin: 14px 0 0; color: var(--ink-2); font-size: 13px; line-height: 19px; }
+
 /* ---- Motion and print ---- */
 @media (prefers-reduced-motion: reduce) {
   .demo-step > *, .caret { animation: none; }
@@ -949,8 +958,18 @@ details[open] .req-cue { transform: rotate(-90deg); }
 @media print {
   /* Bars, the ring and tinted rows are backgrounds: ask the browser to print them. */
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .top, .no-print { display: none !important; }
-  .plan-entry, .req, .semester { break-inside: avoid; }
+  .print-only { display: block; }
+  /* No app controls on paper: the top bar, the pace controls, the buttons and the links. */
+  .top, .no-print, .pace, .review-foot, .foot a, [data-review-again], [data-legacy-change] { display: none !important; }
+  /* Every requirement is on paper, whatever "Not done" hides on the screen and whatever is closed. */
+  .req[hidden] { display: block !important; }
+  details:not([open])::details-content { content-visibility: visible; }
+  .plan-entry, .req, .semester, .overview, .sequence, .note, .print-head { break-inside: avoid; }
+  /* Without "Move later" under them the plan's entries need no lines between them. */
+  .plan-entry { border-bottom: 0; }
+  .semester > ul { padding-bottom: 6px; }
+  /* A heading is not left alone at the foot of a page. */
+  h1, h2, h3, .page-head, .section-head, .draft-label, .section-note, .semester > header { break-after: avoid; }
   .req { border: 1px solid var(--line); box-shadow: none; }
   .left { padding-top: 0; }
 }

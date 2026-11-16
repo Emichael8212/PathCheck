@@ -3,7 +3,7 @@
 Points raised while building one feature that a later feature's contract must take up.
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
-## For F17 and F18 (the printed summary; on every result)
+## For F18 (on every result)
 - The footer is `foot(curriculum, subject)` in `src/shell.ts`: it shows the
   last-reviewed line from the curriculum file's date and takes the email's subject. Still to
   do in F18: the 12-month banner, the owner's real address in `src/wording.ts`, and the
@@ -13,23 +13,26 @@ Read this before writing a sprint contract; delete a line when its feature has d
   12-month banner works as written."). The footer shows the line on every page. F17's
   line and F18 steps 1 and 3 stand as written: F18's banner compares this date with the
   day the page is opened.
+- **The banner must print too** (F17): the paper is the result page itself. The top of
+  the paper (`printHeadHtml` in `src/print.ts`) carries the footer's sentences from the
+  same constants; if F18 changes those sentences, both change. "Report a mistake" is not
+  printed (`.foot a` in the stylesheet's print rules): if F18 gives the link a visible
+  address worth having on paper, decide it there.
 
-## For F17 and F19 (what the result leaves for them)
+## For F19 (what the result leaves for it)
 - The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in
   `src/checklist.ts` (`overviewHtml`, `requirementsHtml`), `src/pace.ts` (the answer
   beside the ring, the controls under the bar; `overviewOf` in `src/left.ts`) and
   `src/plan.ts` (the draft plan after the requirements, inside `[data-plan]`: `planOf`,
-  `planHtml`). "Print / save PDF" and "Clear my data" go at the end (F17, F19). The
-  stylesheet already has the design's rules for them. (F13, F16)
-- The plan prints with the result; "Move later" is `.no-print`. The line under the plan
-  (`.plan-late`), when there is one, prints too: it is part of what the plan says. (F16,
-  for F17)
+  `planHtml`). The row of actions after the plan is `printActionsHtml` in `src/print.ts`
+  (`.actions.no-print`): "Clear my data" goes beside the print button there, as in the
+  design. Whatever F19 adds to the result must be either right on paper or hidden in
+  print (`tests/print.test.ts` "marks every control as not printed" fails for a control
+  that would print). (F13, F16, F17)
 - The student's moves are `LeftState.moves` (for each moved entry, its earliest term),
   kept in memory for the visit beside the pace settings (`LeftState.pace`). If F19's
   "last result" is to come back as the student left it, both belong to it, and "Clear my
   data" forgets both. (F14, F16, for F19)
-- Requirements are `<details>`, and so is the list of courses not counted
-  (`details.unused`); for print every one of them must be opened and the toggles, "All / Not done" and the two end buttons hidden (`.no-print`). (F13, for F17)
 
 ## For F19 (clear my data)
 - The credits the student gave a course PathCheck doesn't know are part of the list

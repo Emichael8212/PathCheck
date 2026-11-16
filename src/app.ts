@@ -4,6 +4,7 @@ import { NO_TRANSCRIPT, checkPage, emptyList, setupCheck, type CheckView, type C
 import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, refusalText, setupLeft, type LeftState } from './left';
+import { PRINT_TITLE, openForPaper } from './print';
 import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
@@ -18,13 +19,22 @@ export const renderPage = (route: Route, programs: readonly Program[] = allProgr
 };
 
 type Listener = (event: AppEvent) => void;
+type MediaListener = (change: { readonly matches: boolean }) => void;
+/** A media query, and (where the browser tells) when it starts or stops matching. */
+interface MediaWatch {
+  readonly matches: boolean;
+  addEventListener?(type: 'change', listener: MediaListener): void;
+  removeEventListener?(type: 'change', listener: MediaListener): void;
+}
 /** As much of the browser as the app uses. */
 export interface AppWindow extends Timers {
   readonly document: { title: string; getElementById(id: string): AppRoot | null };
   readonly location: { hash: string };
-  addEventListener(type: 'hashchange' | 'dragover' | 'drop', listener: Listener): void;
-  removeEventListener?(type: 'hashchange' | 'dragover' | 'drop', listener: Listener): void;
-  matchMedia(query: string): { readonly matches: boolean };
+  addEventListener(type: 'hashchange' | 'dragover' | 'drop' | 'beforeprint' | 'afterprint', listener: Listener): void;
+  removeEventListener?(type: 'hashchange' | 'dragover' | 'drop' | 'beforeprint' | 'afterprint', listener: Listener): void;
+  matchMedia(query: string): MediaWatch;
+  /** The browser's print window. Some in-app browsers have none. */
+  print?(): void;
   scrollTo(x: number, y: number): void;
 }
 /**
@@ -100,7 +110,35 @@ export function startApp(win: AppWindow): App {
   })();
   const say = (text: string): void => { status?.replaceChildren(text); };
 
+  // Printing (F17). The result is opened for paper and the tab named for the file, then put
+  // back, once, however many signals the browser gives for one print: the button does it
+  // around its own print call, and the browser's own Print is heard through its events
+  // and through the print media query. (The stylesheet's print rules cover a browser that
+  // gives no signal at all.)
+  let afterPaper: (() => void) | null = null;
+  const forPaper = (): void => {
+    if (afterPaper) return;
+    const back = openForPaper(root as unknown as ParentNode);
+    if (!back) return;
+    const title = win.document.title;
+    win.document.title = PRINT_TITLE;
+    afterPaper = () => { back(); win.document.title = title; };
+  };
+  const fromPaper = (): void => {
+    const back = afterPaper;
+    afterPaper = null;
+    back?.();
+  };
+  const onPrintMedia: MediaListener = change => { if (change.matches) forPaper(); else fromPaper(); };
+  const printMedia = win.matchMedia('print');
+  const print = typeof win.print === 'function' ? (): void => {
+    forPaper();
+    try { win.print?.(); } finally { fromPaper(); }
+  } : null;
+
   const show = (moved: boolean): void => {
+    // A page drawn again is as the student left it: nothing of a print is put back onto it.
+    fromPaper();
     // The demo's timer belongs to the Start page: it stops when the student leaves.
     demo?.stop();
     demo = null;
@@ -126,6 +164,7 @@ export function startApp(win: AppWindow): App {
         correct: (line, correction) => { if (left.transcript) left.transcript = correctRow(left.transcript, line, correction, curriculum); },
         say,
         answer: () => courses.legacy,
+        print,
         // One legacy answer for both flows, remembered in the browser.
         legacy: answer => {
           courses.legacy = answer;
@@ -261,6 +300,9 @@ export function startApp(win: AppWindow): App {
   win.addEventListener('hashchange', onHashChange);
   win.addEventListener('dragover', onDragOver);
   win.addEventListener('drop', onDrop);
+  win.addEventListener('beforeprint', forPaper);
+  win.addEventListener('afterprint', fromPaper);
+  printMedia.addEventListener?.('change', onPrintMedia);
   show(false);
   return {
     get route() { return route; },
@@ -272,6 +314,9 @@ export function startApp(win: AppWindow): App {
       win.removeEventListener?.('hashchange', onHashChange);
       win.removeEventListener?.('dragover', onDragOver);
       win.removeEventListener?.('drop', onDrop);
+      win.removeEventListener?.('beforeprint', forPaper);
+      win.removeEventListener?.('afterprint', fromPaper);
+      printMedia.removeEventListener?.('change', onPrintMedia);
     },
   };
 }
