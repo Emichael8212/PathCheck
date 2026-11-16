@@ -80,7 +80,7 @@ export function startApp(win: AppWindow): App {
     const toFix = stillToFix(transcript).length;
     // With no row taken on there is nothing to go by; with rows still to fix nothing is exact.
     const use = takenOn(transcript).length > 0 ? { standings: reviewedStandings(transcript, curriculum.grades), exact: toFix === 0 } : null;
-    return { state: 'added', name: transcript.name, use, counts: countLine(transcript), toFix };
+    return { state: 'added', name: transcript.name, use, counts: countLine(transcript), toFix, pace: left.pace };
   };
 
   // One polite status line for what happens on a page that is drawn again as a whole: made
@@ -114,6 +114,8 @@ export function startApp(win: AppWindow): App {
       browse,
       // The transcript and its corrections go; the pace range chosen for the visit stays.
       forget: () => { Object.assign(left, { ...emptyLeft(), pace: { ...left.pace, target: null } }); checkRefusal = null; },
+      // One target semester for both flows.
+      target: term => { left.pace = { ...left.pace, target: term }; },
       // The review, with its corrections as they are; "Continue" there comes back here.
       review: () => { Object.assign(left, { continued: false, editing: null, draft: null, returnTo: 'check' }); goTo('left'); },
     }) : null;
@@ -195,6 +197,8 @@ export function startApp(win: AppWindow): App {
     }
     // (A file refused after the student left "Check my courses" brings nobody back there.)
     const returnTo = from === 'check' && !refusal ? 'check' : from === 'left' ? left.returnTo : 'left';
+    // A new transcript: the term chosen for the pace line of the last one does not go with it.
+    if (transcript) courses.term = null;
     Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null, returnTo });
     showLeft();
     if (refusal) {

@@ -13,12 +13,6 @@ Read this before writing a sprint contract; delete a line when its feature has d
   F18 steps 1 and 3 need a date. Before building whichever comes first, ask the owner:
   give a date, or reword those steps. (Owner answer, 2026-11-16)
 
-## For F15 (typed courses beside a transcript)
-- Typed courses are placed as *planned* (`options.planned` in `placeCourses`): a planned
-  course never takes a place from a passed or in-progress one, and adds nothing to
-  `credits.done` or `credits.inProgress`. Pace must not mix planned courses with courses
-  really in progress; the credits of the typed list are `totalsOf(…).total`. (F12)
-
 ## For F16, F17 and F19 (what the checklist leaves for them)
 - The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in
   `src/checklist.ts` (`overviewHtml`, `requirementsHtml`) and `src/pace.ts` (the answer
@@ -33,19 +27,20 @@ Read this before writing a sprint contract; delete a line when its feature has d
 - Requirements are `<details>`, and so is the list of courses not counted
   (`details.unused`); for print every one of them must be opened and the toggles, "All / Not done" and the two end buttons hidden (`.no-print`). (F13, for F17)
 
-## For F15 and F16 (what pace gives them)
+## For F16 (what pace gives it)
 - Terms: `readTerm`, `termAfter`, `termName`, `latestTermOf` in `src/pace.ts`. The first
-  term ahead is `termAfter(latest, summers)`: the owner's default term for the pace line
-  (F15) is that term with summers off. A term that cannot be read gives no estimate.
+  term ahead is `termAfter(latest, summers)`. A term that cannot be read gives no
+  estimate.
 - The settings (`PaceSettings`: target, fewest, most, summers) are `LeftState.pace`, kept
   for the visit. The plan (F16) must use the same range and summers, and end in the
-  target when on pace; F15's line needs its own small control for the term of the typed
-  courses (the owner's answer), not these settings.
+  target when on pace. The target is shared with the pace line of "Check my courses"
+  (F15): one target semester for the visit, whichever page sets it.
 - The credits still to take are `checklist.credits.left + checklist.extraLeft`
   (`overviewOf` in `src/left.ts`): the plan must hold exactly those, the extra sequence
   course included.
-- `paceOf` and its sentences (`TEXT.finish` in `src/pace.ts`) are the place for F15's
-  "at this pace you finish <term>, one semester after your target". (F14)
+- Typed courses are placed as *planned* (`options.planned` in `placeCourses`): the plan
+  must not treat them as taken. The pace line's own term (`CourseList.term`) is for that
+  line only. (F12, F15)
 
 ## For F16 (the plan)
 - **The draft plan schedules the extra sequence course** (owner answer, 2026-11-16): when
@@ -64,26 +59,6 @@ Read this before writing a sprint contract; delete a line when its feature has d
   F19 keeps them across visits and clears them. (F07)
 - "Clear my data" must also forget the legacy answer, through `clearLegacyAnswer`
   (`src/legacy.ts`). (F05)
-
-## For F15 (the pace line in "Check my courses", with a transcript)
-- The made-up transcript `sample-a` has its in-progress courses under "Fall 2026", as the
-  approved design's student has: the default term is then Spring 2027. No made-up
-  transcript has a summer term: the owner has given only the headings "Fall 2023" and
-  "Spr 2024". Ask how a summer term is printed before testing "a summer latest term skips
-  to Fall". (F10)
-- The credits of the typed courses ("15 credits in …") are `totalsOf(…).total`
-  (`src/credits.ts`): the curriculum's credits, and the student's own number for a course
-  PathCheck doesn't know. (F09)
-- Owner answer, 2026-11-16 ("No semester in the heading; the term for the pace line"). If
-  the pace line needs the term the typed courses are for: the default is the next Fall or
-  Spring after the latest term on the transcript (the term with In progress rows if there
-  is one, otherwise the latest graded term; summer terms are skipped; Fall 2026 in
-  progress gives Spring 2027). The line shows that term as a small control the student can
-  change (Fall/Spring, the default term and the next few after it). The term is never
-  derived from today's date. If F15 doesn't need a term, build nothing for it.
-- The owner's tests: an in-progress term gives the next Fall/Spring; no in-progress term
-  uses the latest graded term; a summer latest term skips to Fall; changing the term
-  changes the finish semester.
 
 ## For F21 (the reader function, M2)
 - Confirm on the owner's real transcript how a summer term is printed, and a winter or

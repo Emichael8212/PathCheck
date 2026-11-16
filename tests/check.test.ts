@@ -593,9 +593,9 @@ describe('the transcript on the page', () => {
     expect(transcriptCard(there)).toMatch(/<button type="button" class="btn secondary" data-another>Use another transcript<\/button>/);
     expect(transcriptCard(there)).not.toMatch(/data-choose|data-review|exact-warning/);
     // Rows still to fix: said, with the way back to them.
-    expect(decode(transcriptCard(withPassed(['ENG 131'], { exact: false, toFix: 2 })))).toContain('2 rows of your transcript still need fixing, so these answers are not exact yet. Fix them');
+    expect(decode(transcriptCard(withPassed(['ENG 131'], { exact: false, toFix: 2 })))).toContain('2 rows of your transcript still need fixing, so these answers are not exact yet. The pace may change too. Fix them');
     const one = transcriptCard(withPassed(['ENG 131'], { exact: false, toFix: 1 }));
-    expect(decode(one)).toContain('1 row of your transcript still needs fixing, so these answers are not exact yet. Fix it');
+    expect(decode(one)).toContain('1 row of your transcript still needs fixing, so these answers are not exact yet. The pace may change too. Fix it');
     expect(one).toMatch(/<p class="exact-warning">[^<]+<\/p>\s*<button type="button" class="text-link" data-review>Fix it<\/button>/);
     expect(statusText(withPassed(['ENG 131'], { exact: false, toFix: 1 }))).toBe('Transcript added');
     // No row taken on: the answers do not use it, and the page says so.

@@ -386,6 +386,18 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     transcript"; with no row taken on, "No row of your transcript was taken on, so there
     is nothing to show yet.";
   - the cards are in the curriculum's order (the screenshots show the done ones first).
+- **The pace line on "Check my courses"** (F15; the brief's Flow A step 5). The design has
+  no place for it: it is one line under the three numbers, shown only with a transcript,
+  in the owner's sentence of 2026-11-16 with two small lists inside it: "15 credits in
+  [Spring 2027 ▾] — at this pace you finish Fall 2029, one semester after your target
+  [Spring 2029 ▾]." and under it "Credits only — course order may add semesters." In the
+  agent's words where the owner's example does not reach: "12 of your 15 credits in
+  [Spring 2027 ▾] count toward CIS — at this pace you finish …" when some typed credits do
+  not count; "… at this pace you finish in your target semester [Fall 2029 ▾]."; "None of
+  these credits counts toward CIS, so this list doesn't bring you closer to finishing.";
+  "Answer “Are you a legacy CIS student?” to see your pace."; and the legacy question
+  itself in the line's place when no typed course shows it. The lists are 44px high and
+  named for a screen reader ("Term for these courses", "Target semester").
 - **"Check my courses" with a transcript** (F12). The heading note and the card "Add your
   transcript for an exact answer" are drawn as designed ("Choose transcript PDF" opens
   the file picker). The design shows them only without a transcript; the other states
@@ -396,7 +408,8 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   - the card with a reviewed transcript: "Your answers use your transcript (<file>).",
     the review's line of counts, and "Use another transcript" with "Choosing another
     transcript forgets your corrections."; when rows still need fixing, "<m> rows of your
-    transcript still need fixing, so these answers are not exact yet." with "Fix them";
+    transcript still need fixing, so these answers are not exact yet. The pace may change
+    too." with "Fix them";
     when no row was taken on, "No row of your transcript (<file>) was taken on, so these
     answers don't use it.";
   - under the card, why a file was not taken (the sentences of the upload);
