@@ -49,10 +49,34 @@ Read this before writing a sprint contract; delete a line when its feature has d
   two picks). Never show the degree as complete or on pace from credits alone; the plan
   must still schedule HIS 132 or ENG 210 although no pick is open. (F04 review)
 
-## For F05 (legacy)
-- With the legacy answer Yes, PSY 251 can go to its pick or to an elective place. That
-  needs a second pass after the picks are filled: a pick course left over can then claim
-  an elective. (F04 review)
+## For F08, F11 and F13 (the legacy question on screen)
+F05's rule is merged but F05 is not passing: it is BLOCKED in `docs/sprints/F05.md` until
+these three screens have shown the question. Each of their contracts must contain the
+on-screen checks below, checked by the evaluator in a browser. The pull request of the
+last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCKED line.
+- On-screen checks: the question appears for each of the four legacy courses, typed in any
+  form; it does not appear without them; it uses `LEGACY_QUESTION`, `LEGACY_YES` and
+  `LEGACY_NO` (`src/legacy.ts`) exactly; Yes and No visibly change the result; the answer
+  survives a reload; the student can change it and the result updates; it is not asked
+  again once answered; it works with the keyboard only and at 375px.
+- No verdict before the answer. While the question is unanswered, no "counts" or "doesn't
+  count" is shown for any of the four courses: `placeCourses` treats no answer as No, and
+  "Doesn't count" would be false for a legacy student.
+- Keep the answer in memory for the visit and pass it to `placeCourses` as `{ legacy }`.
+  Never rely on reading it back: in private browsing `writeLegacyAnswer` does nothing and
+  `readLegacyAnswer` gives "not given yet".
+- Pass `legacyQuestionNeeded` every code that appears, typed or on any reviewed transcript
+  row, whatever its grade.
+- For F08: neither the brief nor an owner answer gives the words for a legacy-elective
+  answer, or says under which block PSY 251 is shown for a legacy student. Ask the owner;
+  invent nothing. Any "counts" answer keeps "unless you've already passed it or filled
+  this slot".
+- With Yes, an elective place can be filled `by: 'legacy'`, and PSY 251 can be an elective
+  while another course holds its pick. (F05)
+
+## For F19 (clear my data)
+- "Clear my data" must also forget the legacy answer, through `clearLegacyAnswer`
+  (`src/legacy.ts`). (F05)
 
 ## For F14 (pace)
 - Pace is taken from the totals of `placeCourses` (`src/placement.ts`): remaining = degree
