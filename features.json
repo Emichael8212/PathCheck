@@ -60,9 +60,11 @@
         "GPA, residency and the suspended exams (Nelson-Denny reading test, English proficiency exam, senior comprehensive exam, writing competency test) are not checked and not shown",
         "An automated test fails if the data file stops matching these rules"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F02.md — evaluator QA round 3: PASS (13 checks; Functionality 5, Truthfulness 5)",
+      "tests": [
+        "tests/curriculum.test.ts"
+      ]
     },
     {
       "id": "F03",

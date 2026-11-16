@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "id": "made-up-program",
+  "institution": "Nowhere College",
+  "program": "B.S. Made-up Studies",
+  "degreeCredits": 20,
+  "lastReviewed": "2026-01-15",
+  "sources": [{ "id": "test", "description": "A made-up program used only by the tests." }],
+  "grades": { "letters": ["A", "B", "C", "D", "F"], "minimumCounting": "C", "neverCounting": ["W", "I"] },
+  "blocks": [
+    {
+      "id": "basics",
+      "name": "Basics",
+      "credits": 8,
+      "required": [{ "courseId": "XAA-101", "title": "First Things", "credits": 4 }],
+      "choices": [
+        {
+          "choose": 2,
+          "courses": [
+            { "courseId": "XAA-110", "title": "This", "credits": 2 },
+            { "courseId": "XAA-120", "title": "That", "credits": 2 },
+            { "courseId": "XAA-130", "title": "The Other", "credits": 2 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "depth",
+      "name": "Depth",
+      "credits": 6,
+      "required": [
+        { "courseId": "XBBB-201", "title": "Deeper Things", "credits": 3 },
+        { "courseId": "XBBB-202", "title": "Deepest Things", "credits": 3 }
+      ],
+      "choices": []
+    }
+  ],
+  "sequence": {
+    "choose": 1,
+    "alternatives": [{ "id": "pair", "name": "pair", "courses": ["XAA-101", "XAA-110"] }],
+    "additionalCredits": 0,
+    "coreBlocks": ["basics"],
+    "coreCredits": 8
+  },
+  "electives": {
+    "id": "extras",
+    "name": "Extras",
+    "credits": 6,
+    "courseCount": 3,
+    "namedCourses": [],
+    "subjectRule": { "prefixes": ["XC"], "minCourseNumber": 300, "maxCourseNumber": 399, "creditsPerCourse": 2 },
+    "excludeRequiredCourses": true,
+    "legacyOnlyCourses": []
+  }
+}
