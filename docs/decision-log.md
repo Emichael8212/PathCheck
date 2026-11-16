@@ -398,8 +398,9 @@ from? The owner: "leave it open for the student to add it."
 Asked after pull request #12. The owner's words are quoted.
 
 1. **F08 step 5.** Asked whether the new sentence was meant for every course that doesn't
-   count. The owner: BIO 230 "keeps "Doesn't count toward CIS — not in the CIS curriculum".
-   What you applied is correct." So only CIS 304 and CIS 415 show "Doesn't count toward
+   count. The owner (the reply begins mid-sentence; its subject is BIO 230, from the
+   question): "keeps 'Doesn't count toward CIS — not in the CIS curriculum'. What you
+   applied is correct." So only CIS 304 and CIS 415 show "Doesn't count toward
    CIS — <code> isn't in the current CIS curriculum."; F08 step 5 stays as it is.
 2. **A new step for F09.** Approved ("Yes"), with the wording proposed. Added to
    `features.json` as F09 step 5: "A course PathCheck doesn't know starts at 3 credits and the student can change it; a course PathCheck knows uses its curriculum credits and can't be edited. An unknown course's credits add to the semester total only, never to what counts toward CIS"
@@ -413,20 +414,26 @@ Asked after pull request #12. The owner's words are quoted.
   back by itself if the owner gives one (brief §12 lists the date among what the owner
   provides before M3).
 - F18 step 1 says every result shows "Curriculum last reviewed: <date>", and step 3 has a
-  banner when the curriculum hasn't been reviewed in 12 months. With no date neither can
-  be shown. F18's contract must put this to the owner (give a date, or reword the two
-  steps) before F18 is built; the steps are not changed here.
+  banner when the curriculum hasn't been reviewed in 12 months. F17 says the printed
+  summary carries the same line. With no date none of these can be shown. The contract of
+  whichever of F17 and F18 is built first must put this to the owner (give a date, or
+  reword those steps) before it is built; the steps are not changed here.
+- `docs/design/DESIGN.md` and the mockups still show "Curriculum last reviewed: Nov 2026"
+  in the footer. F06 builds the footer without the line and records that in DESIGN.md as a
+  difference that comes from this answer.
 
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- None open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
-  rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
-  F08 step 5; the new F09 step; and the last-reviewed line.)
-- To be asked when F18 starts: with no review date in the curriculum file, F18 steps 1 and
-  3 cannot be shown as written (see the agent's notes under the answer of 2026-11-16).
+None open now. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
+F08 step 5; the new F09 step; and the last-reviewed line.)
+
+**To ask later**, when F17 or F18 starts, whichever is first: with no review date in the
+curriculum file, F17's last-reviewed line and F18 steps 1 and 3 cannot be shown as written
+(see the agent's notes under the answer of 2026-11-16).
 
 ## Milestone checks
 

@@ -46,11 +46,11 @@ Read this before writing a sprint contract; delete a line when its feature has d
   The entry row is built in F07 and the answers in F08; say in F09's contract where the
   field lives.
 
-## For F18 (on every result)
+## For F17 and F18 (the printed summary; on every result)
 - The owner said to leave out "Curriculum last reviewed: Nov 2026" (2026-11-16): the
-  curriculum file has no review date and none is invented. F18 steps 1 and 3 need a date.
-  Before building F18, ask the owner: give a date, or reword the two steps. (Owner answer,
-  2026-11-16)
+  curriculum file has no review date and none is invented. F17's last-reviewed line and
+  F18 steps 1 and 3 need a date. Before building whichever comes first, ask the owner:
+  give a date, or reword those steps. (Owner answer, 2026-11-16)
 
 ## For F12 and F13 (answers with a transcript; the checklist)
 - A course left unplaced with the reason "not-current" (CIS 304, CIS 415) must always read
@@ -129,6 +129,10 @@ last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCK
   answer, 2026-11-16)
 
 ## For F06 onward (screens)
+- The footer leaves out "Curriculum last reviewed" until the curriculum file has a date,
+  and never shows "Nov 2026" (owner answer, 2026-11-16). `docs/design/DESIGN.md` still
+  describes the footer with that line: F06 records its absence there as a difference that
+  comes from the answer.
 - The scans in `tests/curriculum.test.ts` ("keeps curriculum facts out of the code", "has no
   CIS 304 …") read TypeScript files in `src/` only. When a UI framework is chosen, widen
   them to every source file that can hold text shown to the student. (F02 review)
