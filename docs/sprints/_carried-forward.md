@@ -14,14 +14,30 @@ Read this before writing a sprint contract; delete a line when its feature has d
   same state. Typed GEO 206 then HIS 132 would therefore make HIS 132 count. F08 must
   either keep typed order or ask the owner which wins. (F04 review)
 - CIS 304 and CIS 415 never count (owner answer, 2026-11-16). `placeCourses` leaves them
-  unplaced with the reason "not-current". Flow A must answer, in the owner's words,
-  "Doesn't count toward CIS — <code> isn't in the current CIS curriculum.", and never the
-  elective answer. The owner asked for a Flow A test of both courses, and of another
-  300/400-level CIS course that still counts as an elective.
+  unplaced with the reason "not-current", and `countsByElectiveRule` says no. Flow A must
+  answer, in the owner's words, "Doesn't count toward CIS — <code> isn't in the current CIS
+  curriculum.", and never the elective answer. The owner asked for a Flow A test of both
+  courses, and of another 300/400-level CIS course that still counts as an elective.
 - `placeCourses` refuses the same course twice. A student may type a course twice, or type
   one that is already on the transcript: merge before calling it. (F04 QA)
 - Typed courses need a third, weaker state than passed and in progress, with its own
   credits, so that pace is not mixed with courses really in progress. (F04 review)
+
+## For F07 (entering courses)
+- Suggestions come from the courses of the curriculum. Never suggest a course from the
+  elective rule's exceptions (CIS 304, CIS 415). (F04 fix QA)
+
+## For F09 (credit total)
+- The total needs credits for typed courses that are not in the curriculum (BIO 230, and
+  now CIS 304 and CIS 415). The owner said a course outside the curriculum is shown with
+  its credits and is included in the total, but not where the credits come from when the
+  curriculum has none. It is an open question to the owner in `docs/decision-log.md`; do
+  not assume 3 before it is answered. (F04 fix review and QA)
+
+## For F12 and F13 (answers with a transcript; the checklist)
+- A course left unplaced with the reason "not-current" (CIS 304, CIS 415) must always read
+  as not counting: never the elective answer, never under a block. In Flow A it uses the
+  owner's sentence, with or without a transcript. (F04 fix review)
 
 ## For F12 (check my courses, with a transcript)
 - "This slot is already filled" must not be said for a typed sequence course the student

@@ -68,6 +68,8 @@ describe('the curriculum comes from the data file', () => {
     expect(() => { (curriculum as { degreeCredits: number }).degreeCredits = 1; }).toThrow(TypeError);
     expect(() => { (findCourse(curriculum, 'PSY 251') as unknown[]).pop(); }).toThrow(TypeError);
     expect(() => { (programs as unknown[]).push({}); }).toThrow(TypeError);
+    // Removing an exception would make that course count.
+    expect(() => { (curriculum.electives.except as string[]).splice(0, 1); }).toThrow(TypeError);
     expect(Object.isFrozen(loadCurriculum(madeUp).electives.subjects)).toBe(true);
     expect(findCourse(curriculum, 'MGT 321')[0]?.course.title).toBe('Principles of Management');
   });

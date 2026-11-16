@@ -316,8 +316,7 @@ CIS 304 and CIS 415 do **not** count, not even as electives. They are an excepti
 
 - **Flow A answer:** "Doesn't count toward CIS — <code> isn't in the current CIS curriculum."
   → F08.
-- **Flow B:** these courses will never be found on a transcript. (If one ever is, it does
-  not count.) → F04.
+- **Flow B:** in the owner's words, "you we never find it on a transcript". → F04.
 - **Tests:** CIS 304 and CIS 415 don't count in Flow A or Flow B; another 300/400-level CIS
   course not already required still counts as an elective. → F04 (placing), F08 (Flow A).
 
@@ -327,10 +326,18 @@ curriculum file now names them in one place only: as exceptions to the elective 
 (`electives.subjectRule.exceptCourses`). They are still not courses of the curriculum.
 
 *Agent's notes, not owner decisions:*
-- `features.json` still says, in F02 step 3, that CIS 304 and CIS 415 "do not exist
-  anywhere", and gives the elective rule in F04 step 3 and the Flow A answers in F08 step 5
-  without this exception. Feature steps are only changed with the owner's approval; new
-  wording is proposed in the pull request for this change.
+- The Flow B line is read as: these courses will never be found on a transcript. If one
+  ever is, it does not count, because the owner asked for a test that they "don't count in
+  Flow A or Flow B".
+- `features.json` was written before this answer. These steps now disagree with it or
+  leave it open: F02 step 3 (the two courses "do not exist anywhere"); F04 step 3 (the
+  elective rule with no exception); F08 step 2 (a course that only matches the elective
+  rule shows the elective answer: followed literally it would say CIS 304 counts); F08
+  step 5 (no sentence for these two courses) and step 7 (no test for them). Feature steps
+  are only changed with the owner's approval; new wording is proposed in the pull request
+  for this change.
+- The answer also replaces, for these two courses, the brief's §4 Flow A answer for a
+  course that matches the elective rule.
 - The exception is data, not code: another program could list its own, or none.
 
 ## Open questions to the owner
@@ -338,8 +345,17 @@ curriculum file now names them in one place only: as exceptions to the elective 
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- None open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
-  rows; and whether CIS 304 and CIS 415 count.)
+- **2026-11-16 (raised in review; needed for F09).** In "Check my courses", the credit
+  total adds up the credits of the typed courses. For a course that is not in the
+  curriculum (BIO 230, or CIS 304 and CIS 415), PathCheck has no credit value. The owner
+  said earlier that such a course "is shown with its credits (BIO 230, 3 cr) and is included
+  in the credit total", but not where the 3 comes from. Should PathCheck assume 3 credits
+  for any course it does not know, ask the student for the credits, or leave such a course
+  out of the total and say so? Status: asked in the pull request for the CIS 304 / CIS 415
+  change, not answered yet.
+
+(Answered on 2026-11-16, see "Owner answers": the grade column of transfer rows; and
+whether CIS 304 and CIS 415 count.)
 
 ## Milestone checks
 

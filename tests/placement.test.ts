@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import madeUp from './fixtures/made-up-program.json';
 import { curriculum, loadCurriculum, type Curriculum } from '../src/curriculum';
-import { placeCourses, type Placement } from '../src/placement';
+import { countsByElectiveRule, placeCourses, type Placement } from '../src/placement';
 import { courseStandings, type TranscriptRow } from '../src/transcript';
 
 /** A made-up row: "ENG 131" is passed with a B; "ENG 131:D" has that grade; ":-" is in progress; ":T" is transfer credit. */
@@ -261,6 +261,17 @@ describe('the two courses that never count', () => {
       expect(result.electives.filled[0]?.by).toBe('rule');
       expect(result.unplaced).toEqual([]);
     }
+  });
+
+  it('never lets the rule itself say yes to an exception', () => {
+    // The one question later screens may ask: is this course an elective by the rule?
+    expect(countsByElectiveRule(curriculum, 'CIS 304')).toBe(false);
+    expect(countsByElectiveRule(curriculum, 'CIS 415')).toBe(false);
+    expect(['CIS 303', 'CIS 305', 'CIS 414', 'CIS 416', 'MKT 410', 'ACT 499', 'MGT 300'].map(code => countsByElectiveRule(curriculum, code))).toEqual([true, true, true, true, true, true, true]);
+    expect(['MKT 299', 'ECO 500', 'BIO 310', 'FIN 201'].map(code => countsByElectiveRule(curriculum, code))).toEqual([false, false, false, false]);
+    // Every CIS number from 300 to 499: the two exceptions, and nothing else, are refused.
+    const refused = Array.from({ length: 200 }, (_, i) => `CIS ${300 + i}`).filter(code => !countsByElectiveRule(curriculum, code));
+    expect(refused).toEqual(['CIS 304', 'CIS 415']);
   });
 
   it('reads the exceptions from the curriculum', () => {
