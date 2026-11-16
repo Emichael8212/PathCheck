@@ -284,7 +284,19 @@ transfer-credit section under an ASU course code has already passed the grade ch
 
 **Where this differs from the brief:** §4 Flow B step 2 says "Apply no grade check if no
 grade is shown". The answer goes further: no grade check on a transfer row at all, even
-when a grade is shown.
+when a grade is shown. For transfer rows it therefore also overrides §5 "Grades" ("A
+grade below C never counts; flag 'must be repeated'"), which still holds for every row
+outside the transfer section.
+
+*Agent's notes, not owner decisions:*
+- `features.json` F03 still words two steps the old way: step 1 ("D and F never count",
+  with no exception for transfer rows) and step 5 ("with no grade check if no grade is
+  shown"). Feature steps are only changed with the owner's approval; new wording is
+  proposed in the pull request for this fix.
+- When a course has both an ordinary passing row and transfer credit, the ordinary row is
+  the one shown as deciding, because the transfer row's grade column is not read at all.
+- A row is transfer credit only when the reader marks it so with a plain yes; anything
+  else is treated as an ordinary row, so a misread flag can never make a D count.
 
 ## Open questions to the owner
 

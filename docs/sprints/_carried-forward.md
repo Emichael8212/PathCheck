@@ -13,7 +13,12 @@ Read this before writing a sprint contract; delete a line when its feature has d
   reader output could otherwise crash on a number, or pass a row whose flag is the text
   "no". State and test both. (F03 QA)
 - F10 uses `rowStanding` to decide whether a grade is on the scale; an "unrecognised" row is
-  the invalid row shown for the student to fix. Do not write a second validator. (F03 contract)
+  the invalid row shown for the student to fix. Do not write a second validator. A transfer
+  row is never "unrecognised": its grade column is not read, so F10 must not flag it for a
+  grade. (F03 contract; owner answer, 2026-11-16)
+- `rowStanding` takes a row as transfer credit only when the flag is exactly true. F10
+  should still refuse a flag that is not true or false, so a misread is shown, not hidden.
+  (F03 fix review)
 - A row's code must be a course code before it gets to `courseStandings`, which throws
   otherwise. The totals and "Academic Standing" lines are not rows. (F03 contract)
 - Real transfer rows may leave "attempted" empty: check against the transcript format when

@@ -83,6 +83,18 @@ describe('one row', () => {
     }
   });
 
+  it('takes a row as transfer credit only when its flag is exactly true', () => {
+    // Reader output is not typed. A flag that is merely truthy must not make a D count.
+    for (const flag of ['false', 'no', 'true', 1, {}, [], 'transfer']) {
+      const loose = row('ECO 251', 'D', { transfer: flag as unknown as boolean });
+      expect(rowStanding(loose, grades), JSON.stringify(flag)).toBe('must-repeat');
+    }
+    for (const flag of [false, 0, '', null, undefined]) {
+      expect(rowStanding(row('ECO 251', 'D', { transfer: flag as unknown as boolean }), grades), JSON.stringify(flag)).toBe('must-repeat');
+    }
+    expect(rowStanding(row('ECO 251', 'D', { transfer: true }), grades)).toBe('passed');
+  });
+
   it('keeps the normal grade rules for rows outside the transfer section', () => {
     expect(['A', 'B', 'C'].map(grade => standing(grade))).toEqual(['passed', 'passed', 'passed']);
     expect(['D', 'F'].map(grade => standing(grade))).toEqual(['must-repeat', 'must-repeat']);
@@ -130,6 +142,12 @@ describe('one course, after repeats', () => {
     expect(course(null, 'C').standing).toBe('passed');
     // Transfer credit, and the same course running now: already passed.
     expect(courseStandings([row('ECO 251', 'D'), transfer('ECO 251', 'TR')], grades)).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: true } } }]);
+    // The grade column of a transfer row is not read when choosing the deciding row either:
+    // an ordinary C decides ahead of transfer credit, whatever that row's column shows.
+    for (const shown of ['A', 'D', 'TR', null]) {
+      expect(courseStandings([transfer('ECO 251', shown), row('ECO 251', 'C')], grades), String(shown)).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: false, grade: 'C' } } }]);
+    }
+    expect(courseStandings([transfer('ECO 251', 'A'), transfer('ECO 251', null)], grades)).toMatchObject([{ deciding: { row: { grade: 'A' } } }]);
     const both = courseStandings([transfer('ECO 251', null), row('ECO 251', null)], grades);
     expect(both).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: true } } }]);
   });
@@ -169,7 +187,7 @@ describe('one course, after repeats', () => {
       // with that standing has a better grade on the scale.
       expect(result.deciding.standing, label).toBe(result.standing);
       expect(rows).toContain(result.deciding.row);
-      const onScale = (one: TranscriptRow): number => { const at = grades.letters.indexOf(one.grade ?? ''); return at < 0 ? Infinity : at; };
+      const onScale = (one: TranscriptRow): number => { const at = one.transfer ? -1 : grades.letters.indexOf(one.grade ?? ''); return at < 0 ? Infinity : at; };
       const sameStanding = rows.filter(one => own(one) === result.standing);
       expect(onScale(result.deciding.row), label).toBe(Math.min(...sameStanding.map(onScale)));
       // ...and of equally good rows it is the first.

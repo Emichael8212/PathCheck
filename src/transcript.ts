@@ -65,8 +65,9 @@ const rank = (grades: Grades, grade: string | null | undefined): number =>
 /** What one row is worth on its own. */
 export function rowStanding(row: TranscriptRow, grades: Grades): Standing {
   // Transfer credit has already passed the grade check: whatever its grade column shows,
-  // it is not read.
-  if (row.transfer) return 'passed';
+  // it is not read. Only a flag that is exactly true says so: this one flag decides, so a
+  // value such as the text "false" must not pass as it.
+  if (row.transfer === true) return 'passed';
   const shown = mark(row.grade);
   // No grade yet: the course is still running.
   if (shown === '') return 'in-progress';
@@ -96,8 +97,9 @@ export function courseStandings(rows: readonly TranscriptRow[], grades: Grades):
     const standing = judged.map(one => one.standing).reduce((first, next) => (PLACE[next] < PLACE[first] ? next : first));
     // Among the rows with that standing, the best grade decides; with no grade to compare,
     // or a tie, the first in transcript order.
+    // A transfer row's grade column is never read, here either: it has no grade to compare.
     const position = (one: JudgedRow): number => {
-      const at = rank(grades, one.row.grade);
+      const at = one.row.transfer === true ? -1 : rank(grades, one.row.grade);
       return at < 0 ? Number.POSITIVE_INFINITY : at;
     };
     const deciding = judged.filter(one => one.standing === standing).reduce((best, one) => (position(one) < position(best) ? one : best));
