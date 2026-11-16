@@ -96,8 +96,10 @@ describe('the three mockup pages', () => {
 
   it('put "Not affiliated…" at the right of the footer, level with the other three lines', () => {
     const rule = css.match(/\n\.foot \{[^}]*\}/)[0];
-    expect(rule).toMatch(/display: flex;\s*flex-wrap: wrap;\s*justify-content: space-between;\s*align-items: center;/);
-    expect(css).toMatch(/\.foot > p \{ margin: 0; \}/);
+    expect(rule).toMatch(/display: flex;\s*flex-wrap: wrap;\s*justify-content: space-between;\s*align-items: baseline;/);
+    // The left group wraps first; the affiliation line keeps its place at the right.
+    expect(css).toMatch(/\.foot > div \{ flex: 1 1 311px; min-width: 0; display: flex; flex-wrap: wrap;/);
+    expect(css).toMatch(/\.foot > p \{ flex: none; margin: 0; \}/);
     for (const which of pages) {
       const footer = page(which).html.match(/<footer class="foot[^"]*">[\s\S]*?<\/footer>/)[0];
       // Two children: the three lines on the left, then the affiliation line.
@@ -544,15 +546,20 @@ describe('the things that move', () => {
   });
 
   it('printing opens every requirement, then puts them back', () => {
-    const details = [el(), el()];
+    // As on the page: some requirements start closed, some open.
+    const details = [el(), { ...el(), open: true }];
     const button = el();
     const win = { ...el(), printed: 0, print() { this.printed++; } };
-    const doc = { querySelectorAll: () => details.filter(d => !d.open), querySelector: () => button };
+    const doc = {
+      querySelectorAll: sel => { expect(sel).toBe('details:not([open])'); return details.filter(d => !d.open); },
+      querySelector: () => button,
+    };
     setupPrint(doc, win);
     win.handlers.beforeprint();
     expect(details.map(d => d.open)).toEqual([true, true]);
+    // Afterwards only the ones that were closed are closed again.
     win.handlers.afterprint();
-    expect(details.map(d => d.open)).toEqual([false, false]);
+    expect(details.map(d => d.open)).toEqual([false, true]);
     button.handlers.click();
     expect(win.printed).toBe(1);
   });

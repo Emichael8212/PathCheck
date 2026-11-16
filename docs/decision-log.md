@@ -237,8 +237,10 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
 *Agent's notes, not owner decisions:*
 - In progress and Still needed requirements start open, so their courses still show
   straight away (answer d); the toggle lets the student hide them. Done ones start closed.
-- On a phone the footer line is too narrow for all four items, so "Not affiliated with
-  Alabama State University" drops below the other three, at the left.
+- When the footer line gets narrow, the three items on the left wrap first and "Not
+  affiliated with Alabama State University" stays at the right, level with the first of
+  them. Only under about 630px wide (a phone) is there no room beside them; there it drops
+  below the other three, at the left.
 
 ## Milestone checks
 

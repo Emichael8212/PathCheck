@@ -162,8 +162,10 @@ Marks are inline SVG drawn in the project (20-unit grid); no icon pack.
   audit." at the right. Below 650px the nav links are on a second row under the wordmark.
 - **Footer:** top border; one line. At the left: "Not an official degree audit." (bold) ·
   "Curriculum last reviewed: Nov 2026" · "Report a mistake" (underlined email link). At the
-  right, at the same height: "Not affiliated with Alabama State University". 12px. When the
-  line is too narrow for all four (a phone), the affiliation line drops below the others.
+  right, at the same height: "Not affiliated with Alabama State University". 12px. As the
+  line narrows, the three items on the left wrap first and the affiliation line keeps its
+  place at the right, level with the first of them. Under about 630px wide (a phone) it
+  drops below the others, at the left (the agent's choice; the owner asked for the right).
 - **Section label (eyebrow):** small uppercase label above a heading.
 - **Buttons:** primary = `--accent` fill; secondary = `--surface` with a `--line-strong`
   border. Arrow icon after the label on buttons that move forward.
@@ -287,11 +289,13 @@ dashed left edge and the label "OPEN CHOICE". MGT 462 carries "Always the final 
 
 **Phone (375).** One column. The ring (155px) sits above the pace answer; the four pace
 controls stack. The toggle moves under the heading. A requirement row becomes three lines:
-name and status, the bar, then credits with the toggle at the right. The course lists stack. Each semester is a header band (term left, credits right) over a list
+name and status, the bar, then credits with the toggle at the right. The course lists
+stack. Each semester is a header band (term left, credits right) over a list
 with "Move later" at the right of each entry. The two action buttons wrap.
 
 **Print.** The top bar, the "All / Not done" toggle, "Show courses" / "Hide courses", "Move
-later" and the action buttons are not printed; every requirement prints opened; the ring, bars and tinted rows are printed;
+later" and the action buttons are not printed; every requirement prints opened; the ring,
+bars and tinted rows are printed;
 the page is white.
 
 ## Differences from the published site
@@ -318,7 +322,7 @@ Each difference comes from the brief or from a dated owner answer in `docs/decis
 - d. In progress and Still needed requirements show their courses; Done ones open with
   "Show courses". Every requirement has the Show / Hide toggle.
 - Footer: "Not affiliated with Alabama State University" at the right, level with the
-  other three items (the published site has it on a second line).
+  other three items (the published site has it on a line of its own).
 - e. "Fewest" and "Most" credits per term, both editable, with neutral notes and no hard limit.
 - f. No uppercase grey table header; no legend (the bar is labelled directly). Pill-shaped
   tabs, the indigo main button and the numbered chips are kept.

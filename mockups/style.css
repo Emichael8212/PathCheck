@@ -227,7 +227,7 @@ svg { display: block; flex-shrink: 0; }
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
   gap: 4px 24px;
   padding: 24px;
   border-top: 1px solid var(--line);
@@ -236,11 +236,14 @@ svg { display: block; flex-shrink: 0; }
   line-height: 1.7;
 }
 .foot-wide { max-width: none; }
-.foot > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
+/* The three items on the left give way first: they wrap onto a second line while the
+   affiliation line stays at the top right, level with the first of them. 311px is the room
+   "Curriculum last reviewed" and "Report a mistake" need side by side. */
+.foot > div { flex: 1 1 311px; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
 .foot strong { color: var(--ink); font-weight: 600; }
-/* "Not affiliated…" sits at the right, level with the other three; it drops below them
-   only when the line is too narrow to hold all four. */
-.foot > p { margin: 0; }
+/* "Not affiliated…" sits at the right, level with the other three. It drops below them
+   only on a phone, where there is no room beside them (under about 630px). */
+.foot > p { flex: none; margin: 0; }
 .text-link {
   display: inline-flex;
   align-items: center;
