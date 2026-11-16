@@ -291,6 +291,11 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
     const legacy = (data: ReturnType<typeof copy>) => part(data, 'electives').legacyOnlyCourses as { [key: string]: Json }[];
     // Twice in the legacy list.
     expect(broken(data => { legacy(data)[2]!.courseId = 'FLS-161'; })).toThrow(/FLS-161: the same course is listed twice: in electives\.legacyOnlyCourses and in electives\.legacyOnlyCourses/);
+    // Twice in the legacy list when the course is also a pick: the pick is the one allowed
+    // overlap, and it does not excuse a second legacy entry.
+    expect(broken(data => { legacy(data).push({ courseId: 'PSY-251', title: 'General Psychology', credits: 3 }); })).toThrow(/PSY-251: the same course is listed twice: in electives\.legacyOnlyCourses and in electives\.legacyOnlyCourses/);
+    // A second pick that is also a legacy-only elective is fine when both entries agree.
+    expect(broken(data => { legacy(data).push({ courseId: 'SOC-110', title: 'Introduction to Sociology', credits: 3 }); })).not.toThrow();
     // The same as the named elective, or as a required course.
     expect(broken(data => { legacy(data)[1]!.courseId = 'FIN-201'; })).toThrow(/FIN-201: the same course is listed twice: in electives\.namedCourses and in electives\.legacyOnlyCourses/);
     expect(broken(data => { legacy(data)[1]!.courseId = 'MGT-321'; })).toThrow(/MGT-321: the same course is listed twice: in blocks\[6\] \(business-core\) and in electives\.legacyOnlyCourses/);

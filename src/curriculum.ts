@@ -323,10 +323,12 @@ function listings(blocks: readonly Block[], chosen: Electives): { place: Place; 
  */
 function checkListedOnce(all: { place: Place; where: string }[]): void {
   all.forEach((entry, i) => {
-    const earlier = all.slice(0, i).find(other => other.place.course.code === entry.place.course.code);
+    const before = all.slice(0, i).filter(other => other.place.course.code === entry.place.course.code);
+    const earlier = before.at(-1);
     if (!earlier) return;
     const id = asWritten(entry.place.course.code);
-    const allowed = entry.place.kind === 'legacy-elective' && earlier.place.kind === 'pick';
+    // Every earlier listing counts, not just the first: one pick, then one legacy entry.
+    const allowed = before.length === 1 && entry.place.kind === 'legacy-elective' && earlier.place.kind === 'pick';
     if (!allowed) fail(id, `the same course is listed twice: in ${earlier.where} and in ${entry.where}`);
     if (entry.place.course.title !== earlier.place.course.title || entry.place.course.credits !== earlier.place.course.credits) {
       fail(id, `has a different title or credits in ${earlier.where} and in ${entry.where}`);
