@@ -1,0 +1,22 @@
+{
+  "note": "SYNTHETIC - not a real transcript. A made-up reader's answer for sample-a.pdf. The student does not exist.",
+  "rows": [
+    { "term": "Fall 2025", "transfer": false, "prefix": "ORI", "number": "100", "description": "First Year Experience", "attempted": 1, "earned": 1, "grade": "A", "points": 4 },
+    { "term": "Fall 2025", "transfer": false, "prefix": "ENG", "number": "131", "description": "English Comp I", "attempted": 3, "earned": 3, "grade": "B", "points": 9 },
+    { "term": "Fall 2025", "transfer": false, "prefix": "BIO", "number": "127", "description": "General Biology I", "attempted": 3, "earned": 3, "grade": "B", "points": 9 },
+    { "term": "Fall 2025", "transfer": false, "prefix": "BIOL", "number": "127", "description": "Gen Biology I Lab", "attempted": 1, "earned": 1, "grade": "A", "points": 4 },
+    { "term": "Fall 2025", "transfer": false, "prefix": "MAT", "number": "137", "description": "Pre-Calc Algebra", "attempted": 3, "earned": 3, "grade": "C", "points": 6 },
+    { "term": "Fall 2025", "transfer": false, "prefix": "HIS", "number": "131", "description": "World History I", "attempted": 3, "earned": 3, "grade": "B", "points": 9 },
+    { "term": "Spr 2026", "transfer": false, "prefix": "ENG", "number": "132", "description": "English Comp II", "attempted": 3, "earned": 3, "grade": "B", "points": 9 },
+    { "term": "Spr 2026", "transfer": false, "prefix": "BIO", "number": "128", "description": "General Biology II", "attempted": 3, "earned": 3, "grade": "C", "points": 6 },
+    { "term": "Spr 2026", "transfer": false, "prefix": "BIOL", "number": "128", "description": "Gen Biology II Lab", "attempted": 1, "earned": 1, "grade": "B", "points": 3 },
+    { "term": "Spr 2026", "transfer": false, "prefix": "CIS", "number": "205", "description": "Intro to CIS", "attempted": 3, "earned": 3, "grade": "A", "points": 12 },
+    { "term": "Spr 2026", "transfer": false, "prefix": "CIS", "number": "206", "description": "Bus Programming Languages", "attempted": 3, "earned": 3, "grade": "B", "points": 9 },
+    { "term": "Spr 2026", "transfer": false, "prefix": "ECO", "number": "251", "description": "Prin of Macroeconomics", "attempted": 3, "earned": 3, "grade": "D", "points": 3 },
+    { "term": "Fall 2026", "transfer": false, "prefix": "ECO", "number": "251", "description": "Prin of Macroeconomics", "attempted": 3, "earned": 0, "grade": null, "points": 0 },
+    { "term": "Fall 2026", "transfer": false, "prefix": "HUM", "number": "103", "description": "Humanities Afr-Amer Exp", "attempted": 3, "earned": 0, "grade": null, "points": 0 },
+    { "term": "Fall 2026", "transfer": false, "prefix": "ACT", "number": "214", "description": "Prin of Financial Acct", "attempted": 3, "earned": 0, "grade": null, "points": 0 },
+    { "term": "Fall 2026", "transfer": false, "prefix": "MGT", "number": "202", "description": "Business Statistics I", "attempted": 3, "earned": 0, "grade": null, "points": 0 },
+    { "term": "Fall 2026", "transfer": false, "prefix": "PED", "number": "114", "description": "Phys Ed Activity", "attempted": 1, "earned": 0, "grade": null, "points": 0 }
+  ]
+}

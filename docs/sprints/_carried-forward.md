@@ -95,6 +95,11 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   (`src/legacy.ts`). (F05)
 
 ## For F15 (the pace line in "Check my courses", with a transcript)
+- The made-up transcript `sample-a` has its in-progress courses under "Fall 2026", as the
+  approved design's student has: the default term is then Spring 2027. No made-up
+  transcript has a summer term: the owner has given only the headings "Fall 2023" and
+  "Spr 2024". Ask how a summer term is printed before testing "a summer latest term skips
+  to Fall". (F10)
 - The credits of the typed courses ("15 credits in …") are `totalsOf(…).total`
   (`src/credits.ts`): the curriculum's credits, and the student's own number for a course
   PathCheck doesn't know. (F09)
@@ -118,22 +123,36 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   credits − done − in progress. Do not add up in-progress rows: a course in progress that
   fills no place adds nothing. (F04 contract review)
 
-## For F10 (transcript rows are untrusted)
-- Before a row reaches `rowStanding` or `courseStandings` (`src/transcript.ts`): the grade
-  must be text or nothing, and the transfer flag must be exactly true or false. Untyped
-  reader output could otherwise crash on a number, or pass a row whose flag is the text
-  "no". State and test both. (F03 QA)
-- F10 uses `rowStanding` to decide whether a grade is on the scale; an "unrecognised" row is
-  the invalid row shown for the student to fix. Do not write a second validator. A transfer
-  row is never "unrecognised": its grade column is not read, so F10 must not flag it for a
-  grade. (F03 contract; owner answer, 2026-11-16)
-- `rowStanding` takes a row as transfer credit only when the flag is exactly true. F10
-  should still refuse a flag that is not true or false, so a misread is shown, not hidden.
-  (F03 fix review)
-- A row's code must be a course code before it gets to `courseStandings`, which throws
-  otherwise. The totals and "Academic Standing" lines are not rows. (F03 contract)
-- Real transfer rows may leave "attempted" empty: check against the transcript format when
-  the real reader is built. (F03 review; also F21)
+## For F11 (finishing F10: the review step and the localhost upload)
+- **F11 finishes F10.** F10's checking is merged but F10 is BLOCKED in
+  `docs/sprints/F10.md`. F11's contract must contain these on-screen checks, and F11's pull
+  request marks F10 passing (`passes`, `evidence`) and removes its BLOCKED line: an invalid
+  row is shown for the student to fix, with what was read and what is wrong, and counts
+  nothing until it is fixed; the localhost upload takes the two made-up PDFs in
+  `synthetic/transcripts/`, and nothing of any other file is read or sent.
+- A reader's answer goes through `readRows` (`src/reader.ts`) and only then, by
+  `standingsOf`, to `placeCourses`. A row the student has fixed is checked again by
+  `readRows`, like any row. `RowToFix.problems` says which field is at fault; `seen` holds
+  what was read, as text, to fill the fields the student edits.
+- An ordinary row with nothing in its grade column passes the check as "in progress".
+  The review step shows it as "In progress" for the student to confirm: an empty grade
+  may be a misread.
+- A row marked `transfer` is labelled "Transfer credit"; its grade column is not a grade
+  and is not to be fixed. A row whose `match` is "none" passed the check but can fill
+  nothing: say so, do not ask the student to fix it.
+- At M1 the "reader" is the answer file beside each made-up PDF. F11 decides how the
+  uploaded PDF is recognised (the PDFs' text is uncompressed and every page carries the
+  line in `MARK`, `scripts/make-synthetic-transcripts.mjs`). The answer files hold course
+  codes, so they cannot be imported from `src/` as source text the scans read.
+
+## For F21 (the reader function, M2)
+- It must return the shape `readRows` checks: `{ "rows": [ … ] }`, each row with `term`,
+  `transfer`, `prefix`, `number`, `description`, `attempted`, `earned`, `grade`, `points`,
+  and nothing about the student. The shape changes only by a recorded decision that
+  updates F10's checks in the same pull request. (F10)
+- Confirm on the owner's real transcript: how the transfer section's totals line is worded
+  (`NOT_COURSES` in `src/reader.ts` has "Transfer Totals", the made-up PDF's wording), and
+  whether transfer rows leave "attempted" empty. (F10; F03 review)
 
 ## For F11 (upload)
 - On Start, the drop zone and "Browse files" must start the upload: "Browse files" opens
