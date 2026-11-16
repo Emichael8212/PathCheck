@@ -1202,6 +1202,8 @@ describe('the pace line', () => {
     expect(document.querySelector('.legacy-line')).toBeNull();
     expect(document.activeElement).toBe($('[data-pace-line] [data-legacy="yes"]'));
     expect(window.localStorage.getItem('pathcheck.legacy')).toBeNull();
+    // The question is said once, although it is both what happened and what the line now holds.
+    expect(said()).toBe('Are you a legacy CIS student?');
     $('[data-pace-line] [data-legacy="yes"]').click();
     expect(line()).toContain('you finish Fall 2040, 25 semesters after your target [Spring 2028].');
     // It is the answer of the checklist too; changed there, the line here follows: 92 with No.

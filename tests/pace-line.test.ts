@@ -217,8 +217,11 @@ describe('the pace line', () => {
     // The finish is never earlier than what is left once the typed courses are taken allows.
     expect(paceLineOf({ left: 15, after: 3, counting: 15, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() })).toMatchObject({ finish: term('Fall 2026') });
     expect(paceLineOf({ left: 15, after: 0, counting: 15, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() })).toMatchObject({ finish: term('Spring 2026') });
-    // A typed course that was failed before is taken again: it counts once.
-    expect(said(['MGT 321'], added(having('ENG 131@Fall 2025', 'MGT 321:D@Fall 2025')))).toMatch(/^3 credits in Spring 2026 — at this pace you finish /);
+    // A typed course that is on the transcript without credit (a W) is taken again: it is
+    // taken off what is left like any other, once. 92 credits at 3 a term: 31 terms.
+    expect(said(['BIO 127'], added(b))).toBe('3 credits in Spring 2026 — at this pace you finish Spring 2041, 25 semesters after your target.');
+    // The same for a course that was failed: 118 credits at 3 a term, 40 terms from Spring 2026.
+    expect(said(['MGT 321'], added(having('ENG 131@Fall 2025', 'MGT 321:F@Fall 2025')))).toBe('3 credits in Spring 2026 — at this pace you finish Fall 2045, 33 semesters after your target.');
   });
 
   it('never names a finish without the caveat', () => {

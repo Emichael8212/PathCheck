@@ -437,7 +437,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const announce = (what: string): void => {
     const note = noteText(list);
     const pace = paceLineSentence(paceLineFor(list, curriculum, transcript()));
-    const parts = [what, note !== null && note !== lastNote ? note : '', pace].filter(Boolean);
+    // (When the line's place holds the very thing being said, it is said once.)
+    const parts = [what, note !== null && note !== lastNote ? note : '', pace === what ? '' : pace].filter(Boolean);
     say(said, parts.map((part, at) => (at < parts.length - 1 && !/[.!?]$/.test(part) ? `${part}.` : part)).join(' '));
     lastNote = note;
   };

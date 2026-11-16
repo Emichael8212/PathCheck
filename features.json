@@ -302,8 +302,8 @@
         "With a transcript, Flow A asks the target semester and adds one line, for example \"6 credits this term — at this pace you finish Fall 2029, one semester after your target.\"",
         "Without a transcript, no pace question or pace line is shown"
       ],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "docs/sprints/F15.md — QA PASS in a real browser (round 2, after round 1 failed on \"Change\"); reviewer: no blocker after round 2",
       "tests": [
         "tests/pace-line.test.ts",
         "tests/check-page.test.ts"
