@@ -387,7 +387,9 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     unofficial transcript PDF from the portal."; "That file is too large to be a
     transcript. Nothing from it was read."; "That file could not be opened. Choose it
     again."; and, while a transcript is there, "To use another transcript, choose “Use
-    another transcript” first."
+    another transcript” first.";
+  - said to a screen reader only: "<code> saved.", "<code> still needs fixing: <what>.",
+    "<code>: Not on my transcript.", "<code>: Put back."
 - **The heading of "Check my courses" is "Check my courses", not a semester**, and the
   small label above it is left out so the page does not say it twice. The owner,
   2026-11-16: "no semester in the heading. It says "Check my courses". Nothing is derived

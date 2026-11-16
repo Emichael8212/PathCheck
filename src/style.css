@@ -528,7 +528,9 @@ svg { display: block; flex-shrink: 0; }
 .review-intro { max-width: 62ch; margin-bottom: 24px; color: var(--ink-2); font-size: 14px; line-height: 1.7; }
 .term + .term { margin-top: 28px; }
 .term-name { margin-bottom: 10px; font-size: 18px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
-/* Whatever a transcript prints, however long, wraps inside its row. */
+/* Whatever a transcript prints, however long, wraps inside its row. A long credits value
+   does not take the course's place: it wraps within its own width. */
+.review-row .cell-cr { max-width: 72px; }
 .review-row .cell-name, .review-row .cell-cr, .review-row .cell-answer { min-width: 0; overflow-wrap: anywhere; }
 .review-row .grade-read { font-family: var(--f-code); font-size: 18px; line-height: 1.4; }
 .review-row.is-left-out .cell-name, .review-row.is-left-out .cell-cr { color: var(--ink-2); text-decoration: line-through; }

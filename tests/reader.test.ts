@@ -151,7 +151,7 @@ describe('a row that fails the check', () => {
 describe('transfer credit, rows in progress and printed numbers', () => {
   it('does not judge the grade column of transfer credit', () => {
     for (const grade of [null, '', 'T', 'TR', 'AP', 'CR', 'zz', 'B+']) {
-      for (const attempted of [undefined, null, '', '3.00', 3]) {
+      for (const attempted of [undefined, null, '', '  ', '3.00', 3]) {
         const row = good({ transfer: true, grade, attempted, term: 'Transfer Credit' });
         if (attempted === undefined) delete row.attempted;
         const reading = read(row);
@@ -162,6 +162,11 @@ describe('transfer credit, rows in progress and printed numbers', () => {
         expect(reading.rows[0]?.attempted).toBe(attempted === '3.00' ? '3.00' : attempted === 3 ? '3' : '');
         expect(credits(reading)).toEqual([3, 0, 118]);
       }
+    }
+    // A zero that is printed is kept as printed: it is shown, where an empty column shows nothing.
+    for (const [attempted, printed] of [[0, '0'], ['0.00', '0.00'], ['0', '0']] as const) {
+      const reading = read(good({ transfer: true, grade: 'T', attempted, term: 'Transfer Credit' }));
+      expect([reading.rows[0]?.row.credits, reading.rows[0]?.attempted], String(attempted)).toEqual([0, printed]);
     }
     // The same marks on an ordinary row are a fault, and an empty "attempted" too.
     for (const grade of ['T', 'TR', 'AP']) expect(read(good({ grade })).toFix[0]?.problems).toEqual(['grade']);

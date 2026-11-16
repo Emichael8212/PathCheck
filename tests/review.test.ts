@@ -254,7 +254,9 @@ describe('correcting and leaving out', () => {
     expect(html).not.toContain('data-edit=');
     expect(html.match(/data-out="\d"/g)).toEqual(['data-out="0"', 'data-out="1"']);
     // The edit is one cell of its row.
-    expect(html).toMatch(/<div role="cell" class="row-edit-cell">\s*<div class="row-edit" role="group"/);
+    expect(html).toMatch(/<div role="cell" aria-colspan="3" class="row-edit-cell">\s*<div class="row-edit" role="group"/);
+    // (as many as each table has columns)
+    for (const table of html.split('role="table"').slice(1)) expect(table.match(/role="columnheader"/g)).toHaveLength(3);
     // What is being typed is drawn in place of what was read.
     const typing = reviewHtml({ ...reviewing(open(good()), 0), draft: { term: 'Spr 2026', prefix: 'MGT', number: '4<2', attempted: '', grade: 'D', transfer: true } }, curriculum);
     expect(typing).toContain('data-field="number" value="4&lt;2"');

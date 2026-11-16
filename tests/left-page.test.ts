@@ -30,7 +30,12 @@ const go = (hash: string): void => {
 type Row = Record<string, unknown>;
 const good = (over: Row = {}): Row => ({ term: 'Fall 2025', transfer: false, prefix: 'MGT', number: '321', description: 'Prin of Management', attempted: 3, earned: 3, grade: 'B', points: 9, ...over });
 const codesHandedOn = (): string[] => (app.left.transcript ? reviewedStandings(app.left.transcript, curriculum.grades).map(one => one.code) : []);
-const setField = (line: number, name: string, value: string): void => { $<HTMLInputElement>(`[data-editing="${line}"] [data-field="${name}"]`).value = value; };
+// Types into a field of an open edit, as a browser does: the value, then the event that says so.
+const setField = (line: number, name: string, value: string): void => {
+  const field = $<HTMLInputElement>(`[data-editing="${line}"] [data-field="${name}"]`);
+  field.value = value;
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+};
 // Opens a row's edit. (The simulated browser does not honour the selected option of a list
 // made from HTML text, so the grade read is put into the list as a real browser shows it.)
 const openEdit = (line: number): void => {
@@ -237,6 +242,23 @@ describe('bringing a transcript', () => {
     expect(tidy($('.review-intro').textContent)).toContain('sample-b.pdf');
     expect(rows()).toHaveLength(16);
     expect(rowOf(0)).toContain('Put back');
+    // The other way round: a slow transcript, then a file that is refused. The refusal stays.
+    $('[data-another]').click();
+    const again = app.takeFile(slow);
+    await app.takeFile(fileOf(new TextEncoder().encode('not a pdf')));
+    release();
+    await again;
+    expect(heading()).toBe('See what I have left');
+    expect(tidy($('[data-refusal]').textContent)).toContain('not a PDF');
+    expect(app.left.transcript).toBeNull();
+    // And a slow transcript that arrives after the student has started again changes nothing either.
+    const late = app.takeFile(slow);
+    await app.takeFile(madeUp('sample-b'));
+    $('[data-another]').click();
+    release();
+    await late;
+    expect(app.left.transcript).toBeNull();
+    expect(document.querySelector('[data-drop]')).not.toBeNull();
   });
 });
 
@@ -317,13 +339,21 @@ describe('the review step', () => {
     setField(0, 'number', '422');
     setField(0, 'attempted', '4');
     setField(0, 'grade', 'C');
-    $<HTMLInputElement>('#row-0-transfer').checked = true;
+    $<HTMLInputElement>('#row-0-transfer').click();
     const typed = (): unknown[] => [$<HTMLInputElement>('#row-0-term').value, $<HTMLInputElement>('#row-0-prefix').value, $<HTMLInputElement>('#row-0-number').value, $<HTMLInputElement>('#row-0-attempted').value, gradeShown(0), $<HTMLInputElement>('#row-0-transfer').checked];
     $('[data-out="1"]').click();
     expect(rowOf(1)).toContain('Put back');
     expect(typed()).toEqual(['Spr 2026', 'MGT', '422', '4', 'C', true]);
     $('[data-back="1"]').click();
     expect(typed()).toEqual(['Spr 2026', 'MGT', '422', '4', 'C', true]);
+    // Typed after that, and the student looks at another page and comes back: the last thing typed is there.
+    setField(0, 'number', '423');
+    go('#/');
+    go('#/check');
+    go('#/left');
+    expect(typed()).toEqual(['Spr 2026', 'MGT', '423', '4', 'C', true]);
+    expect(document.querySelectorAll('[data-edit]')).toHaveLength(0);
+    setField(0, 'number', '422');
     // Nothing is saved until "Save".
     expect(codesHandedOn()).toEqual(['MGT 321', 'ENG 131', 'CIS 300']);
     $('[data-save="0"]').click();
@@ -402,6 +432,10 @@ describe('the review step', () => {
     expect(document.querySelectorAll('[role="status"]')).toHaveLength(1);
     // The terms are headings.
     expect($('.term-name').tagName).toBe('H2');
+    // What was said here does not stay behind on another page.
+    expect(said()).toBe('MGT 321: Not on my transcript.');
+    go('#/check');
+    expect(said()).toBe('');
   });
 });
 

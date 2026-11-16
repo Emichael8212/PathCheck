@@ -153,6 +153,9 @@ what F08 built: `answerCell` and the "Change" line in `src/check.ts`, the senten
   held until a file is chosen. Not tried on a real iPhone yet: the owner's M1 check on a
   phone is the first real test, and M2 must repeat it with a real PDF. If the picker does
   not answer there, put the control in the page, hidden. (F11 review)
+- Reading is instant at M1. When the reader takes seconds, a transcript that arrives after
+  the student has gone to another page still brings them to the review: decide then
+  whether to ask first, and show that a file is being read. (F11 review, round 2)
 - A correction whose prefix reads like a totals line and whose number is empty is thrown
   away like a totals line, and the row cannot be brought back. Rare; decide with the real
   reader whether a corrected row may ever be thrown away. (F11 review)

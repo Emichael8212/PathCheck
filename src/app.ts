@@ -105,6 +105,8 @@ export function startApp(win: AppWindow): App {
       }, next => { Object.assign(left, next); });
     }
     if (moved) {
+      // What was said on the page before does not stay behind on this one.
+      say('');
       // A new page starts at its top, with the keyboard and a screen reader on its heading.
       part<{ focus(): void }>('h1')?.focus();
       win.scrollTo(0, 0);
@@ -143,8 +145,8 @@ export function startApp(win: AppWindow): App {
       // A reader's answer that is no answer; or a file that could not be opened at all.
       refusal = error instanceof ReaderError ? 'unavailable' : 'unreadable';
     }
-    // Another file was chosen meanwhile, or a transcript arrived: this one changes nothing.
-    if (mine !== latest || left.transcript) return;
+    // Another file was chosen meanwhile: this one changes nothing.
+    if (mine !== latest) return;
     Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null });
     showLeft();
     if (refusal) {

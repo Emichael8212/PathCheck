@@ -125,7 +125,7 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
           </div>`;
   const grades = gradeChoices(curriculum.grades);
   // The whole form is one cell of the row, across its width.
-  return `<div role="cell" class="row-edit-cell">
+  return `<div role="cell" aria-colspan="${TEXT.columns.length}" class="row-edit-cell">
         <div class="row-edit" role="group" aria-label="${esc(`${TEXT.edit} ${nameOf(row)}`)}" data-editing="${row.line}">
           ${text('term')}
           ${text('prefix', ' autocapitalize="characters" maxlength="8"')}
@@ -256,11 +256,14 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const value = (name: string): string => form.querySelector<HTMLInputElement | HTMLSelectElement>(`[data-field="${name}"]`)?.value ?? '';
     return { term: value('term'), prefix: value('prefix'), number: value('number'), attempted: value('attempted'), grade: value('grade'), transfer: form.querySelector<HTMLInputElement>('[data-field="transfer"]')?.checked === true };
   };
-  // The page is drawn again after an action on another row: what is being typed is kept.
-  const redrawKeepingEdit = (): void => {
-    if (state.editing !== null) change({ draft: typed(state.editing) ?? state.draft });
-    hooks.redraw();
+  // What is typed in the open edit is kept as it is typed, so that it is still there
+  // whenever the page is drawn again: after another row is left out, or on coming back.
+  const keepTyped = (): void => {
+    const draft = state.editing === null ? null : typed(state.editing);
+    if (draft) change({ draft });
   };
+  main.addEventListener('input', keepTyped);
+  main.addEventListener('change', keepTyped);
 
   main.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
@@ -316,7 +319,7 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     if (out !== null) {
       const wasOpen = state.editing === out;
       change({ transcript: leaveOut(transcript, out), ...(wasOpen ? { editing: null, draft: null } : {}) });
-      redrawKeepingEdit();
+      hooks.redraw();
       hooks.say(`${named(out)}: ${TEXT.notMine}.`);
       focus(`[data-back="${out}"]`);
       return;
@@ -324,7 +327,7 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const back = lineOf('back');
     if (back !== null) {
       change({ transcript: putBack(transcript, back) });
-      redrawKeepingEdit();
+      hooks.redraw();
       hooks.say(`${named(back)}: ${TEXT.putBack}.`);
       focus(`[data-out="${back}"]`);
     }
