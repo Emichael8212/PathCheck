@@ -339,27 +339,66 @@ curriculum file now names them in one place only: as exceptions to the elective 
   rule shows the elective answer: followed literally it would say CIS 304 counts); F08
   step 5 (no sentence for these two courses) and step 7 (no test for them). Feature steps
   are only changed with the owner's approval; new wording is proposed in the pull request
-  for this change.
+  for this change. (Approved and reworded the same day: see the next entry.)
 - The answer also replaces, for these two courses, the brief's §4 Flow A answer for a
   course that matches the elective rule.
 - The exception is data, not code: another program could list its own, or none.
+
+### 2026-11-16 — Feature steps reworded after the CIS 304 / CIS 415 answer (answer on PR #10)
+
+The owner, on the table of proposed wording in pull request #10: "Approved: reword F02
+step 3, F04 step 3 and F08 steps 2, 5 and 7 as in your table, with one change. F08 step 5
+must use my full message: "Doesn't count toward CIS — <code> isn't in the current CIS
+curriculum."
+
+Applied to `features.json`:
+
+- **F02 step 3:** CIS 304 and CIS 415 appear only as exceptions to the elective rule, so
+  they never count; no replacement, older-code or not-offered entry exists anywhere
+- **F04 step 3:** … not already required. CIS 304 and CIS 415 are exceptions and never count
+- **F08 step 2:** … with no title. Never shown for CIS 304 or CIS 415
+- **F08 step 5:** … "Doesn't count toward CIS — not in the CIS curriculum". CIS 304 and
+  CIS 415 show "Doesn't count toward CIS — <code> isn't in the current CIS curriculum."
+- **F08 step 7:** … and CIS 304 and CIS 415 not counting while another 300/400-level CIS
+  course does
+
+*Agent's note, not an owner decision:* the proposed F08 step 5 already quoted the owner's
+sentence in full for CIS 304 and CIS 415, so the "one change" is read as: that sentence
+must appear whole and unchanged, for those two courses. Every other course that is not in
+the curriculum (BIO 230) keeps the sentence of the brief and of the approved design,
+"Doesn't count toward CIS — not in the CIS curriculum". If the owner meant the new
+sentence for every course that doesn't count, F08 step 5 and the design need one more
+change; asked in the pull request that records this answer.
+
+### 2026-11-16 — Credits of a course PathCheck doesn't know (F09; answer on PR #10)
+
+Asked: in "Check my courses", where do the credits of a course outside the curriculum come
+from? The owner: "leave it open for the student to add it."
+
+- Courses PathCheck knows use their curriculum credits and aren't editable.
+- An unknown course still never counts toward CIS. Its credits add only to the semester
+  total, never to "count toward CIS".
+- **Tests:** an unknown course adds 3 by default; an edited value changes the total and the
+  under-12/over-18 notes; an unknown course's credits never count toward CIS. → F09.
+
+*Agent's notes, not owner decisions:*
+- Read as: a course PathCheck doesn't know starts at 3 credits, shown in a field the
+  student can change. "Doesn't know" means not in a curriculum list and not matching the
+  elective rule, which includes CIS 304 and CIS 415. A course that only matches the
+  elective rule (MKT 410) is known: it has the rule's 3 credits and is not editable.
+- The approved design shows "BIO 230, 3 cr" as plain text. The field to change it is new;
+  F09 adds it to the design notes as a difference that comes from this answer.
+- `features.json` F09 has no step for this yet. A new step is proposed to the owner in the
+  pull request that records this answer; the tests above are built in F09 either way.
 
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- **2026-11-16 (raised in review; needed for F09).** In "Check my courses", the credit
-  total adds up the credits of the typed courses. For a course that is not in the
-  curriculum (BIO 230, or CIS 304 and CIS 415), PathCheck has no credit value. The owner
-  said earlier that such a course "is shown with its credits (BIO 230, 3 cr) and is included
-  in the credit total", but not where the 3 comes from. Should PathCheck assume 3 credits
-  for any course it does not know, ask the student for the credits, or leave such a course
-  out of the total and say so? Status: asked in the pull request for the CIS 304 / CIS 415
-  change, not answered yet.
-
-(Answered on 2026-11-16, see "Owner answers": the grade column of transfer rows; and
-whether CIS 304 and CIS 415 count.)
+- None open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+  rows; whether CIS 304 and CIS 415 count; and the credits of a course PathCheck doesn't
+  know.)
 
 ## Milestone checks
 

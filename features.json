@@ -55,7 +55,7 @@
       "steps": [
         "The app reads the curriculum from the data file in docs/curriculum/, so another College of Business major could be added later as data; the only major shown is B.S. Computer Information Systems. The dropdown has no other options (no 'coming soon' or disabled majors).",
         "The blocks, credits, required courses and choices match the table in brief section 5 exactly, and the block credits total 121",
-        "CIS 304, CIS 415 and any replacement, older-code or not-offered entry do not exist anywhere",
+        "CIS 304 and CIS 415 appear only as exceptions to the elective rule, so they never count; no replacement, older-code or not-offered entry exists anywhere",
         "There is no catalog-year or start-year question or field",
         "GPA, residency and the suspended exams (Nelson-Denny reading test, English proficiency exam, senior comprehensive exam, writing competency test) are not checked and not shown",
         "An automated test fails if the data file stops matching these rules"
@@ -91,7 +91,7 @@
       "steps": [
         "Each course fills exactly one requirement, placed where it helps most",
         "A course not in a curriculum list and not matching the elective rule does not count",
-        "CIS electives need 3 courses (9 credits): FIN 201, or any 300/400-level MGT, FIN, CIS, MKT, ACT or ECO course not already required",
+        "CIS electives need 3 courses (9 credits): FIN 201, or any 300/400-level MGT, FIN, CIS, MKT, ACT or ECO course not already required. CIS 304 and CIS 415 are exceptions and never count",
         "A choice slot (for example 1 of ENG 131 / ENG 140) is filled by one course; a second course from the same list does not count there",
         "Sequence rule: the student must complete a history sequence (HIS 131 + HIS 132) or a literature sequence (ENG 209 + ENG 210) inside the 42 core hours (Orientation, Composition, Humanities, Social sciences, Science & math). HIS 132 fills the Social sciences pick and ENG 210 fills the Humanities pick; the sequence adds no credits",
         "An automated test checks that the core blocks total 42 hours",
@@ -153,12 +153,12 @@
       "description": "Flow A without a transcript: one answer per course that never over-promises",
       "steps": [
         "A course in a curriculum list shows \"Counts toward CIS — unless you've already passed it or filled this slot\", with its requirement block",
-        "A course that only matches the elective rule (for example MKT 410) shows \"Counts toward CIS: elective (300/400-level MKT) — unless you've already passed it or filled this slot\", with no title",
+        "A course that only matches the elective rule (for example MKT 410) shows \"Counts toward CIS: elective (300/400-level MKT) — unless you've already passed it or filled this slot\", with no title. Never shown for CIS 304 or CIS 415",
         "Two typed courses for the same \"pick one\" slot (for example ENG 131 + ENG 140): the first counts; the second shows \"Doesn't count — it fills the same requirement as ENG 131.\"",
         "If neither HIS 132 nor ENG 210 is among the typed courses, one line is added: \"Remember: you need HIS 132 or ENG 210 for the history/literature sequence.\"",
-        "Anything not in a curriculum list and not matching the elective rule shows \"Doesn't count toward CIS — not in the CIS curriculum\"",
+        "Anything not in a curriculum list and not matching the elective rule shows \"Doesn't count toward CIS — not in the CIS curriculum\". CIS 304 and CIS 415 show \"Doesn't count toward CIS — <code> isn't in the current CIS curriculum.\"",
         "Without a transcript, a plain \"Counts toward CIS\" with no condition is never shown",
-        "Automated tests cover counts-with-condition, the rule-matched elective answer, the same-slot answer, the sequence reminder and not-in-the-curriculum"
+        "Automated tests cover counts-with-condition, the rule-matched elective answer, the same-slot answer, the sequence reminder and not-in-the-curriculum, and CIS 304 and CIS 415 not counting while another 300/400-level CIS course does"
       ],
       "passes": false,
       "evidence": "",
