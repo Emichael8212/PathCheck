@@ -60,8 +60,9 @@ const TEXT = {
   note: 'Pace settings estimate credits only. “Move later” changes this draft; prerequisites are not checked.',
   choice: 'Open choice',
   move: 'Move later',
-  moveNamed: (what: string): string => `Move ${what} later`,
-  counted: (what: string, n: number, of: number): string => `${what}, ${n} of ${of},`,
+  // The name starts with the words on the button, so that saying them reaches it.
+  moveNamed: (what: string): string => `Move later: ${what}`,
+  counted: (what: string, n: number, of: number): string => `${what}, ${n} of ${of}`,
   final: 'Always the final semester',
   pick: (block: string): string => `${block} pick`,
   another: (courseCode: string): string => `${courseCode} or another`,
@@ -70,7 +71,7 @@ const TEXT = {
   credits: (count: number): string => `${count} cr`,
   late: (term: string, why: 'split' | 'moved'): string =>
     `This draft ends in ${term}, later than the pace estimate above: ${why === 'moved' ? 'you moved courses later.' : 'courses can’t be split across semesters.'}`,
-  moved: (what: string, term: string): string => `${what} moved to ${term}.`,
+  moved: (what: string, term: string, counted: boolean): string => `${what}${counted ? ',' : ''} moved to ${term}.`,
 };
 
 /**
@@ -99,7 +100,7 @@ export function planEntries(standings: readonly CourseStanding[], curriculum: Cu
       const through = left.find(option => checklist.sequenceThrough.includes(option.code));
       for (let n = 0; n < pick.open; n++) {
         const names = left.length <= 3 ? either(left.map(option => option.code)) : through && !namedSequence ? TEXT.another(through.code) : '';
-        if (left.length > 3 && through && !namedSequence) namedSequence = true;
+        if (through) namedSequence = true;
         add({
           key: `pick:${block.id}:${pick.group}:${n}`, credits: left[0]?.credits ?? 0, level: Math.min(...left.map(option => hundred(option.code))),
           course: null, choice: names ? `${TEXT.pick(block.name)} (${names})` : TEXT.pick(block.name),
@@ -107,8 +108,17 @@ export function planEntries(standings: readonly CourseStanding[], curriculum: Cu
       }
     }
   }
+  // The sequence can still be completed, but through no open pick: its course would take a pick that a
+  // course of the transcript holds, and that course would then fill an open elective place instead. So
+  // one of the elective places is planned as the sequence course, with the place's credits.
+  const throughHeld = checklist.sequence.kind === 'open' && !namedSequence ? checklist.sequenceThrough : [];
   // An open elective place: the student chooses; it is planned with the rule's highest level.
   for (let n = 0; n < placement.electives.open; n++) {
+    if (n === 0 && throughHeld.length > 0) {
+      const kinds = sequencePicks(curriculum).filter(alternative => alternative.courses.some(courseCode => throughHeld.includes(courseCode))).map(alternative => alternative.name.replace(/ sequence$/, ''));
+      add({ key: 'sequence', credits: electives.creditsPerCourse, level: Math.min(...throughHeld.map(hundred)), course: null, choice: TEXT.forSequence(throughHeld, kinds) });
+      continue;
+    }
     add({ key: `elective:${n}`, credits: electives.creditsPerCourse, level: Math.floor(electives.maxNumber / 100) * 100, course: null, choice: TEXT.elective(electives.name) });
   }
   // Both sequence picks are held by other courses: one sequence course is still to take, with its extra credits.
@@ -190,10 +200,17 @@ export function layOut(entries: readonly PlanEntry[], pace: Extract<Pace, { kind
   let end = pace.start;
   for (let n = 1; n < implied; n++) end = termAfter(end, summers);
   const lastTerm = semesters[semesters.length - 1]?.term;
-  const movedNow = entries.some(entry => moves[entry.key] !== undefined);
+  const isLate = lastTerm !== undefined && when(lastTerm) > when(end);
+  // "You moved courses later" only when the moves are the cause: without them the plan would end earlier.
+  let why: 'split' | 'moved' = 'split';
+  if (isLate && entries.some(entry => moves[entry.key] !== undefined)) {
+    const unmoved = layOut(entries, pace, settings).semesters;
+    const unmovedLast = unmoved[unmoved.length - 1]?.term;
+    if (unmovedLast && when(unmovedLast) < when(lastTerm)) why = 'moved';
+  }
   return {
     semesters: semesters.map(one => ({ term: one.term, credits: sum(one.entries.map(entry => entry.credits)), entries: one.entries })),
-    late: lastTerm && when(lastTerm) > when(end) ? { term: lastTerm, why: movedNow ? 'moved' : 'split' } : null,
+    late: isLate ? { term: lastTerm, why } : null,
   };
 }
 
@@ -213,7 +230,8 @@ export function moveLater(plan: Plan, key: string, settings: PaceSettings, moves
 // ---- The page ----
 const named = (entry: PlanEntry): string => entry.course?.code ?? entry.choice ?? '';
 /** The entry as a screen reader hears it on its button: entries that read the same are counted. */
-const buttonName = (entry: PlanEntry): string => TEXT.moveNamed(entry.nth ? TEXT.counted(named(entry), entry.nth.n, entry.nth.of) : named(entry));
+const counted = (entry: PlanEntry): string => (entry.nth ? TEXT.counted(named(entry), entry.nth.n, entry.nth.of) : named(entry));
+const buttonName = (entry: PlanEntry): string => TEXT.moveNamed(counted(entry));
 
 const entryHtml = (entry: PlanEntry): string => (entry.course ? `
           <li class="plan-entry">
@@ -262,5 +280,5 @@ export function planHtml(plan: Plan | null): string {
 export function movedSentence(plan: Plan, key: string): string {
   const semester = plan.semesters.find(one => one.entries.some(entry => entry.key === key));
   const entry = semester?.entries.find(one => one.key === key);
-  return semester && entry ? TEXT.moved(named(entry), termName(semester.term)) : '';
+  return semester && entry ? TEXT.moved(counted(entry), termName(semester.term), entry.nth !== null) : '';
 }

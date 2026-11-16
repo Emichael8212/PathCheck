@@ -215,7 +215,9 @@ describe('the draft plan', () => {
     // The only control is "Move later", once for each entry.
     const buttons = html.match(/<button[^>]*>/g) ?? [];
     expect(buttons).toHaveLength(all(plan([])).length);
-    for (const button of buttons) expect(button).toMatch(/^<button type="button" class="move no-print" aria-label="Move [^"]+ later" data-move="[^"]+">$/);
+    // Its name starts with the words it shows ("Move later"), then says which entry.
+    for (const button of buttons) expect(button).toMatch(/^<button type="button" class="move no-print" aria-label="Move later: [^"]+" data-move="[^"]+">$/);
+    expect(html.match(/<span>Move later<\/span><\/button>/g)).toHaveLength(buttons.length);
     expect(html).not.toMatch(/draggable|ondrag|<input|<select|<form|contenteditable/i);
     expect(decode(html)).not.toMatch(/\b(adopt|apply|preview|undo|save plan|offered|prerequisite for|register)\b/i);
     // "Prerequisites" appears only where the plan says it does not check them.
@@ -238,9 +240,9 @@ describe('the draft plan', () => {
     ]);
     const html = planHtml(plan([]));
     expect(html).toMatch(/<li class="plan-entry is-choice">\s*<div class="plan-text">\s*<span class="choice-label">Open choice<\/span>\s*<p>Humanities pick \(<span class="code">ENG 210<\/span> or another\)<\/p>/);
-    expect(html.match(/aria-label="Move CIS elective, \d of 3, later"/g)).toEqual(['aria-label="Move CIS elective, 1 of 3, later"', 'aria-label="Move CIS elective, 2 of 3, later"', 'aria-label="Move CIS elective, 3 of 3, later"']);
-    expect(html).toContain('aria-label="Move MGT 321 later" data-move="MGT 321"');
-    expect(html).toContain('aria-label="Move Social sciences pick later" data-move="pick:social-sciences:0:0"');
+    expect(html.match(/aria-label="Move later: CIS elective, \d of 3"/g)).toEqual(['aria-label="Move later: CIS elective, 1 of 3"', 'aria-label="Move later: CIS elective, 2 of 3"', 'aria-label="Move later: CIS elective, 3 of 3"']);
+    expect(html).toContain('aria-label="Move later: MGT 321" data-move="MGT 321"');
+    expect(html).toContain('aria-label="Move later: Social sciences pick" data-move="pick:social-sciences:0:0"');
     // With electives taken, only the open places are planned; with the sequence course in its pick, no pick names one.
     expect(all(plan(['FIN 201', 'MKT 410:-'])).filter(entry => entry.choice === 'CIS elective').map(entry => entry.nth)).toEqual([null]);
     expect(all(plan(['HIS 132'])).filter(entry => entry.choice?.includes('or another'))).toEqual([]);
@@ -265,6 +267,23 @@ describe('the draft plan', () => {
     // With a pick open instead, that pick names the course and there is no extra entry.
     const open = plan(everything('GEO 206', 'ENG 210').filter(code => code !== 'ENG 210'));
     expect(shape(open)).toEqual(['Spring 2027 3: Humanities pick (ENG 210 or another)']);
+    // A legacy student whose legacy course holds the pick of the one sequence still open: the sequence course
+    // would take that pick and the legacy course an elective place. No pick is open for it, so one elective
+    // place is planned as the sequence course: the plan never leaves out what the checklist says is still needed.
+    const legacyRows = ['PSY 251', 'HUM 101', 'FIN 201', 'MKT 410'];
+    const legacyList = checklistOf(having(legacyRows), curriculum, true);
+    expect(legacyList.sequence).toMatchObject({ kind: 'open', text: 'Still needed: HIS 132 to complete a history sequence.' });
+    const forLegacy = all(plan(legacyRows, {}, {}, true));
+    expect(forLegacy.filter(entry => entry.choice?.includes('sequence'))).toEqual([{ key: 'sequence', credits: 3, level: 100, course: null, choice: 'HIS 132, for the history sequence', nth: null, final: false }]);
+    expect(forLegacy.filter(entry => entry.key.startsWith('elective'))).toEqual([]);
+    expect(forLegacy.reduce((sum, entry) => sum + entry.credits, 0)).toBe(legacyList.credits.left + legacyList.extraLeft);
+    expect(legacyList.extraLeft).toBe(0);
+    // With two more elective places open, they are planned beside it.
+    expect(all(plan(['PSY 251', 'HUM 101'], {}, {}, true)).filter(entry => entry.choice !== null && /sequence|elective/.test(entry.choice)).map(entry => [entry.choice, entry.nth])).toEqual([
+      ['HIS 132, for the history sequence', null], ['CIS elective', { n: 1, of: 2 }], ['CIS elective', { n: 2, of: 2 }],
+    ]);
+    // The same rows for a student who is not a legacy student: both picks are held for good, so it is the extra course.
+    expect(all(plan(legacyRows)).filter(entry => entry.key === 'sequence').map(entry => entry.choice)).toEqual(['HIS 132 or ENG 210, for the history or literature sequence']);
     // With the sequence course in progress there is nothing of it to plan.
     expect(planOf(having([...everything('GEO 206', 'HUM 101'), 'HIS 132:-']), curriculum, false, LATEST, defaultSettings())).toBeNull();
   });
@@ -292,7 +311,7 @@ describe('the draft plan', () => {
     const before = planOf(a, curriculum, false, LATEST, defaultSettings())!;
     const second = planOf(a, curriculum, false, LATEST, defaultSettings(), moveLater(before, 'elective:1', defaultSettings(), {}))!;
     expect([where(second, 'elective:0'), where(second, 'elective:1'), where(second, 'elective:2')]).toEqual(['Spring 2029', 'Fall 2029', 'Spring 2029']);
-    expect(movedSentence(second, 'elective:1')).toBe('CIS elective moved to Fall 2029.');
+    expect(movedSentence(second, 'elective:1')).toBe('CIS elective, 2 of 3, moved to Fall 2029.');
     // From the last semester it opens a new one, and the final-semester course goes with the end.
     expect(shape(second).slice(-2)).toEqual(['Spring 2029 9: CIS 461, CIS elective, CIS elective', expect.stringMatching(/^Fall 2029 6: CIS elective, MGT 462$/)]);
     // Moving the final-semester course itself: alone, one term after the last.
@@ -325,6 +344,10 @@ describe('the draft plan', () => {
     // A move that changes nothing of the end: nothing is said.
     expect(planOf(a, curriculum, false, LATEST, defaultSettings(), moveLater(before, 'ENG 209', defaultSettings(), {}))!.late).toBeNull();
     expect(planHtml(before)).not.toContain('plan-late');
+    // A move that is not the cause is not blamed: with at most 17 a term the plan ends later with or without it.
+    const seventeen = settings({ fewest: 12, most: 17 });
+    const movedWithin = planOf(a, curriculum, false, LATEST, seventeen, moveLater(planOf(a, curriculum, false, LATEST, seventeen)!, 'ENG 209', seventeen, {}))!;
+    expect(movedWithin.late).toEqual({ term: term('Fall 2029'), why: 'split' });
     // Courses that cannot be split: 81 credits at up to 17 a term are five terms by the numbers, but 3-credit courses fill only 15.
     const tight = planOf(a, curriculum, false, LATEST, settings({ fewest: 12, most: 17 }))!;
     expect(paceOf(81, LATEST, settings({ fewest: 12, most: 17 }))).toMatchObject({ kind: 'on', terms: 5 });
@@ -381,7 +404,7 @@ describe('the draft plan', () => {
     const everyCourse = [...new Set([...curriculum.blocks.flatMap(block => [...block.required, ...block.picks.flatMap(group => group.courses)]), ...curriculum.electives.named, ...curriculum.electives.legacyOnly].map(course => course.code))];
     const pool = [...everyCourse, 'MKT 410', 'CIS 499', 'ECO 301', 'ACT 350', 'CIS 304', 'BIO 230'];
     const marks = ['A', 'B', 'B', 'B', 'C', 'D', 'F', 'W', '-', '-'];
-    const seen = { late: 0, split: 0, moved: 0, extra: 0, finalAlone: 0, underFewest: 0, summers: 0, gaps: 0 };
+    const seen = { late: 0, split: 0, moved: 0, extra: 0, throughHeld: 0, finalAlone: 0, underFewest: 0, summers: 0, gaps: 0 };
     for (let i = 0; i < 400; i++) {
       const rows = Array.from({ length: Math.floor(next() * (i % 4 === 0 ? pool.length * 1.4 : 30)) }, () => `${pick(pool)}:${pick(marks)}`);
       const standings = having(rows);
@@ -408,9 +431,14 @@ describe('the draft plan', () => {
       const needed = checklist.cards.flatMap(card => card.still.flatMap(item => ('open' in item ? [] : [item.code])));
       expect(entries.flatMap(entry => (entry.course ? [entry.course.code] : [])).sort(), label).toEqual([...needed].sort());
       const openPlaces = checklist.cards.flatMap(card => card.still.flatMap(item => ('open' in item ? [Number(item.text.split(' ')[0])] : []))).reduce((sum, n) => sum + n, 0);
-      expect(entries.filter(entry => entry.choice !== null && entry.key !== 'sequence'), label).toHaveLength(openPlaces);
-      expect(entries.some(entry => entry.key === 'sequence'), label).toBe(checklist.sequence.kind === 'extra');
-      if (checklist.sequence.kind === 'extra') seen.extra++;
+      expect(entries.filter(entry => entry.choice !== null), label).toHaveLength(openPlaces + (checklist.sequence.kind === 'extra' ? 1 : 0));
+      if (checklist.sequence.kind === 'extra') { seen.extra++; expect(entries.some(entry => entry.key === 'sequence'), label).toBe(true); }
+      // A sequence the checklist says is still needed is always named by an entry: a pick, or the place its course frees.
+      if (checklist.sequence.kind === 'open') {
+        const naming = entries.filter(entry => checklist.sequenceThrough.some(courseCode => entry.choice?.includes(courseCode)));
+        expect(naming.length, label).toBeGreaterThan(0);
+        if (naming.some(entry => entry.key === 'sequence')) seen.throughHeld++;
+      } else if (checklist.sequence.kind !== 'extra') expect(entries.some(entry => entry.key === 'sequence'), label).toBe(false);
       expect(new Set(entries.map(entry => entry.key)).size, label).toBe(entries.length);
       expect(entries.map(entry => entry.key).sort(), label).toEqual(all(unmoved).map(entry => entry.key).sort());
       // The semesters: terms in order by the Summers setting, each with an entry; no gap unless a move made one.
@@ -465,9 +493,11 @@ describe('the draft plan', () => {
       const lastTerm = semesters[semesters.length - 1]!.term;
       if (when(lastTerm) > when(end)) {
         seen.late++;
-        const movedNow = entries.some(entry => moves[entry.key] !== undefined);
-        if (!movedNow) seen.split++;
-        expect(made.late, label).toEqual({ term: lastTerm, why: movedNow ? 'moved' : 'split' });
+        // The reason: the moves, only when the plan without them ends earlier.
+        const unmovedLast = unmoved.semesters[unmoved.semesters.length - 1]!.term;
+        const byMoves = when(unmovedLast) < when(lastTerm);
+        if (!byMoves) seen.split++;
+        expect(made.late, label).toEqual({ term: lastTerm, why: byMoves ? 'moved' : 'split' });
         expect(planHtml(made), label).toContain(`This draft ends in ${termName(lastTerm)}, later than the pace estimate above`);
       } else {
         expect(made.late, label).toBeNull();

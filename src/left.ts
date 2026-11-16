@@ -355,8 +355,6 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
   main.addEventListener('input', keepTyped);
   main.addEventListener('change', keepTyped);
 
-  // The pace controls. Only the overview card is drawn again, so everything else on the
-  // page stays as the student left it, and the keyboard stays on the control that was used.
   // The draft plan as the settings and the moves now have it. Only its own part of the page is drawn again.
   const planNow = (): Plan | null => {
     const { transcript } = state;
@@ -370,6 +368,8 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     if (box) box.innerHTML = planHtml(plan);
     return plan;
   };
+  // The pace controls. Only the overview card and the draft plan are drawn again, so everything else on
+  // the page stays as the student left it, and the keyboard stays on the control that was used.
   // `changed` says what the control now shows: the card is drawn again, so it is read out
   // with the answer.
   const setPace = (next: PaceSettings, back: string, changed = ''): void => {

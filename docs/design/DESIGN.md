@@ -407,7 +407,16 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     Social sciences pick) are in the first semester, and MGT 201 and MGT 204, which the
     screenshot shows there, are in the second; within a level the order is the curriculum's
     (CIS 329 before CIS 302 and CIS 300). The five semesters, their credits (18, 18, 15,
-    15, 15) and the 27 entries are the screenshot's;
+    15, 15) and the 27 entries are the screenshot's. Every entry that sits in another
+    semester than in the screenshot, for the design's student:
+    - Spring 2027 has the Social sciences pick and "Humanities pick (ENG 210 or another)"
+      (the screenshot: Fall 2027), and no longer MGT 201 and MGT 204 (now Fall 2027);
+    - Fall 2027 has FIN 321 and MGT 321 (the screenshot: Spring 2028), and no longer
+      CIS 300 and CIS 302 (now Spring 2028);
+    - Spring 2028 has CIS 329 (the screenshot: Fall 2028), and no longer CIS 341 (now
+      Fall 2028);
+    - Fall 2028 has MGT 422 (the screenshot: Spring 2029), and no longer a CIS elective
+      (all three are in Spring 2029);
   - a line the design has no place for, under the plan and only when it ends later than
     the pace answer implies: "This draft ends in <term>, later than the pace estimate
     above: courses can’t be split across semesters." or "…: you moved courses later.";
@@ -415,8 +424,9 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     left and "<block> pick (<code> or another)" follow the design's two examples for
     other picks; "HIS 132 or ENG 210, for the history or literature sequence" for the
     sequence course when both sequence picks are held; said to a screen reader only:
-    "<entry> moved to <term>."; a button's name counts entries that read the same ("Move
-    CIS elective, 2 of 3, later");
+    "<entry> moved to <term>."; a button's name for a screen reader starts with its visible
+    words and counts entries that read the same ("Move later: MGT 321", "Move later: CIS
+    elective, 2 of 3"; the mockup had "Move MGT 321 later");
   - "Print / save PDF for your advisor" and "Clear my data", which end the design's page,
     are not drawn until F17 and F19.
 - **"Check my courses" with a transcript** (F12). The heading note and the card "Add your

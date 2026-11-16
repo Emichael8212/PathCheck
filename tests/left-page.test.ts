@@ -916,7 +916,8 @@ describe('the draft plan', () => {
     // Said once; the keyboard is still on that entry's button; only the plan was drawn again.
     expect(said()).toBe('MGT 321 moved to Spring 2028.');
     expect(document.activeElement).toBe($('[data-move="MGT 321"]'));
-    expect($('[data-move="MGT 321"]').getAttribute('aria-label')).toBe('Move MGT 321 later');
+    expect($('[data-move="MGT 321"]').getAttribute('aria-label')).toBe('Move later: MGT 321');
+    expect(tidy($('[data-move="MGT 321"]').textContent)).toBe('Move later');
     expect([$('.overview'), $('.reqs'), $<HTMLDetailsElement>('.req details').open]).toEqual([overview, requirements, true]);
     // The others flowed again into the room it left: the same credits, nothing lost or doubled.
     expect(semesters()).toEqual(['Spring 2027 18 cr', 'Fall 2027 18 cr', 'Spring 2028 15 cr', 'Fall 2028 15 cr', 'Spring 2029 15 cr']);
@@ -929,10 +930,10 @@ describe('the draft plan', () => {
     expect(late()).toBe('');
 
     // An open choice moves by its own place: the second elective, not the first or third.
-    expect(['elective:0', 'elective:1', 'elective:2'].map(key => $(`[data-move="${key}"]`).getAttribute('aria-label'))).toEqual(['Move CIS elective, 1 of 3, later', 'Move CIS elective, 2 of 3, later', 'Move CIS elective, 3 of 3, later']);
+    expect(['elective:0', 'elective:1', 'elective:2'].map(key => $(`[data-move="${key}"]`).getAttribute('aria-label'))).toEqual(['Move later: CIS elective, 1 of 3', 'Move later: CIS elective, 2 of 3', 'Move later: CIS elective, 3 of 3']);
     $('[data-move="elective:1"]').click();
     expect(['elective:0', 'elective:1', 'elective:2'].map(termOf)).toEqual(['Spring 2029', 'Fall 2029', 'Spring 2029']);
-    expect(said()).toBe('CIS elective moved to Fall 2029.');
+    expect(said()).toBe('CIS elective, 2 of 3, moved to Fall 2029.');
     expect(document.activeElement).toBe($('[data-move="elective:1"]'));
     // It opened a new last semester, and the final-semester course went with the end. The plan says it now ends later, and why.
     expect(entriesOf('Fall 2029')).toEqual(['CIS elective', 'MGT 462']);
