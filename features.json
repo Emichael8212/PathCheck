@@ -287,8 +287,8 @@
         "Shows \"Credits only — course order may add semesters.\"",
         "Changing the target, the credit range or summers updates the answer"
       ],
-      "passes": false,
-      "evidence": "",
+      "passes": true,
+      "evidence": "docs/sprints/F14.md — QA PASS in a real browser (round 2, after round 1 failed on the records only); reviewer: no blocker",
       "tests": [
         "tests/pace.test.ts",
         "tests/left-page.test.ts"

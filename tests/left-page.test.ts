@@ -811,6 +811,8 @@ describe('pace', () => {
     step('most', -1, 11);
     expect([valueOf('fewest'), valueOf('most')]).toEqual(['10', '10']);
     expect(pace()).toBe('Not on pace for Fall 2028 At 10 credits a term you finish Spring 2031, 5 semesters after your target.');
+    // Both ends moved, and both are read out.
+    expect(said()).toBe('Most credits per term: 10 credits. Below 12 credits: below full-time; may affect scholarships. Fewest credits per term: 10 credits. Below 12 credits: below full-time; may affect scholarships. Not on pace for Fall 2028. At 10 credits a term you finish Spring 2031, 5 semesters after your target.');
     // Down to 1: "−" is switched off, and the keyboard goes to "+".
     step('fewest', -1, 9);
     expect(valueOf('fewest')).toBe('1');

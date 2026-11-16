@@ -379,7 +379,10 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     const end = step?.closest<HTMLElement>('[data-stepper]')?.dataset.stepper;
     if (step && (end === 'fewest' || end === 'most')) {
       const next = stepRange(state.pace, end, Number(step.dataset.delta));
-      setPace(next, `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`, rangeSentence(end, next));
+      // The other end is said too when this one took it along.
+      const other = end === 'fewest' ? 'most' : 'fewest';
+      const changed = next[other] === state.pace[other] ? rangeSentence(end, next) : `${rangeSentence(end, next)} ${rangeSentence(other, next)}`;
+      setPace(next, `[data-stepper="${end}"] [data-delta="${step.dataset.delta}"]`, changed);
       return;
     }
     if (target?.closest('[data-pace-summers]')) {
