@@ -3,9 +3,15 @@
 Points raised while building one feature that a later feature's contract must take up.
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
-## For F04 and F13 (placing courses; the checklist)
-- Degree and block credits come from the curriculum, never from adding up a transcript
-  row's credits. A withdrawn row still shows credits attempted. (F03 review)
+## For F13 (the checklist)
+- Degree and block credits come from the curriculum (through `placeCourses`), never from
+  adding up a transcript row's credits. A withdrawn row still shows credits attempted.
+  (F03 review; done for placement in F04)
+
+## For F14 (pace)
+- Pace is taken from the totals of `placeCourses` (`src/placement.ts`): remaining = degree
+  credits − done − in progress. Do not add up in-progress rows: a course in progress that
+  fills no place adds nothing. (F04 contract review)
 
 ## For F10 (transcript rows are untrusted)
 - Before a row reaches `rowStanding` or `courseStandings` (`src/transcript.ts`): the grade
@@ -23,11 +29,6 @@ Read this before writing a sprint contract; delete a line when its feature has d
   otherwise. The totals and "Academic Standing" lines are not rows. (F03 contract)
 - Real transfer rows may leave "attempted" empty: check against the transcript format when
   the real reader is built. (F03 review; also F21)
-
-## For F04 (placing courses)
-- A transfer row is placed like any passed course. If its code is not in the curriculum
-  and does not match the elective rule, it does not count: the owner asked for a test of
-  exactly this. (Owner answer, 2026-11-16)
 
 ## For F10 and F11 (the review step)
 - Transfer, AP and CLEP rows are labelled "Transfer credit" in the review step, so the
