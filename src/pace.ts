@@ -264,6 +264,10 @@ export const rangeSentence = (end: 'fewest' | 'most', settings: PaceSettings): s
 };
 export const summersSentence = (settings: PaceSettings): string => `${TEXT.summers}: ${TEXT.onOff(settings.summers)}.`;
 
+/** What the four controls are set to, in one line: for paper and for a report. Nothing when there is no estimate. */
+export const settingsSentence = (pace: Pace, settings: PaceSettings): string => (pace.kind !== 'on' && pace.kind !== 'off' ? ''
+  : `${TEXT.target}: ${termName(pace.target)}. ${rangeSentence('fewest', settings)} ${rangeSentence('most', settings)} ${summersSentence(settings)}`);
+
 /**
  * Under the credit bar: the four controls, and for paper, where controls are not printed,
  * one line that says what they are set to. Nothing when there is no estimate to adjust.
@@ -291,5 +295,5 @@ export function paceControlsHtml(pace: Pace, settings: PaceSettings): string {
         </div>
       </fieldset>
     </div>
-    <p class="print-only pace-settings" data-pace-settings>${esc(`${TEXT.target}: ${termName(pace.target)}. ${rangeSentence('fewest', settings)} ${rangeSentence('most', settings)} ${summersSentence(settings)}`)}</p>`;
+    <p class="print-only pace-settings" data-pace-settings>${esc(settingsSentence(pace, settings))}</p>`;
 }

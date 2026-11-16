@@ -9,13 +9,14 @@ import { normalizeCode, type Curriculum } from './curriculum';
 import { code, esc, eyebrow, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
 import {
-  defaultSettings, latestTermOf, paceAnswerHtml, paceControlsHtml, paceOf, paceSentence, rangeSentence, readTerm, stepRange, summersSentence, type PaceSettings,
+  defaultSettings, latestTermOf, paceAnswerHtml, paceControlsHtml, paceOf, paceSentence, rangeSentence, readTerm, settingsSentence, stepRange, summersSentence, type PaceSettings,
 } from './pace';
 import { type Problem } from './reader';
-import { moveLater, movedSentence, planHtml, planOf, type Moves, type Plan } from './plan';
+import { lateSentence, moveLater, movedSentence, planHtml, planOf, type Moves, type Plan } from './plan';
 import { printActionsHtml, printHeadHtml } from './print';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
-import { FLOW_NAME, foot, top } from './shell';
+import { NOTHING_SHOWN, type Shown } from './report';
+import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { type Refusal } from './upload';
 import { ANOTHER_FORGETS, CHANGE, LEGACY_LINE, PRIVACY, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
 
@@ -72,6 +73,8 @@ const TEXT = {
   resultEyebrow: 'What I have left',
   resultHeading: 'Your degree, in focus.',
   pill: 'Synthetic transcript result',
+  reportCredits: (left: number, counted: number, inProgress: number, total: number): string => `${left} credits left, ${counted} counted, ${inProgress} in progress, ${total} in total`,
+  reportCard: (name: string, status: string, counted: number, needed: number): string => `${name} — ${status}, ${counted} / ${needed} cr`,
   toFix: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing and ${rows === 1 ? 'counts' : 'count'} nothing. A requirement, or the sequence, may show as still needed because of ${rows === 1 ? 'it' : 'them'}. The credits left, the pace and the draft plan may change too.`,
   fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
   noRows: 'No row of your transcript was taken on, so there is nothing to show yet.',
@@ -305,6 +308,39 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
   ${foot}`;
 }
 
+/**
+ * What the result shows, for "Report a mistake": the credits, the pace answer and the
+ * settings it was made with, each requirement's status, the sequence sentence, the line
+ * under a plan that ends late, and the legacy answer when one was given. Nothing before
+ * there is a result, and nothing of the transcript itself.
+ */
+export function leftShown(curriculum: Curriculum, state: LeftState, legacy: LegacyAnswer): Shown {
+  const { transcript } = state;
+  if (!transcript || !state.continued || !hasResult(transcript, curriculum, legacy)) return NOTHING_SHOWN;
+  const standings = reviewedStandings(transcript, curriculum.grades);
+  const checklist = checklistOf(standings, curriculum, legacy === true, uncheckedOf(transcript));
+  const { left, counted, inProgress, total } = checklist.credits;
+  const latest = latestTermOf(standings);
+  const pace = paceOf(left + checklist.extraLeft, latest, state.pace);
+  const settings = settingsSentence(pace, state.pace);
+  const late = lateSentence(planOf(standings, curriculum, legacy === true, latest, state.pace, state.moves));
+  return {
+    lines: [
+      TEXT.reportCredits(left, counted, inProgress, total),
+      paceSentence(pace),
+      ...(settings ? [settings] : []),
+      ...checklist.cards.map(card => TEXT.reportCard(card.name, card.status, card.counted, card.needed)),
+      ...(checklist.sequence.kind === 'none' ? [] : [checklist.sequence.text]),
+      ...(late ? [late] : []),
+      ...(legacy === null ? [] : [`${LEGACY_LINE} ${legacy ? LEGACY_YES : LEGACY_NO}`]),
+    ],
+  };
+}
+
+/** The email that "Report a mistake" opens from this page, as the page now stands. */
+export const leftReport = (curriculum: Curriculum, state: LeftState, legacy: LegacyAnswer): string =>
+  reportLink(curriculum, `PathCheck: ${FLOW_NAME.left}`, leftShown(curriculum, state, legacy));
+
 export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(), legacy: LegacyAnswer = null): string {
   const { transcript } = state;
   const result = transcript !== null && state.continued;
@@ -329,7 +365,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
   </div>
   ${body}
 </main>
-${foot(curriculum, `PathCheck: ${FLOW_NAME.left}`)}`;
+${foot(curriculum, leftReport(curriculum, state, legacy))}`;
 }
 
 /** What the page asks of the app. */

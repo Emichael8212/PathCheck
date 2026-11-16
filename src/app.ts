@@ -1,21 +1,27 @@
 // The app: one page, three addresses. Shows the page for the address, and keeps doing so
 // as the student moves about.
-import { NO_TRANSCRIPT, checkPage, emptyList, setupCheck, type CheckView, type CourseList, type OnCheck } from './check';
+import { NO_TRANSCRIPT, checkPage, checkReport, emptyList, setupCheck, type CheckView, type CourseList, type OnCheck } from './check';
 import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
-import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, refusalText, setupLeft, type LeftState } from './left';
+import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, leftReport, refusalText, setupLeft, type LeftState } from './left';
 import { PRINT_TITLE, closeAfterPaper, openForPaper } from './print';
 import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
-import { HREF, routeOf, titleOf, type Route } from './shell';
+import { HREF, dayOf, oldReviewBanner, reportLink, routeOf, titleOf, type Day, type Route } from './shell';
 import { startPage } from './start';
 import { readFile, type ChosenFile, type Refusal } from './upload';
 
-export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, list: CourseList = emptyList(), left: LeftState = emptyLeft(), onCheck: OnCheck = NO_TRANSCRIPT): string => {
+/**
+ * A page. `today` is the day on the student's device: with it, a curriculum whose last
+ * review is more than twelve months old gets its banner before everything else. Nothing
+ * else on any page depends on the day.
+ */
+export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, list: CourseList = emptyList(), left: LeftState = emptyLeft(), onCheck: OnCheck = NO_TRANSCRIPT, today: Day | null = null): string => {
   const [program] = programs;
   if (!program) throw new Error('PathCheck has no program to show.');
-  return route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left, list.legacy);
+  const page = route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left, list.legacy);
+  return `${oldReviewBanner(program.curriculum, today)}${page}`;
 };
 
 type Listener = (event: AppEvent) => void;
@@ -35,6 +41,8 @@ export interface AppWindow extends Timers {
   matchMedia(query: string): MediaWatch;
   /** The browser's print window. Some in-app browsers have none. */
   print?(): void;
+  /** Now, on the student's device: only the day is used, and only for the banner of an old review. (The clock, unless a test sets it.) */
+  today?(): Date;
   scrollTo(x: number, y: number): void;
 }
 /**
@@ -152,7 +160,7 @@ export function startApp(win: AppWindow): App {
     demo = null;
     if (moved) checkRefusal = null;
     route = routeOf(win.location.hash);
-    root.innerHTML = renderPage(route, allPrograms, courses, left, onCheck());
+    root.innerHTML = renderPage(route, allPrograms, courses, left, onCheck(), dayOf(win.today?.() ?? new Date()));
     win.document.title = titleOf(route);
     const player = part<DemoRoot>('[data-demo]');
     if (player) demo = setupDemo(player, { reducedMotion: win.matchMedia('(prefers-reduced-motion: reduce)').matches, timers: win });
@@ -281,6 +289,13 @@ export function startApp(win: AppWindow): App {
     // "Browse files" on Start; the page of the flow has its own.
     const target = event.target as { closest?(selector: string): unknown } | null;
     if (route === 'start' && target?.closest?.('[data-browse]')) browse();
+    // "Report a mistake": the email is filled in with what the page shows at this moment,
+    // whatever was changed since the page was drawn. Then the browser follows the link.
+    const report = target?.closest?.('.foot a') as { setAttribute(name: string, value: string): void } | null | undefined;
+    if (report) {
+      report.setAttribute('href', route === 'check' ? checkReport(curriculum, courses, onCheck())
+        : route === 'left' ? leftReport(curriculum, left, courses.legacy) : reportLink(curriculum));
+    }
   });
 
   // A file dropped on the page must never make the browser open it in place of PathCheck.

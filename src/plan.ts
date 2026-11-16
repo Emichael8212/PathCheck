@@ -273,9 +273,12 @@ export function planHtml(plan: Plan | null): string {
         </ul>
       </li>`).join('')}
     </ol>${plan.late ? `
-    <p class="plan-late">${esc(TEXT.late(termName(plan.late.term), plan.late.why))}</p>` : ''}
+    <p class="plan-late">${esc(lateSentence(plan))}</p>` : ''}
   </section>`;
 }
+
+/** The line under a plan that ends later than the pace answer implies; nothing otherwise. */
+export const lateSentence = (plan: Plan | null): string => (plan?.late ? TEXT.late(termName(plan.late.term), plan.late.why) : '');
 
 /** What is said when an entry has been moved. */
 export function movedSentence(plan: Plan, key: string): string {

@@ -13,7 +13,8 @@ import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entr
 import { code, esc, icons, marks, withCodes } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { NO_CREDITS_LEFT, PACE_UNREADABLE, defaultSettings, latestTermOf, paceLineOf, readTerm, termName, type PaceLine, type PaceSettings, type Term } from './pace';
-import { FLOW_NAME, foot, top } from './shell';
+import { type Shown } from './report';
+import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { countsExample } from './start';
 import { type CourseStanding, type JudgedRow } from './transcript';
 import { ANOTHER_FORGETS, CAVEAT, CHANGE, COUNT_CONDITION, LEGACY_LINE, transcriptHasLegacy, COUNT_TOWARD, DO_NOT_COUNT, PRIVACY, TOTAL_CREDITS, USE_ANOTHER, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
@@ -34,6 +35,7 @@ const TEXT = {
   change: CHANGE,
   summary: 'Credits',
   noTranscript: 'No transcript added',
+  reportEmpty: 'No course is in the list.',
   transcriptAdded: 'Transcript added',
   exactTitle: 'Add your transcript for an exact answer',
   choose: 'Choose transcript PDF',
@@ -282,6 +284,12 @@ const termList = (label: string, marker: string, terms: readonly Term[], chosen:
   terms.map(term => `<option value="${esc(termName(term))}"${termName(term) === termName(chosen) ? ' selected' : ''}>${esc(termName(term))}</option>`).join('')}</select>`;
 
 /** The pace line under the numbers; nothing without a transcript. A finish is never named without the caveat. */
+/** The pace line written out as the page has it, with both of its lists' terms in their places: for a report. */
+function paceLineWritten(view: LineView | null): string {
+  if (!view || view.kind !== 'line') return paceLineSentence(view);
+  const parts = lineParts(view.line);
+  return `${parts.before} ${termName(view.line.term)}${parts.middle} ${termName(view.line.target)}${parts.after}`;
+}
 export function paceLineHtml(view: LineView | null): string {
   if (!view) return '';
   if (view.kind === 'text') return `<p class="pace-line" data-pace-line>${esc(view.text)}</p>`;
@@ -328,6 +336,30 @@ export function entriesHtml(list: CourseList, curriculum: Curriculum, transcript
   <p class="note">${icons.doc(20)}${withCodes(reminder)}</p>` : ''}`;
 }
 
+/** An answer in words, as its row has it. */
+const answerWords = (answer: Answer): string => (answer.kind === 'ask' ? LEGACY_QUESTION
+  : answer.kind === 'counts' && answer.condition ? `${answer.text} (${answer.condition})` : answer.text);
+
+/**
+ * What the page shows, for "Report a mistake": whether a transcript is in use, the legacy
+ * answer when one was given, each course with its answer, and the pace line. Nothing of
+ * the transcript itself.
+ */
+export function checkShown(curriculum: Curriculum, list: CourseList, transcript: OnCheck): Shown {
+  const { entries, legacy } = list;
+  const answers = answersFor(entries, curriculum, legacy, useOf(transcript));
+  const pace = paceLineWritten(paceLineFor(list, curriculum, transcript));
+  return {
+    lines: [statusText(transcript), ...(legacy === null ? [] : [`${TEXT.legacyLine} ${legacy ? LEGACY_YES : LEGACY_NO}`]), ...(entries.length === 0 ? [TEXT.reportEmpty] : [])],
+    list: entries.map((entry, i) => `${entry.code} — ${answerWords(answers[i] as Answer)}`),
+    after: pace ? [pace] : [],
+  };
+}
+
+/** The email that "Report a mistake" opens from this page, as the page now stands. */
+export const checkReport = (curriculum: Curriculum, list: CourseList, transcript: OnCheck): string =>
+  reportLink(curriculum, `PathCheck: ${FLOW_NAME.check}`, checkShown(curriculum, list, transcript));
+
 export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList(), transcript: OnCheck = NO_TRANSCRIPT): string => `${top('check')}
 <main class="check">
   <div class="page-head">
@@ -356,7 +388,7 @@ export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList()
   <div data-transcript>${transcriptCard(transcript)}</div>
   <p class="sr-only" role="status" aria-live="polite" data-said></p>
 </main>
-${foot(curriculum, `PathCheck: ${FLOW_NAME.check}`, true)}`;
+${foot(curriculum, checkReport(curriculum, list, transcript), true)}`;
 
 /** What the page asks of the app about the transcript. */
 export interface CheckHooks {

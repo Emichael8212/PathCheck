@@ -520,7 +520,7 @@ describe('the footer', () => {
     const undated = foot({ ...curriculum, lastReviewed: null });
     expect(undated).not.toMatch(/last reviewed|Nov 2026|Invalid|NaN|\bnull\b|undefined/i);
     expect(decode(undated)).toBe(' Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
-    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
+    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake&amp;body=[^"]+">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
   });
 
   it('shows the month and year of a review date in any time zone', () => {
