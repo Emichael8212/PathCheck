@@ -55,8 +55,9 @@ describe('the curriculum comes from the data file', () => {
     const titles = [...new Set(textsOf([rawData.blocks, rawData.electives.namedCourses, rawData.electives.legacyOnlyCourses].map(part => keyed(part, 'title'))))].filter(title => title.length > 0);
     expect(titles.length).toBeGreaterThan(50);
     for (const { file, text } of sources) {
-      if (file !== EXAMPLES) expect(text.match(/\b[A-Z]{2,4}[ -]?\d{3}\b/g) ?? [], `${file}: text shaped like a course code`).toEqual([]);
-      expect(titles.filter(title => text.includes(title)), `${file}: a course title`).toEqual([]);
+      // In capitals or not, and with a letter after the number (a lab section, say).
+      if (file !== EXAMPLES) expect(text.match(/\b[A-Z]{2,4}[ -]?\d{3}[A-Z]?\b/gi) ?? [], `${file}: text shaped like a course code`).toEqual([]);
+      expect(titles.filter(title => text.includes(title) || text.includes(title.replace(/&/g, '&amp;'))), `${file}: a course title`).toEqual([]);
       // A stylesheet is full of numbers and words that are sizes and names, not facts.
       if (file.endsWith('.css')) continue;
       // Exact and case-sensitive, and not inside a longer word (CompositionEvent is fine).

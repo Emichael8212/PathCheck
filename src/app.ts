@@ -15,9 +15,14 @@ export const renderPage = (route: Route, programs: readonly Program[] = allProgr
 export interface AppWindow extends Timers {
   readonly document: { title: string; getElementById(id: string): AppRoot | null };
   readonly location: { hash: string };
-  addEventListener(type: 'hashchange' | 'dragover' | 'drop', listener: (event: { preventDefault(): void }) => void): void;
+  addEventListener(type: 'hashchange' | 'dragover' | 'drop', listener: (event: AppEvent) => void): void;
   matchMedia(query: string): { readonly matches: boolean };
   scrollTo(x: number, y: number): void;
+}
+/** A page event. For a drag, `types` says what kind of thing is dragged, never what is in it. */
+export interface AppEvent {
+  preventDefault(): void;
+  readonly dataTransfer?: { readonly types: readonly string[] } | null;
 }
 interface AppRoot {
   innerHTML: string;
@@ -48,10 +53,12 @@ export function startApp(win: AppWindow): { readonly route: Route; readonly demo
 
   win.addEventListener('hashchange', () => show(true));
   // A file dropped on the page must never make the browser open it in place of PathCheck.
-  // Nothing here looks at the file. Until upload is built, a drop on Start opens the flow
-  // that will take it.
-  win.addEventListener('dragover', event => event.preventDefault());
+  // Only the kind of thing dragged is looked at, never the file. Dragged text is left
+  // alone. Until upload is built, a file dropped on Start opens the flow that will take it.
+  const carriesFiles = (event: AppEvent): boolean => event.dataTransfer?.types.includes('Files') === true;
+  win.addEventListener('dragover', event => { if (carriesFiles(event)) event.preventDefault(); });
   win.addEventListener('drop', event => {
+    if (!carriesFiles(event)) return;
     event.preventDefault();
     if (route === 'start') win.location.hash = HREF.left;
   });

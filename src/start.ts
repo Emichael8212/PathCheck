@@ -44,8 +44,6 @@ const TEXT = {
       '“Doesn’t count” is marked plainly, before you pay for it.',
       'Add your unofficial transcript PDF to see what’s left and your pace.',
     ],
-    // What the demo's student types before the suggestion appears.
-    typed: 'mgt 3',
     placeholder: 'Add a course',
     file: 'unofficial-transcript.pdf',
     remainingLabel: 'credits left',
@@ -90,6 +88,8 @@ const demoFrames = (curriculum: Curriculum): string[] => {
   const counts = countsExample(curriculum);
   const no = doesNotCountExample(curriculum);
   const student = demoStudent(curriculum);
+  // What the demo's student has typed when the suggestion appears: the start of the code.
+  const typed = counts.course.code.slice(0, 5).toLowerCase();
   const field = (inner: string): string => `<div class="demo-field">${inner}</div>`;
   const placeholder = `<span class="muted">${esc(d.placeholder)}</span>`;
   // A "Counts" answer never appears without its condition, here as everywhere.
@@ -114,7 +114,7 @@ const demoFrames = (curriculum: Curriculum): string[] => {
           <small class="demo-caveat">${esc(CAVEAT)}</small>
         </div>`;
   return [
-    `${field(`<span class="code">${esc(d.typed)}<span class="caret"></span></span>`)}
+    `${field(`<span class="code">${esc(typed)}<span class="caret"></span></span>`)}
       <div class="demo-suggest">${code(counts.course.code, 'strong')} <span class="truncate">${esc(counts.course.title)}</span></div>`,
     `${field(placeholder)}
       <div class="demo-cards">${countsCard}

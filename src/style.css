@@ -364,7 +364,6 @@ svg { display: block; flex-shrink: 0; }
 .drop-or { color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .privacy { display: flex; align-items: flex-start; gap: 7px; max-width: 310px; margin-top: 6px; color: var(--ink-2); font-size: 12px; line-height: 1.65; }
 .privacy svg { width: 15px; height: 18px; margin-top: 1px; }
-.mock-note { color: var(--ink-2); font-size: 12px; line-height: 16px; }
 
 /* "See it work" */
 .demo { display: grid; gap: 25px; margin-top: 65px; }
@@ -844,23 +843,3 @@ details[open] .req-cue { transform: rotate(-90deg); }
   .req { border: 1px solid var(--line); box-shadow: none; }
   .left { padding-top: 0; }
 }
-
-/* ---- The plain index page that links the mockups ---- */
-.index { padding-block: 34px 70px; }
-.index h1 { font-size: 30px; font-weight: 800; line-height: 1.2; letter-spacing: -1.15px; }
-.index > p { max-width: 62ch; margin-top: 12px; color: var(--ink-2); font-size: 14px; line-height: 1.7; }
-.index-list { display: grid; gap: 8px; max-width: 520px; margin-top: 24px; }
-.index-list a {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  min-height: 56px;
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line);
-  font-size: 15px;
-  font-weight: 700;
-}
-.index-list a span { color: var(--ink-2); font-size: 12px; font-weight: 400; }

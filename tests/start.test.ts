@@ -211,6 +211,7 @@ describe('the demo', () => {
     expect(html).toContain('<button type="button" aria-label="Step 1 of 4" aria-current="step" data-go="1">');
     expect(html).toMatch(/<p class="demo-caption" aria-live="off" data-live>/);
     for (const n of [1, 2, 3, 4]) expect(html).toContain(`<span class="num">${n}/4</span>`);
+    expect(html.match(/<span data-caption="\d"( hidden)?>/g)).toEqual(['<span data-caption="1">', '<span data-caption="2" hidden>', '<span data-caption="3" hidden>', '<span data-caption="4" hidden>']);
   });
 
   it('says only true things in the demo', () => {
@@ -244,6 +245,30 @@ describe('the demo', () => {
     expect(CAVEAT).toBe('Credits only — course order may add semesters.');
     expect(count(text, 'On pace')).toBe(1);
     expect(text).toContain(`On pace for Spring 2029 ${CAVEAT}`);
+  });
+
+  it('works the demo out again for another curriculum', () => {
+    // One more credit on a course the made-up student has not taken: one more credit left.
+    const data = structuredClone(rawData) as unknown as { degreeCredits: number; blocks: { id: string; credits: number; required: { courseId: string; credits: number }[] }[] };
+    const major = data.blocks.find(block => block.id === 'major')!;
+    major.required[0]!.credits += 1;
+    major.credits += 1;
+    data.degreeCredits += 1;
+    const other = loadCurriculum(data);
+    expect(demoStudent(other).credits).toEqual({ done: 27, inProgress: 13, remaining: 82, degree: 122 });
+    const page = startPage([{ id: other.id, name: other.program, curriculum: other }]);
+    expect(page).toContain('<span class="num">82</span><span>credits left</span>');
+    expect(page).not.toContain('<span class="num">81</span>');
+    const percent = (n: number): string => `${Math.round((n / 122) * 1e5) / 1e3}%`;
+    expect(page).toContain(`<span class="bar-counted" style="width: ${percent(27)}"></span><span class="bar-progress hatch" style="width: ${percent(13)}"></span>`);
+    // The example's credits follow the curriculum too.
+    const business = data.blocks.find(block => block.id === 'business-core')!;
+    const example = business.required.find(course => course.courseId === 'MGT-321')!;
+    example.credits += 1;
+    business.credits += 1;
+    data.degreeCredits += 1;
+    const third = loadCurriculum(data);
+    expect(decode(startPage([{ id: third.id, name: third.program, curriculum: third }]))).toContain('MGT 321 4 cr Principles of Management Counts toward CIS — Business core');
   });
 
   it('keeps nothing focusable inside the hidden frames', () => {
@@ -432,15 +457,17 @@ describe('the demo', () => {
   });
 
   it('does not read a dropped file', () => {
-    const dropped = () => {
+    const looked = (): never => { throw new Error('the dropped file was looked at'); };
+    const dragged = (types: string[]) => {
       const event = {
         prevented: 0,
         preventDefault(): void { event.prevented++; },
-        // Looking at the file in any way fails the test.
-        get dataTransfer(): never { throw new Error('the dropped file was looked at'); },
+        // The kind of thing dragged may be asked. Looking at the file in any way fails the test.
+        dataTransfer: { types, get files(): never { return looked(); }, get items(): never { return looked(); }, getData: looked },
       };
       return event;
     };
+    const dropped = () => dragged(['Files']);
     const fake = fakeWindow();
     startApp(fake.win);
     for (const type of ['dragover', 'drop']) expect(fake.handlers[type], type).toBeTypeOf('function');
@@ -463,9 +490,19 @@ describe('the demo', () => {
       expect(again.prevented).toBe(2);
       expect(fake.location.hash).toBe(route);
     }
+    // Dragged text is none of the app's business: it is left alone, on every page.
+    for (const route of ['#/', '#/check']) {
+      fake.go(route);
+      for (const event of [dragged(['text/plain']), dragged([]), { prevented: 0, preventDefault(): void { this.prevented++; }, dataTransfer: null }, { prevented: 0, preventDefault(): void { this.prevented++; } }]) {
+        fake.handlers.dragover!(event);
+        fake.handlers.drop!(event);
+        expect(event.prevented).toBe(0);
+        expect(fake.location.hash).toBe(route);
+      }
+    }
     // The app's code never asks for a file or sends anything.
-    for (const file of readdirSync(join(repo, 'src')).filter(name => name.endsWith('.ts'))) {
-      expect(readFileSync(join(repo, 'src', file), 'utf8'), file).not.toMatch(/dataTransfer|FileReader|\.files\b|fetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource/);
+    for (const file of readdirSync(join(repo, 'src'), { recursive: true }).map(String).filter(name => /\.(tsx?|jsx?|html)$/.test(name))) {
+      expect(readFileSync(join(repo, 'src', file), 'utf8'), file).not.toMatch(/FileReader|\.files\b|\.items\b|getData|arrayBuffer|createObjectURL|fetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource/);
     }
   });
 });
@@ -543,8 +580,9 @@ describe('the stylesheet', () => {
       for (const [, style = ''] of page.matchAll(/style="([^"]*)"/g)) expect(style, name).toMatch(/^width: [\d.]+%$/);
       expect(page, name).not.toMatch(COLOR);
     }
-    // Apart from where the fonts are, the stylesheet is the approved one.
-    expect(app.replaceAll('../mockups/fonts/', 'fonts/')).toBe(approved);
+    // Rules that only the mockups need are not carried into the app.
+    expect(app).not.toMatch(/\.mock-note|\.index\b/);
+    expect(app).toContain('url("../mockups/fonts/manrope-latin-wght-normal.woff2")');
     expect(readFileSync(join(repo, 'index.html'), 'utf8')).toContain('<link rel="stylesheet" href="/src/style.css" />');
   });
 });

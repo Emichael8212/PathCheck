@@ -160,5 +160,11 @@ last of the three marks F05 passing (`passes`, `evidence`) and removes its BLOCK
 - The scans in `tests/curriculum.test.ts` read every file in `src/`, `index.html` and
   `public/`: no course code, title, block name or credit total may be written there. Take
   them from the curriculum. `src/examples.json` is for the Start page only.
+- The app stops the browser from opening a dropped file, on every page (`startApp`); it
+  looks only at the kind of thing dragged, and leaves dragged text alone. A file drag
+  shows a "copy" cursor even where the drop does nothing: when F11 builds the upload,
+  accept a file only on the drop zone. (F06 review and QA)
+- The major dropdown shows its first program in the visible label and has no change
+  handler: enough for one major. A second major needs both. (F06 review)
 - `tests/start.test.ts` "does not read a dropped file" fails if anything in `src/` reads a
   file or sends a request. F11 changes that test on purpose, for the upload only.
