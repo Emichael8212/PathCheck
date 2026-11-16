@@ -45,9 +45,11 @@ export interface BlockPlacement {
   readonly credits: Credits;
 }
 
-/** An elective, and whether it is one by name or by the subject-and-number rule. */
+/** How a course comes to be an elective: named, by the subject-and-number rule, or only for a legacy student. */
+export type ElectiveBy = 'name' | 'rule' | 'legacy';
+
 export interface FilledElective extends Filled {
-  readonly by: 'name' | 'rule';
+  readonly by: ElectiveBy;
 }
 
 export interface ElectivePlacement {
@@ -136,22 +138,63 @@ function checkInput(standings: readonly CourseStanding[]): void {
   }
 }
 
+export interface PlaceOptions {
+  /**
+   * The student's answer to the legacy question. Only a Yes (true) lets a legacy-only course
+   * fill an elective place; No, or no answer yet, never does.
+   */
+  readonly legacy?: boolean | null;
+}
+
+/** Does `a` count more than `b`: more credits done, or the same done and more in progress? */
+const countsMore = (a: Placement, b: Placement): boolean =>
+  a.credits.done > b.credits.done || (a.credits.done === b.credits.done && a.credits.inProgress > b.credits.inProgress);
+
 /**
  * Places every course a student has passed or is taking.
  *
  * When more courses could fill a place than it has room for, they are taken in this
  * order: passed before in progress; in a pick group, a course that belongs to a sequence
  * before one that does not; then the order of the transcript.
+ *
+ * A legacy-only elective that is also a pick course has two places it could go. It stays
+ * a pick course unless, for a legacy student, treating it as an elective counts more.
+ * (The curriculum has one such course. Were there several, each is tried once, in
+ * transcript order, on top of the moves already kept.)
  */
-export function placeCourses(standings: readonly CourseStanding[], curriculum: Curriculum): Placement {
+export function placeCourses(standings: readonly CourseStanding[], curriculum: Curriculum, options: PlaceOptions = {}): Placement {
   checkInput(standings);
+  const legacy = options.legacy === true;
+  let best = arrange(standings, curriculum, legacy, new Set());
+  if (!legacy) return best;
+
+  const twoPlaces = standings
+    .filter(one => one.standing === 'passed' || one.standing === 'in-progress')
+    .map(one => one.code)
+    .filter(code => {
+      const places = findCourse(curriculum, code);
+      return places.some(place => place.kind === 'legacy-elective') && places.some(place => place.kind === 'pick');
+    });
+  const asElective = new Set<string>();
+  for (const code of twoPlaces) {
+    const moved = arrange(standings, curriculum, legacy, new Set([...asElective, code]));
+    if (countsMore(moved, best)) {
+      asElective.add(code);
+      best = moved;
+    }
+  }
+  return best;
+}
+
+/** One placement: `asElective` names the legacy-only courses that give up their pick to be electives. */
+function arrange(standings: readonly CourseStanding[], curriculum: Curriculum, legacy: boolean, asElective: ReadonlySet<string>): Placement {
   const { blocks, electives, sequence } = curriculum;
   const sequenceCourses = new Set(sequence.alternatives.flatMap(alternative => alternative.courses));
   const stateOf = new Map<string, FillState>();
 
   const required = new Map<string, FillState>();
   const forPick = new Map<string, Claim[]>();
-  const forElective: (Claim & { by: 'name' | 'rule' })[] = [];
+  const forElective: (Claim & { by: ElectiveBy })[] = [];
   const unplaced: { order: number; entry: Unplaced }[] = [];
   const pickKey = (blockId: string, group: number): string => `${blockId}#${group}`;
 
@@ -164,15 +207,20 @@ export function placeCourses(standings: readonly CourseStanding[], curriculum: C
     const places = findCourse(curriculum, code);
     const inBlock = places.find(place => place.kind === 'required' || place.kind === 'pick');
     const named = places.find(place => place.kind === 'named-elective');
-    if (inBlock?.kind === 'required') {
+    const legacyOnly = places.find(place => place.kind === 'legacy-elective');
+    if (legacyOnly && asElective.has(code)) {
+      forElective.push({ course: legacyOnly.course, state, order, by: 'legacy' });
+    } else if (inBlock?.kind === 'required') {
       required.set(code, state);
     } else if (inBlock?.kind === 'pick') {
       const key = pickKey(inBlock.blockId, inBlock.group);
       forPick.set(key, [...(forPick.get(key) ?? []), { course: inBlock.course, state, order }]);
     } else if (named) {
       forElective.push({ course: named.course, state, order, by: 'name' });
-    } else if (places.some(place => place.kind === 'legacy-elective')) {
-      // Whether a legacy-only course can count depends on the legacy answer.
+    } else if (legacyOnly && legacy) {
+      forElective.push({ course: legacyOnly.course, state, order, by: 'legacy' });
+    } else if (legacyOnly) {
+      // Not a legacy student, or not asked yet: it counts nothing.
       unplaced.push({ order, entry: { code, state, reason: 'legacy-only' } });
     } else if (electives.except.includes(code)) {
       // It would match the elective rule, but the curriculum says it never counts.

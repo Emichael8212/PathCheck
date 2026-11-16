@@ -114,8 +114,10 @@
         "Automated tests cover legacy Yes and legacy No"
       ],
       "passes": false,
-      "evidence": "",
-      "tests": []
+      "evidence": "docs/sprints/F05.md — rule, wording and remembered answer merged with tests; not passing yet: the on-screen question is pending F08, F11 and F13",
+      "tests": [
+        "tests/legacy.test.ts"
+      ]
     },
     {
       "id": "F06",
