@@ -11,7 +11,8 @@
     <script type="module">
       import { render } from './view.js';
       document.getElementById('app').innerHTML = render('left');
-      const { setupPrint } = await import('./behavior.js');
+      const { setupCredits, setupPrint } = await import('./behavior.js');
+      setupCredits(document);
       setupPrint(document, window);
     </script>
   </body>

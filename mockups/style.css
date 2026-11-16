@@ -445,7 +445,7 @@ svg { display: block; flex-shrink: 0; }
 
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1.5fr 1fr;
   margin-bottom: 28px;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -457,7 +457,9 @@ svg { display: block; flex-shrink: 0; }
 .summary .num { font-size: 32px; font-weight: 800; line-height: 1.5; letter-spacing: -1px; }
 .summary .num.is-counts { color: var(--counts); }
 .summary .num.is-no { color: var(--nocount); }
-.summary span:last-child { color: var(--ink-2); font-size: 12px; }
+.summary-label, .summary-condition { color: var(--ink-2); font-size: 12px; }
+/* Without a transcript the count is conditional, and says so right under the number. */
+.summary-condition { line-height: 1.45; }
 
 .toolbar { display: grid; align-items: flex-end; gap: 17px; margin-bottom: 20px; }
 .search { position: relative; }
@@ -602,10 +604,16 @@ svg { display: block; flex-shrink: 0; }
 .donut strong { font-size: 48px; font-weight: 800; line-height: 1.1; letter-spacing: -2px; }
 .donut span { margin-top: 6px; color: var(--ink-2); font-size: 11px; }
 .credit-bar { display: flex; height: 12px; border: 1px solid var(--line-strong); border-radius: 99px; background: var(--surface-2); overflow: hidden; }
-.legend { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 13px; font-size: 11px; }
-.legend > div { display: flex; align-items: center; gap: 5px; }
-.legend dt { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); }
-.legend dd { font-variant-numeric: tabular-nums; font-weight: 700; }
+/* The bar's parts are labelled where they are: no legend. The label grid uses the same
+   proportions as the bar (set inline from the credits), so each label starts at its part. */
+.credit { display: grid; row-gap: 6px; }
+.credit .credit-bar { grid-column: 1 / -1; grid-row: 2; }
+.bar-label { color: var(--ink-2); font-size: 11px; line-height: 1.5; white-space: nowrap; }
+.bar-label strong { color: var(--ink); font-weight: 700; }
+.bar-label.is-progress { grid-column: 2 / -1; grid-row: 1; }
+.bar-label.is-counted { grid-column: 1; grid-row: 3; }
+.bar-label.is-left { grid-column: 3; grid-row: 3; justify-self: start; }
+.bar-label.is-total { grid-column: 3; grid-row: 3; justify-self: end; }
 
 .pace { margin-top: 25px; padding-top: 22px; border-top: 1px solid var(--line); }
 .pace-grid { display: grid; gap: 16px; margin-top: 12px; }
@@ -620,8 +628,7 @@ svg { display: block; flex-shrink: 0; }
 }
 .stepper { display: flex; align-items: stretch; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); }
 .stepper button { display: grid; place-items: center; width: 48px; min-height: 44px; font-size: 20px; line-height: 28px; }
-.stepper button:disabled { opacity: 0.4; }
-.stepper output { flex: 1; display: grid; place-items: center; border-inline: 1px solid var(--line); font-weight: 600; }
+.stepper output { flex: 1; display: flex; justify-content: center; align-items: center; gap: 0.3em; border-inline: 1px solid var(--line); font-weight: 600; white-space: nowrap; }
 .switch {
   display: flex;
   align-items: center;
@@ -636,6 +643,7 @@ svg { display: block; flex-shrink: 0; }
 .switch-track { position: relative; width: 40px; height: 24px; border: 2px solid var(--line-strong); border-radius: 99px; background: var(--surface-2); }
 .switch-track span { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink-2); }
 .switch-value { font-weight: 600; }
+.field-note { color: var(--ink-2); font-size: 12px; line-height: 1.5; }
 
 .reqs { margin-top: 44px; }
 .tabs { display: flex; padding: 4px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); }
@@ -660,7 +668,10 @@ svg { display: block; flex-shrink: 0; }
 .req-bar .is-counted { border: 0; background: var(--counts); }
 .req-credits { color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .req-credits strong { color: var(--ink); }
-.req-cue { justify-self: end; color: var(--ink-2); transform: rotate(90deg); transition: transform 0.15s; }
+.req-show { justify-self: end; display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.req-show .when-open, details[open] .req-show .when-closed { display: none; }
+details[open] .req-show .when-open { display: inline; }
+.req-cue { transform: rotate(90deg); transition: transform 0.15s; }
 details[open] .req-cue { transform: rotate(-90deg); }
 .req-body { display: grid; gap: 16px; padding: 16px; border-top: 1px solid var(--line); }
 .group-title { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: 11px; font-weight: 700; line-height: 1.43; }
@@ -751,12 +762,13 @@ details[open] .req-cue { transform: rotate(-90deg); }
   .entry-left { padding: 35px; border-top: 0; border-left: 1px solid var(--line); }
   .demo { grid-template-columns: 0.8fr 1fr; align-items: center; gap: 70px; padding-inline: 25px; }
   .toolbar { grid-template-columns: 1fr 1fr; }
+  .summary { grid-template-columns: repeat(3, 1fr); }
   .summary > div { padding: 22px; }
   .semester > ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 12px; }
 }
 @media (min-width: 768px) {
-  .pace-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .req-row { grid-template-columns: 220px 150px minmax(0, 1fr) 80px 24px; }
+  .pace-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .req-row { grid-template-columns: 220px 150px minmax(0, 1fr) 80px 112px; }
   .req-status { justify-self: start; }
   .req-bar { grid-column: auto; }
   .req-credits { font-size: 16px; line-height: 24px; text-align: right; }
@@ -768,6 +780,7 @@ details[open] .req-cue { transform: rotate(-90deg); }
   .intro h1 { font-size: 40px; }
   .entry { margin-top: 38px; }
   .left { padding-top: 40px; }
+  .pace-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .overview { padding: 32px; }
   .overview-main { gap: 36px; }
   .donut { width: 175px; height: 175px; }
@@ -786,9 +799,7 @@ details[open] .req-cue { transform: rotate(-90deg); }
     padding: 14px 20px;
     background: var(--surface-2);
     color: var(--ink-2);
-    font-size: 10px;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
+    font-size: 12px;
   }
   .row { grid-template-columns: minmax(0, 0.85fr) 54px minmax(0, 1.3fr) 36px; align-items: start; gap: 16px; padding: 23px 20px; }
   .row.is-no { padding-left: 16px; }

@@ -29,6 +29,21 @@ one-line cases. Follow them.
   element, or as FAIL:** the cards around the two choices and around the results; the pill
   badge "Before registration. Before you pay."; the upload icon in a circle; the small
   uppercase section labels ("FOR NEXT SEMESTER", etc.).
+- 2026-11-15 — **More owner-approved design choices (answers on PR #4). Do not mark these
+  as generic, as a banned element, or as FAIL:** the "Your major" dropdown on Start with its
+  single pre-selected option; pill-shaped tabs (the top links, "All / Not done"); the indigo
+  main button; the numbered chips ("01", "02", and "1 / 2 / 3" under "See it work").
+- 2026-11-15 — **Owner rules from the same answers. These you do enforce:** the count at the
+  top of page 2 carries its condition when there is no transcript; there is no third answer
+  ("Can't confirm…") and the filter says "Doesn't count"; In progress and Still needed
+  requirements show their courses without a tap, Done ones open with "Show courses";
+  credits per term has "Fewest" and "Most", with no hard limit; no uppercase grey table
+  header and no legend (bar segments are labelled directly); "Counts" and "Done" have
+  different marks, and all five statuses differ; the privacy sentence is "Your PDF is read,
+  then deleted. Only your result stays in this browser."
+- 2026-11-15 — The visual reference is the owner's published design **plus these answers**.
+  `docs/design/screens/` shows the mockups after the answers; where a page differs from the
+  published site, it must be because of a dated owner answer in `docs/decision-log.md`.
 - 2026-11-15 — Anything else in the owner's design that conflicts with the brief is not
   changed silently: it is listed for the owner in the PR under "Conflicts with the brief".
   Report such an item, and check that it is on that list; a listed item kept as the owner

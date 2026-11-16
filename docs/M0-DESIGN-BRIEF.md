@@ -5,8 +5,9 @@
 > the three directions"; `docs/design/`). The instructions below to produce three
 > directions and to apply Apple's guidance and Liquid Glass no longer apply. What still
 > applies is the fixed content and wording under "The 3 pages" and the "Requirements" list.
-> One known slip in that content: it says "15 count toward CIS", but its own six courses
-> give 12 (four counting courses at 3 credits); the owner's design and the mockups show 12.
+> One slip in that content: it says "15 count toward CIS". The owner confirmed on
+> 2026-11-15 that 12 is correct and the 15 was a mistake. Later answers of the same day also
+> replace the privacy sentence and the single "credits per term" control (see the log).
 
 The owner rejected the first three mockups and gave this brief for the next round. It is
 copied as written. Where it differs from `docs/BRIEF.md`, this brief wins (see

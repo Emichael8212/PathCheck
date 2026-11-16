@@ -1,5 +1,5 @@
-// The only two things that move in the mockups: the "See it work" demo on Start, and
-// printing "What I have left". Everything else is drawn, not wired.
+// The few things that move in the mockups: the "See it work" demo on Start; and on "What I
+// have left", the two credit steppers and printing. Everything else is drawn, not wired.
 
 export const STEP_MS = 3600;
 export const nextStep = (n, total) => (n % total) + 1;
@@ -59,4 +59,34 @@ export function setupPrint(doc, win) {
     closed = [];
   });
   doc.querySelector('[data-print]')?.addEventListener('click', () => win.print());
+}
+
+// "Fewest" and "Most" credits per term. Both can be changed and PathCheck sets no hard limit:
+// the portal enforces the real one. A neutral note appears under 12 and over 18.
+export const FULL_TIME = 12;
+export const USUAL_MOST = 18;
+export function stepCredits({ fewest, most }, which, delta) {
+  if (which === 'fewest') return { fewest: Math.min(most, Math.max(1, fewest + delta)), most };
+  return { fewest, most: Math.max(fewest, most + delta) };
+}
+export const creditNotes = ({ fewest, most }) => ({ fewest: fewest < FULL_TIME, most: most > USUAL_MOST });
+
+export function setupCredits(doc) {
+  const fields = { fewest: doc.querySelector('[data-stepper="fewest"]'), most: doc.querySelector('[data-stepper="most"]') };
+  const read = name => Number(fields[name].querySelector('[data-value]').textContent);
+  let state = { fewest: read('fewest'), most: read('most') };
+  const show = () => {
+    const notes = creditNotes(state);
+    for (const name of ['fewest', 'most']) {
+      fields[name].querySelector('[data-value]').textContent = String(state[name]);
+      fields[name].querySelector('[data-note]').hidden = !notes[name];
+    }
+  };
+  for (const name of ['fewest', 'most']) {
+    for (const button of fields[name].querySelectorAll('[data-delta]')) {
+      button.addEventListener('click', () => { state = stepCredits(state, name, Number(button.dataset.delta)); show(); });
+    }
+  }
+  show();
+  return { get state() { return state; } };
 }

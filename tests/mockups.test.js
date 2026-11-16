@@ -1,12 +1,13 @@
-// F01: the owner's design as the M0 mockups (docs/sprints/F01.md, docs/design/DESIGN.md).
+// F01: the owner's design, with the owner's answers of 2026-11-15, as the M0 mockups
+// (docs/sprints/F01.md, docs/design/DESIGN.md, docs/decision-log.md).
 // These tests read the rendered text, the markup and the CSS. Whether a page looks like
 // the owner's screenshots is the evaluator's job, with a browser.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CAVEAT, CONDITION, check, left, start, summary } from '../mockups/data.js';
+import { CAVEAT, CONDITION, PRIVACY, check, left, start, summary } from '../mockups/data.js';
 import { marks, pageNames, render } from '../mockups/view.js';
-import { STEP_MS, nextStep, setupDemo, setupPrint } from '../mockups/behavior.js';
+import { STEP_MS, creditNotes, nextStep, setupCredits, setupDemo, setupPrint, stepCredits } from '../mockups/behavior.js';
 import curriculum from '../docs/curriculum/provisional-current.json';
 
 const repo = join(import.meta.dirname, '..');
@@ -147,13 +148,13 @@ describe('page 1: Start', () => {
       'Before registration. Before you pay.',
       'Does it count toward your degree? Check before you select your classes.',
       'Know what counts. See what’s left. Make room for what matters.',
-      'Your major', 'B.S. - Computer Information Systems',
+      'Your major', 'B.S. Computer Information Systems',
       '01 For next semester Check my courses', 'Is each of next semester’s courses going to count?',
       '~30 seconds · No transcript needed',
       '02 For the bigger picture See what I have left',
       'Upload the unofficial transcript PDF from the portal; get what’s left, pace, and a draft plan.',
       'Drag & drop your transcript PDF here', 'Browse files',
-      'Your transcript PDF is read and discarded; nothing is stored.',
+      'Your PDF is read, then deleted. Only your result stays in this browser.',
       'Mockup: opens synthetic student results.',
     ]) expect(text, expected).toContain(expected);
     expect(html).toMatch(/<a class="btn primary" href="check\.html">Check my courses /);
@@ -169,8 +170,13 @@ describe('page 1: Start', () => {
     expect(css).toMatch(/\.upload-icon \{[^}]*border-radius: 50%;/);
     expect(html).toContain('<span class="eyebrow">For next semester</span>');
     expect(css).toMatch(/\.eyebrow \{[^}]*text-transform: uppercase;/);
-    // The major is the design's dropdown with its single option, kept as designed.
-    expect(html).toMatch(/<select id="major"><option selected>B\.S\. - Computer Information Systems<\/option><\/select>/);
+    // The major dropdown is kept, with one pre-selected option and nothing else (owner, answer a).
+    expect(html).toMatch(/<select id="major"><option selected>B\.S\. Computer Information Systems<\/option><\/select>/);
+    expect(html.match(/<option/g)).toHaveLength(1);
+    expect(text).not.toMatch(/coming soon/i);
+    // The privacy sentence sits inside the drop zone, next to the upload control (answer i).
+    expect(PRIVACY).toBe('Your PDF is read, then deleted. Only your result stays in this browser.');
+    expect(decode(html.match(/<div class="drop">[\s\S]*?<\/div>/)[0])).toContain(`Browse files ${PRIVACY}`);
   });
 
   it('shows one example answer, with its condition', () => {
@@ -213,7 +219,9 @@ describe('page 2: Check my courses', () => {
 
   it('has the heading, the summary and the six courses, each with one answer', () => {
     expect(text).toContain('Check my courses Spring 2027 No transcript added');
-    expect(text).toContain('18 Total credits 12 Count toward CIS 6 Don’t count');
+    // The count carries its condition when there is no transcript (owner, answer b).
+    expect(text).toContain('18 Total credits 12 Count toward CIS unless you’ve already passed them or filled their slots 6 Don’t count');
+    expect(html).toMatch(/<span class="num is-counts">12<\/span><span class="summary-label">Count toward CIS<\/span><span class="summary-condition">unless you’ve already passed them or filled their slots<\/span>/);
     expect(text).toContain('Course Credits Does it count? Remove');
     const rows = rowsOf(html);
     expect(rows).toHaveLength(6);
@@ -231,7 +239,7 @@ describe('page 2: Check my courses', () => {
     });
     for (const more of [
       'Remember: you need HIS 132 or ENG 210 for the history/literature sequence.',
-      'Add your transcript for an exact answer', 'Your transcript PDF is read and discarded; nothing is stored.', 'Choose transcript PDF',
+      'Add your transcript for an exact answer', PRIVACY, 'Choose transcript PDF',
     ]) expect(text).toContain(more);
   });
 
@@ -249,7 +257,9 @@ describe('page 2: Check my courses', () => {
     expect(html).toMatch(/<button type="button" class="btn primary add" disabled>Add<\/button>/);
     expect(html).toMatch(/<ul id="suggestions" role="listbox" aria-label="Suggestions" class="suggestions" hidden><\/ul>/);
     expect(html).toMatch(/<button type="button" aria-pressed="true">All courses<\/button>/);
-    expect(decode(html.match(/<button type="button" aria-pressed="false">[\s\S]*?<\/button>/)[0]).trim()).toBe('Doesn’t count / unconfirmed');
+    // One answer for a course outside the curriculum, so the filter just says "Doesn’t count" (answer c).
+    expect(decode(html.match(/<button type="button" aria-pressed="false">[\s\S]*?<\/button>/)[0]).trim()).toBe('Doesn’t count');
+    for (const which of pages) expect(page(which).text).not.toMatch(/unconfirmed|Can’t confirm/i);
   });
 
   it('typing state: "mgt 3" suggests MGT 321 Principles of Management before it is added', () => {
@@ -259,8 +269,14 @@ describe('page 2: Check my courses', () => {
     expect(menu).not.toContain('hidden');
     expect(decode(menu).trim()).toBe('MGT 321 Principles of Management');
     expect(typing.html).toMatch(/<button type="button" class="btn primary add">Add<\/button>/);
-    expect(typing.text).toContain('15 Total credits 9 Count toward CIS 6 Don’t count');
+    expect(typing.text).toContain('15 Total credits 9 Count toward CIS unless you’ve already passed them or filled their slots 6 Don’t count');
     expect(rowsOf(typing.html)).toHaveLength(5);
+  });
+
+  it('has a normal-case table header, not an uppercase grey one', () => {
+    const head = css.match(/\n {2}\.table-head \{[^}]*\}/)[0];
+    expect(head).not.toMatch(/text-transform|letter-spacing/);
+    expect(text).toContain('Course Credits Does it count? Remove');
   });
 
   it('makes "Doesn’t count" a tinted, heavy-edged row', () => {
@@ -274,9 +290,14 @@ describe('page 3: What I have left', () => {
   it('opens with what’s left and the pace answer, before anything else', () => {
     expect(text).toContain('What I have left Your degree, in focus. Synthetic transcript result');
     expect(text).toContain('81 credits left Looking ahead On pace for Spring 2029 about 16 credits a term Credits only — course order may add semesters.');
-    expect(text).toContain('Counted 27 In progress · Fall 2026 13 Left 81 Total 121');
+    // No legend: each part of the bar is labelled where it is (owner, answer f2).
+    expect(text).toContain('13 in progress · Fall 2026 27 counted 81 left 121 total');
+    expect(html).not.toMatch(/class="legend"|<dl/);
+    expect(html).toContain('<div class="credit" style="grid-template-columns: minmax(0, 27fr) minmax(0, 13fr) minmax(0, 81fr)">');
+    expect(css).toMatch(/\.bar-label\.is-progress \{ grid-column: 2 \/ -1; grid-row: 1; \}/);
+    expect(css).toMatch(/\.bar-label\.is-counted \{ grid-column: 1; grid-row: 3; \}/);
+    expect(css).toMatch(/\.bar-label\.is-left \{ grid-column: 3; grid-row: 3; justify-self: start; \}/);
     expect(html).toContain('aria-label="81 credits left, 27 counted, 13 in progress, 121 total"');
-    expect(html).toContain('aria-label="27 credits counted, 13 in progress, 81 left of 121 total"');
     expect(html.indexOf('class="overview"')).toBeLessThan(html.indexOf('class="reqs"'));
     expect(html.indexOf('class="reqs"')).toBeLessThan(html.indexOf('class="plan"'));
     // The bar and the ring are drawn from the same numbers.
@@ -284,13 +305,26 @@ describe('page 3: What I have left', () => {
     expect(html).toContain('style="--counted: 22.314%; --counted-and-progress: 33.058%"');
   });
 
-  it('has the three pace controls as real, labelled controls', () => {
+  it('has the pace controls as real, labelled controls, with Fewest and Most both editable', () => {
     expect(text).toContain('Make the estimate yours');
     expect(html).toMatch(/<legend class="sr-only">Adjust your pace<\/legend>/);
     expect(html).toMatch(/<label for="target">Target semester<\/label>\s*<select id="target">\s*<option>Fall 2028<\/option><option selected>Spring 2029<\/option><option>Fall 2029<\/option><option>Spring 2030<\/option><option>Fall 2030<\/option>/);
-    expect(html).toMatch(/<div class="stepper" role="group" aria-labelledby="credits-label">\s*<button type="button" aria-label="Fewer credits per term">−<\/button>\s*<output class="num">18 credits<\/output>\s*<button type="button" aria-label="More credits per term" disabled>\+<\/button>/);
+    for (const [name, label, value] of [['fewest', 'Fewest credits per term', 12], ['most', 'Most credits per term', 18]]) {
+      const field = html.match(new RegExp(`<div class="field" data-stepper="${name}">[\\s\\S]*?</p>`))[0];
+      expect(field).toContain(`<span id="${name}-label">${label}</span>`);
+      expect(field).toContain(`<button type="button" aria-label="${label}: one fewer" data-delta="-1">−</button>`);
+      expect(field).toContain(`<output class="num"><span data-value>${value}</span> credits</output>`);
+      expect(field).toContain(`<button type="button" aria-label="${label}: one more" data-delta="1">+</button>`);
+      // No hard limit: neither button is switched off.
+      expect(field).not.toContain('disabled');
+    }
+    // The neutral notes exist but are not shown at 12 and 18.
+    expect(html).toContain('<p class="field-note" data-note hidden>Below 12 credits: below full-time; may affect scholarships.</p>');
+    expect(html).toContain('<p class="field-note" data-note hidden>Over 18 credits: may cost extra.</p>');
     expect(html).toMatch(/<button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="summers-label">/);
-    expect(text).toContain('Most credits per term − 18 credits + Summers Off');
+    expect(text).toContain('Fewest credits per term − 12 credits +');
+    expect(text).toContain('Most credits per term − 18 credits +');
+    expect(text).toContain('Summers Off');
   });
 
   it('lists the nine requirements with credits and status in words', () => {
@@ -304,22 +338,30 @@ describe('page 3: What I have left', () => {
     items.forEach((item, i) => {
       const [name, credits, status] = expected[i];
       const [counted, needed] = credits.replace(' cr', '').split(' / ').map(Number);
-      const row = decode(item.match(/class="req-row">[\s\S]*?(?=<\/summary>|<\/div>\s*<\/li>)/)[0].replace('class="req-row">', ''));
-      expect(row.trim(), name).toBe(`${name} ${status} ${credits}`);
+      const done = status === 'Done';
+      const row = decode(item.match(/class="req-row">[\s\S]*?(?=<\/span><\/summary>|<\/div>\s*<div class="req-body">)/)[0].replace('class="req-row">', ''));
+      expect(row.trim(), name).toBe(`${name} ${status} ${credits}${done ? ' Show courses Hide courses' : ''}`);
       // One bar segment per credit; the counted ones are filled.
       const bar = item.match(/<span class="req-bar" aria-hidden="true">((?:<span[^>]*><\/span>)+)<\/span>/)[1];
       expect(bar.match(/<span[^>]*><\/span>/g), name).toHaveLength(needed);
       expect(bar.match(/class="is-counted"/g) ?? [], name).toHaveLength(counted);
-      // As in the design: a Done requirement is a plain row; the others open to show their courses.
-      expect(item.includes('<details>'), name).toBe(status !== 'Done');
-      expect(item.includes('<summary><span class="req-row">'), name).toBe(status !== 'Done');
+      // Owner, answer d: In progress and Still needed show their courses straight away;
+      // a Done requirement is collapsed and opens with "Show courses".
+      expect(item.includes('<details>'), name).toBe(done);
+      expect(item.includes('<summary><span class="req-row">'), name).toBe(done);
+      expect(item.includes('<span class="when-closed">Show courses</span>'), name).toBe(done);
+      expect(item).not.toContain('<details open');
+      expect(item.match(/<div class="req-body">/g), name).toHaveLength(1);
       expect(item.includes({ 'Done': 'mark-done', 'In progress': 'mark-progress', 'Still needed': 'mark-needed' }[status]), name).toBe(true);
     });
-    expect(text).toContain('The rest of your degree Requirements All Not done Credits counted / needed · Open a requirement for courses.');
+    expect(text).toContain('The rest of your degree Requirements All Not done Credits counted / needed.');
   });
 
   it('shows each open requirement’s courses exactly as in the brief', () => {
     for (const expectedText of [
+      'Done ORI 100 Freshman Orientation',
+      'Done ENG 131 English Composition I ENG 132 English Composition II',
+      'Done BIO 127 General Biology BIOL 127 General Biology Lab BIO 128 General Biology BIOL 128 General Biology Lab MAT 137 Pre-Calculus Algebra',
       'Done HIS 131 World History',
       'In progress ECO 251 Principles of Macroeconomics Repeat; the earlier D doesn’t count.',
       'Still needed ECO 252 Principles of Microeconomics 1 of HIS 132 / GEO 206 / ANT 113 / POS 207 / PSY 251 / SOC 110',
@@ -361,6 +403,7 @@ describe('page 3: What I have left', () => {
     expect(printTokens['--surface']).toBe('#ffffff');
     expect(Object.keys(printTokens).sort()).toEqual(Object.keys(light).sort());
     expect(read('left.html')).toContain('setupPrint(document, window)');
+    expect(read('left.html')).toContain('setupCredits(document)');
   });
 });
 
@@ -434,6 +477,41 @@ describe('the things that move', () => {
     expect(root.toggle.getAttribute('aria-label')).toBe('Play demo');
   });
 
+  it('the credit range has two editable ends and no hard limit', () => {
+    const start12to18 = { fewest: 12, most: 18 };
+    expect(stepCredits(start12to18, 'most', 1)).toEqual({ fewest: 12, most: 19 });
+    expect(stepCredits({ fewest: 12, most: 30 }, 'most', 1)).toEqual({ fewest: 12, most: 31 });
+    expect(stepCredits(start12to18, 'fewest', -1)).toEqual({ fewest: 11, most: 18 });
+    // The two ends cannot cross, and Fewest stops at 1.
+    expect(stepCredits({ fewest: 12, most: 12 }, 'most', -1)).toEqual({ fewest: 12, most: 12 });
+    expect(stepCredits({ fewest: 18, most: 18 }, 'fewest', 1)).toEqual({ fewest: 18, most: 18 });
+    expect(stepCredits({ fewest: 1, most: 18 }, 'fewest', -1)).toEqual({ fewest: 1, most: 18 });
+    // Neutral notes: under 12, and over 18. Exactly 12 and 18 carry none.
+    expect(creditNotes(start12to18)).toEqual({ fewest: false, most: false });
+    expect(creditNotes({ fewest: 11, most: 19 })).toEqual({ fewest: true, most: true });
+  });
+
+  it('pressing + on Most past 18 shows "may cost extra"; − on Fewest under 12 shows the scholarship note', () => {
+    const field = value => {
+      const valueEl = { textContent: String(value) };
+      const note = { hidden: true };
+      const buttons = [el({ delta: '-1' }), el({ delta: '1' })];
+      return { valueEl, note, buttons, querySelector: sel => (sel === '[data-value]' ? valueEl : note), querySelectorAll: () => buttons };
+    };
+    const fields = { fewest: field(12), most: field(18) };
+    const credits = setupCredits({ querySelector: sel => fields[sel.includes('fewest') ? 'fewest' : 'most'] });
+    expect([fields.fewest.note.hidden, fields.most.note.hidden]).toEqual([true, true]);
+    fields.most.buttons[1].handlers.click();
+    expect(fields.most.valueEl.textContent).toBe('19');
+    expect(fields.most.note.hidden).toBe(false);
+    fields.most.buttons[0].handlers.click();
+    expect(fields.most.note.hidden).toBe(true);
+    fields.fewest.buttons[0].handlers.click();
+    expect(fields.fewest.valueEl.textContent).toBe('11');
+    expect(fields.fewest.note.hidden).toBe(false);
+    expect(credits.state).toEqual({ fewest: 11, most: 18 });
+  });
+
   it('printing opens every requirement, then puts them back', () => {
     const details = [el(), el()];
     const button = el();
@@ -488,7 +566,7 @@ describe('the basics kept from the brief', () => {
     }
     for (const which of pages) {
       // Inline styles carry sizes only, never a color.
-      for (const [, style] of page(which).html.matchAll(/style="([^"]*)"/g)) expect(style).toMatch(/^(width: [\d.]+%|--counted: [\d.]+%; --counted-and-progress: [\d.]+%)$/);
+      for (const [, style] of page(which).html.matchAll(/style="([^"]*)"/g)) expect(style).toMatch(/^(width: [\d.]+%|--counted: [\d.]+%; --counted-and-progress: [\d.]+%|grid-template-columns: minmax\(0, \d+fr\) minmax\(0, \d+fr\) minmax\(0, \d+fr\))$/);
     }
     expect(css).toMatch(/@media \(prefers-color-scheme: dark\) \{\s*:root \{/);
   });
@@ -524,9 +602,13 @@ describe('the basics kept from the brief', () => {
   it('gives every status a word and a shape', () => {
     expect(Object.keys(marks).sort()).toEqual(['counts', 'done', 'needed', 'no', 'progress']);
     const shape = fn => fn(20).replace(/class="[^"]*"/, '');
-    // The design draws "Counts" and "Done" as the same checked disc; the other three differ.
-    expect(shape(marks.counts)).toBe(shape(marks.done));
-    expect(new Set([marks.counts, marks.no, marks.progress, marks.needed].map(shape)).size).toBe(4);
+    // Five statuses, five shapes (owner, answer g). "Counts" is an outlined tick: it has no
+    // filled disc, so a conditional answer never looks like a finished requirement.
+    expect(new Set(Object.values(marks).map(shape)).size).toBe(5);
+    expect(shape(marks.done)).toContain('<circle cx="10" cy="10" r="9" fill="currentColor"/>');
+    expect(shape(marks.counts)).toContain('fill="none" stroke="currentColor"');
+    expect(shape(marks.counts)).not.toContain('fill="currentColor"');
+    for (const which of ['start', 'check', 'check-typing']) expect(page(which).html).not.toContain('mark-done');
     for (const fn of Object.values(marks)) expect(fn()).toContain('aria-hidden="true"');
     const { html } = page('left');
     for (const status of ['Done', 'In progress', 'Still needed']) expect(html).toMatch(new RegExp(`<span class="req-status"><svg[^>]*mark-[a-z]+"[\\s\\S]*?</svg>${status}</span>`));
@@ -558,6 +640,8 @@ describe('the mockup content', () => {
       if (course.title) expect(course.title, course.code).toBe(known.get(course.code).title);
     }
     expect(named.filter(course => !course.title).map(course => course.code)).toEqual(['ACT 214', 'MGT 202', 'PED 114']);
+    // One course from each Composition pair, never both of a pair.
+    expect(left.blocks[1].done.map(course => course.code)).toEqual(['ENG 131', 'ENG 132']);
     // MKT 410 fits the elective rule and BIO 230 is in no list.
     expect(known.has('MKT 410')).toBe(false);
     expect(curriculum.electives.subjectRule.prefixes).toContain('MKT');
@@ -575,7 +659,8 @@ describe('the mockup content', () => {
     expect(inProgress.reduce((sum, course) => sum + credits(course.code), 0)).toBe(13);
     expect([left.counted, left.inProgress, left.remaining, left.total]).toEqual([27, 13, 81, 121]);
     expect(left.total - left.counted - left.inProgress).toBe(left.remaining);
-    for (const block of left.blocks.filter(item => item.status !== 'Done')) {
+    // Counted credits are the credits of the courses listed as Done, in every requirement.
+    for (const block of left.blocks) {
       expect((block.done ?? []).reduce((sum, course) => sum + credits(course.code), 0), block.name).toBe(block.counted);
     }
   });

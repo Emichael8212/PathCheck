@@ -1,9 +1,11 @@
-// Content for the M0 mockups. Wording is the owner's design ("Combined · Your picks",
-// docs/design/DESIGN.md) and docs/M0-DESIGN-BRIEF.md "The 3 pages".
+// Content for the M0 mockups. Wording is the owner's design (docs/design/DESIGN.md), the
+// owner's answers of 2026-11-15 (docs/decision-log.md) and docs/M0-DESIGN-BRIEF.md "The 3 pages".
 // The student is synthetic. Course codes, titles and credits are real curriculum data.
 
 export const CONDITION = 'unless you’ve already passed it or filled this slot';
 export const CAVEAT = 'Credits only — course order may add semesters.';
+// Shown before the first upload, next to the upload control (owner, 2026-11-15).
+export const PRIVACY = 'Your PDF is read, then deleted. Only your result stays in this browser.';
 
 export const facts = {
   name: 'PathCheck',
@@ -24,7 +26,7 @@ export const start = {
   headline: ['Does it count toward your degree?', 'Check before you select your classes.'],
   sub: 'Know what counts. See what’s left. Make room for what matters.',
   majorLabel: 'Your major',
-  major: 'B.S. - Computer Information Systems',
+  major: 'B.S. Computer Information Systems',
   check: {
     number: '01',
     eyebrow: 'For next semester',
@@ -42,7 +44,7 @@ export const start = {
     drop: 'Drag & drop your transcript PDF here',
     or: 'or',
     browse: 'Browse files',
-    privacy: 'Your transcript PDF is read and discarded; nothing is stored.',
+    privacy: PRIVACY,
     mockNote: 'Mockup: opens synthetic student results.',
   },
   demo: {
@@ -72,12 +74,14 @@ export const check = {
   term: 'Spring 2027',
   status: 'No transcript added',
   summaryLabels: ['Total credits', 'Count toward CIS', 'Don’t count'],
+  // Without a transcript the count is conditional, like every answer under it.
+  countCondition: 'unless you’ve already passed them or filled their slots',
   addLabel: 'Add a course',
   placeholder: 'Course code or title',
   add: 'Add',
   typed: 'mgt 3',
   suggestion: { code: 'MGT 321', title: 'Principles of Management' },
-  filters: ['All courses', 'Doesn’t count / unconfirmed'],
+  filters: ['All courses', 'Doesn’t count'],
   columns: ['Course', 'Credits', 'Does it count?', 'Remove'],
   courses: [
     row('ACT 215', 'Principles of Managerial Accounting', true, 'Counts toward CIS — Pre-professional'),
@@ -89,7 +93,7 @@ export const check = {
   ],
   reminder: 'Remember: you need HIS 132 or ENG 210 for the history/literature sequence.',
   transcript: 'Add your transcript for an exact answer',
-  privacy: 'Your transcript PDF is read and discarded; nothing is stored.',
+  privacy: PRIVACY,
   choose: 'Choose transcript PDF',
 };
 
@@ -121,17 +125,26 @@ export const left = {
     eyebrow: 'Make the estimate yours',
     legend: 'Adjust your pace',
     target: { label: 'Target semester', options: ['Fall 2028', 'Spring 2029', 'Fall 2029', 'Spring 2030', 'Fall 2030'], value: 'Spring 2029' },
-    credits: { label: 'Most credits per term', value: '18 credits', fewer: 'Fewer credits per term', more: 'More credits per term' },
+    // Two editable ends of the range. PathCheck sets no hard limit; the portal does.
+    fewest: { label: 'Fewest credits per term', value: 12, note: 'Below 12 credits: below full-time; may affect scholarships.' },
+    most: { label: 'Most credits per term', value: 18, note: 'Over 18 credits: may cost extra.' },
     summers: { label: 'Summers', value: 'Off' },
   },
   reqEyebrow: 'The rest of your degree',
   reqTitle: 'Requirements',
   reqTabs: ['All', 'Not done'],
-  reqNote: 'Credits counted / needed · Open a requirement for courses.',
+  reqNote: 'Credits counted / needed.',
+  show: 'Show courses',
+  hide: 'Hide courses',
   blocks: [
-    { name: 'Orientation', counted: 1, needed: 1, status: 'Done' },
-    { name: 'Composition', counted: 6, needed: 6, status: 'Done' },
-    { name: 'Science & math', counted: 11, needed: 11, status: 'Done' },
+    // The brief names no courses for the three Done requirements; these are the synthetic
+    // student's, with titles from the curriculum file.
+    { name: 'Orientation', counted: 1, needed: 1, status: 'Done', done: [c('ORI 100', 'Freshman Orientation')] },
+    { name: 'Composition', counted: 6, needed: 6, status: 'Done', done: [c('ENG 131', 'English Composition I'), c('ENG 132', 'English Composition II')] },
+    {
+      name: 'Science & math', counted: 11, needed: 11, status: 'Done',
+      done: [c('BIO 127', 'General Biology'), c('BIOL 127', 'General Biology Lab'), c('BIO 128', 'General Biology'), c('BIOL 128', 'General Biology Lab'), c('MAT 137', 'Pre-Calculus Algebra')],
+    },
     {
       name: 'Social sciences', counted: 3, needed: 12, status: 'In progress',
       done: [c('HIS 131', 'World History')],

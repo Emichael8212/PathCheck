@@ -15,11 +15,12 @@ const svg = (size, body, cls = '', box = 20) =>
 const line = (d, w = 2) => `<path d="${d}" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
 const cut = (d, w = 2.2) => `<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
 
-const disc = `<circle cx="10" cy="10" r="9" fill="currentColor"/>${cut('M5.9 10.3l2.8 2.8 5.5-5.9')}`;
-// One status, one word, one shape. The design gives "Counts" and "Done" the same checked disc.
+const tick = 'M5.9 10.3l2.8 2.8 5.5-5.9';
+// One status, one word, one shape. "Counts" is an outlined tick and "Done" a filled one, so
+// a conditional answer never looks as certain as a finished requirement (owner, 2026-11-15).
 export const marks = {
-  counts: (size = 20) => svg(size, disc, 'mark mark-counts'),
-  done: (size = 16) => svg(size, disc, 'mark mark-done'),
+  counts: (size = 20) => svg(size, `<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/>${line(tick, 2.2)}`, 'mark mark-counts'),
+  done: (size = 16) => svg(size, `<circle cx="10" cy="10" r="9" fill="currentColor"/>${cut(tick)}`, 'mark mark-done'),
   no: (size = 20) => svg(size, `<rect x="1" y="1" width="18" height="18" rx="3" fill="currentColor"/>${cut('M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8')}`, 'mark mark-no'),
   progress: (size = 16) => svg(size, `<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 2a8 8 0 0 1 0 16z" fill="currentColor"/>`, 'mark mark-progress'),
   needed: (size = 16) => svg(size, `<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3.2 2.4"/>`, 'mark mark-needed'),
@@ -228,7 +229,7 @@ const checkPage = (typing = false) => {
   </div>
 
   <div class="summary">
-    ${numbers.map((n, i) => `<div><span class="num${tone[i]}">${n}</span><span>${esc(check.summaryLabels[i])}</span></div>`).join('\n    ')}
+    ${numbers.map((n, i) => `<div><span class="num${tone[i]}">${n}</span><span class="summary-label">${esc(check.summaryLabels[i])}</span>${i === 1 ? `<span class="summary-condition">${esc(check.countCondition)}</span>` : ''}</div>`).join('\n    ')}
   </div>
 
   <div class="toolbar">
@@ -298,19 +299,23 @@ const reqRow = (b, cue) => `
           <span class="req-credits num"><strong>${b.counted}</strong> / ${b.needed} cr</span>
           ${cue}`;
 
-// Done requirements are a plain row, as in the design; the others open to show their courses.
+const reqBody = b => `
+          <div class="req-body">${group('Done', b.done)}${group('In progress', b.progress)}${group('Still needed', b.still)}
+          </div>`;
+const showCue = `<span class="req-show no-print"><span class="when-closed">${esc(left.show)}</span><span class="when-open">${esc(left.hide)}</span>${icons.arrow(16, 'req-cue')}</span>`;
+
+// Owner, 2026-11-15: In progress and Still needed requirements show their courses straight
+// away; a Done requirement is collapsed and opens with "Show courses".
 const requirement = b => b.status === 'Done' ? `
       <li class="req">
-        <div class="req-row">${reqRow(b, '<span></span>')}
-        </div>
+        <details>
+          <summary><span class="req-row">${reqRow(b, showCue)}
+          </span></summary>${reqBody(b)}
+        </details>
       </li>` : `
       <li class="req">
-        <details>
-          <summary><span class="req-row">${reqRow(b, icons.arrow(20, 'req-cue'))}
-          </span></summary>
-          <div class="req-body">${group('Done', b.done)}${group('In progress', b.progress)}${group('Still needed', b.still)}
-          </div>
-        </details>
+        <div class="req-row">${reqRow(b, '<span></span>')}
+        </div>${reqBody(b)}
       </li>`;
 
 const planEntry = e => e.choice ? `
@@ -329,6 +334,18 @@ const planEntry = e => e.choice ? `
             </div>
             <button type="button" class="move no-print" aria-label="Move ${esc(e.code)} later">${icons.move()}<span>${esc(left.move)}</span></button>
           </li>`;
+
+// One end of the credit range. Both ends can be changed; a neutral note appears under 12
+// and over 18. PathCheck sets no hard limit.
+const stepper = (name, f) => `<div class="field" data-stepper="${name}">
+          <span id="${name}-label">${esc(f.label)}</span>
+          <div class="stepper" role="group" aria-labelledby="${name}-label">
+            <button type="button" aria-label="${esc(f.label)}: one fewer" data-delta="-1">−</button>
+            <output class="num"><span data-value>${f.value}</span> credits</output>
+            <button type="button" aria-label="${esc(f.label)}: one more" data-delta="1">+</button>
+          </div>
+          <p class="field-note" data-note hidden>${esc(f.note)}</p>
+        </div>`;
 
 const leftPage = () => {
   const k = left.controls;
@@ -354,14 +371,12 @@ const leftPage = () => {
         <p class="caveat">${esc(left.caveat)}</p>
       </div>
     </div>
-    <div>
-      <div class="credit-bar" role="img" aria-label="${left.counted} credits counted, ${left.inProgress} in progress, ${left.remaining} left of ${left.total} total">${bar()}</div>
-      <dl class="legend">
-        <div><dt>${marks.done(15)}Counted</dt><dd>${left.counted}</dd></div>
-        <div><dt>${marks.progress(15)}In progress · ${esc(left.inProgressTerm)}</dt><dd>${left.inProgress}</dd></div>
-        <div><dt>${marks.needed(15)}Left</dt><dd>${left.remaining}</dd></div>
-        <div><dt>Total</dt><dd>${left.total}</dd></div>
-      </dl>
+    <div class="credit" style="grid-template-columns: minmax(0, ${left.counted}fr) minmax(0, ${left.inProgress}fr) minmax(0, ${left.remaining}fr)">
+      <span class="bar-label is-progress"><strong class="num">${left.inProgress}</strong> in progress · ${esc(left.inProgressTerm)}</span>
+      <div class="credit-bar" aria-hidden="true">${bar()}</div>
+      <span class="bar-label is-counted"><strong class="num">${left.counted}</strong> counted</span>
+      <span class="bar-label is-left"><strong class="num">${left.remaining}</strong> left</span>
+      <span class="bar-label is-total"><strong class="num">${left.total}</strong> total</span>
     </div>
     <div class="pace">
       ${eyebrow(k.eyebrow)}
@@ -373,14 +388,8 @@ const leftPage = () => {
             ${k.target.options.map(o => `<option${o === k.target.value ? ' selected' : ''}>${esc(o)}</option>`).join('')}
           </select>
         </div>
-        <div class="field">
-          <span id="credits-label">${esc(k.credits.label)}</span>
-          <div class="stepper" role="group" aria-labelledby="credits-label">
-            <button type="button" aria-label="${esc(k.credits.fewer)}">−</button>
-            <output class="num">${esc(k.credits.value)}</output>
-            <button type="button" aria-label="${esc(k.credits.more)}" disabled>+</button>
-          </div>
-        </div>
+        ${stepper('fewest', k.fewest)}
+        ${stepper('most', k.most)}
         <div class="field">
           <span id="summers-label">${esc(k.summers.label)}</span>
           <button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="summers-label">

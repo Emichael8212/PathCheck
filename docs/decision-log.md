@@ -152,6 +152,65 @@ https://color-nicks-25285809.figma.site/ (view "Combined · Your picks"; the has
   belonged to the replaced directions. The owner's design uses no glass, and it is followed
   as it is.
 
+### 2026-11-15 — Answers to the nine conflicts on PR #4
+
+The owner's design had nine conflicts with the brief (PR #4, a–i). These are the answers.
+They are applied to the mockups and to `docs/design/DESIGN.md`.
+
+- **a. "Your major" dropdown: keep it.** Other majors will be added later.
+  - "B.S. Computer Information Systems" is pre-selected, so nothing has to be filled in
+    before the two choices.
+  - It has only that one option. No "coming soon" or disabled majors.
+  - This overrides brief §3 and §4 for this control only. It is not "what-if for other
+    majors" (§6). Nothing else multi-major is built. → F06.
+- **b. The count at the top of page 2 carries the condition.** Without a transcript: "12
+  count toward CIS — unless you've already passed them or filled their slots". With a
+  transcript the condition is dropped, because the answer is exact. This is priority 1:
+  never say "counts" without a condition when it may not. → F09, F12.
+- **c. No third answer.** A course not in the curriculum doesn't count. "Can't confirm —
+  this course isn't in PathCheck yet" is removed; the only answer is "Doesn't count toward
+  CIS — not in the CIS curriculum". The filter says "Doesn't count". → F08.
+- **d. Requirements follow the PR #1 decision, not the design.** In progress and Still
+  needed requirements show their remaining courses straight away. Done requirements are
+  collapsed and can be opened with "Show courses". → F13.
+- **e. Credits per term: two controls, "Fewest" and "Most"**, defaulting to 12 and 18, both
+  editable. → F14.
+  - Going above 18 is allowed, with the neutral note "may cost extra".
+  - Under 12 shows "below full-time; may affect scholarships".
+  - PathCheck sets no hard limit. The portal enforces the real one.
+- **f. The other brief §8 patterns:**
+  - f1. Uppercase grey table header (page 2, desktop): removed. Normal-case text.
+  - f2. Legend under the credit bar (page 3): removed. The bar's segments are labelled
+    directly.
+  - f3. Pill-shaped tabs (the top links; "All / Not done"): kept.
+  - f4. Indigo main button: kept.
+  - f5. Numbered chips: "01" and "02" on the Start choices and "1 / 2 / 3" under "See it
+    work" are kept.
+- **g. "Counts" and "Done" get different marks.** "Done" keeps the filled green tick.
+  "Counts" gets its own mark (an outlined tick), so a conditional answer never looks as
+  certain as a finished requirement. The five statuses (Counts, Doesn't count, Done, In
+  progress, Still needed) stay visually distinct, and every mark has its text label.
+- **h. 12 is correct, everywhere.** The "15" in the owner's earlier design brief was a mistake.
+- **i. The privacy sentence is replaced** with "Your PDF is read, then deleted. Only your
+  result stays in this browser." It is shown before the first upload, next to the upload
+  control. → F11, F19.
+
+**Where these differ from the brief:** §3 and §4 (the major dropdown, a); §8 banned list
+(pill-shaped tabs, the indigo main button and the numbered chips are approved, f3–f5; with
+the four choices approved earlier the same day). The uppercase grey table header and
+legends stay banned (f1, f2).
+
+*Agent's notes, not owner decisions:*
+- The owner wrote the major as "B.S. Computer Information Systems"; the published design
+  had "B.S. - Computer Information Systems". The mockups use the owner's wording.
+- The owner's brief names no courses for the three Done requirements. So that "Show
+  courses" has something to show, the synthetic student is given ORI 100; ENG 131 and
+  ENG 132; BIO 127, BIOL 127, BIO 128, BIOL 128 and MAT 137 (titles and credits from the
+  curriculum file).
+- `docs/design/screens/` now holds screenshots of the updated mockups, re-taken as the
+  owner asked. The screenshots of the published site as it stood before these answers are
+  in the git history (commit c0169f4).
+
 ## Milestone checks
 
 | Milestone | Date | Owner's answer |
