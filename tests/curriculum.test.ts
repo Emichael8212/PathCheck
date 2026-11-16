@@ -318,6 +318,8 @@ describe('the loader refuses a broken data file, naming what is wrong', () => {
     expect(broken(data => { ((part(data, 'electives').subjectRule as { [key: string]: Json }).prefixes as Json[])[0] = 'mgt'; })).toThrow(/prefixes\[0\] \(mgt\): must be 2 to 4 capital letters/);
     const rule = (data: ReturnType<typeof copy>) => part(data, 'electives').subjectRule as { [key: string]: Json };
     expect(broken(data => { rule(data).prefixes = []; })).toThrow(/electives\.subjectRule\.prefixes: must list at least one subject/);
+    // "Not already required" is not optional: a course listed in a block is never also an elective.
+    for (const bad of [false, 'true', null]) expect(broken(data => { part(data, 'electives').excludeRequiredCourses = bad; }), String(bad)).toThrow(/electives\.excludeRequiredCourses: must be true/);
     expect(broken(data => { (rule(data).prefixes as Json[])[1] = 'MGT'; })).toThrow(/prefixes\[1\] \(MGT\): the same subject is listed twice/);
     expect(broken(data => { rule(data).maxCourseNumber = 4999; })).toThrow(/electives\.subjectRule\.maxCourseNumber: must be a three-digit course number/);
     expect(broken(data => { rule(data).minCourseNumber = 30; })).toThrow(/electives\.subjectRule\.minCourseNumber: must be a three-digit course number/);

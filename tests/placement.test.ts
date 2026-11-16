@@ -55,7 +55,7 @@ describe('pick groups', () => {
   it('fills a pick with one course only', () => {
     const result = place(['ENG 140', 'ENG 131']);
     expect(filledIn(result, 'composition', 0)).toEqual(['ENG 140 done']);
-    expect(result.unplaced).toEqual([{ code: 'ENG 131', state: 'done', reason: 'pick-filled', filledBy: ['ENG 140'] }]);
+    expect(result.unplaced).toEqual([{ code: 'ENG 131', state: 'done', reason: 'pick-filled', blockId: 'composition', group: 0, filledBy: ['ENG 140'] }]);
     // The other Composition pick is untouched.
     expect(blockOf(result, 'composition').picks[1]).toMatchObject({ filled: [], open: 1 });
     expect(blockOf(result, 'composition').picks[0]?.open).toBe(0);
@@ -66,7 +66,7 @@ describe('pick groups', () => {
     for (const entries of [['ENG 140:-', 'ENG 131'], ['ENG 131', 'ENG 140:-']]) {
       const result = place(entries);
       expect(filledIn(result, 'composition', 0), entries.join()).toEqual(['ENG 131 done']);
-      expect(result.unplaced).toEqual([{ code: 'ENG 140', state: 'in-progress', reason: 'pick-filled', filledBy: ['ENG 131'] }]);
+      expect(result.unplaced).toEqual([{ code: 'ENG 140', state: 'in-progress', reason: 'pick-filled', blockId: 'composition', group: 0, filledBy: ['ENG 131'] }]);
       // The course in progress fills nothing, so it adds nothing to "in progress".
       expect(result.credits).toMatchObject({ done: 3, inProgress: 0 });
     }
@@ -92,7 +92,7 @@ describe('pick groups', () => {
     expect(all.pick.filled.map(one => one.course.code)).toEqual(['XAA 110', 'XAA 120']);
     expect(all.pick.open).toBe(0);
     expect(all.credits).toEqual({ done: 4, inProgress: 0, needed: 4 });
-    expect(all.result.unplaced).toEqual([{ code: 'XAA 130', state: 'done', reason: 'pick-filled', filledBy: ['XAA 110', 'XAA 120'] }]);
+    expect(all.result.unplaced).toEqual([{ code: 'XAA 130', state: 'done', reason: 'pick-filled', blockId: 'basics', group: 0, filledBy: ['XAA 110', 'XAA 120'] }]);
 
     const one = basics(['XAA 130']);
     expect(one.pick).toMatchObject({ open: 1, filled: [{ course: { code: 'XAA 130' }, state: 'done' }] });
@@ -146,7 +146,7 @@ describe('courses outside the curriculum, and transfer credit', () => {
     // The same D on an ordinary row does not count.
     expect(place(['MAT 137:D']).credits.done).toBe(0);
     // No double counting for transfer credit: a second pick course still fills nothing.
-    expect(place(['ENG 131:T', 'ENG 140:T']).unplaced).toEqual([{ code: 'ENG 140', state: 'done', reason: 'pick-filled', filledBy: ['ENG 131'] }]);
+    expect(place(['ENG 131:T', 'ENG 140:T']).unplaced).toEqual([{ code: 'ENG 140', state: 'done', reason: 'pick-filled', blockId: 'composition', group: 0, filledBy: ['ENG 131'] }]);
   });
 
   it('counts a transfer elective by the rule', () => {
@@ -164,6 +164,7 @@ describe('the CIS electives', () => {
     expect(result.electives).toMatchObject({ open: 0, credits: { done: 6, inProgress: 3, needed: 0 } });
     // The named elective carries its title; a rule-matched one has none in the curriculum.
     expect(result.electives.filled.map(one => one.course.title)).toEqual(['Personal Finance', '', '']);
+    expect(result.electives.filled.map(one => one.by)).toEqual(['name', 'rule', 'rule']);
     // The edges of the rule.
     expect(electivesOf(place(['MGT 300', 'ACT 499']))).toEqual(['MGT 300 done', 'ACT 499 done']);
     for (const code of ['MKT 299', 'ECO 500', 'BIO 310', 'MGT 100', 'CISX 310']) {
@@ -232,7 +233,7 @@ describe('the CIS electives', () => {
     expect(filledIn(psychology, 'social-sciences', 0)).toEqual(['PSY 251 done']);
     expect(electivesOf(psychology)).toEqual([]);
     expect(psychology.unplaced).toEqual([]);
-    expect(place(['GEO 206', 'PSY 251']).unplaced).toEqual([{ code: 'PSY 251', state: 'done', reason: 'pick-filled', filledBy: ['GEO 206'] }]);
+    expect(place(['GEO 206', 'PSY 251']).unplaced).toEqual([{ code: 'PSY 251', state: 'done', reason: 'pick-filled', blockId: 'social-sciences', group: 0, filledBy: ['GEO 206'] }]);
   });
 });
 
@@ -257,7 +258,7 @@ describe('the history or literature sequence', () => {
     // The sequence course is running while another passed course holds the pick.
     const result = place(['HIS 131', 'GEO 206', 'HIS 132:-']);
     expect(filledIn(result, 'social-sciences', 0)).toEqual(['GEO 206 done']);
-    expect(result.unplaced).toEqual([{ code: 'HIS 132', state: 'in-progress', reason: 'pick-filled', filledBy: ['GEO 206'] }]);
+    expect(result.unplaced).toEqual([{ code: 'HIS 132', state: 'in-progress', reason: 'pick-filled', blockId: 'social-sciences', group: 0, filledBy: ['GEO 206'] }]);
     expect(result.sequence.state).toBe('in-progress');
     expect(result.credits).toMatchObject({ done: 6, inProgress: 0 });
   });
@@ -276,14 +277,14 @@ describe('the history or literature sequence', () => {
   it('places a sequence course in its pick', () => {
     const history = place(['HIS 131', 'GEO 206', 'HIS 132']);
     expect(filledIn(history, 'social-sciences', 0)).toEqual(['HIS 132 done']);
-    expect(history.unplaced).toEqual([{ code: 'GEO 206', state: 'done', reason: 'pick-filled', filledBy: ['HIS 132'] }]);
+    expect(history.unplaced).toEqual([{ code: 'GEO 206', state: 'done', reason: 'pick-filled', blockId: 'social-sciences', group: 0, filledBy: ['HIS 132'] }]);
     expect(history.sequence.state).toBe('done');
     // The same credits as with the other pick course alone.
     expect(blockOf(history, 'social-sciences').credits).toEqual(blockOf(place(['HIS 131', 'GEO 206']), 'social-sciences').credits);
 
     const literature = place(['ENG 209', 'HUM 101', 'ENG 210']);
     expect(filledIn(literature, 'humanities', 1)).toEqual(['ENG 210 done']);
-    expect(literature.unplaced).toEqual([{ code: 'HUM 101', state: 'done', reason: 'pick-filled', filledBy: ['ENG 210'] }]);
+    expect(literature.unplaced).toEqual([{ code: 'HUM 101', state: 'done', reason: 'pick-filled', blockId: 'humanities', group: 1, filledBy: ['ENG 210'] }]);
     expect(literature.sequence.state).toBe('done');
     // Both in progress: the sequence course is still the one placed.
     expect(filledIn(place(['GEO 206:-', 'HIS 132:-']), 'social-sciences', 0)).toEqual(['HIS 132 in-progress']);
@@ -352,12 +353,31 @@ describe('credits and totals', () => {
     expect(spare).toHaveLength(21 - 6);
     for (const one of result.unplaced) {
       expect(one.reason).toBe('pick-filled');
-      if (one.reason === 'pick-filled') expect(one.filledBy).toHaveLength(1);
+      if (one.reason !== 'pick-filled') continue;
+      // It names the pick it lost and the course that really holds it.
+      const pick = blockOf(result, one.blockId).picks[one.group]!;
+      expect(pick.options.map(course => course.code)).toContain(one.code);
+      expect(one.filledBy).toEqual(pick.filled.map(filled => filled.course.code));
+      expect(one.filledBy).toHaveLength(1);
     }
     // The shortest way to 121: every required course, one course per pick, three electives.
     const shortest = place([...requiredCodes, ...firstOfEachPick, 'FIN 201', 'MKT 410', 'CIS 499']);
     expect(shortest.credits).toEqual({ done: 121, inProgress: 0, remaining: 0, degree: 121 });
     expect(shortest.unplaced).toEqual([]);
+  });
+
+  it('keeps the sequence apart from the credits', () => {
+    // Every credit done, with other courses holding the two picks: the sequence is still needed.
+    const picks = ['ENG 131', 'ENG 132', 'ART 131', 'HUM 101', 'GEO 206', 'PED 114'];
+    const result = place([...requiredCodes, ...picks, 'FIN 201', 'MKT 410', 'CIS 499']);
+    expect(result.credits).toEqual({ done: 121, inProgress: 0, remaining: 0, degree: 121 });
+    expect(result.sequence).toMatchObject({ state: 'needed', alternatives: [{ id: 'history', missing: ['HIS 132'] }, { id: 'literature', missing: ['ENG 210'] }] });
+    expect(result.unplaced).toEqual([]);
+    // Passing the sequence course then takes the pick, and adds no credits.
+    const after = place([...requiredCodes, ...picks, 'FIN 201', 'MKT 410', 'CIS 499', 'HIS 132']);
+    expect(after.sequence.state).toBe('done');
+    expect(after.credits).toEqual(result.credits);
+    expect(after.unplaced).toEqual([{ code: 'GEO 206', state: 'done', reason: 'pick-filled', blockId: 'social-sciences', group: 0, filledBy: ['HIS 132'] }]);
   });
 
   it('matches the approved mockup\'s student', () => {
@@ -407,12 +427,28 @@ describe('whatever the transcript', () => {
     // No course fills more than one place, and none is both placed and left over.
     expect(new Set(fills.map(one => one.code)).size, label).toBe(fills.length);
     for (const one of result.unplaced) expect(fills.map(f => f.code), label).not.toContain(one.code);
-    // A pick group holds at most as many courses as it asks for.
+    // A pick group holds at most as many courses as it asks for, and only its own courses.
     for (const pick of result.blocks.flatMap(one => one.picks)) {
       expect(pick.filled.length, label).toBeLessThanOrEqual(pick.choose);
       expect(pick.open, label).toBe(pick.choose - pick.filled.length);
+      for (const filled of pick.filled) expect(pick.options, label).toContain(filled.course);
     }
+    // A required place is only ever filled by its own course (it is keyed by that course).
+    // An elective is the named one, or matches the rule and is listed in no block.
     expect(result.electives.filled.length, label).toBeLessThanOrEqual(3);
+    for (const elective of result.electives.filled) {
+      const [subject = '', number = ''] = elective.course.code.split(' ');
+      const byRule = ['MGT', 'FIN', 'CIS', 'MKT', 'ACT', 'ECO'].includes(subject) && Number(number) >= 300 && Number(number) <= 499;
+      expect(elective.by === 'name' ? elective.course.code === 'FIN 201' : byRule, `${label} / ${elective.course.code}`).toBe(true);
+      expect(inBlocks.map(course => course.code), label).not.toContain(elective.course.code);
+    }
+    // A course left over by a full pick names that pick and the courses that hold it.
+    for (const one of result.unplaced) {
+      if (one.reason !== 'pick-filled') continue;
+      const pick = result.blocks.find(b => b.block.id === one.blockId)?.picks[one.group];
+      expect(pick?.options.map(course => course.code), label).toContain(one.code);
+      expect(one.filledBy, label).toEqual(pick?.filled.map(filled => filled.course.code));
+    }
     // Only a passed or in-progress course fills anything, and only a passed course is done.
     for (const one of [...fills, ...result.unplaced]) {
       expect(standingOf.get(one.code), `${label} / ${one.code}`).toBe(one.state === 'done' ? 'passed' : 'in-progress');
@@ -447,6 +483,25 @@ describe('whatever the transcript', () => {
       transcripts++;
     }
     expect(transcripts).toBe(400);
+  });
+
+  it('refuses the same course twice, or a code that is not in its normal form', () => {
+    const [marketing] = courseStandings([rowOf('MKT 410')], curriculum.grades);
+    const [english] = courseStandings([rowOf('ENG 131')], curriculum.grades);
+    const [management] = courseStandings([rowOf('MGT 321')], curriculum.grades);
+    if (!marketing || !english || !management) throw new Error('no standings');
+    // One course handed over three times must not become three electives.
+    expect(() => placeCourses([marketing, marketing, marketing], curriculum)).toThrow(/the same course twice: MKT 410/);
+    expect(() => placeCourses([english, management, english], curriculum)).toThrow(/the same course twice: ENG 131/);
+    expect(() => placeCourses([management, { ...management, standing: 'in-progress' }], curriculum)).toThrow(TypeError);
+    // A code that is not written the normal way would be lost or misplaced.
+    for (const code of ['mgt321', 'MGT-321', 'mgt 321', ' MGT 321', 'eng-131', 'MKT-410', '', 'MGT']) {
+      expect(() => placeCourses([{ ...management, code }], curriculum), JSON.stringify(code)).toThrow(/not in its normal form/);
+    }
+    // What courseStandings returns is always accepted, however the rows were written.
+    const rows = ['mgt321', 'MGT-321:D', ' eng 131 ', 'mkt–410'].map((entry, i) => rowOf(entry, i));
+    const result = placeCourses(courseStandings(rows, curriculum.grades), curriculum);
+    expect(result.credits.done).toBe(9);
   });
 
   it('does not change its input', () => {
