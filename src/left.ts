@@ -4,7 +4,7 @@
 // and the checklist (src/checklist.ts).
 //
 // Text printed on a transcript is shown as text. Nothing here says a course counts.
-import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml, type Unchecked } from './checklist';
+import { checklistOf, legacyChanges, legacyOnTranscript, overviewHtml, requirementsHtml, showRequirements, type Unchecked } from './checklist';
 import { normalizeCode, type Curriculum } from './curriculum';
 import { code, esc, eyebrow, icons, marks } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, type LegacyAnswer } from './legacy';
@@ -241,18 +241,33 @@ export function overviewOf(transcript: Transcript, curriculum: Curriculum, legac
 }
 
 /**
+ * The courses that also have a row still to fix. A row whose code could not be read could
+ * be any course: then no failed attempt is called final.
+ */
+function uncheckedOf(transcript: Transcript): Unchecked {
+  const codes = stillToFix(transcript).map(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`));
+  return codes.includes(null) ? 'any' : new Set(codes.flatMap(one => one ?? []));
+}
+
+/**
+ * Whether the page shows the result itself: rows were taken on, and the legacy question,
+ * where its answer would change something, is answered. Only then is there something to
+ * print as a summary.
+ */
+export function hasResult(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer): boolean {
+  if (takenOn(transcript).length === 0) return false;
+  return legacy !== null || !legacyChanges(reviewedStandings(transcript, curriculum.grades), curriculum, uncheckedOf(transcript));
+}
+
+/**
  * The result: the credits left and the checklist of the reviewed rows. When the legacy
  * answer would change any of it and has not been given, the question takes its place:
  * nothing that the answer could change is shown before it.
  */
 export function resultHtml(transcript: Transcript, curriculum: Curriculum, legacy: LegacyAnswer, settings: PaceSettings = defaultSettings(), moves: Moves = {}): string {
   const standings = reviewedStandings(transcript, curriculum.grades);
-  const fixing = stillToFix(transcript);
-  const toFix = fixing.length;
-  // The courses that also have a row still to fix. A row whose code could not be read
-  // could be any course: then no failed attempt is called final.
-  const codes = fixing.map(row => normalizeCode(`${row.seen.prefix} ${row.seen.number}`));
-  const unchecked: Unchecked = codes.includes(null) ? 'any' : new Set(codes.flatMap(one => one ?? []));
+  const toFix = stillToFix(transcript).length;
+  const unchecked = uncheckedOf(transcript);
   const warning = toFix === 0 ? '' : `<div class="note" data-to-fix>
     <p>${icons.doc(20)}${esc(TEXT.toFix(toFix))}</p>
     <button type="button" class="text-link" data-review-again>${esc(TEXT.fix(toFix))}</button>
@@ -303,7 +318,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
       : `<p class="review-intro">${esc(TEXT.reviewIntro(transcript.name))}</p>
   <div data-review>${reviewHtml(state, curriculum)}</div>`;
   return `${top('left')}
-<main class="left wrap">${result ? `
+<main class="left wrap">${result && hasResult(transcript, curriculum, legacy) ? `
   ${printHeadHtml(curriculum)}` : ''}
   <div class="page-head">
     <div>${result ? `
@@ -358,7 +373,13 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     if (draft) change({ draft });
   };
   // No button that does nothing: where the browser cannot print there is none.
-  if (!hooks.print) main.querySelector('[data-print]')?.closest('.actions')?.remove();
+  if (!hooks.print) {
+    const button = main.querySelector('[data-print]');
+    const row = button?.closest('.actions');
+    button?.remove();
+    // The row goes with it only while the button is all it holds.
+    if (row && row.children.length === 0) row.remove();
+  }
   main.addEventListener('input', keepTyped);
   main.addEventListener('change', keepTyped);
 
@@ -461,9 +482,8 @@ export function setupLeft(root: ParentNode, state: LeftState, curriculum: Curric
     // again, so whatever the student opened stays open.
     const filter = target?.closest<HTMLElement>('[data-reqs]');
     if (filter) {
-      const notDone = filter.dataset.reqs === 'not-done';
       for (const button of main.querySelectorAll<HTMLElement>('[data-reqs]')) button.setAttribute('aria-pressed', String(button === filter));
-      for (const card of main.querySelectorAll<HTMLElement>('.req[data-status]')) card.hidden = notDone && card.dataset.status === 'Done';
+      showRequirements(main);
       return;
     }
     // The legacy question, before the result; and the line that lets the student change the answer.

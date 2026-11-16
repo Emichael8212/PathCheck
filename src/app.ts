@@ -4,7 +4,7 @@ import { NO_TRANSCRIPT, checkPage, emptyList, setupCheck, type CheckView, type C
 import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, refusalText, setupLeft, type LeftState } from './left';
-import { PRINT_TITLE, openForPaper } from './print';
+import { PRINT_TITLE, closeAfterPaper, openForPaper } from './print';
 import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
@@ -110,30 +110,33 @@ export function startApp(win: AppWindow): App {
   })();
   const say = (text: string): void => { status?.replaceChildren(text); };
 
-  // Printing (F17). The result is opened for paper and the tab named for the file, then put
-  // back, once, however many signals the browser gives for one print: the button does it
-  // around its own print call, and the browser's own Print is heard through its events
-  // and through the print media query. (The stylesheet's print rules cover a browser that
-  // gives no signal at all.)
-  let afterPaper: (() => void) | null = null;
+  // Printing (F17). The result is opened for paper and the tab named for the file: by the
+  // button before its own print call, and for the browser's own Print when the browser
+  // says printing starts (its event, or the print media query). It can be done again
+  // while the page is open for paper. The page is put back, once, when the browser says
+  // printing has ended, or when the page is next drawn: never when the print call
+  // returns, because on some phones it returns before the paper is laid out. (The
+  // stylesheet's print rules cover a browser that gives no signal at all.)
+  let paper: { opened: Set<HTMLDetailsElement>; title: string } | null = null;
   const forPaper = (): void => {
-    if (afterPaper) return;
-    const back = openForPaper(root as unknown as ParentNode);
-    if (!back) return;
-    const title = win.document.title;
+    const opened = paper?.opened ?? new Set<HTMLDetailsElement>();
+    if (!openForPaper(root as unknown as ParentNode, opened)) return;
+    if (paper) return;
+    paper = { opened, title: win.document.title };
     win.document.title = PRINT_TITLE;
-    afterPaper = () => { back(); win.document.title = title; };
   };
   const fromPaper = (): void => {
-    const back = afterPaper;
-    afterPaper = null;
-    back?.();
+    if (!paper) return;
+    const { opened, title } = paper;
+    paper = null;
+    closeAfterPaper(root as unknown as ParentNode, opened);
+    win.document.title = title;
   };
   const onPrintMedia: MediaListener = change => { if (change.matches) forPaper(); else fromPaper(); };
   const printMedia = win.matchMedia('print');
   const print = typeof win.print === 'function' ? (): void => {
     forPaper();
-    try { win.print?.(); } finally { fromPaper(); }
+    win.print?.();
   } : null;
 
   const show = (moved: boolean): void => {
@@ -311,6 +314,7 @@ export function startApp(win: AppWindow): App {
     takeFile,
     stop(): void {
       demo?.stop();
+      fromPaper();
       win.removeEventListener?.('hashchange', onHashChange);
       win.removeEventListener?.('dragover', onDragOver);
       win.removeEventListener?.('drop', onDrop);

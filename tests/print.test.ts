@@ -9,9 +9,9 @@ import madeUpProgram from './fixtures/made-up-program.json';
 import sampleA from '../synthetic/transcripts/sample-a.json';
 import { startApp, type App, type AppWindow } from '../src/app';
 import { curriculum, loadCurriculum } from '../src/curriculum';
-import { emptyLeft, leftPage } from '../src/left';
+import { emptyLeft, hasResult, leftPage } from '../src/left';
 import { defaultSettings, paceControlsHtml, paceOf, readTerm } from '../src/pace';
-import { PRINT_TITLE, openForPaper, printHeadHtml } from '../src/print';
+import { PRINT_TITLE, closeAfterPaper, openForPaper, printHeadHtml } from '../src/print';
 import { openTranscript } from '../src/review';
 import { foot } from '../src/shell';
 
@@ -46,12 +46,20 @@ let app: App;
 // The browser's print window, and the print media query: the simulated browser has neither.
 let printed: ReturnType<typeof standing>[];
 let mediaListeners: ((change: { matches: boolean }) => void)[];
-const browser = (withPrint = true): AppWindow => {
+/** A browser's print window says when printing starts and ends; a 'silent' one gives no signal at all. */
+type PrintWindow = 'says' | 'silent' | 'none';
+const browser = (kind: PrintWindow = 'says'): AppWindow => {
   printed = [];
   mediaListeners = [];
   const win = window as unknown as AppWindow & { print?: () => void; matchMedia: unknown };
-  if (withPrint) win.print = () => { printed.push(standing()); };
-  else delete win.print;
+  if (kind === 'none') delete win.print;
+  else {
+    win.print = () => {
+      if (kind === 'says') window.dispatchEvent(new Event('beforeprint'));
+      printed.push(standing());
+      if (kind === 'says') window.dispatchEvent(new Event('afterprint'));
+    };
+  }
   win.matchMedia = (query: string) => ({
     matches: false,
     addEventListener: (_type: string, listener: (change: { matches: boolean }) => void) => { if (query === 'print') mediaListeners.push(listener); },
@@ -59,11 +67,11 @@ const browser = (withPrint = true): AppWindow => {
   });
   return win;
 };
-const start = (withPrint = true): void => {
+const start = (kind: PrintWindow = 'says'): void => {
   window.localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
   window.history.replaceState(null, '', '#/left');
-  app = startApp(browser(withPrint));
+  app = startApp(browser(kind));
 };
 const result = async (name = 'sample-a'): Promise<void> => {
   await app.takeFile(madeUp(name));
@@ -114,7 +122,7 @@ describe('the print button', () => {
 
   it('offers no print where the browser has none', async () => {
     app.stop();
-    start(false);
+    start('none');
     await result();
     expect(document.querySelector('.plan')).not.toBeNull();
     expect(document.querySelector('[data-print], .actions')).toBeNull();
@@ -163,7 +171,7 @@ describe('what is prepared for paper', () => {
     expect(forPaper(printed[0])).toBe(true);
     expect(printed[0]!.open).toHaveLength(document.querySelectorAll('details').length);
     expect(printed[0]!.filter).toEqual(['false', 'true']);
-    // After the call returns the page is as it was.
+    // Once the browser has said that printing ended, the page is as it was.
     expect(standing()).toEqual(before);
     // A later "printing ended" from the browser changes nothing more, also after the student went on.
     cards[6]!.open = false;
@@ -201,11 +209,6 @@ describe('what is prepared for paper', () => {
     expect(forPaper()).toBe(true);
     mediaListeners[0]!({ matches: false });
     expect(standing()).toEqual(later);
-    // The button's own print inside a print the browser already announced puts back once, at the end.
-    window.dispatchEvent(new Event('beforeprint'));
-    expect(forPaper()).toBe(true);
-    window.dispatchEvent(new Event('afterprint'));
-    expect(standing()).toEqual(later);
 
     // Where there is no result there is nothing to prepare: the tab keeps its name.
     for (const hash of ['#/', '#/check']) {
@@ -223,17 +226,80 @@ describe('what is prepared for paper', () => {
     expect(document.title).toBe('Check my courses — PathCheck');
     window.dispatchEvent(new Event('afterprint'));
     expect(document.title).toBe('Check my courses — PathCheck');
-    // Once the app has stopped it listens to nothing.
+    // Stopped while open for paper, the app puts the page back; after that it listens to nothing.
     go('#/left');
+    window.dispatchEvent(new Event('beforeprint'));
+    expect(document.title).toBe(PRINT_TITLE);
     app.stop();
+    expect(document.title).toBe(TITLE);
     expect(mediaListeners).toHaveLength(0);
     window.dispatchEvent(new Event('beforeprint'));
     expect(document.title).toBe(TITLE);
   });
 
+  it('stays open for paper until the browser says printing ended', async () => {
+    // On some phones the print call returns before the paper is laid out: the page is not put back then.
+    app.stop();
+    start('silent');
+    await result();
+    $('[data-reqs="not-done"]').click();
+    const before = standing();
+    $('[data-print]').click();
+    expect(printed).toHaveLength(1);
+    expect(forPaper(printed[0])).toBe(true);
+    expect(forPaper()).toBe(true);
+    expect(document.activeElement).toBe($('[data-print]'));
+    // The browser says so later: put back.
+    window.dispatchEvent(new Event('afterprint'));
+    expect(standing()).toEqual(before);
+    // It never says so: nothing is lost, and the page is itself again when it is next drawn.
+    $('[data-print]').click();
+    expect(forPaper()).toBe(true);
+    go('#/check');
+    expect(document.title).toBe('Check my courses — PathCheck');
+    go('#/left');
+    expect(document.title).toBe(TITLE);
+    expect(standing().open.some(one => !one)).toBe(true);
+    window.dispatchEvent(new Event('afterprint'));
+    expect(document.title).toBe(TITLE);
+  });
+
+  it('puts the page back as the student has it now, not as it was when printing began', async () => {
+    await result();
+    $('[data-reqs="not-done"]').click();
+    const closedAtFirst = standing().open;
+    // The browser said printing started and never said it ended. The student goes on: "All", and closes a card.
+    window.dispatchEvent(new Event('beforeprint'));
+    $('[data-reqs="all"]').click();
+    expect(standing().hidden.some(Boolean)).toBe(false);
+    const cards = [...document.querySelectorAll<HTMLDetailsElement>('.req details')];
+    const closedNow = cards.findIndex((one, at) => one.open && closedAtFirst[at] === true);
+    cards[closedNow]!.open = false;
+    // Then the button: at the print call everything is open, the card just closed too.
+    $('[data-print]').click();
+    expect(printed).toHaveLength(1);
+    expect(forPaper(printed[0])).toBe(true);
+    // Put back: "All" is chosen, so no requirement is hidden; closed are the cards that were closed, and the one the student closed.
+    const after = standing();
+    expect(after.filter).toEqual(['true', 'false']);
+    expect(after.hidden.some(Boolean)).toBe(false);
+    expect(after.open).toEqual(closedAtFirst.map((open, at) => open && at !== closedNow));
+    expect(after.title).toBe(TITLE);
+    // The filter chosen after a print began is the one that holds when it ends late.
+    window.dispatchEvent(new Event('beforeprint'));
+    $('[data-reqs="not-done"]').click();
+    window.dispatchEvent(new Event('afterprint'));
+    expect(standing().filter).toEqual(['false', 'true']);
+    expect(standing().hidden.filter(Boolean)).toHaveLength(3);
+  });
+
   it('prepares nothing without a result', () => {
     document.body.innerHTML = '<div id="app"><main class="left"><details class="closed"></details></main></div>';
-    expect(openForPaper(document)).toBeNull();
+    const opened = new Set<HTMLDetailsElement>();
+    expect(openForPaper(document, opened)).toBe(false);
+    expect(document.querySelector('details')!.open).toBe(false);
+    expect(opened.size).toBe(0);
+    closeAfterPaper(document, opened);
     expect(document.querySelector('details')!.open).toBe(false);
   });
 });
@@ -258,9 +324,20 @@ describe('the lines on paper only', () => {
     const other = loadCurriculum(madeUpProgram);
     expect(decode(printHeadHtml(other))).toContain(`PathCheck summary — ${other.program}, ${other.institution}`);
     expect(other.program).not.toBe(curriculum.program);
-    // Only with a result: not on the upload page, not in the review step.
+    // Only with the result itself, where the button is: not on the upload page, not in the review step,
+    // not while the legacy question is asked, not with no row taken on.
     expect(leftPage(curriculum)).not.toContain('print-head');
     expect(leftPage(curriculum, { ...emptyLeft(), transcript, continued: false })).not.toContain('print-head');
+    const legacyRows = openTranscript('x.pdf', { rows: [row('ENG', '131'), row('FLS', '161')] }, curriculum);
+    const noRows = openTranscript('x.pdf', { rows: ['not a row'] }, curriculum);
+    const states: [string, ReturnType<typeof openTranscript>, boolean | null, boolean][] = [
+      ['the result', transcript, null, true], ['the legacy question', legacyRows, null, false], ['answered yes', legacyRows, true, true], ['answered no', legacyRows, false, true], ['no rows', noRows, null, false],
+    ];
+    for (const [name, one, legacy, full] of states) {
+      const html = leftPage(curriculum, { ...emptyLeft(), transcript: one, continued: true }, legacy);
+      expect(hasResult(one, curriculum, legacy), name).toBe(full);
+      expect([html.includes('data-print-head'), html.includes('data-print>'), html.includes('class="plan"')], name).toEqual([full, full, full]);
+    }
   });
 
   it('prints the pace settings as a line', async () => {
@@ -324,13 +401,33 @@ describe("the stylesheet's print rules", () => {
   });
 
   it('marks every control as not printed', async () => {
-    expect(hiddenOnPaper).toBe('.top, .no-print, .pace, .review-foot, .foot a, [data-review-again], [data-legacy-change]');
+    expect(hiddenOnPaper).toBe('.top, .no-print, .pace, .review-foot, .foot a, .plan .section-note, [data-review-again], [data-legacy-change]');
     const controls = (): HTMLElement[] => [...document.querySelectorAll<HTMLElement>('#app button, #app select, #app input, #app textarea, #app a, #app [role="switch"], #app [tabindex="0"]')];
-    const printedControls = (): string[] => controls().filter(one => !one.closest(hiddenOnPaper)).map(one => tidy(one.textContent) || one.tagName);
+    /** The page's words as they are on paper: without what print media hides. */
+    const onPaper = (): string => {
+      const copy = $('#app').cloneNode(true) as HTMLElement;
+      for (const gone of copy.querySelectorAll(hiddenOnPaper)) gone.remove();
+      return tidy(copy.textContent);
+    };
+    const CONTROL_WORDS = /Move later|Show courses|Hide courses|Not done|\bChange\b|Fix it|Check what was read|Use another transcript|Print \/ save PDF|Report a mistake|Browse files/;
+    const printedControls = (): string[] => [
+      ...controls().filter(one => !one.closest(hiddenOnPaper)).map(one => tidy(one.textContent) || one.tagName),
+      // A requirement's heading row is text on paper; whatever in it is there to be pressed is not printed.
+      ...[...document.querySelectorAll<HTMLElement>('#app summary')].filter(one => {
+        const copy = one.cloneNode(true) as HTMLElement;
+        for (const gone of copy.querySelectorAll(hiddenOnPaper)) gone.remove();
+        return one.querySelector('.req-show') === null || CONTROL_WORDS.test(tidy(copy.textContent));
+      }).map(one => `summary: ${tidy(one.textContent)}`),
+      ...(CONTROL_WORDS.exec(onPaper()) ?? []),
+    ];
     // The design's student; a legacy student with the legacy line; a transcript with a row still to fix.
     await result();
     expect(controls().length).toBeGreaterThan(40);
     expect(printedControls()).toEqual([]);
+    // What is on paper still says what the plan is, without the line about a button that is not there.
+    expect(onPaper()).toContain('Draft — Order not checked — your portal checks prerequisites');
+    expect(onPaper()).toContain('Credits only — course order may add semesters.');
+    expect(tidy($('#app').textContent)).toContain('“Move later” changes this draft');
     $('[data-another]').click();
     await result('sample-b');
     $('[data-legacy="yes"]').click();
@@ -341,8 +438,20 @@ describe("the stylesheet's print rules", () => {
     go('#/left');
     expect(document.querySelector('[data-to-fix] [data-review-again]')).not.toBeNull();
     expect(printedControls()).toEqual([]);
-    // What a requirement's heading row says is text on paper; only its "Show courses" cue is a control.
-    for (const cue of document.querySelectorAll('.req summary .req-show')) expect(cue.closest(hiddenOnPaper)).not.toBeNull();
+    expect(document.querySelectorAll('#app summary').length).toBeGreaterThan(8);
+    // Before the legacy answer and with no row taken on, nothing calls the page a summary: the tab keeps its name.
+    for (const transcript of [openTranscript('made-up.pdf', { rows: [row('ENG', '131'), row('FLS', '161')] }, curriculum), openTranscript('made-up.pdf', { rows: ['not a row'] }, curriculum)]) {
+      window.localStorage.clear();
+      app.stop();
+      start();
+      Object.assign(app.left, { transcript, continued: true });
+      go('#/check');
+      go('#/left');
+      expect(document.querySelector('[data-print-head], [data-print]')).toBeNull();
+      window.dispatchEvent(new Event('beforeprint'));
+      expect(document.title).toBe(TITLE);
+      window.dispatchEvent(new Event('afterprint'));
+    }
   });
 
   it('keeps paper white on a dark device', () => {

@@ -959,8 +959,8 @@ details[open] .req-cue { transform: rotate(-90deg); }
   /* Bars, the ring and tinted rows are backgrounds: ask the browser to print them. */
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-only { display: block; }
-  /* No app controls on paper: the top bar, the pace controls, the buttons and the links. */
-  .top, .no-print, .pace, .review-foot, .foot a, [data-review-again], [data-legacy-change] { display: none !important; }
+  /* No app controls on paper: the top bar, the pace controls, the buttons and the links; nor the plan's line about "Move later". */
+  .top, .no-print, .pace, .review-foot, .foot a, .plan .section-note, [data-review-again], [data-legacy-change] { display: none !important; }
   /* Every requirement is on paper, whatever "Not done" hides on the screen and whatever is closed. */
   .req[hidden] { display: block !important; }
   details:not([open])::details-content { content-visibility: visible; }

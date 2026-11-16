@@ -6,6 +6,7 @@
 // On paper every requirement is open and none is filtered away. No single signal from the
 // browser is relied on for that: the button prepares the page itself, the browser's own
 // Print is heard through its events, and the stylesheet's print rules cover the rest.
+import { showRequirements } from './checklist';
 import { type Curriculum } from './curriculum';
 import { esc, icons } from './html';
 import { reviewedOn } from './shell';
@@ -41,17 +42,27 @@ export const printActionsHtml = (): string => `<div class="actions no-print">
 
 /**
  * Opens the result for paper: every requirement and the list of courses that do not count
- * are opened, and the cards that "Not done" hides are shown. Gives back how to put the
- * page as it was; nothing when no result is on the page.
+ * are opened, and the cards that "Not done" hides are shown. What it opened is added to
+ * `opened`, so it can be done again while the page is open for paper (the browser may
+ * say twice that printing starts, and the student may have closed a card in between).
+ * False, and nothing is touched, when no result is on the page.
  */
-export function openForPaper(root: ParentNode): (() => void) | null {
-  if (!root.querySelector('[data-print-head]')) return null;
-  const closed = [...root.querySelectorAll<HTMLDetailsElement>('details:not([open])')];
-  const hidden = [...root.querySelectorAll<HTMLElement>('.req[hidden]')];
-  for (const one of closed) one.open = true;
-  for (const one of hidden) one.hidden = false;
-  return () => {
-    for (const one of closed) one.open = false;
-    for (const one of hidden) one.hidden = true;
-  };
+export function openForPaper(root: ParentNode, opened: Set<HTMLDetailsElement>): boolean {
+  if (!root.querySelector('[data-print-head]')) return false;
+  for (const one of root.querySelectorAll<HTMLDetailsElement>('details:not([open])')) {
+    one.open = true;
+    opened.add(one);
+  }
+  showRequirements(root, true);
+  return true;
+}
+
+/**
+ * Puts the page back: what was opened for paper is closed again, and the requirements are
+ * shown as the filter's buttons stand now, not as they stood when printing began.
+ */
+export function closeAfterPaper(root: ParentNode, opened: Set<HTMLDetailsElement>): void {
+  for (const one of opened) one.open = false;
+  opened.clear();
+  showRequirements(root);
 }

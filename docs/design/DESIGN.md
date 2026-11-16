@@ -440,7 +440,10 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     credits per term: 18 credits. Summers: Off.";
   - also not printed, beyond the design's list: the pace controls, "Change" beside the
     legacy line, "Fix it", "Check what was read", "Use another transcript" and its
-    sentence, and the "Report a mistake" link;
+    sentence, the "Report a mistake" link, and the plan's line "Pace settings estimate
+    credits only. “Move later” changes this draft; prerequisites are not checked." (it
+    speaks of a button that is not on paper; the draft label and the pace caveat say the
+    rest);
   - on paper the plan's entries have no lines between them (the lines sit under "Move
     later", which is not printed);
   - under the print button, "17 rows taken on." and the two buttons of the review (the
