@@ -93,7 +93,7 @@ describe('the print button', () => {
     // Not before there is a result.
     expect(document.querySelector('[data-print], .actions')).toBeNull();
     await app.takeFile(madeUp('sample-a'));
-    expect(document.querySelector('[data-print], .actions')).toBeNull();
+    expect(document.querySelector('[data-print]')).toBeNull();
     $('[data-continue]').click();
     // One button, the design's: primary, with its icon, in the row of actions after the draft plan.
     const buttons = document.querySelectorAll<HTMLElement>('[data-print]');
@@ -109,7 +109,7 @@ describe('the print button', () => {
     // Not on the other pages.
     for (const hash of ['#/', '#/check']) {
       go(hash);
-      expect(document.querySelector('[data-print], .actions'), hash).toBeNull();
+      expect(document.querySelector('[data-print]'), hash).toBeNull();
     }
     go('#/left');
     expect(document.querySelectorAll('[data-print]')).toHaveLength(1);
@@ -117,7 +117,7 @@ describe('the print button', () => {
     $('[data-another]').click();
     await result('sample-b');
     expect(document.querySelector('[data-legacy-first]')).not.toBeNull();
-    expect(document.querySelector('[data-print], .actions')).toBeNull();
+    expect(document.querySelector('[data-print]')).toBeNull();
     $('[data-legacy="yes"]').click();
     expect(tidy($('[data-print]').textContent)).toBe(BUTTON);
     // Not with no row taken on.
@@ -125,7 +125,7 @@ describe('the print button', () => {
     for (let left = document.querySelectorAll('[data-out]').length; left > 0; left = document.querySelectorAll('[data-out]').length) $('[data-out]').click();
     $('[data-continue]').click();
     expect(document.querySelector('[data-no-rows]')).not.toBeNull();
-    expect(document.querySelector('[data-print], .actions')).toBeNull();
+    expect(document.querySelector('[data-print]')).toBeNull();
   });
 
   it('offers no print where the browser has none', async () => {
@@ -133,13 +133,16 @@ describe('the print button', () => {
     start('none');
     await result();
     expect(document.querySelector('.plan')).not.toBeNull();
-    expect(document.querySelector('[data-print], .actions')).toBeNull();
+    expect(document.querySelector('[data-print]')).toBeNull();
     expect(tidy($('main').textContent)).not.toContain('Print');
+    // Only the print button is taken out of the row: "Clear my data" stays in it (F19).
+    expect([...$('.actions').querySelectorAll('button')].map(one => tidy(one.textContent))).toEqual(['Clear my data']);
     // After a part of the page is drawn again, and the whole page, there is still none.
     $('[data-stepper="most"] [data-delta="1"]').click();
     go('#/check');
     go('#/left');
-    expect(document.querySelector('[data-print], .actions')).toBeNull();
+    expect(document.querySelector('[data-print]')).toBeNull();
+    expect(document.querySelectorAll('.actions [data-clear]')).toHaveLength(1);
   });
 
   it("opens the browser's print window", async () => {

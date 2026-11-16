@@ -7,7 +7,7 @@
 // row stands by its grade.
 import { type Curriculum, type Grades } from './curriculum';
 import { readRows, type Problem, type ReadRow, type Reading, type RowToFix } from './reader';
-import { courseStandings, rowStanding, type CourseStanding } from './transcript';
+import { KEPT_AS_PASSED, courseStandings, rowStanding, type CourseStanding } from './transcript';
 
 /** A transcript under review. */
 export interface Transcript {
@@ -18,13 +18,15 @@ export interface Transcript {
   /** The lines the student said are not on their transcript. */
   readonly leftOut: ReadonlySet<number>;
   readonly reading: Reading;
+  /** A result that came back from the browser's storage: its passing grades are kept without their letters. */
+  readonly kept?: boolean;
 }
 
 /** Starts a review from a reader's answer. Throws `ReaderError` when it is no answer. */
-export function openTranscript(name: string, answer: unknown, curriculum: Curriculum): Transcript {
-  const reading = readRows(answer, curriculum);
+export function openTranscript(name: string, answer: unknown, curriculum: Curriculum, kept = false): Transcript {
+  const reading = readRows(answer, curriculum, kept);
   const rows = (answer as { rows: unknown[] }).rows;
-  return { name, raw: [...rows], leftOut: new Set(), reading };
+  return { name, raw: [...rows], leftOut: new Set(), reading, ...(kept ? { kept: true } : {}) };
 }
 
 /** What the student can correct in a row. Everything is text, as typed. */
@@ -50,7 +52,7 @@ export function correctRow(transcript: Transcript, line: number, correction: Cor
   const description = typeof printed === 'string' ? printed : '';
   const { term, prefix, number, attempted, grade, transfer } = correction;
   const raw = transcript.raw.map((row, i) => (i === line ? { term, transfer, prefix, number, description, attempted, grade } : row));
-  return { ...transcript, raw, reading: readRows({ rows: raw }, curriculum) };
+  return { ...transcript, raw, reading: readRows({ rows: raw }, curriculum, transcript.kept === true) };
 }
 
 export const leaveOut = (transcript: Transcript, line: number): Transcript => ({ ...transcript, leftOut: new Set([...transcript.leftOut, line]) });
@@ -91,7 +93,8 @@ export function reviewRows(transcript: Transcript, curriculum: Curriculum): Revi
   const { grades, electives } = curriculum;
   const passed: ReviewRow[] = transcript.reading.rows.map(({ line, row, description, attempted, match }) => {
     const standing = rowStanding(row, grades);
-    const grade = (row.grade ?? '').toUpperCase();
+    // (A passing row of a kept result has the kept word where its letter was.)
+    const grade = row.passed === true ? KEPT_AS_PASSED : (row.grade ?? '').toUpperCase();
     // The credits as printed: a number when one was read, nothing when the column was empty.
     const credits = attempted === '' ? '' : String(row.credits);
     return {

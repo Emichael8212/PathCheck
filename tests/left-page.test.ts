@@ -686,12 +686,10 @@ describe('the checklist', () => {
     expect(listOf('CIS electives')).not.toContain('FLS 161');
     expect(tidy($('.unused ul').textContent)).toContain('FLS 161 Spanish I Doesn’t count toward CIS. Legacy students only.');
     expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: No Change');
-    // A new visit with the same transcript does not ask again.
+    // A new visit has the result again (F19) and does not ask again.
     app.stop();
     document.body.innerHTML = '<div id="app"></div>';
     app = startApp(onTestDay(window as unknown as AppWindow));
-    await app.takeFile(madeUp('sample-b'));
-    $('[data-continue]').click();
     expect(document.querySelector('[data-legacy-first]')).toBeNull();
     expect(creditsOf('CIS electives')).toBe('3 / 9 cr');
     // A transcript whose result the answer cannot change shows no question and no line about it.

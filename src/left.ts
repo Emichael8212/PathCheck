@@ -15,6 +15,7 @@ import { type Problem } from './reader';
 import { lateSentence, moveLater, movedSentence, planHtml, planOf, type Moves, type Plan } from './plan';
 import { printActionsHtml, printHeadHtml } from './print';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
+import { clearRowHtml } from './remember';
 import { NOTHING_SHOWN, type Shown } from './report';
 import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { type Refusal } from './upload';
@@ -345,7 +346,12 @@ export function leftShown(curriculum: Curriculum, state: LeftState, legacy: Lega
 export const leftReport = (curriculum: Curriculum, state: LeftState, legacy: LegacyAnswer): string =>
   reportLink(curriculum, `PathCheck: ${FLOW_NAME.left}`, leftShown(curriculum, state, legacy));
 
-export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(), legacy: LegacyAnswer = null): string {
+/**
+ * The page. `kept` says that something of the student's is on a page or kept in the
+ * browser (a transcript, a list, a legacy answer): then "Clear my data" is offered here
+ * too while there is no result yet (the result has it in its own row of actions).
+ */
+export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(), legacy: LegacyAnswer = null, kept = false): string {
   const { transcript } = state;
   const result = transcript !== null && state.continued;
   const heading = !transcript ? TEXT.uploadHeading : result ? TEXT.resultHeading : TEXT.reviewHeading;
@@ -367,7 +373,8 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
     </div>${result ? `
     <span class="pill">${icons.doc(15)}${esc(TEXT.pill)}</span>` : ''}
   </div>
-  ${body}
+  ${body}${kept && !(result && hasResult(transcript, curriculum, legacy)) ? `
+  ${clearRowHtml(null)}` : ''}
 </main>
 ${foot(curriculum, leftReport(curriculum, state, legacy))}`;
 }

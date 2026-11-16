@@ -13,37 +13,20 @@ Read this before writing a sprint contract; delete a line when its feature has d
   yearly review sets `lastReviewed` in the curriculum file, and
   docs/CURRICULUM-HANDOVER.md (M3) must say so. (F18)
 
-## For F19 (what the result leaves for it)
-- **What F19 remembers must not include the day.** The banner is worked out each time a
-  page is drawn from the day on the device (`today` in `renderPage`); nothing about it is
-  stored. "Clear my data" has nothing of F18 to clear: the email is made when the link
-  is used and kept nowhere. (F18)
-- The result is drawn by `resultHtml` in `src/left.ts` from `checklistOf` in
-  `src/checklist.ts` (`overviewHtml`, `requirementsHtml`), `src/pace.ts` (the answer
-  beside the ring, the controls under the bar; `overviewOf` in `src/left.ts`) and
-  `src/plan.ts` (the draft plan after the requirements, inside `[data-plan]`: `planOf`,
-  `planHtml`). The row of actions after the plan is `printActionsHtml` in `src/print.ts`
-  (`.actions.no-print`): "Clear my data" goes beside the print button there, as in the
-  design. Whatever F19 adds to the result must be either right on paper or hidden in
-  print (`tests/print.test.ts` "marks every control as not printed" fails for a control
-  that would print). In a browser without print the print button is taken out of the
-  row, and the row only while it is empty: "Clear my data" stays. F19 must test that
-  (no test can until the row holds a second button). (F13, F16, F17)
-- The student's moves are `LeftState.moves` (for each moved entry, its earliest term),
-  kept in memory for the visit beside the pace settings (`LeftState.pace`). If F19's
-  "last result" is to come back as the student left it, both belong to it, and "Clear my
-  data" forgets both. (F14, F16, for F19)
-
-## For F19 (clear my data)
-- The credits the student gave a course PathCheck doesn't know are part of the list
-  (`Entry.credits`): kept and cleared with it. (F09)
-- The entered courses live in memory only (a `CourseList` from `src/check.ts`, held by
-  `startApp` in `src/app.ts`).
-  F19 keeps them across visits and clears them. (F07)
-- "Clear my data" must also forget the legacy answer, through `clearLegacyAnswer`
-  (`src/legacy.ts`). (F05)
-
 ## For F21 (the reader function, M2)
+- **What is kept once real transcripts are read** (F19): the browser keeps the last result
+  as the reviewed rows without any passing letter grade (`keptRows` in
+  `src/remember.ts`), and never the file's name. The consent sentence of the first
+  upload (brief §7) and the privacy line must still be true with a real transcript:
+  "Only your result stays in this browser." Check with the owner's real transcript that
+  nothing personal is in a row's printed title, which is kept.
+- A grade printed as a word or a pass mark ("P", "S", "Passed") on a real transcript is a
+  row to fix today, like any grade the curriculum's scale does not have. "Passed" is read
+  as a pass only from what PathCheck itself kept. If real transcripts print such grades,
+  that is an academic rule for the owner, not a change to make here. (F19)
+- Whatever is added to the result later must be either kept on purpose or left out of
+  `pathcheck.visit`: `tests/remember.test.ts` "keeps only what the result needs" pins the
+  entry's fields. (F19)
 - Confirm on the owner's real transcript how a summer term is printed, and a winter or
   mini-term if there is one: `readTerm` in `src/pace.ts` reads "Fall", "Spr"/"Spring",
   "Sum"/"Summer" and a four-digit year, and gives no pace estimate for anything else.
