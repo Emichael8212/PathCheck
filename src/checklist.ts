@@ -15,6 +15,16 @@ import {
 } from './wording';
 
 export type Status = 'Done' | 'In progress' | 'Still needed';
+const DONE: Status = 'Done';
+
+/**
+ * "All" or "Not done" on the page: the done requirements are shown or hidden as the
+ * filter's buttons stand. For paper every requirement is shown, whatever the filter says.
+ */
+export function showRequirements(root: ParentNode, forPaper = false): void {
+  const notDone = !forPaper && root.querySelector('[data-reqs="not-done"]')?.getAttribute('aria-pressed') === 'true';
+  for (const card of root.querySelectorAll<HTMLElement>('.req[data-status]')) card.hidden = notDone && card.dataset.status === DONE;
+}
 
 /** A course in a card's list. */
 export interface CourseItem {

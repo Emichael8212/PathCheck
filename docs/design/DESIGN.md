@@ -428,8 +428,27 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     "<entry> moved to <term>."; a button's name for a screen reader starts with its visible
     words and counts entries that read the same ("Move later: MGT 321", "Move later: CIS
     elective, 2 of 3"; the mockup had "Move MGT 321 later");
-  - "Print / save PDF for your advisor" and "Clear my data", which end the design's page,
-    are not drawn until F17 and F19.
+  - "Clear my data", which ends the design's page beside the print button, is not drawn
+    until F19.
+- **The printed summary** (F17). "Print / save PDF for your advisor" is the design's
+  button, in the design's row of actions after the draft plan, and the paper follows the
+  design's print rules. What the design has no place for:
+  - two lines on paper only: at the top, "PathCheck summary — <program>, <institution>"
+    with "Not an official degree audit. Not affiliated with Alabama State University.
+    Curriculum last reviewed: Nov 2026" under it; and, where the pace controls are on the
+    screen, "Target semester: Spring 2029. Fewest credits per term: 12 credits. Most
+    credits per term: 18 credits. Summers: Off.";
+  - also not printed, beyond the design's list: the pace controls, "Change" beside the
+    legacy line, "Fix it", "Check what was read", "Use another transcript" and its
+    sentence, the "Report a mistake" link, and the plan's line "Pace settings estimate
+    credits only. “Move later” changes this draft; prerequisites are not checked." (it
+    speaks of a button that is not on paper; the draft label and the pace caveat say the
+    rest);
+  - on paper the plan's entries have no lines between them (the lines sit under "Move
+    later", which is not printed);
+  - under the print button, "17 rows taken on." and the two buttons of the review (the
+    agent's, from F11 and F13) follow the design's row of actions;
+  - the button is not drawn in a browser that cannot print.
 - **"Check my courses" with a transcript** (F12). The heading note and the card "Add your
   transcript for an exact answer" are drawn as designed ("Choose transcript PDF" opens
   the file picker). The design shows them only without a transcript; the other states

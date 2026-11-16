@@ -337,9 +337,11 @@
         "The summary carries the same \"Curriculum last reviewed: <date>\" and \"Not an official degree audit\" lines as every result",
         "The summary is readable on paper: no cut-off content and no app controls"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F17.md — QA PASS in a real browser with PDFs made by Chromium (round 2, after round 1 failed on \"Move later\" printed on paper); reviewer: no blocker after round 2",
+      "tests": [
+        "tests/print.test.ts"
+      ]
     },
     {
       "id": "F18",

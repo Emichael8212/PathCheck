@@ -109,7 +109,7 @@ describe('the answer', () => {
     // On the page: beside the ring, and the controls under the bar, in the same card.
     const page = leftPage(curriculum, { ...emptyLeft(), transcript, continued: true });
     expect(page).toMatch(/<div data-pace>\s*<span class="eyebrow">Looking ahead<\/span>\s*<h2>On pace for Spring 2029<\/h2>/);
-    expect(page).toMatch(/<section class="overview"[\s\S]*<div class="credit">[\s\S]*<div class="pace">[\s\S]*<\/fieldset>\s*<\/div>\s*<\/section>/);
+    expect(page).toMatch(/<section class="overview"[\s\S]*<div class="credit">[\s\S]*<div class="pace">[\s\S]*<\/fieldset>\s*<\/div>\s*<p class="print-only pace-settings" data-pace-settings>Target semester: Spring 2029\. Fewest credits per term: 12 credits\. Most credits per term: 18 credits\. Summers: Off\.<\/p>\s*<\/section>/);
     expect(page.match(/<h2>/g)?.length).toBe(1);
   });
 
