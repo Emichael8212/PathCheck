@@ -1,5 +1,6 @@
 // F03: which transcript rows count (docs/sprints/F03.md; docs/BRIEF.md §4 Flow B step 2 and
-// §5 "Rules"; owner answer of 2026-11-15: letters only, C or better counts).
+// §5 "Rules"; owner answers: 2026-11-15, letters only and C or better counts; 2026-11-16,
+// a transfer, AP or CLEP row counts whatever its grade column shows).
 // Every row here is made up. No real student's transcript is in this repository.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -45,7 +46,6 @@ describe('one row', () => {
   it('does not pass a grade that is not on the scale', () => {
     for (const mark of ['B+', 'C-', 'A-', 'A+', 'P', 'S', 'CR', 'T', 'TR', 'C*', 'C (R)', 'CC', 'E', '3.0', 'PASS', '?']) {
       expect(standing(mark), mark).toBe('unrecognised');
-      expect(transferStanding(mark), `transfer ${mark}`).toBe('unrecognised');
     }
   });
 
@@ -71,17 +71,41 @@ describe('one row', () => {
     expect(standing(null)).not.toBe('passed');
     // A transfer row is never in progress, whatever its grade column holds.
     for (const mark of [null, '', 'A', 'C', 'D', 'F', 'W', 'I', 'TR', 'B+']) expect(transferStanding(mark), String(mark)).not.toBe('in-progress');
+    // An ordinary row with D does not count.
+    expect(standing('D')).toBe('must-repeat');
   });
 
-  it('passes transfer credit with no grade', () => {
-    expect(transferStanding(null)).toBe('passed');
+  it('passes transfer credit whatever its grade column shows', () => {
+    // Owner, 2026-11-16: transfer credit was only recorded after the grade check, so the
+    // grade column of a transfer, AP or CLEP row is ignored.
+    for (const shown of [null, '', '  ', 'T', 'TR', 'CR', 'XYZ', '?', 'A', 'B', 'C', ' c ', 'D', 'F', ' d ', 'W', 'I', 'B+', 'P']) {
+      expect(transferStanding(shown), JSON.stringify(shown)).toBe('passed');
+    }
   });
 
-  it('checks a transfer grade when one is shown', () => {
-    expect(['A', 'B', 'C', ' c '].map(transferStanding)).toEqual(['passed', 'passed', 'passed', 'passed']);
-    expect(['D', 'F', ' d '].map(transferStanding)).toEqual(['must-repeat', 'must-repeat', 'must-repeat']);
-    expect(['W', 'I'].map(transferStanding)).toEqual(['no-credit', 'no-credit']);
-    expect(['TR', 'T', 'CR'].map(transferStanding)).toEqual(['unrecognised', 'unrecognised', 'unrecognised']);
+  it('takes a row as transfer credit only when its flag is exactly true', () => {
+    // Reader output is not typed. A flag that is merely truthy must not make a D count.
+    for (const flag of ['false', 'no', 'true', 1, {}, [], 'transfer']) {
+      const loose = row('ECO 251', 'D', { transfer: flag as unknown as boolean });
+      expect(rowStanding(loose, grades), JSON.stringify(flag)).toBe('must-repeat');
+    }
+    for (const flag of [false, 0, '', null, undefined]) {
+      expect(rowStanding(row('ECO 251', 'D', { transfer: flag as unknown as boolean }), grades), JSON.stringify(flag)).toBe('must-repeat');
+    }
+    expect(rowStanding(row('ECO 251', 'D', { transfer: true }), grades)).toBe('passed');
+  });
+
+  it('keeps the normal grade rules for rows outside the transfer section', () => {
+    expect(['A', 'B', 'C'].map(grade => standing(grade))).toEqual(['passed', 'passed', 'passed']);
+    expect(['D', 'F'].map(grade => standing(grade))).toEqual(['must-repeat', 'must-repeat']);
+    expect(['W', 'I'].map(grade => standing(grade))).toEqual(['no-credit', 'no-credit']);
+    expect(['T', 'TR'].map(grade => standing(grade))).toEqual(['unrecognised', 'unrecognised']);
+    expect(standing(null)).toBe('in-progress');
+    // The same marks, one row in the transfer section and one outside it.
+    for (const shown of ['D', 'W', 'TR', null]) {
+      expect(transferStanding(shown), String(shown)).toBe('passed');
+      expect(standing(shown), String(shown)).not.toBe('passed');
+    }
   });
 });
 
@@ -116,7 +140,15 @@ describe('one course, after repeats', () => {
   it('keeps a passed course as passed while it is retaken', () => {
     expect(course('C', null)).toMatchObject({ standing: 'passed', deciding: { row: { grade: 'C' } } });
     expect(course(null, 'C').standing).toBe('passed');
-    // Transfer credit with no grade, and the same course running now: already passed.
+    // Transfer credit, and the same course running now: already passed.
+    expect(courseStandings([row('ECO 251', 'D'), transfer('ECO 251', 'TR')], grades)).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: true } } }]);
+    // The grade column of a transfer row is not read when choosing the deciding row either:
+    // an ordinary C decides ahead of transfer credit, whatever that row's column shows.
+    for (const shown of ['A', 'D', 'TR', null]) {
+      expect(courseStandings([transfer('ECO 251', shown), row('ECO 251', 'C')], grades), String(shown)).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: false, grade: 'C' } } }]);
+    }
+    // Between two transfer rows the first decides, not the one whose column looks better.
+    expect(courseStandings([transfer('ECO 251', null), transfer('ECO 251', 'A')], grades)).toMatchObject([{ deciding: { row: { grade: null } } }]);
     const both = courseStandings([transfer('ECO 251', null), row('ECO 251', null)], grades);
     expect(both).toMatchObject([{ standing: 'passed', deciding: { row: { transfer: true } } }]);
   });
@@ -156,7 +188,7 @@ describe('one course, after repeats', () => {
       // with that standing has a better grade on the scale.
       expect(result.deciding.standing, label).toBe(result.standing);
       expect(rows).toContain(result.deciding.row);
-      const onScale = (one: TranscriptRow): number => { const at = grades.letters.indexOf(one.grade ?? ''); return at < 0 ? Infinity : at; };
+      const onScale = (one: TranscriptRow): number => { const at = one.transfer ? -1 : grades.letters.indexOf(one.grade ?? ''); return at < 0 ? Infinity : at; };
       const sameStanding = rows.filter(one => own(one) === result.standing);
       expect(onScale(result.deciding.row), label).toBe(Math.min(...sameStanding.map(onScale)));
       // ...and of equally good rows it is the first.

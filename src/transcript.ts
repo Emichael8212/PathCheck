@@ -14,12 +14,16 @@ export interface TranscriptRow {
   readonly credits: number;
   /** The grade column as printed; null when it is empty. */
   readonly grade: string | null;
-  /** Listed under transfer credit (transfer, AP and CLEP are all listed that way). */
+  /**
+   * Listed in the transcript's transfer-credit section (transfer, AP and CLEP are all
+   * listed there). Such credit was only recorded after the grade check, so the grade
+   * column of the row is not read.
+   */
   readonly transfer: boolean;
 }
 
 export type Standing =
-  /** A grade at or above the lowest that counts, or transfer credit with no grade shown. */
+  /** A grade at or above the lowest that counts, or transfer credit. */
   | 'passed'
   /** No grade yet: assumed to pass, but not passed. */
   | 'in-progress'
@@ -60,9 +64,13 @@ const rank = (grades: Grades, grade: string | null | undefined): number =>
 
 /** What one row is worth on its own. */
 export function rowStanding(row: TranscriptRow, grades: Grades): Standing {
+  // Transfer credit has already passed the grade check: whatever its grade column shows,
+  // it is not read. Only a flag that is exactly true says so: this one flag decides, so a
+  // value such as the text "false" must not pass as it.
+  if (row.transfer === true) return 'passed';
   const shown = mark(row.grade);
-  // No grade shown: transfer credit is taken as it stands; anything else is still running.
-  if (shown === '') return row.transfer ? 'passed' : 'in-progress';
+  // No grade yet: the course is still running.
+  if (shown === '') return 'in-progress';
   const position = rank(grades, shown);
   if (position >= 0) return position <= rank(grades, grades.minimumCounting) ? 'passed' : 'must-repeat';
   return grades.neverCounting.some(never => never.toUpperCase() === shown) ? 'no-credit' : 'unrecognised';
@@ -89,8 +97,9 @@ export function courseStandings(rows: readonly TranscriptRow[], grades: Grades):
     const standing = judged.map(one => one.standing).reduce((first, next) => (PLACE[next] < PLACE[first] ? next : first));
     // Among the rows with that standing, the best grade decides; with no grade to compare,
     // or a tie, the first in transcript order.
+    // A transfer row's grade column is never read, here either: it has no grade to compare.
     const position = (one: JudgedRow): number => {
-      const at = rank(grades, one.row.grade);
+      const at = one.row.transfer === true ? -1 : rank(grades, one.row.grade);
       return at < 0 ? Number.POSITIVE_INFINITY : at;
     };
     const deciding = judged.filter(one => one.standing === standing).reduce((best, one) => (position(one) < position(best) ? one : best));

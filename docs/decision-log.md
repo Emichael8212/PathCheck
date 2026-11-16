@@ -12,7 +12,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | CI runs one job named `check` (lint, typecheck, tests, build). No browser tests in CI yet. | Nothing to test in a browser until the first feature. | Add steps to `.github/workflows/ci.yml`. |
 | Feature IDs are `F01`–`F26` in `features.json`, each with a `milestone` field (M0–M3). | Hooks and `/next-task` need to know the current milestone and when to stop. | Edit `features.json` (owner approval needed for ids, descriptions and steps). |
 | (2026-11-16, F02) The app's code lives in `src/` as plain TypeScript modules; the curriculum model is `src/curriculum.ts`. A UI framework is still not chosen; that is decided with F06, the first screen. | Rules and data need no framework, and keeping them free of one makes every academic rule testable on its own. | Move the files. |
-| (2026-11-16, F03) A grade that is not on the scale (for example "B+" or "P") never passes and is reported as "unrecognised", not as "must be repeated"; the review step asks the student to fix it. A transfer row with such a mark is treated the same way for now. | The owner said only A, B, C, D, F exist, so such a mark is a misread or something unforeseen. It is not "C or better", so it cannot pass; calling it "must be repeated" would be a claim PathCheck can't back. | Change `rowStanding` in `src/transcript.ts`. |
+| (2026-11-16, F03) A grade that is not on the scale (for example "B+" or "P") never passes and is reported as "unrecognised", not as "must be repeated"; the review step asks the student to fix it. This applies to ordinary rows only: a transfer row counts whatever its grade column shows (owner answer, 2026-11-16). | The owner said only A, B, C, D, F exist, so such a mark is a misread or something unforeseen. It is not "C or better", so it cannot pass; calling it "must be repeated" would be a claim PathCheck can't back. | Change `rowStanding` in `src/transcript.ts`. |
 | (2026-11-16, F03) When a course has several transcript rows and none passes, its standing is the first that applies of: in progress, unrecognised, must repeat, no credit. | In progress first: the brief says to assume the course will be passed and not to schedule it again. "Must be repeated" only when no row leaves the outcome open; it outranks W and I because the flag belongs to the below-C grade. | Change the order in `src/transcript.ts`. |
 | Curriculum file keeps its name `docs/curriculum/provisional-current.json`; "CIS 300/400-level" is stored as course numbers 300–499. | Name kept as carried over. 300–499 is the plain reading of "300/400-level". | Rename the file / edit `electives.subjectRule`. |
 | The curriculum keeps titles for FIN 201, FLS 161, MGT 203 and MGT 220 from the 2025–2027 catalog; every other title is from the departmental guide. | Sources as given by the owner. | Edit the data file. |
@@ -262,17 +262,49 @@ They are applied to the mockups and to `docs/design/DESIGN.md`.
   pull request when CI is green and the reviewer finds no blocker, and stops at the end of
   M1 for the owner's check.
 
+### 2026-11-16 — Transfer, AP and CLEP rows (F03)
+
+**Rule: ignore the grade column on transfer, AP and CLEP rows.** ASU only records transfer
+credit after the student earned a C or better (Undergraduate Catalog), and records AP and
+CLEP as transfer credit (Prior Learning Assessment Policy). So a row in the transcript's
+transfer-credit section under an ASU course code has already passed the grade check.
+
+- Such a row counts, whatever the grade column shows (blank, T, TR, a letter or anything
+  else). → F03.
+- It is then placed like any passed course: no double counting, the elective rule, the
+  legacy question. If its code isn't in the curriculum and doesn't match the elective rule,
+  it doesn't count. → F04, F05.
+- In the review step these rows are labelled "Transfer credit", so the student can correct
+  a misread row. → F11.
+- Rows outside the transfer section keep the normal grade rules (below C, W and I don't
+  count). → F03.
+- Tests: transfer rows with blank, T, TR and an unknown mark all count under an ASU code; a
+  transfer row with a code not in the curriculum doesn't count; a normal row with D
+  doesn't count. → F03 (the first and third), F04 (the second).
+
+**Where this differs from the brief:** §4 Flow B step 2 says "Apply no grade check if no
+grade is shown". The answer goes further: no grade check on a transfer row at all, even
+when a grade is shown. For transfer rows it therefore also overrides §5 "Grades" ("A
+grade below C never counts; flag 'must be repeated'"), which still holds for every row
+outside the transfer section.
+
+*Agent's notes, not owner decisions:*
+- `features.json` F03 still words two steps the old way: step 1 ("D and F never count",
+  with no exception for transfer rows) and step 5 ("with no grade check if no grade is
+  shown"). Feature steps are only changed with the owner's approval; new wording is
+  proposed in the pull request for this fix.
+- When a course has both an ordinary passing row and transfer credit, the ordinary row is
+  the one shown as deciding, because the transfer row's grade column is not read at all.
+- A row is transfer credit only when the reader marks it so with a plain yes; anything
+  else is treated as an ordinary row, so a misread flag can never make a D count.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
 stand-in until the owner answers; it is not an owner decision.
 
-- **2026-11-16 (F03; needed before F21, M2).** On the real unofficial transcript, what does
-  the grade column show on a transfer, AP or CLEP row: blank, a mark such as "T", "TR" or
-  "CR", or a letter grade? The brief says such rows count "with no grade check if no grade
-  is shown". Until this is answered, a transfer row with a mark that is not A, B, C, D, F,
-  W or I does not count and is shown to the student to fix, and no made-up transcript uses
-  a transfer mark. Status: not answered yet.
+- None open. (The 2026-11-16 question about the grade column of transfer rows was answered
+  the same day: see "Owner answers", "Transfer, AP and CLEP rows".)
 
 ## Milestone checks
 
