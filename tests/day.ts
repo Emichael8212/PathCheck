@@ -4,5 +4,5 @@
 import { type AppWindow } from '../src/app';
 
 export const TEST_DAY = (): Date => new Date(2026, 10, 16, 12);
-/** The same window, on the tests' day. */
+/** The same window, on the tests' day. (The day stays set for the rest of the test file: every app in it runs on it.) */
 export const onTestDay = (win: AppWindow): AppWindow => Object.assign(win, { today: TEST_DAY });

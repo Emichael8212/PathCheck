@@ -232,6 +232,11 @@ describe('"Report a mistake"', () => {
     // An empty list again.
     for (const button of [...document.querySelectorAll<HTMLElement>('[data-remove]')]) $(`[data-remove="${button.dataset.remove}"]`).click();
     expect(shown().slice(0, 3)).toEqual(['Transcript added', 'Legacy CIS student: Yes', 'No course is in the list.']);
+    // The caveat belongs to a finish: a sentence that names none has none, in the email as on the page.
+    add('bio 230');
+    expect(shown()[shown().length - 1]).toMatch(/^None of these credits counts toward CIS/);
+    expect(shown().join('\n')).not.toContain('Credits only');
+    expect(tidy($('.pace-line').textContent)).not.toContain('Credits only');
   });
 
   it('fills the email with the result', async () => {
@@ -339,13 +344,13 @@ describe('"Report a mistake"', () => {
     const one = emailOf(reportHref('s', { lines: [], list: ['x'.repeat(900), 'y'.repeat(900)] }, [])).lines;
     expect(one).toContain('… and 1 more course, left out to keep this message short.');
     expect(emailOf(reportHref('s', { lines: ['a'], list: ['b', 'c'], after: ['d'] }, ['e'])).lines).toEqual(['What looks wrong?', '', '', 'What PathCheck showed:', 'a', 'b', 'c', 'd', '', 'e']);
-    // Lines that are too long even without any course are cut from the end too, and the message says so: the link never passes the limit.
-    const long = reportHref('s', { lines: Array.from({ length: 40 }, (_, i) => `${i} ${'z'.repeat(78)}`), list: ['AAA 101 — x'], after: ['after'] }, ['closing']);
+    // Lines too long even without any course (no page has them): the message says that what the page showed is left
+    // out, never a part of it, so that a finish cannot be left without its caveat. The link never passes the limit.
+    const long = reportHref('s', { lines: Array.from({ length: 40 }, (_, i) => `${i} ${'z'.repeat(78)}`), list: ['AAA 101 — x'], after: ['a finish', 'its caveat'] }, ['closing']);
     expect(long.length).toBeLessThanOrEqual(REPORT_LIMIT);
-    const cut = emailOf(long).lines;
-    expect(cut[cut.indexOf('') + 2]).toBe('What PathCheck showed:');
-    expect(cut.slice(-3)).toEqual(['… the rest is left out to keep this message short.', '', 'closing']);
-    expect(cut[4]).toMatch(/^0 z+$/);
+    expect(emailOf(long).lines).toEqual(['What looks wrong?', '', '', 'What PathCheck showed:', '… left out to keep this message short.', '', 'closing']);
+    // The longest real result is well under the limit, so it is always whole.
+    expect($<HTMLAnchorElement>('.foot a').getAttribute('href')!.length).toBeLessThan(REPORT_LIMIT);
     // Using the link asks no server for anything.
     expect(requests).not.toHaveBeenCalled();
     requests.mockRestore();

@@ -12,7 +12,7 @@ const TEXT = {
   ask: 'What looks wrong?',
   shown: 'What PathCheck showed:',
   more: (count: number): string => `… and ${count} more ${count === 1 ? 'course' : 'courses'}, left out to keep this message short.`,
-  rest: '… the rest is left out to keep this message short.',
+  left: '… left out to keep this message short.',
 };
 
 /** What a page showed, as lines of an email. */
@@ -45,12 +45,7 @@ export function reportHref(subject: string, shown: Shown, closing: readonly stri
     const href = withResult(resultWith(kept));
     if (href.length <= REPORT_LIMIT) return href;
   }
-  // Still too long without any course (no page of today's is): the other lines go from the end, and the message says so.
-  const rest = resultWith(0);
-  while (rest.length > 0) {
-    rest.pop();
-    const href = withResult([...rest, TEXT.rest]);
-    if (href.length <= REPORT_LIMIT) return href;
-  }
-  return withResult([]);
+  // Still too long without any course (no page of today's is): the message says that what the page showed
+  // is left out, rather than a part of it. Lines that belong together, a finish and its caveat, are never parted.
+  return withResult([TEXT.left]);
 }
