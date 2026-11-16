@@ -207,8 +207,10 @@
         "The GPA totals and the \"Academic Standing\" line are ignored: never read as courses, never shown"
       ],
       "passes": false,
-      "evidence": "",
-      "tests": []
+      "evidence": "docs/sprints/F10.md — the checking and the made-up transcripts merged with tests; not passing yet: showing a row to fix and the localhost upload are finished with F11",
+      "tests": [
+        "tests/reader.test.ts"
+      ]
     },
     {
       "id": "F11",
