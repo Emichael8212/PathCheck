@@ -990,7 +990,7 @@ describe('with a transcript', () => {
     $('[data-continue]').click();
     expect(app.route).toBe('check');
     expect(status()).toBe('Transcript added');
-    expect(card()).toContain('1 row of your transcript still needs fixing, so these answers are not exact yet. Fix it');
+    expect(card()).toContain('1 row of your transcript still needs fixing, so these answers are not exact yet. The pace may change too. Fix it');
     // The checked rows are used, but nothing is called exact: the unchecked row is ENG 131 itself.
     expect(answers()).toEqual(['You already passed this', `Counts toward CIS — Composition ${CONDITION}`, `Counts toward CIS — Business core ${CONDITION}`]);
     expect(strip()).toContain('unless you’ve already passed them or filled their slots');
@@ -1031,5 +1031,175 @@ describe('with a transcript', () => {
     expect(status()).toBe('No transcript added');
     expect(card()).toContain('No row of your transcript (made-up.pdf) was taken on, so these answers don’t use it.');
     expect(answers()[0]).toBe(`Counts toward CIS — Business core ${CONDITION}`);
+  });
+});
+
+// ---- F15: the pace line, with a transcript only (docs/sprints/F15.md) ----
+describe('the pace line', () => {
+  const CAVEAT = 'Credits only — course order may add semesters.';
+  const folder = join(import.meta.dirname, '..', 'synthetic', 'transcripts');
+  const madeUp = (name: string) => {
+    const bytes = new Uint8Array(readFileSync(join(folder, `${name}.pdf`)));
+    return { name: `${name}.pdf`, size: bytes.length, arrayBuffer: async (): Promise<ArrayBuffer> => bytes.slice().buffer as ArrayBuffer };
+  };
+  /** Adds a made-up transcript from this page and comes back with it reviewed. */
+  const withTranscript = async (name: string): Promise<void> => {
+    await app.takeFile(madeUp(name));
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+  };
+  // The line as it reads, with what each list shows as chosen. (The simulated browser does not
+  // honour the selected option of a list made from HTML text; a real browser is checked by the evaluator.)
+  const shown = (marker: string): string => $(`${marker} option[selected]`).getAttribute('value') ?? '';
+  const offered = (marker: string): string[] => [...$<HTMLSelectElement>(marker).options].map(option => option.value);
+  const line = (): string => {
+    const node = $('[data-pace-line]').cloneNode(true) as HTMLElement;
+    for (const list of node.querySelectorAll('select')) list.replaceWith(`[${list.querySelector('option[selected]')?.getAttribute('value')}]`);
+    return tidy(node.textContent);
+  };
+  const choose = (marker: string, value: string): void => {
+    const list = $<HTMLSelectElement>(marker);
+    list.focus();
+    list.value = value;
+    list.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const said = (): string => tidy($('[data-said]').textContent);
+  const fifteen = ['mgt 321', 'mgt 422', 'cis 300', 'cis 302', 'fin 201'];
+
+  it('shows the pace line with a transcript', async () => {
+    for (const one of fifteen) add(one);
+    // Without a transcript: no line, no list, no word about pace.
+    expect(document.querySelector('[data-pace-line], [data-line-term], [data-line-target]')).toBeNull();
+    expect(tidy($('main').textContent)).not.toMatch(/at this pace|Target semester|you finish/);
+    // Still in the review: the same.
+    await app.takeFile(madeUp('sample-a'));
+    go('#/check');
+    expect(document.querySelector('[data-pace-line]')).toBeNull();
+    $('[data-review]').click();
+    $('[data-continue]').click();
+    expect(app.route).toBe('check');
+    // With it: the owner's sentence, with its two lists and the caveat under it.
+    expect(line()).toBe(`15 credits in [Spring 2027] — at this pace you finish Fall 2029, one semester after your target [Spring 2029]. ${CAVEAT}`);
+    expect(offered('[data-line-term]')).toEqual(['Spring 2027', 'Fall 2027', 'Spring 2028', 'Fall 2028']);
+    expect(offered('[data-line-target]')).toEqual(['Fall 2028', 'Spring 2029', 'Fall 2029', 'Spring 2030', 'Fall 2030']);
+    expect([$('[data-line-term]').getAttribute('aria-label'), $('[data-line-target]').getAttribute('aria-label')]).toEqual(['Term for these courses', 'Target semester']);
+    // It sits under the three numbers.
+    expect($('[data-summary]').lastElementChild).toBe($('[data-pace-line]'));
+    // Forgetting the transcript takes the line away.
+    $('[data-another]').click();
+    expect(document.querySelector('[data-pace-line]')).toBeNull();
+    // A transcript with no row taken on gives none either.
+    Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: ['not a row'] }, curriculum), continued: true });
+    go('#/');
+    go('#/check');
+    expect(document.querySelector('[data-pace-line]')).toBeNull();
+  });
+
+  it('follows the two lists', async () => {
+    for (const one of fifteen) add(one);
+    await withTranscript('sample-a');
+    // The term: one later, the finish one later.
+    type('mgt');
+    choose('[data-line-term]', 'Fall 2027');
+    expect(line()).toBe(`15 credits in [Fall 2027] — at this pace you finish Spring 2030, 2 semesters after your target [Spring 2029]. ${CAVEAT}`);
+    expect(document.activeElement).toBe($('[data-line-term]'));
+    expect(said()).toBe('15 credits in Fall 2027 — at this pace you finish Spring 2030, 2 semesters after your target.');
+    // What was being typed in the field is still there.
+    expect(field().value).toBe('mgt');
+    // The target: the finish stays, the comparison follows.
+    choose('[data-line-target]', 'Spring 2030');
+    expect(line()).toBe(`15 credits in [Fall 2027] — at this pace you finish in your target semester [Spring 2030]. ${CAVEAT}`);
+    expect(document.activeElement).toBe($('[data-line-target]'));
+    expect(said()).toBe('15 credits in Fall 2027 — at this pace you finish in your target semester.');
+    choose('[data-line-target]', 'Fall 2030');
+    expect(line()).toContain('you finish Spring 2030, one semester before your target [Fall 2030].');
+    // The same target on "See what I have left"; one chosen there is shown here.
+    go('#/left');
+    expect($('[data-pace-target] option[selected]').getAttribute('value')).toBe('Fall 2030');
+    const there = $<HTMLSelectElement>('[data-pace-target]');
+    there.value = 'Fall 2029';
+    there.dispatchEvent(new Event('change', { bubbles: true }));
+    go('#/check');
+    expect([shown('[data-line-term]'), shown('[data-line-target]')]).toEqual(['Fall 2027', 'Fall 2029']);
+    expect(line()).toContain('you finish Spring 2030, one semester after your target [Fall 2029].');
+    // With summers counted there and a summer as the target, this page shows it as itself and compares in calendar order.
+    go('#/left');
+    $('[data-pace-summers]').click();
+    const summer = $<HTMLSelectElement>('[data-pace-target]');
+    expect([...summer.options].map(option => option.value)).toContain('Summer 2029');
+    summer.value = 'Summer 2029';
+    summer.dispatchEvent(new Event('change', { bubbles: true }));
+    go('#/check');
+    expect(shown('[data-line-target]')).toBe('Summer 2029');
+    expect(offered('[data-line-target]').filter(one => one.startsWith('Summer'))).toEqual(['Summer 2029']);
+    expect(offered('[data-line-term]').some(one => one.startsWith('Summer'))).toBe(false);
+    expect(line()).toContain('you finish Spring 2030, 2 semesters after your target [Summer 2029].');
+    // Being shown here has not changed it there.
+    expect(app.left.pace).toMatchObject({ summers: true, target: { season: 'Summer', year: 2029 } });
+  });
+
+  it('says the new pace when the list changes', async () => {
+    add('mgt 321');
+    await withTranscript('sample-a');
+    expect(line()).toBe(`3 credits in [Spring 2027] — at this pace you finish Spring 2040, 22 semesters after your target [Spring 2029]. ${CAVEAT}`);
+    // What happened and the new line, as one message.
+    add('mgt 422');
+    expect(said()).toBe('MGT 422 added. Below 12 credits: below full-time; may affect scholarships. 6 credits in Spring 2027 — at this pace you finish Fall 2033, 9 semesters after your target.'.replace('Below 12 credits: below full-time; may affect scholarships. ', ''));
+    expect(line()).toContain('6 credits in [Spring 2027] — at this pace you finish Fall 2033, 9 semesters after your target');
+    // A course that doesn't count changes the wording, not the finish.
+    add('bio 230');
+    expect(said()).toBe('BIO 230 added. 6 of your 9 credits in Spring 2027 count toward CIS — at this pace you finish Fall 2033, 9 semesters after your target.');
+    // Its credits changed: still the same finish.
+    const credits = $<HTMLSelectElement>('[data-credits="BIO 230"]');
+    credits.focus();
+    credits.value = '6';
+    credits.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(line()).toContain('6 of your 12 credits in [Spring 2027] count toward CIS — at this pace you finish Fall 2033, 9 semesters after your target');
+    expect(said()).toBe('Total credits: 12. 6 of your 12 credits in Spring 2027 count toward CIS — at this pace you finish Fall 2033, 9 semesters after your target.');
+    // Removed down to a course that does not count: no finish is named.
+    $('[data-remove="MGT 321"]').click();
+    $('[data-remove="MGT 422"]').click();
+    expect(line()).toBe('None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
+    expect(said()).toBe('MGT 422 removed. Below 12 credits: below full-time; may affect scholarships. None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
+    // One live region carries it on this page.
+    expect(document.querySelectorAll('main [role="status"][data-said]')).toHaveLength(1);
+    expect($('[data-pace-line]').closest('[aria-live]')).toBeNull();
+    // An empty list has no line.
+    $('[data-remove="BIO 230"]').click();
+    expect(document.querySelector('[data-pace-line]')).toBeNull();
+  });
+
+  it('asks the legacy question in the pace line', async () => {
+    add('cis 300');
+    await withTranscript('sample-b');
+    // No row asks: the question stands in the line's place, with why.
+    expect(answers()).toEqual(['Counts toward CIS — Major (CIS)']);
+    expect(tidy($('[data-pace-line]').textContent)).toBe('Are you a legacy CIS student? Yes No Your transcript has FLS 161, which counts as an elective only for legacy students.');
+    expect(document.querySelector('[data-line-term], [data-pace-line] .caveat')).toBeNull();
+    $<HTMLElement>('[data-pace-line] [data-legacy="yes"]').focus();
+    $('[data-pace-line] [data-legacy="yes"]').click();
+    // 89 credits still to take with Yes.
+    expect(line()).toBe(`3 credits in [Spring 2026] — at this pace you finish Fall 2040, 25 semesters after your target [Spring 2028]. ${CAVEAT}`);
+    expect(window.localStorage.getItem('pathcheck.legacy')).not.toBeNull();
+    expect(said()).toBe('Legacy CIS student: Yes 3 credits in Spring 2026 — at this pace you finish Fall 2040, 25 semesters after your target.');
+    expect(document.activeElement).toBe($('[data-line-term]'));
+    // It is the answer of the checklist too; changed there, the line here follows: 92 with No.
+    go('#/left');
+    expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
+    $('[data-legacy-change]').click();
+    $('[data-legacy="no"]').click();
+    go('#/check');
+    expect(line()).toBe(`3 credits in [Spring 2026] — at this pace you finish Spring 2041, 25 semesters after your target [Fall 2028]. ${CAVEAT}`);
+    // When a typed row shows the question, the line points to it.
+    window.localStorage.clear();
+    app.stop();
+    document.body.innerHTML = '<div id="app"></div>';
+    app = startApp(window as unknown as AppWindow);
+    add('fin 201');
+    add('cis 499');
+    await withTranscript('sample-b');
+    expect(tidy($('[data-pace-line]').textContent)).toBe('Answer “Are you a legacy CIS student?” to see your pace.');
+    $('[data-entries] [data-legacy="no"]').click();
+    expect(line()).toBe(`6 credits in [Spring 2026] — at this pace you finish Fall 2033, 10 semesters after your target [Fall 2028]. ${CAVEAT}`);
   });
 });

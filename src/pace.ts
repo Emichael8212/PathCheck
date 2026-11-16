@@ -134,6 +134,63 @@ export function paceOf(credits: number, latest: Term | null, settings: PaceSetti
   return { kind: on ? 'on' : 'off', credits, start, target, terms, perTerm: Math.round(credits / terms), detail, options };
 }
 
+// ---- The pace line of "Check my courses" (brief §4 Flow A step 5; the owner's answer of 2026-11-16; docs/sprints/F15.md) ----
+export const NO_CREDITS_LEFT = 'No credits left to plan';
+export const PACE_UNREADABLE = 'Pace can’t be estimated: the latest term on your transcript could not be read.';
+
+export type PaceLine =
+  /** Nothing is left to take. */
+  | { readonly kind: 'none' }
+  /** The latest term could not be read from the transcript. */
+  | { readonly kind: 'unreadable' }
+  /** None of the typed credits counts: the list brings the finish no closer. */
+  | { readonly kind: 'no-count' }
+  | {
+    readonly kind: 'line';
+    /** The typed credits that count toward the degree, and all the typed credits. */
+    readonly counting: number;
+    readonly total: number;
+    /** The term the typed courses are for, and the terms offered: the default and the next three. */
+    readonly term: Term;
+    readonly terms: readonly Term[];
+    /** The term in which the credits still to take run out, at this many credits in every Fall and Spring. */
+    readonly finish: Term;
+    readonly target: Term;
+    readonly targets: readonly Term[];
+    /** The finish against the target, in Fall and Spring terms; a summer target is one step. */
+    readonly compare: { readonly kind: 'on' } | { readonly kind: 'before' | 'after'; readonly semesters: number };
+  };
+
+/** A term's place among Fall and Spring terms; a summer sits half-way between its Spring and its Fall. */
+const halfYears = (term: Term): number => term.year * 2 + (term.season === 'Spring' ? 0 : term.season === 'Summer' ? 0.5 : 1);
+
+/**
+ * The pace line: `left` credits are still to take; the student has typed `total` credits
+ * of which `counting` count toward the degree, for `term` (null: the first Fall or Spring
+ * after the transcript's latest term). The target is the one of "See what I have left".
+ * Summers are never counted here.
+ */
+export function paceLineOf(input: { left: number; counting: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
+  const { left, counting, total, latest, settings } = input;
+  if (left <= 0) return { kind: 'none' };
+  if (latest === null) return { kind: 'unreadable' };
+  if (counting <= 0) return { kind: 'no-count' };
+  const first = termAfter(latest, false);
+  const terms = [1, 2, 3, 4].map(count => termAt(first, count, false));
+  // The chosen term, when it is one of those offered.
+  const term = terms.find(one => input.term !== null && sameTerm(one, input.term)) ?? first;
+  const finish = termAt(term, Math.ceil(left / counting), false);
+  // The target as "See what I have left" has it; a summer only when summers count there.
+  const shared = paceOf(left, latest, settings);
+  const plain = paceOf(left, latest, { ...settings, summers: false, target: null });
+  if ((shared.kind !== 'on' && shared.kind !== 'off') || (plain.kind !== 'on' && plain.kind !== 'off')) return { kind: 'none' };
+  const { target } = shared;
+  const targets = [...plain.options, target].filter((one, i, all) => all.findIndex(other => sameTerm(other, one)) === i).sort((a, b) => place(a) - place(b));
+  const apart = halfYears(finish) - halfYears(target);
+  const compare: Extract<PaceLine, { kind: 'line' }>['compare'] = apart === 0 ? { kind: 'on' } : { kind: apart > 0 ? 'after' : 'before', semesters: Math.ceil(Math.abs(apart)) };
+  return { kind: 'line', counting, total, term, terms, finish, target, targets, compare };
+}
+
 // ---- The page ----
 const TEXT = {
   eyebrow: 'Looking ahead',
@@ -142,8 +199,8 @@ const TEXT = {
   about: (credits: number): string => `about ${credits} ${credits === 1 ? 'credit' : 'credits'} a term`,
   finish: (at: number, term: string, semesters: number, when: 'before' | 'after'): string =>
     `At ${at} ${at === 1 ? 'credit' : 'credits'} a term you finish ${term}, ${semesters === 1 ? 'one semester' : `${semesters} semesters`} ${when} your target.`,
-  none: 'No credits left to plan',
-  unreadable: 'Pace can’t be estimated: the latest term on your transcript could not be read.',
+  none: NO_CREDITS_LEFT,
+  unreadable: PACE_UNREADABLE,
   controls: 'Make the estimate yours',
   legend: 'Adjust your pace',
   target: 'Target semester',

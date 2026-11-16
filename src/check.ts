@@ -6,14 +6,16 @@
 // What the student types is never put into the page as it is: only a course code worked
 // out from it.
 import { answersFor, legacyMatters, reminderFor, type Answer, type TranscriptUse } from './answers';
+import { checklistOf, legacyChanges, legacyOnTranscript } from './checklist';
 import { FULL_TIME, MOST_UNKNOWN_CREDITS, USUAL_MOST, creditsOf, noteFor, totalsOf } from './credits';
 import { type Course, type Curriculum } from './curriculum';
 import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entries';
 import { code, esc, icons, marks, withCodes } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
+import { NO_CREDITS_LEFT, PACE_UNREADABLE, defaultSettings, latestTermOf, paceLineOf, readTerm, termName, type PaceLine, type PaceSettings, type Term } from './pace';
 import { FLOW_NAME, foot, top } from './shell';
 import { countsExample } from './start';
-import { ANOTHER_FORGETS, CHANGE, COUNT_CONDITION, LEGACY_LINE, COUNT_TOWARD, DO_NOT_COUNT, PRIVACY, TOTAL_CREDITS, USE_ANOTHER, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
+import { ANOTHER_FORGETS, CAVEAT, CHANGE, COUNT_CONDITION, LEGACY_LINE, transcriptHasLegacy, waitingFor, COUNT_TOWARD, DO_NOT_COUNT, PRIVACY, TOTAL_CREDITS, USE_ANOTHER, WAITING_FOR_LEGACY, belowFullTime, overUsualMost } from './wording';
 
 const TEXT = {
   addLabel: 'Add a course',
@@ -38,7 +40,20 @@ const TEXT = {
   review: 'Check what was read',
   uses: (name: string): string => `Your answers use your transcript (${name}).`,
   notUsed: (name: string): string => `No row of your transcript (${name}) was taken on, so these answers don’t use it.`,
-  notExact: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing, so these answers are not exact yet.`,
+  notExact: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing, so these answers are not exact yet. The pace may change too.`,
+  // The pace line (the owner's sentence of 2026-11-16).
+  credits: (count: number): string => `${count} ${count === 1 ? 'credit' : 'credits'}`,
+  ofYour: (counting: number, total: number): string => `${counting} of your ${total} ${total === 1 ? 'credit' : 'credits'}`,
+  inTerm: 'in',
+  countToward: 'count toward CIS',
+  atThisPace: 'at this pace you finish',
+  yourTarget: 'your target',
+  inYourTarget: 'in your target semester',
+  semesters: (count: number): string => (count === 1 ? 'one semester' : `${count} semesters`),
+  termLabel: 'Term for these courses',
+  targetLabel: 'Target semester',
+  noneCount: 'None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.',
+  answerFirst: `${waitingFor(LEGACY_QUESTION).replace(/ to see this\.$/, '')} to see your pace.`,
   fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
 };
 const creditsFor = (courseCode: string): string => `Credits for ${courseCode}`;
@@ -55,8 +70,10 @@ export interface CourseList {
   legacy: LegacyAnswer;
   /** Which rows are listed: all of them, or only those that don't count. */
   filter: 'all' | 'no';
+  /** The term these courses are for, once the student has chosen one for the pace line. */
+  term?: Term | null;
 }
-export const emptyList = (legacy: LegacyAnswer = null): CourseList => ({ entries: [], legacy, filter: 'all' });
+export const emptyList = (legacy: LegacyAnswer = null): CourseList => ({ entries: [], legacy, filter: 'all', term: null });
 
 /** Where the student's transcript stands, as this page needs it. */
 export type OnCheck =
@@ -68,7 +85,7 @@ export type OnCheck =
    * Reviewed. `use` is what the answers use, or null when no row was taken on; `counts` is
    * the review's line of counts; `toFix` is how many rows still need fixing.
    */
-  | { readonly state: 'added'; readonly name: string; readonly use: TranscriptUse | null; readonly counts: string; readonly toFix: number };
+  | { readonly state: 'added'; readonly name: string; readonly use: TranscriptUse | null; readonly counts: string; readonly toFix: number; readonly pace?: PaceSettings };
 export const NO_TRANSCRIPT: OnCheck = { state: 'none', refusal: null };
 const useOf = (transcript: OnCheck): TranscriptUse | null => (transcript.state === 'added' ? transcript.use : null);
 
@@ -187,6 +204,84 @@ export function summaryHtml(list: CourseList, curriculum: Curriculum, transcript
     <div><span class="num">${totals.total}</span><span class="summary-label">${esc(TOTAL_CREDITS)}</span>${note ? `<span class="summary-condition">${esc(note)}</span>` : ''}</div>
     <div><span class="num is-counts">${totals.counts}</span><span class="summary-label">${esc(COUNT_TOWARD)}</span>${use?.exact ? '' : `<span class="summary-condition">${esc(COUNT_CONDITION)}</span>`}${waiting(true)}</div>
     <div><span class="num is-no">${totals.doesNotCount}</span><span class="summary-label">${esc(DO_NOT_COUNT)}</span>${waiting(false)}</div>
+  </div>${paceLineHtml(paceLineFor(list, curriculum, transcript))}`;
+}
+
+/** What the pace line shows: a line with its two lists; a sentence; or the legacy question in its place. */
+export type LineView =
+  | { readonly kind: 'line'; readonly line: Extract<PaceLine, { kind: 'line' }> }
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'ask'; readonly because: string | null };
+
+/**
+ * The pace line for the list, or nothing: only with a reviewed transcript that is used,
+ * and at least one course. The pace uses the credits that count toward the degree; a
+ * course that doesn't count brings the finish no closer.
+ */
+export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript: OnCheck): LineView | null {
+  const use = useOf(transcript);
+  if (!use || transcript.state !== 'added' || list.entries.length === 0) return null;
+  const answers = answersFor(list.entries, curriculum, list.legacy, use);
+  if (list.legacy === null) {
+    // No finish before a legacy answer that could change it: asked on a row, or here.
+    if (answers.some(answer => answer.kind === 'ask')) return { kind: 'text', text: TEXT.answerFirst };
+    if (legacyChanges(use.standings, curriculum)) {
+      const because = legacyOnTranscript(use.standings, curriculum);
+      return { kind: 'ask', because: because.length > 0 ? transcriptHasLegacy(because) : null };
+    }
+  }
+  const checklist = checklistOf(use.standings, curriculum, list.legacy === true);
+  const totals = totalsOf(list.entries, answers);
+  const line = paceLineOf({
+    left: checklist.credits.left + checklist.extraLeft, counting: totals.counts + totals.needed, total: totals.total,
+    latest: latestTermOf(use.standings), term: list.term ?? null, settings: transcript.pace ?? defaultSettings(),
+  });
+  if (line.kind === 'line') return { kind: 'line', line };
+  return { kind: 'text', text: line.kind === 'none' ? NO_CREDITS_LEFT : line.kind === 'unreadable' ? PACE_UNREADABLE : TEXT.noneCount };
+}
+
+const lineParts = (line: Extract<PaceLine, { kind: 'line' }>): { before: string; middle: string; after: string } => {
+  const credits = line.counting === line.total ? `${TEXT.credits(line.counting)} ${TEXT.inTerm}` : `${TEXT.ofYour(line.counting, line.total)} ${TEXT.inTerm}`;
+  const counted = line.counting === line.total ? '' : ` ${TEXT.countToward}`;
+  const { compare } = line;
+  return compare.kind === 'on'
+    ? { before: credits, middle: `${counted} — ${TEXT.atThisPace} ${TEXT.inYourTarget}`, after: '.' }
+    : { before: credits, middle: `${counted} — ${TEXT.atThisPace} ${termName(line.finish)}, ${TEXT.semesters(compare.semesters)} ${compare.kind} ${TEXT.yourTarget}`, after: '.' };
+};
+
+/** The pace line as one sentence, as it is read out: the term by name, the target not repeated. */
+export function paceLineSentence(view: LineView | null): string {
+  if (!view) return '';
+  if (view.kind === 'text') return view.text;
+  if (view.kind === 'ask') return LEGACY_QUESTION;
+  const parts = lineParts(view.line);
+  return `${parts.before} ${termName(view.line.term)}${parts.middle}${parts.after}`;
+}
+
+const termList = (label: string, marker: string, terms: readonly Term[], chosen: Term): string => `<select class="line-select" aria-label="${esc(label)}" ${marker}>${
+  terms.map(term => `<option value="${esc(termName(term))}"${termName(term) === termName(chosen) ? ' selected' : ''}>${esc(termName(term))}</option>`).join('')}</select>`;
+
+/** The pace line under the numbers; nothing without a transcript. A finish is never named without the caveat. */
+export function paceLineHtml(view: LineView | null): string {
+  if (!view) return '';
+  if (view.kind === 'text') return `<p class="pace-line" data-pace-line>${esc(view.text)}</p>`;
+  if (view.kind === 'ask') {
+    return `<div class="pace-line" data-pace-line>
+    <div class="legacy-ask" role="group" aria-label="${esc(LEGACY_QUESTION)}">
+      <p>${esc(LEGACY_QUESTION)}</p>
+      <div class="legacy-buttons">
+        <button type="button" class="btn secondary" data-legacy="yes">${esc(LEGACY_YES)}</button>
+        <button type="button" class="btn secondary" data-legacy="no">${esc(LEGACY_NO)}</button>
+      </div>${view.because ? `
+      <p class="condition">${withCodes(view.because)}</p>` : ''}
+    </div>
+  </div>`;
+  }
+  const { line } = view;
+  const parts = lineParts(line);
+  return `<div class="pace-line" data-pace-line>
+    <p>${esc(parts.before)} ${termList(TEXT.termLabel, 'data-line-term', line.terms, line.term)}${esc(parts.middle)} ${termList(TEXT.targetLabel, 'data-line-target', line.targets, line.target)}${esc(parts.after)}</p>
+    <p class="caveat">${esc(CAVEAT)}</p>
   </div>`;
 }
 
@@ -251,13 +346,15 @@ export interface CheckHooks {
   forget(): void;
   /** Opens the review step, to come back here after it. */
   review(): void;
+  /** The student chose a target semester: it is the one of "See what I have left" too. */
+  target(term: Term): void;
 }
 /** The page once it is wired up. */
 export interface CheckView {
   /** Draws again everything that depends on the transcript. What is typed in the field stays. */
   refresh(): void;
 }
-const NO_HOOKS: CheckHooks = { browse: () => undefined, forget: () => undefined, review: () => undefined };
+const NO_HOOKS: CheckHooks = { browse: () => undefined, forget: () => undefined, review: () => undefined, target: () => undefined };
 
 /** Wires up the page once it is drawn. `transcript` gives where the transcript stands now. */
 export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curriculum, transcript: () => OnCheck = () => NO_TRANSCRIPT, hooks: CheckHooks = NO_HOOKS): CheckView {
@@ -316,9 +413,11 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   // What changed is read out; a note about the total is added when it appears or changes,
   // not every time the list changes under it.
   let lastNote = noteText(list);
+  // The pace line as it now stands goes into the same message, so that neither is lost.
   const announce = (what: string): void => {
     const note = noteText(list);
-    say(said, note !== null && note !== lastNote ? `${what} ${note}`.trim() : what);
+    const pace = paceLineSentence(paceLineFor(list, curriculum, transcript()));
+    say(said, [what, note !== null && note !== lastNote ? note : '', pace].filter(Boolean).join(' '));
     lastNote = note;
   };
 
@@ -389,6 +488,30 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     list.filter = chosen;
     drawList();
     filters.querySelector<HTMLElement>(`[data-filter="${chosen}"]`)?.focus();
+  });
+
+  // The two lists of the pace line, and the legacy question when it stands in the line's
+  // place. The numbers and the line are drawn again; the keyboard goes back to the list.
+  summary.addEventListener('change', event => {
+    const chosen = event.target instanceof HTMLSelectElement ? event.target : null;
+    const term = chosen ? readTerm(chosen.value) : null;
+    if (!chosen || !term) return;
+    const marker = chosen.matches('[data-line-term]') ? '[data-line-term]' : chosen.matches('[data-line-target]') ? '[data-line-target]' : null;
+    if (!marker) return;
+    if (marker === '[data-line-term]') list.term = term;
+    else hooks.target(term);
+    summary.innerHTML = summaryHtml(list, curriculum, transcript());
+    say(said, paceLineSentence(paceLineFor(list, curriculum, transcript())));
+    summary.querySelector<HTMLElement>(marker)?.focus();
+  });
+  summary.addEventListener('click', event => {
+    const answer = (event.target instanceof Element ? event.target : null)?.closest<HTMLElement>('[data-legacy]')?.dataset.legacy;
+    if (answer !== 'yes' && answer !== 'no') return;
+    list.legacy = answer === 'yes';
+    writeLegacyAnswer(browserStorage(), list.legacy);
+    drawList();
+    announce(`${TEXT.legacyLine} ${list.legacy ? LEGACY_YES : LEGACY_NO}`);
+    (region.querySelector<HTMLElement>('[data-legacy-change]') ?? summary.querySelector<HTMLElement>('[data-line-term]') ?? input).focus();
   });
 
   // The credits of a course PathCheck doesn't know. Only the numbers above the list are
