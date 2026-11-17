@@ -14,8 +14,8 @@ import { addCourse, setCredits, type Entry } from './entries';
 import { esc, icons } from './html';
 import { LEGACY_KEY, type AnswerStorage } from './legacy';
 import { defaultSettings, readTerm, termName, type PaceSettings, type Term } from './pace';
-import { type Moves } from './plan';
-import { openTranscript, type Transcript } from './review';
+import { planEntries, type Moves } from './plan';
+import { openTranscript, reviewedStandings, type Transcript } from './review';
 import { KEPT_AS_PASSED, rowStanding } from './transcript';
 
 /** The one entry, beside the legacy answer, that PathCheck keeps in the browser's storage. */
@@ -80,23 +80,30 @@ export function keptRows(transcript: Transcript, curriculum: Curriculum): { rows
       // A row that still needs fixing is kept as it was read: it has to be fixed. Left out, it
       // keeps no grade: put back, it is a row to fix again and its grade is chosen again.
       const out = leftOut.has(line);
-      const read = seen.grade.trim() !== '';
-      const faulty = problems.includes('grade');
+      const dropped = out && seen.grade.trim() !== '' && !problems.includes('grade');
       return {
         line,
         row: {
           term: seen.term, ...(seen.transfer === null ? {} : { transfer: seen.transfer }), prefix: seen.prefix, number: seen.number,
-          // What made it a row to fix stays a fault, so that it never counts by being kept.
-          description: problems.includes('description') ? false : seen.description,
-          attempted: seen.attempted,
-          // (A grade that was a fault, or that is not kept, stays one: it is never kept as no grade, which would read as in progress.)
-          grade: out ? (read || faulty ? false : '') : faulty && !read ? false : seen.grade,
-          ...(problems.includes('earned') ? { earned: '?' } : {}), ...(problems.includes('points') ? { points: '?' } : {}),
+          description: seen.description, attempted: seen.attempted, grade: out ? '' : seen.grade,
+          // What was wrong with it. With this the row is one to fix when it comes back, whatever its
+          // kept fields read as then: being kept never makes a row count.
+          fix: dropped ? [...problems, 'grade'] : [...problems],
         },
       };
     }),
   ].sort((a, b) => a.line - b.line);
   return { rows: lines.map(one => one.row), leftOut: lines.flatMap((one, at) => (leftOut.has(one.line) ? [at] : [])) };
+}
+
+/**
+ * The moves that are moves of this result: those of an entry its plan has, for either
+ * legacy answer. A move of anything else is not kept and not read back.
+ */
+function movesOfPlan(moves: Moves, transcript: Transcript, curriculum: Curriculum): Moves {
+  const standings = reviewedStandings(transcript, curriculum.grades);
+  const entries = new Set([false, true].flatMap(legacy => planEntries(standings, curriculum, legacy).map(entry => entry.key)));
+  return Object.fromEntries(Object.entries(moves).filter(([name]) => entries.has(name)));
 }
 
 /** The text that is stored for a visit; null when there is nothing to keep. */
@@ -109,12 +116,18 @@ export function keptText(curriculum: Curriculum, list: Pick<CourseList, 'entries
     result: result ? {
       ...keptRows(result.transcript, curriculum),
       pace: { fewest: result.pace.fewest, most: result.pace.most, summers: result.pace.summers, target: result.pace.target ? termName(result.pace.target) : null },
-      moves: Object.fromEntries(Object.entries(result.moves).map(([key, term]) => [key, termName(term)])),
+      moves: Object.fromEntries(Object.entries(movesOfPlan(result.moves, result.transcript, curriculum)).map(([key, term]) => [key, termName(term)])),
     } : null,
   });
 }
 
-const termOf = (value: unknown): Term | null => (typeof value === 'string' && value.length < 40 ? readTerm(value) : null);
+const FIRST_YEAR = 2000;
+const LAST_YEAR = 2100;
+/** A term, when the text is one and its year is one a student could mean. */
+function termOf(value: unknown): Term | null {
+  const term = typeof value === 'string' && value.length < 40 ? readTerm(value) : null;
+  return term && term.year >= FIRST_YEAR && term.year <= LAST_YEAR ? term : null;
+}
 const wholeBetween = (value: unknown, from: number, to: number): number | null => (typeof value === 'number' && Number.isInteger(value) && value >= from && value <= to ? value : null);
 
 function paceOf(value: unknown): PaceSettings {
@@ -129,12 +142,13 @@ function paceOf(value: unknown): PaceSettings {
 
 function movesOf(value: unknown): Moves {
   if (!isObject(value)) return {};
-  const moves: Record<string, Term> = {};
+  // (Built from pairs, so that no name of an entry, whatever it is, is anything but a name.)
+  const moves: [string, Term][] = [];
   for (const key of Object.keys(value).slice(0, MOST_MOVES)) {
-    const term = termOf(value[key]);
-    if (term && key.length <= 80) moves[key] = term;
+    const term = termOf(own(value, key));
+    if (term && key.length <= 80 && key !== '__proto__') moves.push([key, term]);
   }
-  return moves;
+  return Object.fromEntries(moves);
 }
 
 function resultOf(value: unknown, curriculum: Curriculum): KeptResult | null {
@@ -150,7 +164,8 @@ function resultOf(value: unknown, curriculum: Curriculum): KeptResult | null {
   }
   const out = own(value, 'leftOut');
   const leftOut = new Set(Array.isArray(out) ? out.filter((line): line is number => wholeBetween(line, 0, rows.length - 1) !== null) : []);
-  return { transcript: { ...transcript, leftOut }, pace: paceOf(own(value, 'pace')), moves: movesOf(own(value, 'moves')) };
+  const back = { ...transcript, leftOut };
+  return { transcript: back, pace: paceOf(own(value, 'pace')), moves: movesOfPlan(movesOf(own(value, 'moves')), back, curriculum) };
 }
 
 /**
@@ -216,14 +231,15 @@ export function clearStored(storage: AnswerStorage | null | undefined): void {
   }
 }
 
-/** Whether the browser can keep anything: asked once, by keeping and removing nothing of the student's. */
+/** Whether the browser can keep anything and give it back: asked by keeping, reading and removing nothing of the student's. */
 export function canKeep(storage: AnswerStorage | null | undefined): boolean {
   if (!storage) return false;
   const probe = 'pathcheck.probe';
   try {
     storage.setItem(probe, '1');
+    const back = storage.getItem(probe);
     storage.removeItem(probe);
-    return true;
+    return back === '1';
   } catch {
     return false;
   }

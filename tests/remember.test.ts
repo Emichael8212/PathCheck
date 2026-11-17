@@ -260,6 +260,7 @@ describe('what is kept', () => {
     expect(visit.result!.moves).toEqual({ 'MGT 321': 'Spring 2028' });
     // A row holds the course, its printed title, the term, the credits, whether it is transfer credit, and of the grade only what the result uses.
     for (const one of visit.result!.rows) expect(Object.keys(one!).sort()).toEqual(['attempted', 'description', 'grade', 'number', 'prefix', 'term', 'transfer']);
+    // (A row still to fix has one thing more: what is wrong with it. `sample-a` has none.)
     // Never: the file's name, the PDF, totals lines, credits earned, quality points, the day.
     const text = window.localStorage.getItem(VISIT_KEY)!;
     expect(text).not.toMatch(/sample-a|\.pdf|%PDF|GPA|Standing|Totals|earned|points|2026-11-16|today/i);
@@ -309,8 +310,10 @@ describe('what is kept', () => {
     expect(kept()!.result!.rows.map(one => [one!.prefix, one!.number, one!.grade])).toEqual([
       ['HIS', '131', 'Passed'], ['ECO', '251', 'D'], ['ECO', '251', ''], ['MGT', '321', 'W'],
       // Transfer credit has no grade to keep; a row still to fix is kept as it was read; left out, it keeps no grade.
-      ['ENG', '131', ''], ['MGT', '422', 'B+'], ['CIS', '205', 'Passed'], ['BIO', '230', false],
+      ['ENG', '131', ''], ['MGT', '422', 'B+'], ['CIS', '205', 'Passed'], ['BIO', '230', ''],
     ]);
+    // A row to fix is kept with what was wrong with it, so that it is one again when it comes back.
+    expect(kept()!.result!.rows.map(one => one!.fix)).toEqual([undefined, undefined, undefined, undefined, undefined, ['grade'], undefined, ['grade']]);
     expect(kept()!.result!.leftOut).toEqual([7]);
     reload();
     expect(page()).toBe(before);
@@ -318,19 +321,23 @@ describe('what is kept', () => {
     transcript = app.left.transcript!;
     expect(transcript.kept).toBe(true);
     expect(reviewRows(transcript, curriculum).map(one => [one.code, one.grade, one.state])).toEqual([
-      ['HIS 131', 'Passed', 'passed'], ['ECO 251', 'D', 'below'], ['ECO 251', '', 'in-progress'], ['MGT 321', 'W', 'never'],
-      ['ENG 131', '', 'passed'], ['MGT 422', 'B+', 'to-fix'], ['CIS 205', 'Passed', 'passed'], ['BIO 230', '', 'to-fix'],
+      ['HIS 131', '', 'passed'], ['ECO 251', 'D', 'below'], ['ECO 251', '', 'in-progress'], ['MGT 321', 'W', 'never'],
+      ['ENG 131', '', 'passed'], ['MGT 422', 'B+', 'to-fix'], ['CIS 205', '', 'passed'], ['BIO 230', '', 'to-fix'],
     ]);
     $('.review-foot [data-review-again]').click();
     const read = [...document.querySelectorAll('.review-row .grade-read')].map(one => tidy(one.textContent));
-    expect(read.filter(one => one === 'Passed')).toHaveLength(2);
     expect(read.filter(one => /^[ABC]$/i.test(one))).toEqual([]);
     expect(read).toContain('D');
+    // A kept pass has no letter in its grade column: the row says "Passed" once, by what it is.
+    expect(read).not.toContain('Passed');
+    const first = tidy(document.querySelector('.review-row')?.textContent);
+    expect(first).toContain('HIS 131');
+    expect(first.match(/Passed/g)).toHaveLength(1);
     // A row opened for editing and saved unchanged is still "Passed".
     const unchanged = reviewRows(transcript, curriculum)[0]!.editable!;
     expect(unchanged.grade).toBe('Passed');
     transcript = correctRow(transcript, 0, unchanged, curriculum);
-    expect(reviewRows(transcript, curriculum)[0]).toMatchObject({ code: 'HIS 131', grade: 'Passed', state: 'passed' });
+    expect(reviewRows(transcript, curriculum)[0]).toMatchObject({ code: 'HIS 131', grade: '', state: 'passed', editable: { grade: 'Passed' } });
     // Its grade can be chosen again.
     expect(reviewRows(correctRow(transcript, 0, { ...unchanged, grade: 'D' }, curriculum), curriculum)[0]).toMatchObject({ grade: 'D', state: 'below' });
     // The row to fix, once fixed, is kept as "Passed": its letters are gone from the entry.
@@ -364,6 +371,40 @@ describe('what is kept', () => {
     const back = readKept(keptText(curriculum, { entries: [], term: null }, { transcript, pace: defaultSettings(), moves: {} }), curriculum)!.result!.transcript;
     expect(stillToFix(back).map(one => one.problems)).toEqual(problems);
     expect(takenOn(back)).toEqual([]);
+
+    // Faults that are gone once the row is written out as text: a term that was a number, credits of transfer
+    // credit that were not a number, a grade that reads like the kept word. Kept, such a row is still one to fix:
+    // being kept never makes a row count.
+    const subtle: unknown[] = [
+      row('MGT', '321', 'Passed'), row('MGT', '321', ' Passed '), row('MGT', '321', 'B', { term: 2025 }),
+      row('MGT', '321', '', { transfer: true, attempted: true }), row('MGT', '321', '', { transfer: true, attempted: {} }), row('MGT', '321', '', { transfer: true, attempted: Infinity }),
+      row('MGT', '321', '', { term: 2025 }),
+    ];
+    const fresh = openTranscript('made-up.pdf', { rows: subtle }, curriculum);
+    const faults = stillToFix(fresh).map(one => one.problems);
+    expect(faults).toEqual([['grade'], ['grade'], ['term'], ['credits'], ['credits'], ['credits'], ['term']]);
+    expect(takenOn(fresh)).toEqual([]);
+    const round = (transcript: Transcript): Transcript => readKept(keptText(curriculum, { entries: [], term: null }, { transcript, pace: defaultSettings(), moves: {} }), curriculum)!.result!.transcript;
+    const returned = round(fresh);
+    expect(takenOn(returned)).toEqual([]);
+    expect(stillToFix(returned).map(one => one.problems)).toEqual(faults);
+    // And again after a second return, and when every one of them was left out and is put back.
+    expect(stillToFix(round(returned)).map(one => one.problems)).toEqual(faults);
+    const allOut = subtle.reduce<Transcript>((transcript, _, line) => leaveOut(transcript, line), fresh);
+    const putBackAll = subtle.reduce<Transcript>((transcript, _, line) => putBack(transcript, line), round(allOut));
+    expect(takenOn(putBackAll)).toEqual([]);
+    expect(stillToFix(putBackAll)).toHaveLength(subtle.length);
+    expect(reviewedStandings(putBackAll, curriculum.grades)).toEqual([]);
+    // Corrected by the student, such a row counts as any corrected row does: the mark goes with the correction.
+    const corrected = correctRow(returned, 2, { term: 'Fall 2025', prefix: 'MGT', number: '321', attempted: '3', grade: 'B', transfer: false }, curriculum);
+    expect(takenOn(corrected).map(one => one.row.code)).toEqual(['MGT 321']);
+    expect(keptRows(corrected, curriculum).rows[2]).toEqual({ term: 'Fall 2025', transfer: false, prefix: 'MGT', number: '321', description: 'About MGT 321', attempted: '3', grade: 'Passed' });
+    // The mark is PathCheck's own: in a freshly read transcript it means nothing, and by itself it never passes a row.
+    expect(takenOn(openTranscript('fresh.pdf', { rows: [row('MGT', '321', 'B', { fix: ['grade'] })] }, curriculum)).map(one => one.row.code)).toEqual(['MGT 321']);
+    for (const fix of [[], 'x', null, ['nonsense'], true]) {
+      const marked = openTranscript('kept', { rows: [row('MGT', '321', 'Passed', { fix })] }, curriculum, true);
+      expect([takenOn(marked).length, stillToFix(marked).map(one => one.problems)], JSON.stringify(fix)).toEqual([0, [['grade']]]);
+    }
     // Lines that were thrown away are not kept, and the rows left out are still the same rows.
     const mixed = leaveOut(leaveOut(openTranscript('x.pdf', { rows: [row('ENG', '131'), { prefix: 'Term GPA 3.10' }, row('MGT', '321'), { description: 'Academic Standing: Good Standing' }, row('CIS', '300')] }, curriculum), 2), 4);
     expect(keptRows(mixed, curriculum)).toMatchObject({ rows: [{ prefix: 'ENG' }, { prefix: 'MGT' }, { prefix: 'CIS' }], leftOut: [1, 2] });
@@ -371,6 +412,26 @@ describe('what is kept', () => {
 });
 
 describe('"Clear my data"', () => {
+  it('takes no file that was still being read when the data was cleared', async () => {
+    go('#/check');
+    add('mgt 321');
+    go('#/left');
+    // A file that takes its time; the student clears the data meanwhile.
+    const bytes = new Uint8Array(readFileSync(join(folder, 'sample-a.pdf')));
+    let finish: (() => void) | undefined;
+    const slow = { name: 'sample-a.pdf', size: bytes.length, arrayBuffer: (): Promise<ArrayBuffer> => new Promise(done => { finish = () => done(bytes.slice().buffer as ArrayBuffer); }) };
+    const reading = app.takeFile(slow);
+    $('[data-clear]').click();
+    expect(tidy($('[data-cleared]').textContent)).toBe(CLEARED);
+    finish?.();
+    await reading;
+    // The page is still as on a first visit: no review appears, and nothing is kept.
+    expect(app.left.transcript).toBeNull();
+    expect(document.querySelector('.review-row')).toBeNull();
+    expect(document.querySelector('[data-upload]')).not.toBeNull();
+    expect(keys()).toEqual([]);
+  });
+
   it('clears everything', async () => {
     // Nothing kept, nothing to clear: no button on a first visit, and none on Start.
     for (const hash of ['#/', '#/check', '#/left']) {
@@ -479,10 +540,17 @@ describe('what is read back', () => {
     opening({ ...good, list: [{ code: attack }, { code: 'mgt321' }, { code: 'MGT 321' }, { code: 7 }, null, { code: 'BIO 230', credits: 99 }, { code: 'XYZ 999', credits: 5 }, { code: 'XYZ 998', credits: '6' }],
       result: { ...good.result, rows: [row('ENG', '131', 'Passed', { description: attack }), row('MGT', '321', 'D', { term: attack })], moves: { [attack]: 'Fall 2027', 'MGT 422': attack, 'CIS 300': 'Fall 2027' } } });
     expect(kept()!.list).toEqual([{ code: 'MGT 321' }, { code: 'BIO 230', credits: 3 }, { code: 'XYZ 999', credits: 5 }, { code: 'XYZ 998', credits: 3 }]);
-    expect(kept()!.result!.moves).toEqual({ [attack]: 'Fall 2027', 'CIS 300': 'Fall 2027' });
+    // A move of something that is not an entry of this result's plan is not kept, whatever its name.
+    expect(kept()!.result!.moves).toEqual({ 'CIS 300': 'Fall 2027' });
+    expect(app.left.moves).toEqual({ 'CIS 300': { season: 'Fall', year: 2027 } });
     $('.review-foot [data-review-again]').click();
     expect(tidy($('main').textContent)).toContain('<img src=x onerror="window.hacked=1">');
     expect(document.querySelector('img')).toBeNull();
+    // The same for moves that read like entries but are not entries of this plan.
+    opening({ ...good, result: { ...good.result, moves: { 'XYZ 999': 'Fall 2027', '<b>x</b>': 'Spring 2028', 'ENG 131': 'Fall 2028', 'CIS 300': 'Fall 2030', 'elective:1': 'Spring 2029', 'elective:9': 'Spring 2029' } } });
+    expect(kept()!.result!.moves).toEqual({ 'CIS 300': 'Fall 2030', 'elective:1': 'Spring 2029' });
+    $('[data-stepper="most"] [data-delta="1"]').click();
+    expect(kept()!.result!.moves).toEqual({ 'CIS 300': 'Fall 2030', 'elective:1': 'Spring 2029' });
     // A list far too long is not PathCheck's: only as many as a list can hold are read.
     opening({ ...good, list: Array.from({ length: 5000 }, (_, i) => ({ code: `ZZZ ${String(100 + (i % 900))}` })) }, '#/check');
     expect(rowsOnCheck().length).toBeLessThanOrEqual(200);
@@ -492,6 +560,12 @@ describe('what is read back', () => {
       expect(kept()!.result!.pace, JSON.stringify(pace)).toEqual({ fewest: 12, most: 18, summers: false, target: null });
       expect(shown().range).toEqual(['12', '18']);
     }
+    // A name that is not a name, and a term no student could mean, are not kept.
+    opening(JSON.stringify({ ...good, result: { ...good.result, moves: { 'MGT 422': 'Fall 9999', 'CIS 300': 'Fall 1850', 'CIS 302': 'Fall 2028' } } }).replace('"moves":{', '"moves":{"__proto__":"Fall 2027",'));
+    expect(kept()!.result!.moves).toEqual({ 'CIS 302': 'Fall 2028' });
+    expect(Object.getPrototypeOf(app.left.moves)).toBe(Object.prototype);
+    opening({ ...good, result: { ...good.result, pace: { fewest: 12, most: 18, summers: false, target: 'Fall 9999' } } });
+    expect(kept()!.result!.pace).toMatchObject({ target: null });
     opening({ ...good, result: { ...good.result, pace: { fewest: 9, most: 15, summers: true, target: 'Fall 2030' } } });
     expect(kept()!.result!.pace).toEqual({ fewest: 9, most: 15, summers: true, target: 'Fall 2030' });
     // Rows said to be left out that are not rows of it are ignored; a term that is not a term is none.
@@ -527,6 +601,19 @@ describe('what is read back', () => {
       ['blocked on every use', { getItem: failing('blocked'), setItem: failing('blocked'), removeItem: failing('blocked') }],
       ['full', { getItem: (): null => null, setItem: failing('QuotaExceededError'), removeItem: (): void => undefined }],
     ];
+    // Storage that fills up during the visit: from then on the pages no longer say that anything stays.
+    let room = 3;
+    const filling: Record<string, string> = {};
+    vi.stubGlobal('localStorage', { getItem: (key: string) => filling[key] ?? null, removeItem: (key: string) => { delete filling[key]; }, setItem: (key: string, value: string) => { if (room-- <= 0) throw new Error('QuotaExceededError'); filling[key] = value; } });
+    app.stop();
+    open('#/check');
+    expect($('#app').getAttribute('data-keeps')).toBeNull();
+    add('mgt 321');
+    add('bio 230');
+    add('cis 300');
+    expect($('#app').getAttribute('data-keeps')).toBe('no');
+    expect(rowsOnCheck()).toHaveLength(3);
+    vi.unstubAllGlobals();
     for (const [name, storage] of storages) {
       app.stop();
       vi.stubGlobal('localStorage', storage);

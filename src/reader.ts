@@ -22,6 +22,11 @@ export class ReaderError extends Error {
 /** What is wrong with a row, by the field it is wrong in. */
 export type Problem = 'not-a-row' | 'term' | 'transfer' | 'code' | 'credits' | 'earned' | 'points' | 'grade' | 'description';
 
+/** What can be wrong with a row that is a row, in the order it is said. */
+const FAULTS: readonly Problem[] = ['term', 'transfer', 'code', 'description', 'credits', 'earned', 'points', 'grade'];
+/** The faults a kept row to fix was kept with: only names of faults, each once, in their order. */
+const faultsOf = (value: unknown): Problem[] => (Array.isArray(value) ? FAULTS.filter(name => value.includes(name)) : []);
+
 /** How a row's course code matches the curriculum. A row that matches nothing can fill nothing. */
 export type Match = 'listed' | 'elective' | 'none';
 
@@ -110,7 +115,9 @@ function matchOf(code: string, curriculum: Curriculum): Match {
  *
  * `kept` is for a result that PathCheck itself kept in the browser, where a passing grade
  * is written as the kept word and not as its letter. Only then is that word read as a
- * pass; in a freshly read transcript it is not a grade, and the row is one to fix.
+ * pass; in a freshly read transcript it is not a grade, and the row is one to fix. A row
+ * that was kept as one still to fix carries its faults (`fix`), and stays a row to fix
+ * whatever its kept fields read as now: being kept never makes a row count.
  */
 export function readRows(answer: unknown, curriculum: Curriculum, kept = false): Reading {
   try {
@@ -164,9 +171,11 @@ function check(answer: unknown, curriculum: Curriculum, kept: boolean): Reading 
     // column of transfer credit is not a grade and is not judged.
     const printed = typeof grade === 'string' && grade.trim() !== '' ? grade.trim() : null;
     if (!empty(grade) && typeof grade !== 'string') problems.push('grade');
-    const keptPassed = kept && transfer === false && printed === KEPT_AS_PASSED;
+    // A row kept as one still to fix says so itself, with what was wrong with it.
+    const keptFaults = kept && Object.hasOwn(raw, 'fix') ? faultsOf(field(raw, 'fix')) : null;
+    const keptPassed = kept && keptFaults === null && transfer === false && printed === KEPT_AS_PASSED;
 
-    if (problems.length === 0 && code !== null && credits !== null && typeof term === 'string' && typeof transfer === 'boolean') {
+    if (keptFaults === null && problems.length === 0 && code !== null && credits !== null && typeof term === 'string' && typeof transfer === 'boolean') {
       const row: TranscriptRow = keptPassed ? { code, term, credits, grade: null, transfer, passed: true } : { code, term, credits, grade: printed, transfer };
       if (rowStanding(row, curriculum.grades) !== 'unrecognised') {
         rows.push({ line, row, description: typeof description === 'string' ? description : '', attempted: shown(attempted).trim(), match: matchOf(code, curriculum) });
@@ -177,6 +186,13 @@ function check(answer: unknown, curriculum: Curriculum, kept: boolean): Reading 
       && rowStanding({ code: '', term: '', credits: 0, grade: printed, transfer: false }, curriculum.grades) === 'unrecognised') {
       // A row with another fault still says so when its grade is not a grade.
       problems.push('grade');
+    }
+
+    if (keptFaults !== null) {
+      // Its faults are those found now and those it was kept with; with none named, its grade is to be chosen again.
+      for (const fault of keptFaults) if (!problems.includes(fault)) problems.push(fault);
+      if (problems.length === 0) problems.push('grade');
+      problems.sort((a, b) => FAULTS.indexOf(a) - FAULTS.indexOf(b));
     }
 
     toFix.push({

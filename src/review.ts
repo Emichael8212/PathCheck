@@ -93,8 +93,9 @@ export function reviewRows(transcript: Transcript, curriculum: Curriculum): Revi
   const { grades, electives } = curriculum;
   const passed: ReviewRow[] = transcript.reading.rows.map(({ line, row, description, attempted, match }) => {
     const standing = rowStanding(row, grades);
-    // (A passing row of a kept result has the kept word where its letter was.)
-    const grade = row.passed === true ? KEPT_AS_PASSED : (row.grade ?? '').toUpperCase();
+    // A passing row of a kept result has no letter to show: the row says "Passed" by its state alone.
+    // Opened for editing, its grade is the kept word, so that saving it unchanged keeps the pass.
+    const grade = (row.grade ?? '').toUpperCase();
     // The credits as printed: a number when one was read, nothing when the column was empty.
     const credits = attempted === '' ? '' : String(row.credits);
     return {
@@ -103,7 +104,7 @@ export function reviewRows(transcript: Transcript, curriculum: Curriculum): Revi
       problems: [],
       outside: match !== 'none' ? 'no' : electives.except.includes(row.code) ? 'never' : 'none',
       leftOut: transcript.leftOut.has(line),
-      editable: { term: row.term, prefix: row.code.split(' ')[0] ?? '', number: row.code.split(' ')[1] ?? '', attempted: credits, grade, transfer: row.transfer },
+      editable: { term: row.term, prefix: row.code.split(' ')[0] ?? '', number: row.code.split(' ')[1] ?? '', attempted: credits, grade: row.passed === true ? KEPT_AS_PASSED : grade, transfer: row.transfer },
     };
   });
   const toFix: ReviewRow[] = transcript.reading.toFix.map(({ line, problems, seen }) => {

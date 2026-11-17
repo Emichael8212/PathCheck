@@ -110,7 +110,8 @@ export function startApp(win: AppWindow): App {
     const text = keptText(curriculum, courses, keptResult);
     if (text === stored) return;
     stored = text;
-    storeKept(storage, text);
+    // The browser stopped keeping (its storage is full): the pages no longer say that anything stays.
+    if (!storeKept(storage, text)) root.setAttribute?.('data-keeps', 'no');
   };
   const part = <T>(selector: string): T | null => root.querySelector(selector) as T | null;
 
@@ -334,6 +335,8 @@ export function startApp(win: AppWindow): App {
   // "Clear my data": everything PathCheck stored in the browser goes, the legacy answer
   // included, and with it what is on the pages. The page is then as on a first visit.
   function clearData(): void {
+    // A file that is still being read is not taken any more.
+    latest++;
     clearStored(storage);
     Object.assign(courses, emptyList());
     Object.assign(left, emptyLeft());

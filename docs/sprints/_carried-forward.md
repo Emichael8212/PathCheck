@@ -19,7 +19,11 @@ Read this before writing a sprint contract; delete a line when its feature has d
   `src/remember.ts`), and never the file's name. The consent sentence of the first
   upload (brief §7) and the privacy line must still be true with a real transcript:
   "Only your result stays in this browser." Check with the owner's real transcript that
-  nothing personal is in a row's printed title, which is kept.
+  nothing personal is in a row's printed title, which is kept. A row that still needs
+  fixing is kept as it was read, title included: a real reader that returns a header
+  line (a name, an ID) as a row with a faulty code would put that text in the browser's
+  storage until the row is fixed, left out or cleared. The reader function must not
+  return such lines as rows, and F21's checks must say so. (F19 code review)
 - A grade printed as a word or a pass mark ("P", "S", "Passed") on a real transcript is a
   row to fix today, like any grade the curriculum's scale does not have. "Passed" is read
   as a pass only from what PathCheck itself kept. If real transcripts print such grades,

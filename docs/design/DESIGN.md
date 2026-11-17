@@ -448,9 +448,10 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     browser keeps nothing;
   - after clearing, a note at the top of the page until the student moves on: "Your data
     was cleared from this browser.";
-  - after a return, "Check what was read" shows "Passed" where a passing letter grade was
-    (no passing letter is kept), and the page says "your transcript" where it named the
-    file (the file's name is not kept).
+  - after a return, "Check what was read" shows a passed course without its letter (no
+    passing letter is kept): the grade column is empty and the row says "Passed"; opened
+    for editing, its grade reads "Passed". The page says "your transcript" where it named
+    the file (the file's name is not kept).
 - **The printed summary** (F17). "Print / save PDF for your advisor" is the design's
   button, in the design's row of actions after the draft plan, and the paper follows the
   design's print rules. What the design has no place for:
