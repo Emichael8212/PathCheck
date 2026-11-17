@@ -649,7 +649,7 @@ describe('the checklist', () => {
     $('[data-continue]').click();
     expect(heading()).toBe('Your degree, in focus.');
     expect(pill()).toBe('Synthetic transcript result');
-    // (A corrected row does not change what the file is.)
+    // (A row left out does not change what the file is.)
     $('[data-review-again]').click();
     $('[data-out="0"]').click();
     $('[data-continue]').click();
@@ -663,13 +663,14 @@ describe('the checklist', () => {
     $('[data-another]').click();
     window.localStorage.clear();
     app.stop();
-    vi.stubEnv('DEV', false);
-    vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
-    vi.resetModules();
-    const hosted = await import('../src/app');
-    document.body.innerHTML = '<div id="app"></div>';
-    let site = hosted.startApp(onTestDay(window as unknown as AppWindow));
+    let site: App | null = null;
     try {
+      vi.stubEnv('DEV', false);
+      vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
+      vi.resetModules();
+      const hosted = await import('../src/app');
+      document.body.innerHTML = '<div id="app"></div>';
+      site = hosted.startApp(onTestDay(window as unknown as AppWindow));
       await site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 a student\'s own transcript'), 'my-transcript.pdf'));
       expect(heading()).toBe('Check what was read');
       expect(site.left.transcript?.madeUp).toBeUndefined();
@@ -700,7 +701,7 @@ describe('the checklist', () => {
       $('[data-continue]').click();
       expect(pill()).toBeNull();
     } finally {
-      site.stop();
+      site?.stop();
       vi.unstubAllEnvs();
       vi.unstubAllGlobals();
       vi.resetModules();
