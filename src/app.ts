@@ -78,6 +78,8 @@ export interface App {
 
 /** The id of the line that tells a screen reader what happened. It is outside the page that is drawn again. */
 export const STATUS_ID = 'pathcheck-status';
+/** The place of Cloudflare's bot check (F22): one element beside the page, kept through every redraw. */
+export const CHECK_ID = 'pathcheck-check';
 
 export function startApp(win: AppWindow): App {
   const root = win.document.getElementById('app');
@@ -156,6 +158,20 @@ export function startApp(win: AppWindow): App {
     return line;
   })();
   const say = (text: string): void => { status?.replaceChildren(text); };
+  // The place where Cloudflare's widget is drawn when a file is read on the hosted site: made once, beside
+  // the page, so that a box to tick is not lost when the page is drawn again or the student moves on.
+  // Empty, it is out of sight.
+  const checkPlace = ((): unknown => {
+    const doc = win.document as unknown as Partial<Document>;
+    if (!doc.body || !doc.createElement) return null;
+    const existing = doc.getElementById?.(CHECK_ID);
+    if (existing) return existing;
+    const place = doc.createElement('div');
+    place.id = CHECK_ID;
+    place.className = 'bot-check no-print';
+    doc.body.append(place);
+    return place;
+  })();
 
   // Printing (F17). The result is opened for paper and the tab named for the file: by the
   // button before its own print call, and for the browser's own Print when the browser
@@ -293,7 +309,7 @@ export function startApp(win: AppWindow): App {
       // On the hosted site the reader is asked only with a passed bot check, and counts the day's uploads
       // under a random number of this browser's making (F22). On a development server neither is used.
       const upload = await readFile(file, {
-        token: () => botToken(win as unknown as CheckWindow, part('[data-turnstile]'), siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),
+        token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),
         browser: () => browserNumber(storage, (win.today?.() ?? new Date()).toISOString().slice(0, 10)),
       });
       if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum, false, upload.madeUp);

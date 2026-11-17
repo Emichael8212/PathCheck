@@ -546,6 +546,7 @@ describe('the limits in front of Gemini', () => {
     // An upload that Gemini fails still counts toward the day.
     expect((await upload(other(2), () => Response.json({ error: {} }, { status: 500 }))).status).toBe(503);
     expect(store.all()[`day/2026-11-17/${other(2)}`]).toBe(1);
+    // (While Gemini is being asked the counts of earlier days are still there: tidying comes after the answer.)
     // The next UTC day the same browser is read again, and the counts of the day before are gone.
     now = '2026-11-18T00:00:01Z';
     expect((await upload()).status).toBe(200);
@@ -601,8 +602,10 @@ describe('the limits in front of Gemini', () => {
       await readTranscript(post(bytes), tried.outside);
       return tried.store.all()[MONTH]! - 1000;
     };
-    // Gemini refused the request outright (an HTTP error): nothing was used, and it is taken off again.
-    for (const status of [400, 403, 429, 500, 503]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(0);
+    // Gemini refused the request (any 4xx, or 500: Google says such a request is not charged): it is taken off again.
+    for (const status of [400, 401, 403, 404, 429, 499, 500]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(0);
+    // Another failure of Google's, of which Google says nothing: what was set aside stays.
+    for (const status of [501, 502, 503, 504, 529]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(RESERVED);
     // Gemini answered with counts, but not with rows (blocked, cut off, no list): it cost what the counts say.
     expect(await after(() => Response.json({ candidates: [{ content: { parts: [{ text: 'no rows' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 1500 } }))).toBe(COST);
     expect(await after(() => Response.json({ candidates: [{ content: { parts: [{ text: '{"rows":[' }] }, finishReason: 'MAX_TOKENS' }], usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 16384 } }))).toBe(Math.ceil(900 * 0.3 + 16384 * 2.5));
@@ -643,6 +646,17 @@ describe('the limits in front of Gemini', () => {
       const response = await readTranscript(post(bytes), tried.outside);
       // Not available, Gemini not called, one fixed line, and nothing of what was thrown.
       expect([response.status, await response.json(), tried.calls.length, tried.logged], name).toEqual([503, UNAVAILABLE, 0, ['read-transcript: unavailable (store)']]);
+    }
+    // A write that keeps losing to other uploads, for one counter while the other can be written: refused all the same.
+    // Gemini is never asked unless both counters were written.
+    for (const losing of ['day/', 'month/']) {
+      const store = storeOf();
+      const lost: Counters = { ...store.counters, write: (key, value, mark) => (key.startsWith(losing) ? Promise.resolve(false) : store.counters.write(key, value, mark)) };
+      const tried = world(() => gemini(sampleA.rows), KEY, 2_000, { counters: () => lost });
+      const response = await readTranscript(post(bytes), tried.outside);
+      expect([response.status, await response.json(), tried.calls.length, tried.logged], losing).toEqual([503, UNAVAILABLE, 0, ['read-transcript: unavailable (store)']]);
+      // What the other counter took is there; nothing was written for the one that lost.
+      expect(Object.keys(store.all()), losing).toEqual(losing === 'day/' ? [] : [DAY]);
     }
     // The month's total cannot be written although the day's count could: Gemini is still not called.
     const store = storeOf();
@@ -745,6 +759,8 @@ describe('the reader check', () => {
     expect(script).toContain("export const TEST_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';");
     expect(script).toContain("'x-turnstile-token': TEST_TOKEN, 'x-pathcheck-browser': browser");
     expect(script).toContain("const browser = randomBytes(16).toString('hex');");
+    // (So it runs each PDF at most three times: the day's limit for one number.)
+    expect(script).toContain('!/^[1-3]$/.test(times)');
     expect(script.match(/\bfetch\(/g)).toHaveLength(1);
     for (const address of ['http://pathcheck-staging.netlify.app', 'https://example.com', 'https://pathcheck.netlify.app.example.com', 'https://pathcheck-staging.netlify.app/api', 'https://generativelanguage.googleapis.com', '', undefined]) {
       expect(isDeploy(address), String(address)).toBe(false);

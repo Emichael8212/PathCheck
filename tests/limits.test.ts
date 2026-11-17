@@ -95,6 +95,11 @@ describe('the counters of the upload limits', () => {
     store.put('month/2026-11', 4110);
     await forgetEarlierDays(store.counters, '2026-11-18');
     expect(store.all()).toEqual({ [`day/2026-11-18/${A}`]: 1, 'month/2026-11': 4110 });
+    // A request that began just before midnight tidies up when the new day has counts already: those stay.
+    store.put(`day/2026-11-17/${B}`, 2);
+    store.put(`day/2026-11-19/${B}`, 1);
+    await forgetEarlierDays(store.counters, '2026-11-18');
+    expect(store.all()).toEqual({ [`day/2026-11-18/${A}`]: 1, [`day/2026-11-19/${B}`]: 1, 'month/2026-11': 4110 });
   });
 
   it('sets the most an upload can cost aside, and settles it to what it did cost', async () => {

@@ -106,8 +106,7 @@ export function transcriptCard(transcript: OnCheck): string {
     return `${card(TEXT.exactTitle, `
         <p>${esc(PRIVACY)}</p>`, `
       <button type="button" class="btn primary" data-choose>${esc(TEXT.choose)} ${icons.arrow()}</button>`)}
-  <p class="field-message" data-refusal>${transcript.refusal ? esc(transcript.refusal) : ''}</p>
-  <div class="bot-check" data-turnstile></div>`;
+  <p class="field-message" data-refusal>${transcript.refusal ? esc(transcript.refusal) : ''}</p>`;
   }
   if (transcript.state === 'reviewing') {
     return card(TEXT.waiting, '', `

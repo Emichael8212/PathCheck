@@ -54,6 +54,10 @@ describe("Cloudflare's bot check in the page", () => {
     expect(ACTION).toBe('upload');
     // When it has done its work it is taken off the page again.
     expect(seen.removed).toEqual(['widget-1']);
+    // Two files chosen one after the other, before the script has come: it is asked for once.
+    const hurried = browserOf('loads');
+    expect(await Promise.all([botToken(hurried.win, PLACE, KEY), botToken(hurried.win, PLACE, KEY)])).toEqual(['a-token', 'a-token']);
+    expect([hurried.seen.scripts.length, hurried.seen.rendered.length]).toEqual([1, 2]);
     // A second upload: a new widget and a new token, the same script.
     expect(await botToken(win, PLACE, KEY)).toBe('a-token');
     expect([seen.scripts.length, seen.rendered.length, seen.removed]).toEqual([1, 2, ['widget-1', 'widget-2']]);
@@ -111,7 +115,10 @@ describe("Cloudflare's bot check in the page", () => {
     // The check is asked for in one place of the app, when a file is about to be read.
     const app = readFileSync(join(import.meta.dirname, '..', 'src', 'app.ts'), 'utf8');
     expect(app.match(/botToken\(/g)).toHaveLength(1);
-    expect(app).toContain("token: () => botToken(win as unknown as CheckWindow, part('[data-turnstile]'), siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),");
+    expect(app).toContain('token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),');
+    // Its place is one element beside the page, not a part of a page: drawing the page again does not take the widget away.
+    expect(app).toContain("place.className = 'bot-check no-print';");
+    for (const page of ['left.ts', 'check.ts', 'start.ts']) expect(readFileSync(join(import.meta.dirname, '..', 'src', page), 'utf8'), page).not.toMatch(/bot-check|turnstile/i);
   });
 });
 

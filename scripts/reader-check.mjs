@@ -64,8 +64,9 @@ export const isDeploy = address => /^https:\/\/[a-z0-9-]+\.netlify\.app\/?$/.tes
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [address, times = '3'] = process.argv.slice(2);
-  if (!isDeploy(address) || !/^[1-9]$/.test(times)) {
-    console.error('usage: node scripts/reader-check.mjs https://<deploy>.netlify.app [runs, 1 to 9]');
+  // (At most three runs: a browser's number is read three times a day.)
+  if (!isDeploy(address) || !/^[1-3]$/.test(times)) {
+    console.error('usage: node scripts/reader-check.mjs https://<deploy>.netlify.app [runs, 1 to 3]');
     process.exit(2);
   }
   const root = fileURLToPath(new URL('..', import.meta.url));

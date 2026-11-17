@@ -4,7 +4,8 @@
 // function has Cloudflare confirm it before anything is read. The widget's script is
 // asked for the first time a file is chosen, not when a page opens: a student who never
 // uploads meets no check. The widget stays out of sight unless Cloudflare wants a box
-// ticked; then it shows under the upload control.
+// ticked; then it shows at the bottom of the window, in a place of its own beside the
+// page: the page can be drawn again, or another page opened, without the check being lost.
 
 /** Cloudflare's widget, as much of it as is used. */
 interface Widget {
@@ -36,17 +37,27 @@ export const CHECK_WAIT = 30_000;
 /** The site key the page was built with, or the test key. It is public: it is in the page. */
 export const siteKeyOf = (given: unknown): string => (typeof given === 'string' && /^[\w-]{10,100}$/.test(given.trim()) ? given.trim() : TEST_SITE_KEY);
 
+/** The script being loaded, for each window: two files chosen in a row ask for it once. */
+const loading = new WeakMap<CheckWindow, Promise<Widget | null>>();
+
 /** Loads the widget's script once; a script that did not load is asked for again the next time. */
 function widgetOf(win: CheckWindow): Promise<Widget | null> {
   if (win.turnstile) return Promise.resolve(win.turnstile);
-  return new Promise(resolve => {
+  const already = loading.get(win);
+  if (already) return already;
+  const asked = new Promise<Widget | null>(resolve => {
     const script = win.document.createElement('script');
     script.src = SCRIPT;
     script.async = true;
     script.onload = () => { resolve(win.turnstile ?? null); };
     script.onerror = () => { resolve(null); };
     win.document.head.append(script);
+  }).then(widget => {
+    if (!widget) loading.delete(win);
+    return widget;
   });
+  loading.set(win, asked);
+  return asked;
 }
 
 /**

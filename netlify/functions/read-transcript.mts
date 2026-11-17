@@ -304,6 +304,7 @@ export async function readTranscript(request: Request, outside: Outside): Promis
   const now = outside.now();
   const [day, month] = [dayOf(now), monthOf(now)];
   let counters: Counters;
+  let first: boolean;
   try {
     counters = outside.counters();
     const uploads = await countUpload(counters, day, browser);
@@ -313,19 +314,23 @@ export async function readTranscript(request: Request, outside: Outside): Promis
     const reserved = await reserve(counters, month, RESERVED);
     if (reserved === 'refused') return refused(429, 'limit', 'month-cap');
     if (reserved === 'lost') return unavailable('store');
-    // (The first upload of a browser today: the counts of earlier days go.)
-    if (uploads === 1) await forgetEarlierDays(counters, day).catch(() => undefined);
+    first = uploads === 1;
   } catch {
     // The counters cannot be kept: nothing is read. What was thrown is not looked at.
     return unavailable('store');
   }
 
   const read = await askGemini(pdf, key, outside);
-  // What was set aside becomes what the upload did cost: Gemini's own counts when it gave them, nothing when
-  // it refused the request outright. When it is not known what was used, what was set aside stays: the
-  // month's total may run ahead of the real cost, never behind it.
-  const cost = 'failure' in read && read.failure === 'refused' ? 0 : costOf(read.usage);
+  // What was set aside becomes what the upload did cost: Gemini's own counts when it gave them; nothing when
+  // it refused the request (Google: "If your request fails with a 400 or 500 error, you won't be charged for
+  // the tokens used", read 2026-11-17: taken for a refusal of the request, any 4xx, and for 500 itself).
+  // When it is not known what was used (no answer in time, no counts, another failure of Google's) what was
+  // set aside stays: the month's total may run ahead of the real cost, never behind it.
+  const notCharged = 'failure' in read && read.failure === 'refused' && typeof read.status === 'number' && ((read.status >= 400 && read.status < 500) || read.status === 500);
+  const cost = notCharged ? 0 : costOf(read.usage);
   if (cost !== null) await settle(counters, month, RESERVED, cost).catch(() => undefined);
+  // (After the first upload of a browser today, the counts of earlier days go. Tidying: it stops nothing.)
+  if (first) await forgetEarlierDays(counters, day).catch(() => undefined);
   if ('failure' in read) return unavailable(read.failure, read.status);
   return answer(200, { rows: read.rows, model: read.model });
 }

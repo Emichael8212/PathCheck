@@ -125,8 +125,7 @@ export const uploadPanel = (refusal: Refusal | null = null, reading = false): st
       <button type="button" class="btn secondary" data-browse>${esc(TEXT.browse)} ${icons.arrow()}</button>
       <p class="privacy">${icons.doc(20)}${esc(PRIVACY)}</p>
     </div>
-    <p class="field-message" data-refusal>${reading ? esc(READING) : refusal ? esc(refusalText(refusal)) : ''}</p>
-    <div class="bot-check" data-turnstile></div>`;
+    <p class="field-message" data-refusal>${reading ? esc(READING) : refusal ? esc(refusalText(refusal)) : ''}</p>`;
 
 const whatIsWrong = (problems: readonly Problem[]): string => problems.filter((one): one is Exclude<Problem, 'not-a-row'> => one !== 'not-a-row').map(one => WHAT[one]).join(', ');
 /** A row by its course and its term: a course can be on a transcript twice. */

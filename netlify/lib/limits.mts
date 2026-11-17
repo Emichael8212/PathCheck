@@ -97,6 +97,7 @@ export const settle = (counters: Counters, month: string, reserved: number, cost
 /** Deletes the counts of earlier days: nothing of a day is kept once it is over. */
 export async function forgetEarlierDays(counters: Counters, day: string): Promise<void> {
   for (const key of await counters.keys('day/')) {
-    if (!key.startsWith(`day/${day}/`)) await counters.remove(key);
+    // (Days sort as they are written. A day that has begun meanwhile is later, and is left alone.)
+    if (key < `day/${day}/`) await counters.remove(key);
   }
 }

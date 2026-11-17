@@ -505,8 +505,7 @@ describe('the transcript on the page', () => {
     expect(decode(card)).not.toContain('then deleted');
     expect(card).toMatch(new RegExp(`<button type="button" class="btn primary" data-choose>${approvedCheck.choose} <svg`));
     // The reason a file was not taken goes under the card; there is none yet.
-    // (Under it, the place of Cloudflare's bot check: empty and out of sight unless a box must be ticked. F22)
-    expect(card).toMatch(/<p class="field-message" data-refusal><\/p>\s*<div class="bot-check" data-turnstile><\/div>$/);
+    expect(card).toMatch(/<p class="field-message" data-refusal><\/p>$/);
     // It is an option: nothing of it is a field to fill in, and the list works without it.
     expect(card).not.toMatch(/<input|type="file"/);
     expect(page.match(/<input/g)).toHaveLength(1);
@@ -610,7 +609,7 @@ describe('the transcript on the page', () => {
     // It is not used, so nothing is said about being exact, even with rows still to fix.
     expect(transcriptCard(withPassed([], { used: false, toFix: 2 }))).not.toMatch(/exact-warning|data-review/);
     // None, after a file was not taken: the reason is under the card.
-    expect(transcriptCard({ state: 'none', refusal: 'That file is not a PDF.' })).toMatch(/<p class="field-message" data-refusal>That file is not a PDF\.<\/p>\s*<div class="bot-check" data-turnstile><\/div>$/);
+    expect(transcriptCard({ state: 'none', refusal: 'That file is not a PDF.' })).toMatch(/<p class="field-message" data-refusal>That file is not a PDF\.<\/p>$/);
     // A file's name and a reason are shown as text.
     expect(transcriptCard({ ...there, name: '<b>x</b>.pdf' } as OnCheck)).toContain('(&lt;b&gt;x&lt;/b&gt;.pdf)');
     expect(transcriptCard({ state: 'none', refusal: '<i>no</i>' })).toContain('&lt;i&gt;no&lt;/i&gt;');
