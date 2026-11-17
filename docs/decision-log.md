@@ -1131,7 +1131,9 @@ read from sample-a.pdf.", the first rows under "Fall 2025".
 *Agent's notes, not owner decisions:*
 - This is the first time the file picker ("Browse files") is used on a real phone with a
   real PDF, open since M1 (F11's review): it opens, the PDF is chosen and read.
-- The screenshot is of the review, before "Continue".
+- The first screenshot is of the review, before "Continue". A second one followed: the
+  result on the phone, 81 credits left, "On pace for Spring 2029", 27 counted, 13 in
+  progress, 121 total, on `pathcheck.netlify.app`.
 - Netlify's own bar for the logged-in owner ("Make public") lies over the page on the
   phone; a visitor of a public site does not get it.
 
