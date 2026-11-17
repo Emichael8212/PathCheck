@@ -113,7 +113,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-17, F21) The model is `gemini-2.5-flash-lite`, named in one constant, with temperature 0 and at most 16,384 tokens of answer. | On 2026-11-16 it is the cheapest stable Gemini model that reads a PDF into a fixed answer shape ($0.10 per million tokens in, $0.40 out; a PDF page is 258 tokens), with no shutdown date announced. The highest cost of one upload is about 3 cents: Gemini reads at most 1,000 pages (about 2.6 cents in) and writes at most 16,384 tokens (about 0.7 cents); a transcript of a few pages costs a fraction of a cent. Until F22 some 150 of the largest uploads to an address that has the key would use up the owner's $5. The reader check on the made-up transcripts decides whether it reads well enough; if it does not, the next model costs more and the owner is told before it is changed. | `MODEL`, `MOST_ANSWER_TOKENS` in the function. |
 | (2026-11-17, F21) The key is the environment variable `GEMINI_API_KEY`, set by the owner in Netlify with "Contains secret values". Until F22 (the limits) is merged it is set for the Deploy Previews context only: the site's main address has no key and answers "unavailable" without calling Google. The agent never reads or sets it. | Brief §7 and §12; CLAUDE.md (never read or commit secrets). Deploy Previews only: before the limits exist, anyone who finds an address with the key could spend the owner's balance (contract review). A preview's address is public while the key is set; the owner's $5 prepaid balance and spend cap at Google are the only stop until F22. | The owner adds the Production context after F22. `process.env.GEMINI_API_KEY` in the function. |
 | (2026-11-17, F21) The function log gets one fixed line per failure: "read-transcript: unavailable (<kind>)", where the kind is one of eight fixed words, with Gemini's status number when it refused. A success logs nothing. Nothing of the PDF, of a row, of a file name or of Gemini's words is ever logged, and nothing is stored. | Brief §7 and §9 "Safe". The line is enough to tell a missing key from a refusal or a timeout. | `unavailable` in the function. |
-| (2026-11-17, F21) The Netlify project that the owner creates from the GitHub repository is the staging site. Netlify builds it from the repository (`netlify.toml`); the agent runs no deploy command. Whether it publishes `main` at its own address by itself, or only when the owner clicks "Publish deploy" ("Lock to stop auto publishing"), is the owner's choice: asked on 2026-11-17, no reply yet. The agent merges no pull request of M2 before the answer. Neither is the public launch (M3). | The simplest way to a staging address on the Free plan, where a Deploy Preview costs no credits. The owner was told on 2026-11-16 that an unlocked project publishes every merge; being told is not a yes (code review of F21), so it is asked. | `netlify.toml`; the project's settings in Netlify. |
+| (2026-11-17, F21) The Netlify project is `pathcheck`, built by Netlify from the GitHub repository (`netlify.toml`), at https://pathcheck.netlify.app. It is **Private**: only the owner, logged in to Netlify, can open it and its Deploy Previews. Publishing is locked by the owner: a merge does not publish; the owner publishes a deploy themselves; Deploy Previews of pull requests are built automatically. The agent runs no deploy command. | The owner's setup and answer of 2026-11-17 ("Owner answers"). Private is Netlify's default for new projects and is the safest state before the limits exist (F22): nobody else can reach the function. | The project's settings in Netlify ("Project configuration > General > Visitor access"; "Deploys > Unlock to start auto publishing"). |
 | (2026-11-17, F21) While a PDF is being read the page says "Reading your transcript…" where a refusal would stand, and it is read out; a file chosen on Start opens the page of the flow at once. The wording is the agent's, listed for the owner. | On the hosted site reading takes seconds; without it the page shows nothing meanwhile. The owner's design has no such state. | `READING` in `src/wording.ts`; `takeFile` in `src/app.ts`. |
 | (2026-11-17, F21) The reader check with the real Gemini is `scripts/reader-check.mjs <address>`, run by hand against a Netlify deploy, never by CI. It sends only the made-up PDFs, uses no key, and accepts only an `https://….netlify.app` address. | CI has no key and must not spend the owner's money; the made-up PDFs must not go anywhere else. | The script. |
 | (2026-11-16, F16) The curriculum file names the course of the final semester (`finalSemesterCourse`: MGT-462). The loader checks that it is a required course; a program whose file has no such line has no final-semester rule. No course code is written in the code. | The brief, §4 Flow B step 5: "MGT 462 Business Policies in the final semester". Approved by the owner on 2026-11-16 (see "Owner answers"). | The line in `docs/curriculum/provisional-current.json`; `finalSemester` in `src/curriculum.ts`. |
@@ -802,6 +802,44 @@ key stored in Netlify as `GEMINI_API_KEY` (given in chat on 2026-11-16).
   sentence ("Your PDF is read, then deleted. Only your result stays in this browser.")
   should say that the PDF goes to Google Gemini, and that Google may keep it for a limited
   time to check for abuse. F21 is not marked passing before the answer.
+
+### 2026-11-17 — The setup is done; publishing is locked; the address of a page
+
+The owner's message, in full:
+
+"I opened the project and it said. https://pathcheck.netlify.app/#/left lets make sure we have it as https://pathcheck.netlify.app  . Find the cause so we can fix it.
+1. GEMINI_API_KEY is listed and hidden.
+2. Google AI Studio: billing set up with the $5 prepay, and a $5 monthly spend cap.
+3. I locked auto publishing. Merges must not publish to pathcheck.netlify.app; I'll publish myself. Previews stay automatic.
+4. what are the options so I can make a choice?"
+
+What it decides:
+- **The setup of F21 is done:** the Netlify project `pathcheck` (https://pathcheck.netlify.app),
+  the paid Gemini key with a $5 prepaid balance and a $5 monthly spend cap, and the key
+  stored in Netlify as `GEMINI_API_KEY`, hidden.
+- **Publishing is locked.** "Merges must not publish to pathcheck.netlify.app; I'll publish
+  myself. Previews stay automatic."
+
+*Agent's notes, not owner decisions:*
+- The key was entered on the project's creation form with "Contains secret values" and the
+  Deploy Previews context only (the owner's screenshots of 2026-11-17). The agent has not
+  seen and cannot see the key.
+- The project is Private (Netlify's default for new projects): the agent's check of the
+  address was refused (401). The owner was told not to make it public for now.
+- With the setup done, the hold on the pull request ("do not create pull request until I
+  setup the system") is over: F21's pull request is opened. It is not merged before the
+  checks on the hosted preview and the owner's answer about the privacy sentence.
+- **The address.** The cause was looked for and nothing is changed: every page of PathCheck
+  has its own address (`#/` Start, `#/check`, `#/left`), so the address ends in `#/left`
+  whenever "See what I have left" is open: after its link, or after a file is chosen or
+  dropped on Start. Opening https://pathcheck.netlify.app itself shows Start, and nothing
+  in the code moves from there by itself (shown in a browser on localhost). Whether the
+  address should stay bare on every page is put to the owner as a choice.
+- **The hosted checks.** The agent's tools cannot log in to Netlify, and the repository's
+  guard stops the agent from sending a file to an outside address. How the reader check
+  and the look at the hosted page are done is put to the owner as a choice.
+- "4. what are the options": the three wordings of the privacy sentence are given again
+  in chat.
 
 ## Open questions to the owner
 
