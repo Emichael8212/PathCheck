@@ -10,8 +10,8 @@ import sampleB from '../synthetic/transcripts/sample-b.json';
 import { onTestDay } from './day';
 import { type App, type AppWindow } from '../src/app';
 import { showRow } from '../src/check';
-import { curriculum } from '../src/curriculum';
-import { openTranscript } from '../src/review';
+import { type Curriculum } from '../src/curriculum';
+import { type Transcript } from '../src/review';
 
 const root = join(import.meta.dirname, '..');
 const folder = join(root, 'synthetic', 'transcripts');
@@ -59,6 +59,9 @@ type Row = Record<string, unknown>;
 const row = (prefix: string, number: string, grade = 'B', over: Row = {}): Row => ({ term: 'Fall 2025', transfer: false, prefix, number, description: `About ${prefix} ${number}`, attempted: '3.00', earned: '3.00', grade, points: '9.00', ...over });
 
 let app: App;
+// The curriculum and the transcript reader of the same copy of the app that is running.
+let curriculum: Curriculum;
+let openTranscript: (name: string, answer: unknown, curriculum: Curriculum) => Transcript;
 let printed = 0;
 const said: string[] = [];
 const win = window as unknown as AppWindow & { print?: () => void; today?: () => Date };
@@ -68,6 +71,8 @@ const open = async (hash = '#/'): Promise<void> => {
   window.history.replaceState(null, '', hash);
   win.print = () => { printed++; };
   const { startApp } = await import('../src/app');
+  ({ curriculum } = await import('../src/curriculum'));
+  ({ openTranscript } = await import('../src/review'));
   app = startApp(onTestDay(win));
 };
 /** Chooses a made-up transcript on the page the student is on, and goes on from the review. */
@@ -110,6 +115,15 @@ describe('the start', () => {
     expect(tidy($('h1').textContent)).toBe('See what I have left');
   });
 
+  it('opens Flow B from Start with the transcript', async () => {
+    // "Browse files" on Start: the transcript is chosen there, and the student is in Flow B's review.
+    expect(app.route).toBe('start');
+    await app.takeFile(madeUp('sample-a'));
+    expect(app.route).toBe('left');
+    expect(tidy($('h1').textContent)).toBe('Check what was read');
+    expect(all('.review-row').length).toBeGreaterThan(10);
+  });
+
   it('answers a first course in three steps', () => {
     // One choice, a course typed, Enter: nothing else is asked and nothing has to be read first.
     expect($('main a[href="#/check"]')).toBeTruthy();
@@ -135,31 +149,35 @@ describe('the start', () => {
       const calls: unknown[] = [];
       return { calls, getBoundingClientRect: () => ({ top, bottom }) as DOMRect, scrollIntoView: (how?: unknown) => { calls.push(how); } };
     };
+    const screen = { top: 0, bottom: 740 };
     const below = rowAt(665, 840);
-    showRow(below, 740);
+    showRow(below, screen);
     expect(below.calls).toEqual([{ block: 'center' }]);
     const above = rowAt(-90, 80);
-    showRow(above, 740);
+    showRow(above, screen);
     expect(above.calls).toEqual([{ block: 'center' }]);
     // A row already in view stays where it is: nothing moves on a large screen.
     const inView = rowAt(300, 470);
-    showRow(inView, 740);
+    showRow(inView, screen);
     expect(inView.calls).toEqual([]);
-    expect(() => showRow(null, 740)).not.toThrow();
+    // With a phone's keyboard open, less of the page is seen: a row behind the keyboard, or above what is seen, is not in view.
+    const behind = rowAt(300, 470);
+    showRow(behind, { top: 0, bottom: 400 });
+    expect(behind.calls).toEqual([{ block: 'center' }]);
+    const over = rowAt(20, 190);
+    showRow(over, { top: 60, bottom: 460 });
+    expect(over.calls).toEqual([{ block: 'center' }]);
+    expect(() => showRow(null, screen)).not.toThrow();
+    expect(() => showRow(rowAt(0, 0))).not.toThrow();
     // Adding a course asks for exactly that row.
     go('#/check');
     const asked: string[] = [];
-    const real = Element.prototype.getBoundingClientRect;
-    Element.prototype.getBoundingClientRect = function (this: Element) { return { top: 2000, bottom: 2170 } as DOMRect; };
-    Element.prototype.scrollIntoView = function (this: Element) { asked.push(tidy(this.querySelector('.cell-name .code')?.textContent)); };
-    try {
-      add('mgt 321');
-      add('bio 230');
-      add('bio 230');
-      add('not a course');
-    } finally {
-      Element.prototype.getBoundingClientRect = real;
-    }
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({ top: 2000, bottom: 2170 }) as DOMRect);
+    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (this: Element) { asked.push(tidy(this.querySelector('.cell-name .code')?.textContent)); });
+    add('mgt 321');
+    add('bio 230');
+    add('bio 230');
+    add('not a course');
     expect(asked).toEqual(['MGT 321', 'BIO 230']);
   });
 });
@@ -232,7 +250,7 @@ describe('Flow B: "See what I have left"', () => {
     await app.takeFile(madeUp('sample-b'));
     const read = (sampleB as { rows: Row[] }).rows.filter(one => typeof one.number === 'string' && /^\d{3}$/.test(one.number));
     expect(all('.review-row')).toHaveLength(read.length);
-    Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: [...(sampleB as { rows: Row[] }).rows, row('MGT', '32l', 'B'), row('ENG', '209', '', { transfer: true, term: 'Transfer Credit', attempted: '' })] }, curriculum) });
+    Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows: [...(sampleB as { rows: Row[] }).rows, row('MGT', '32l', 'B'), row('ENG', '209', '', { transfer: true, term: 'Transfer Credit', attempted: '' }), row('CIS', '300', 'D')] }, curriculum) });
     go('#/check');
     go('#/left');
     const misread = all('.review-row').find(one => tidy(one.textContent).includes('MGT 32l'))!;
@@ -269,9 +287,13 @@ describe('Flow B: "See what I have left"', () => {
       expect(tidy(card.textContent), code).toContain('In progress');
     }
     expect(listed('In progress').length + (page.match(/In progress/g) ?? []).length).toBeGreaterThan(2);
-    // Below C, W and I do not count: the W course is still to take; the F was repeated and passed; the I is running again.
+    // Below C, W and I do not count: the W course and the D course are still to take; the F was repeated and passed; the I is running again.
     expect(planned).toContain('BIO 127');
+    expect(planned).toContain('CIS 300');
+    expect(page).toContain('Must be repeated; the D doesn’t count.');
     expect(planned).not.toContain('CIS 205');
+    // The row that was misread counts once it is fixed.
+    expect(planned).not.toContain('MGT 321');
     // Transfer, AP and CLEP rows count when shown under a course code, whatever the grade column shows, also when it shows nothing.
     for (const code of ['ENG 131', 'MAT 137', 'HIS 131', 'ENG 209']) expect(planned, code).not.toContain(code);
     expect(tidy(cards.find(one => tidy(one.querySelector('summary')?.textContent).startsWith('Composition'))!.textContent)).toContain('ENG 131');
@@ -297,8 +319,17 @@ describe('Flow B: "See what I have left"', () => {
     expect(credits.slice(0, -1).every(one => one >= 12)).toBe(true);
     const lastEntries = [...semesters[semesters.length - 1]!.querySelectorAll('.plan-entry')];
     expect(tidy(lastEntries[lastEntries.length - 1]!.textContent)).toContain('MGT 462 Business Policies Always the final semester');
-    const levels = all('.plan-entry .code').map(one => tidy(one.textContent)).filter(code => /^[A-Z]{2,4} \d{3}$/.test(code) && code !== 'MGT 462').map(code => Math.floor(Number(code.split(' ')[1]) / 100));
+    const levels = all('.plan-entry:not(.is-choice) .code').map(one => tidy(one.textContent)).filter(code => /^[A-Z]{2,4} \d{3}$/.test(code) && code !== 'MGT 462').map(code => Math.floor(Number(code.split(' ')[1]) / 100));
     expect(levels.length).toBeGreaterThan(15);
+    // By course level, 100 to 400: within a semester no course comes before one of a lower level, and the plan
+    // starts with its lowest courses and ends with its highest. (A course that did not fit under the most credits
+    // comes first in the next semester: tests/plan.test.ts has that rule and the order of the whole plan.)
+    const levelOf = (entry: Element): number | null => { const code = entry.classList.contains('is-choice') ? '' : tidy(entry.querySelector('.code')?.textContent); return /^[A-Z]{2,4} \d{3}$/.test(code) && code !== 'MGT 462' ? Math.floor(Number(code.split(' ')[1]) / 100) : null; };
+    const bySemester = semesters.map(one => [...one.querySelectorAll('.plan-entry')].map(levelOf).filter((level): level is number => level !== null));
+    for (const one of bySemester) expect(one).toEqual([...one].sort((x, y) => x - y));
+    expect(Math.min(...bySemester[0]!)).toBe(Math.min(...levels));
+    expect(Math.max(...bySemester[bySemester.length - 1]!)).toBe(Math.max(...levels));
+    expect(bySemester.map(one => Math.max(...one))).toEqual([...bySemester.map(one => Math.max(...one))].sort((x, y) => x - y));
     expect(all('.plan-entry')).toHaveLength(all('.plan-entry [data-move]').length);
     const termOf = (key: string): string => tidy($(`[data-move="${key}"]`).closest('.semester')?.querySelector('h3')?.textContent);
     const moved = planned.find(one => /^[A-Z]{2,4} \d{3}$/.test(one) && one !== 'MGT 462')!;

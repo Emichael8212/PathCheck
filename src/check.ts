@@ -418,13 +418,19 @@ export interface CheckHooks {
 /**
  * Brings a row into view when it is not wholly there: on a phone the answer of a course just
  * added can be below what the screen shows (or behind its keyboard). A row already in view
- * stays where it is, so nothing moves on a large screen.
+ * stays where it is, so nothing moves on a large screen. `seen` is the part of the page the
+ * student sees, from its top edge to its bottom edge (smaller than the page's own window
+ * while a phone's keyboard is open).
  */
-export function showRow(row: Pick<Element, 'getBoundingClientRect' | 'scrollIntoView'> | null | undefined, visible: number = globalThis.visualViewport?.height ?? globalThis.innerHeight ?? 0): void {
+export function showRow(row: Pick<Element, 'getBoundingClientRect' | 'scrollIntoView'> | null | undefined, seen: { top: number; bottom: number } = seenNow()): void {
   if (!row) return;
   const { top, bottom } = row.getBoundingClientRect();
-  if (top >= 0 && bottom <= visible) return;
+  if (top >= seen.top && bottom <= seen.bottom) return;
   row.scrollIntoView({ block: 'center' });
+}
+function seenNow(): { top: number; bottom: number } {
+  const view = globalThis.visualViewport;
+  return view ? { top: view.offsetTop, bottom: view.offsetTop + view.height } : { top: 0, bottom: globalThis.innerHeight ?? 0 };
 }
 
 /** The page once it is wired up. */
