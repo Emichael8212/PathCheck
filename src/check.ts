@@ -415,6 +415,18 @@ export interface CheckHooks {
   /** The student chose a target semester: it is the one of "See what I have left" too. */
   target(term: Term): void;
 }
+/**
+ * Brings a row into view when it is not wholly there: on a phone the answer of a course just
+ * added can be below what the screen shows (or behind its keyboard). A row already in view
+ * stays where it is, so nothing moves on a large screen.
+ */
+export function showRow(row: Pick<Element, 'getBoundingClientRect' | 'scrollIntoView'> | null | undefined, visible: number = globalThis.visualViewport?.height ?? globalThis.innerHeight ?? 0): void {
+  if (!row) return;
+  const { top, bottom } = row.getBoundingClientRect();
+  if (top >= 0 && bottom <= visible) return;
+  row.scrollIntoView({ block: 'center' });
+}
+
 /** The page once it is wired up. */
 export interface CheckView {
   /** Draws again everything that depends on the transcript. What is typed in the field stays. */
@@ -512,6 +524,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
       say(message, result.problem === 'already-there' ? alreadyThere(result.code) : notACourse(curriculum));
     }
     input.focus();
+    // The answer the student asked for is on the screen: its row is brought into view when it is not.
+    if ('added' in result) showRow(region.querySelector(`[data-remove="${result.added.code}"]`)?.closest('[role="row"]'));
   };
 
   input.addEventListener('input', () => {

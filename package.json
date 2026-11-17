@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "dev:lan": "vite --host --port 5173 --strictPort",
     "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

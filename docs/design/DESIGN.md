@@ -438,6 +438,8 @@ which started as a copy of `mockups/style.css`. These differences are intended:
 - **"Report a mistake"** (F18) looks as in the design. Its email is filled in with what the
   page showed ("What looks wrong?", "What PathCheck showed:", then the result's own
   words; the labels are the agent's). The address is a placeholder until the owner's.
+- **"Legacy CIS student: Yes Change"** has 8px more between the answer and "Change" (F20), so
+  that the focus ring of "Change" does not touch the answer.
 - **"Clear my data"** (F19) is the design's secondary button with its trash icon, beside
   the print button at the end of the result. What the design has no place for:
   - the same button at the end of "Check my courses", and on "See what I have left" before
