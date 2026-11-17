@@ -686,6 +686,53 @@ steps 1 and 3 stand as written. It closes the question kept "to ask later".
   move kept as "not before this term"; buttons that read the same counted for screen
   readers. The words that are the agent's are listed in F16's pull request all the same.
 
+### 2026-11-16 — The M1 check: everything works except the pace line of "Check my courses"
+
+The owner's message, in full:
+
+"Everything works as intended except for one thing.
+
+The Flow A pace line is confusing ("…finish Spring 2040, 22 semesters after your target"). Replace it with:
+"<n> of these <m> credits count. To finish by <target>, you need about <x> counting credits a term."
+- x = counting credits left ÷ Fall/Spring semesters left to the target, rounded up.
+- If x is more than the student's "Most" credits, add: "That's more than your <Most>-credit limit — consider a later target."
+- Put the term and target dropdowns on their own line under the sentence, not inside it.
+- Never show a finish date years away from this term's courses alone.
+Record the change in docs/decision-log.md and update the tests."
+
+**Where this differs from earlier records:** it replaces the owner's sentence of 2026-11-16
+for F15 ("15 credits in [Spring 2027] — at this pace you finish Fall 2029, one semester
+after your target [Spring 2029].") and the agent's variants of it ("… you finish in your
+target semester"; "12 of your 15 credits … count toward CIS — …"; "None of these credits
+counts toward CIS, so this list doesn't bring you closer to finishing."). The line no
+longer names a finish. F15 step 1 in `features.json` still quotes the old example; it is
+not changed without the owner's yes (asked in the pull request).
+
+*Agent's notes, not owner decisions* (each is listed in the pull request for the owner):
+- "Counting credits left" is read as the credits still to take toward the degree, this
+  term's counting courses among them: the number "See what I have left" shows as credits
+  left (with the extra credits of a sequence course when there are any), and 3 more when
+  one of the typed courses fills the last pick a sequence could have gone through
+  (evaluator, contract round 1: x must never be lower than what the list really leaves
+  to do). "Semesters left to the target" is read as the Fall and Spring terms from the
+  term the typed courses are for, through the target, both counted. So x can be set
+  beside n: what a term needs, and what this term has.
+- "Most" is the "Most credits per term" of "See what I have left" (18 until changed).
+- When the target is earlier than the term the courses are for, no term is left to the
+  target: the line then takes that term itself as the target, and the target list offers
+  no earlier term. The target of "See what I have left" is not changed by that.
+- The sentence is used as it is for every list, also when none of the typed credits
+  counts ("0 of these 3 credits count. …") and when a number is 1 ("about 1 counting
+  credits a term"): the owner's words are not adapted.
+- With the term as the line's target, the two pages can show different targets until the
+  student chooses one.
+- "Credits only — course order may add semesters." stays under the line: the owner's
+  message does not mention it, and the sentence is still an estimate from credits alone.
+- The two lists keep their names, now shown beside them: "Term for these courses" and
+  "Target semester".
+- M1 is not closed by this answer: the change is made first, and the owner is asked
+  again.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -711,6 +758,6 @@ owner reviewed the curriculum on 2026-11-15 (see "Owner answers").
 | Milestone | Date | Owner's answer |
 |---|---|---|
 | M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
-| M1 | | **Waiting for the owner** since 2026-11-16. What to open, the steps and every open item: `docs/milestones/M1.md`. M2 is not started before the answer. |
+| M1 | 2026-11-16 | "Everything works as intended except for one thing.": the pace line of "Check my courses" is to be replaced (see "Owner answers", the same day). The change is made on `fix/F15-pace-line`; M1 is closed, and M2 started, only when the owner says so after it. What was checked: `docs/milestones/M1.md`. |
 | M2 | | |
 | M3 | | |
