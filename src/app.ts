@@ -359,26 +359,34 @@ export function startApp(win: AppWindow): App {
     if (mine !== latest) return;
     left.reading = false;
     left.tick = false;
-    if (refusal && from === 'check' && route === 'check') {
-      // Not taken: the student stays on "Check my courses", and the card says why.
-      checkRefusal = refusal;
-      checkView?.refresh();
+    if (refusal) {
+      // Not taken (docs/sprints/F23.md). The reason stands on the page the student is on when it comes, and is read
+      // out; the student is not moved: there is nothing to look at elsewhere. The keyboard goes to where another
+      // file is chosen, unless it is in a field or a list the student is using: there it stays, with what was typed.
+      const active = (win.document as unknown as { activeElement?: { matches?(selector: string): boolean } | null }).activeElement;
+      const inUse = active?.matches?.('input, select, textarea') === true;
+      if (route === 'check') {
+        checkRefusal = refusal;
+        checkView?.refresh();
+        say(refusalText(refusal));
+        if (!inUse) part<{ focus(): void }>('[data-choose]')?.focus();
+        return;
+      }
+      Object.assign(left, { transcript: null, continued: false, refusal, editing: null, draft: null });
+      keep();
+      // (Start has no place for the reason and nothing in use: from there the student is taken to the flow's page.)
+      if (route === 'left') show(false);
+      else showLeft();
       say(refusalText(refusal));
-      part<{ focus(): void }>('[data-choose]')?.focus();
+      if (!inUse || route !== 'left') part<{ focus(): void }>('[data-browse]')?.focus();
       return;
     }
-    // (A file refused after the student left "Check my courses" brings nobody back there.)
-    const returnTo = from === 'check' && !refusal ? 'check' : from === 'left' ? left.returnTo : 'left';
+    const returnTo = from === 'check' ? 'check' : from === 'left' ? left.returnTo : 'left';
     // A new transcript: the term chosen for the pace line of the last one does not go with it.
     if (transcript) courses.term = null;
-    Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null, returnTo });
+    Object.assign(left, { transcript, continued: false, refusal: null, editing: null, draft: null, returnTo });
     keep();
     showLeft();
-    if (refusal) {
-      // The reason is on the page and is read out; the keyboard is where another file is chosen.
-      say(refusalText(refusal));
-      part<{ focus(): void }>('[data-browse]')?.focus();
-    }
   };
 
   // The file picker: a file control made for the moment, so that no page has a field to
@@ -402,8 +410,10 @@ export function startApp(win: AppWindow): App {
     const already = shownAlready === win.location.hash;
     shownAlready = null;
     if (already) return;
-    // The student moved on: the sentence about another transcript does not follow.
+    // The student moved on: the sentence about another transcript does not follow, and neither does the reason
+    // a file was not taken (on "Check my courses" it goes the same way: `show`).
     left.notice = false;
+    left.refusal = null;
     show(true);
   };
   root.addEventListener?.('click', event => {
