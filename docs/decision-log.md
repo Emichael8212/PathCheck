@@ -1187,6 +1187,17 @@ the earlier "Production: main@8770a71" of 6:04 AM.
   of #37), published by the owner by hand, and the lock held through both publishes: no
   merge published anything.
 
+### 2026-11-17 — F24: the requirements of the owner's own result are as expected
+
+Asked whether, on the result of their own transcript, each requirement showed as
+expected (finished, in progress or still needed), the owner's words: "yes. Each
+requirement showed as I expected"
+
+What it settles:
+- With "The credits look accurate." (the same day), the result of the owner's own
+  transcript is what the owner expects: the credits left and the requirements (F24's
+  check 7).
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
