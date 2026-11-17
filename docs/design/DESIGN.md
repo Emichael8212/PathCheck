@@ -409,6 +409,11 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   the M1 check the line read "15 credits in [Spring 2027 ▾] — at this pace you finish Fall
   2029, one semester after your target [Spring 2029 ▾].", with the lists inside the
   sentence.)
+- **When another file is chosen while a transcript is there** (F11; the owner asked on
+  2026-11-17 for the sentence to be shown on the page; the box is the agent's): "To
+  use another transcript, choose “Use another transcript” first." in a box under the page's
+  heading: `--surface-2`, a `--line-strong` border, 12px radius, `--ink`, 14px. The design
+  has no such element; it is made of its colours. It is not printed.
 - **The draft plan** (F16; the owner approved these choices on 2026-11-16). Drawn as the
   design has it: the section head, the dashed label, the line under it, the semester
   bands, the entries, "Open choice", "Move later", "Always the final semester". Where it

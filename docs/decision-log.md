@@ -116,6 +116,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-17, F21) The Netlify project is `pathcheck`, built by Netlify from the GitHub repository (`netlify.toml`), at https://pathcheck.netlify.app. It is **Private**: only the owner, logged in to Netlify, can open it and its Deploy Previews. Publishing is locked by the owner: a merge does not publish; the owner publishes a deploy themselves; Deploy Previews of pull requests are built automatically. The agent runs no deploy command. | The owner's setup and answer of 2026-11-17 ("Owner answers"). The owner's project is Private, which is the safest state before the limits exist (F22): nobody else can reach the function. | The project's settings in Netlify ("Project configuration > General > Visitor access"; "Deploys > Unlock to start auto publishing"). |
 | (2026-11-17, F21) While a PDF is being read the page says "Reading your transcript…" where a refusal would stand, and it is read out; a file chosen on Start opens the page of the flow at once. The wording is the agent's, listed for the owner. | On the hosted site reading takes seconds; without it the page shows nothing meanwhile. The owner's design has no such state. | `READING` in `src/wording.ts`; `takeFile` in `src/app.ts`. |
 | (2026-11-17, F21) The reader check with the real Gemini is `scripts/reader-check.mjs <address>`, run by hand against a Netlify deploy, never by CI. It sends only the made-up PDFs, uses no key, and accepts only an `https://….netlify.app` address. | CI has no key and must not spend the owner's money; the made-up PDFs must not go anywhere else. | The script. |
+| (2026-11-17, F11, after the owner's test on the preview) When a file is chosen or dropped while a transcript is already there, "To use another transcript, choose “Use another transcript” first." is shown under the heading of "See what I have left", and is still read out once. It goes away with the student's next action on the page or when they go to another page; it is not kept and not printed. | The owner, 2026-11-17: "Make the fix so the sentence is shown on the page as well" (see "Owner answers"). Until then only a screen reader was told why the new file was not read. Its place, its look and when it goes away are the agent's choices. | `notice` in `LeftState` (`src/left.ts`); `takeFile`, `onDrop` in `src/app.ts`; `.notice` in `src/style.css`. |
 | (2026-11-16, F16) The curriculum file names the course of the final semester (`finalSemesterCourse`: MGT-462). The loader checks that it is a required course; a program whose file has no such line has no final-semester rule. No course code is written in the code. | The brief, §4 Flow B step 5: "MGT 462 Business Policies in the final semester". Approved by the owner on 2026-11-16 (see "Owner answers"). | The line in `docs/curriculum/provisional-current.json`; `finalSemester` in `src/curriculum.ts`. |
 | (2026-11-16, F16) The draft plan holds exactly what the checklist says is still to take: each still-needed required course, one entry for each open place of a pick, one for each open elective place, and the sequence course when both sequence picks are held (the owner, 2026-11-16). When the checklist says a sequence course is still needed but no open pick takes it (a legacy student's legacy course holds its pick and would move to an open elective place), one elective place is planned as that course ("HIS 132, for the history sequence"), so the plan never leaves out what the checklist names. Its credits are the credits still to take that pace uses. A course that is passed or in progress is never in it. | Brief §4 Flow B step 5; F16 steps 1 and 2; the owner's answer on the sequence. | `planEntries` in `src/plan.ts`. |
 | (2026-11-16, F16) Order: by the hundred of the course number, lowest first, and within a level the curriculum's order. An open pick has the level of its lowest course; an open elective the highest level of the elective rule; the extra sequence course the level of its lower course. The final-semester course is the last entry of the last semester. This puts the 100-level open picks in the first semester, where the screenshot has 200-level courses. | The brief: "ordered by course level 100 → 400". Layout of a draft labelled "Order not checked", not an academic rule. Approved by the owner on 2026-11-16. | The sort in `planEntries` (`src/plan.ts`). |
@@ -916,6 +917,24 @@ made-up transcripts as prepared."
 - Netlify offers no setting that opens the previews and keeps the main site private. The
   agent told the owner so before the run; the owner ran the check with the project
   opened, and was reminded to set it back to private.
+
+### 2026-11-17 — Show on the page why another file was not read
+
+While testing F21 on the preview, with an earlier result still kept in the browser, the
+owner wrote: "After I uploaded the pdf file it went straight to show Pace." The agent
+explained that the new file had not been read, and that the reason was said only to a
+screen reader, and asked whether to show it on the page. The owner's answer, in full (with
+two screenshots for F21):
+
+"Also Make the fix  so the sentence is shown on the page as well"
+
+What it decides:
+- The sentence "To use another transcript, choose “Use another transcript” first." is shown
+  on the page as well as read out.
+
+*Agent's notes, not owner decisions:*
+- Where it stands (under the heading), how it looks (a quiet box in the design's colours)
+  and when it goes away are the agent's choices, listed in the pull request.
 
 ## Open questions to the owner
 

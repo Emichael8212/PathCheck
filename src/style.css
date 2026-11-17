@@ -888,6 +888,8 @@ details[open] .req-cue { transform: rotate(-90deg); }
 /* With "Clear my data": that what is here stays in this browser until it is cleared. Not said where the browser keeps nothing. */
 .kept-note { flex-basis: 100%; margin: 0; color: var(--ink-2); font-size: 13px; line-height: 19px; }
 [data-keeps="no"] [data-kept-note] { display: none; }
+/* Said under the heading when another file was chosen while a transcript is already there. */
+.notice { margin: -6px 0 22px; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface-2); color: var(--ink); font-size: 14px; line-height: 20px; }
 /* Said on the page once the data was cleared. */
 .cleared { margin-bottom: 20px; color: var(--ink); font-size: 14px; }
 

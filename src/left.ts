@@ -30,6 +30,8 @@ export interface LeftState {
   refusal: Refusal | null;
   /** A chosen file is being read: said in the place of a refusal until it is. */
   reading?: boolean;
+  /** Another file was chosen while a transcript is already there: the page says how to use another one. */
+  notice?: boolean;
   /** The row being edited, by its line. */
   editing: number | null;
   /** What the student has typed in the open edit, kept while the page is drawn again. */
@@ -41,7 +43,7 @@ export interface LeftState {
   /** The entries of the draft plan the student moved later, each with its earliest term. */
   moves: Moves;
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, reading: false, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, reading: false, notice: false, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -377,7 +379,8 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
       <h1 tabindex="-1">${esc(heading)}</h1>
     </div>${result ? `
     <span class="pill">${icons.doc(15)}${esc(TEXT.pill)}</span>` : ''}
-  </div>
+  </div>${transcript && state.notice ? `
+  <p class="notice no-print" data-notice>${esc(ANOTHER_FIRST)}</p>` : ''}
   ${body}${kept && !(result && hasResult(transcript, curriculum, legacy)) ? `
   ${clearRowHtml(null)}` : ''}
 </main>
