@@ -247,9 +247,8 @@ svg { display: block; flex-shrink: 0; }
 .text-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   min-height: 44px;
-  /* A short word ("Edit", "Fix it") is still wide enough to touch. */
+  /* A short word ("Edit", "Fix it") is still wide enough to touch: it stays where it was, and the room is on its right. */
   min-width: 44px;
   color: var(--accent);
   text-decoration: underline;
