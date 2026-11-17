@@ -190,7 +190,7 @@ describe('transfer credit, rows in progress and printed numbers', () => {
   });
 
   it('reads numbers the way a transcript prints them', () => {
-    for (const printed of ['3', '3.00', ' 3.00 ', '3.0']) {
+    for (const printed of ['3', '3.00', ' 3.00 ', '3.0', '3.000', ' 3.000 ']) {
       const reading = read(good({ attempted: printed, earned: printed, points: '9.00' }));
       expect(reading.toFix, printed).toEqual([]);
       expect(reading.rows[0]?.row.credits).toBe(3);
@@ -198,6 +198,15 @@ describe('transfer credit, rows in progress and printed numbers', () => {
     expect(read(good({ earned: '', points: null })).toFix).toEqual([]);
     expect(read(without('earned')).toFix).toEqual([]);
     expect(read(good({ points: '108.00' })).toFix).toEqual([]);
+    // Three decimals, as a real transcript prints every figure: the row is read, and its credits are the number.
+    const real = read(good({ attempted: '3.000', earned: '3.000', points: '12.000' }), good({ prefix: 'BIOL', number: '127', attempted: '1.000', earned: '1.000', points: '3.670' }), good({ prefix: 'ENG', number: '131', attempted: '0.000', earned: '0.000', points: '0.000' }));
+    expect(real.toFix).toEqual([]);
+    expect(real.rows.map(one => [one.row.credits, one.attempted])).toEqual([[3, '3.000'], [1, '1.000'], [0, '0.000']]);
+    // Still not a figure of a transcript: more decimals, or credits that are not hundredths.
+    expect(read(good({ attempted: '3.0000' })).toFix[0]?.problems).toEqual(['credits']);
+    expect(read(good({ attempted: '3.125' })).toFix[0]?.problems).toEqual(['credits']);
+    expect(read(good({ earned: '3.0000', points: '12.0000' })).toFix[0]?.problems).toEqual(['earned', 'points']);
+    expect(read(good({ attempted: '30.001' })).toFix[0]?.problems).toEqual(['credits']);
   });
 });
 
