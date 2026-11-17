@@ -9,6 +9,7 @@
 // a cent of the owner's Gemini balance, so it is run by hand and never by CI.
 //
 // usage: node scripts/reader-check.mjs https://deploy-preview-<n>--<name>.netlify.app [runs]
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,6 +56,9 @@ export function differences(prepared, answer, readRows, curriculum) {
   return found;
 }
 
+/** Cloudflare's published test token: taken by its test secret, which PathCheck's function uses on a Deploy Preview only. */
+export const TEST_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
+
 /** The address of a Netlify deploy, and nothing else: the made-up PDFs go to the owner's site only. */
 export const isDeploy = address => /^https:\/\/[a-z0-9-]+\.netlify\.app\/?$/.test(String(address));
 
@@ -77,8 +81,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     for (const name of Object.keys(JSON.parse(readFileSync(join(folder, 'manifest.json'), 'utf8')))) {
       const prepared = JSON.parse(readFileSync(join(folder, `${name}.json`), 'utf8'));
       const pdf = readFileSync(join(folder, `${name}.pdf`));
+      // The limits (F22): a preview takes Cloudflare's test token, and reads three uploads a day for one
+      // browser number. Each made-up PDF is sent under a number of its own.
+      const browser = randomBytes(16).toString('hex');
       for (let run = 1; run <= Number(times); run++) {
-        const response = await fetch(new URL('/api/read-transcript', address), { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: pdf, redirect: 'error' });
+        const response = await fetch(new URL('/api/read-transcript', address), { method: 'POST', headers: { 'Content-Type': 'application/pdf', 'x-turnstile-token': TEST_TOKEN, 'x-pathcheck-browser': browser }, body: pdf, redirect: 'error' });
         if (!response.ok) {
           failed++;
           console.log(`${name}.pdf, run ${run}: FAIL (the function answered ${response.status})`);

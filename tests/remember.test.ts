@@ -249,7 +249,8 @@ describe('what is kept', () => {
     choose('[data-line-term]', 'Fall 2027');
     // Two entries at most are PathCheck's, and nothing else is of its making.
     expect(keys()).toEqual(['pathcheck.visit']);
-    expect(STORED_KEYS).toEqual(['pathcheck.visit', 'pathcheck.legacy']);
+    // (The third is the browser's random number for the day's uploads, made on the hosted site only: F22.)
+    expect(STORED_KEYS).toEqual(['pathcheck.visit', 'pathcheck.legacy', 'pathcheck.browser']);
     expect(window.sessionStorage.length).toBe(0);
     expect(document.cookie).toBe('');
     const visit = kept()!;

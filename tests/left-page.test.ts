@@ -666,6 +666,8 @@ describe('the checklist', () => {
     let site: App | null = null;
     try {
       vi.stubEnv('DEV', false);
+      // (The hosted site asks its reader only with a passed bot check: a stand-in for Cloudflare's widget passes it. F22)
+      vi.stubGlobal('turnstile', { render: (_place: unknown, options: { callback(token: string): void }) => { queueMicrotask(() => { options.callback('a-token'); }); return 'widget'; }, remove: () => undefined });
       vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
       vi.resetModules();
       const hosted = await import('../src/app');

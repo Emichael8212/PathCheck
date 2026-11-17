@@ -591,7 +591,9 @@ describe('the basics kept from the brief', () => {
     expect(sources).not.toMatch(/lucide|radix|sonner|shadcn|tailwind|toast|@mui|figma/i);
     expect(sources).not.toMatch(/https?:\/\//);
     const pkg = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
-    expect(Object.keys(pkg.dependencies ?? {})).toEqual([]);
+    // (One package runs on the server, in PathCheck's one function: Netlify's store for the counters of the
+    // upload limits, F22. Nothing is added to what the browser gets.)
+    expect(Object.keys(pkg.dependencies ?? {})).toEqual(['@netlify/blobs']);
   });
 
   it('defines every color as a token with light, dark and print values', () => {

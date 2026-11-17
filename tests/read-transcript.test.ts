@@ -6,8 +6,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import handler, {
-  FIELDS, GEMINI, INSTRUCTION, LARGEST_BODY, MODEL, MOST_ANSWER_TOKENS, MOST_ROWS, MOST_TEXT, PATH, SHAPE, WAIT, config, readTranscript, rowsOf, type Outside,
+  ACTION, CHECK_WAIT, FIELDS, GEMINI, INSTRUCTION, LARGEST_BODY, MODEL, MOST_ANSWER_TOKENS, MOST_ROWS, MOST_TEXT, PATH, RESERVED, SHAPE, SITEVERIFY, STORE, TEST_SECRET, WAIT, config, readTranscript, rowsOf, type Outside,
 } from '../netlify/functions/read-transcript.mjs';
+import { CAP, type Counters } from '../netlify/lib/limits.mjs';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
 import { differences, isDeploy } from '../scripts/reader-check.mjs';
 import { curriculum } from '../src/curriculum';
@@ -22,7 +23,34 @@ const source = readFileSync(join(root, 'netlify', 'functions', 'read-transcript.
 /** A made-up key: the shape of none, so that it can be looked for in everything that leaves the function. */
 const KEY = 'made-up-key-0123456789-for-tests-only';
 const UNAVAILABLE = { error: 'unavailable' };
-const FAILURE_LINE = /^read-transcript: unavailable \((body|no-key|unreachable|timeout|refused \d{3}|blocked|cut-off|not-rows)\)$/;
+const FAILURE_LINE = /^read-transcript: unavailable \((body|no-key|unreachable|timeout|refused \d{3}|blocked|cut-off|not-rows|check|store)\)$/;
+/** A made-up secret of the bot check, and a browser's made-up number for the day. */
+const SECRET = 'made-up-turnstile-secret-for-tests-only';
+const BROWSER = '0123456789abcdef0123456789abcdef';
+const TOKEN = 'a-made-up-token-of-a-passed-check';
+const HOST = 'pathcheck.netlify.app';
+/** The moment of the tests' uploads: a Tuesday noon, UTC. */
+const NOON = '2026-11-17T12:00:00Z';
+const PDF_HEADERS: Record<string, string> = { 'Content-Type': 'application/pdf', 'x-turnstile-token': TOKEN, 'x-pathcheck-browser': BROWSER };
+
+/** A stand-in for the store: numbers with marks, written only on a condition, as Netlify Blobs does. */
+const storeOf = (start: Record<string, number> = {}) => {
+  const entries = new Map(Object.entries(start).map(([key, value]) => [key, { value, mark: 'start' }]));
+  let writes = 0;
+  const counters: Counters = {
+    read: key => Promise.resolve(entries.has(key) ? { ...entries.get(key)! } : null),
+    write: (key, value, mark) => {
+      if ((entries.get(key)?.mark ?? null) !== mark) return Promise.resolve(false);
+      entries.set(key, { value, mark: `write-${++writes}` });
+      return Promise.resolve(true);
+    },
+    keys: prefix => Promise.resolve([...entries.keys()].filter(key => key.startsWith(prefix))),
+    remove: key => { entries.delete(key); return Promise.resolve(); },
+  };
+  return { counters, all: (): Record<string, number> => Object.fromEntries([...entries].map(([key, entry]) => [key, entry.value])) };
+};
+/** What Cloudflare answers for a passed check made for an upload on this site. */
+const passed = (): Response => Response.json({ success: true, action: 'upload', hostname: HOST, challenge_ts: NOON, 'error-codes': [] });
 
 type Call = { url: string; init: RequestInit };
 type Reply = (call: Call) => Response | Promise<Response>;
@@ -33,15 +61,29 @@ const gemini = (rows: unknown, over: Record<string, unknown> = {}): Response => 
 });
 /** Gemini's answer with this text as what it wrote. */
 const wrote = (text: string, finishReason = 'STOP'): Response => Response.json({ candidates: [{ content: { parts: [{ text }] }, finishReason }] });
-/** The world outside the function: a stand-in for Gemini, a key and a log that is kept. */
-/** (A key of `null`: no key is set.) */
-const world = (reply: Reply, key: string | null = KEY, wait = 2_000) => {
+/**
+ * The world outside the function: stand-ins for Gemini (`calls`), for Cloudflare's check of a token
+ * (`checks`), for the store and the clock, the keys, and a log that is kept. (A key of `null`: none is set.)
+ */
+const world = (reply: Reply, key: string | null = KEY, wait = 2_000, more: Partial<Outside> & { check?: Reply; store?: ReturnType<typeof storeOf> } = {}) => {
   const calls: Call[] = [];
+  const checks: Call[] = [];
   const logged: string[] = [];
-  const outside: Outside = { fetch: (url, init) => { const call = { url, init }; calls.push(call); return Promise.resolve().then(() => reply(call)); }, key: key ?? undefined, log: line => { logged.push(line); }, wait };
-  return { outside, calls, logged };
+  const { check = passed, store = storeOf(), ...over } = more;
+  const outside: Outside = {
+    fetch: (url, init) => {
+      const call = { url, init };
+      const cloudflare = url === SITEVERIFY;
+      (cloudflare ? checks : calls).push(call);
+      return Promise.resolve().then(() => (cloudflare ? check : reply)(call));
+    },
+    key: key ?? undefined, log: line => { logged.push(line); }, wait,
+    secret: SECRET, checkWait: 2_000, deploy: 'production', host: HOST, counters: () => store.counters, now: () => new Date(NOON),
+    ...over,
+  };
+  return { outside, calls, checks, logged, store };
 };
-const post = (bytes: Uint8Array, headers: Record<string, string> = { 'Content-Type': 'application/pdf' }, method = 'POST'): Request =>
+const post = (bytes: Uint8Array, headers: Record<string, string> = PDF_HEADERS, method = 'POST'): Request =>
   new Request(`https://pathcheck.example${PATH}`, { method, headers, ...(method === 'GET' || method === 'HEAD' ? {} : { body: bytes as BodyInit }) });
 /** Everything that leaves the function towards the browser: status, headers and body, as text. */
 const leaving = async (response: Response): Promise<string> => JSON.stringify([response.status, [...response.headers], await response.clone().text()]);
@@ -138,9 +180,9 @@ describe('the function that reads a transcript', () => {
     await readTranscript(post(bytes), pasted.outside);
     expect((pasted.calls[0]!.init.headers as Record<string, string>)['x-goog-api-key']).toBe(KEY);
     // The key comes from the environment and from nowhere else: the function names one variable, once.
-    expect(source.match(/process\.env\b[.\w[\]'"]*/g)).toEqual(['process.env.GEMINI_API_KEY']);
+    expect(source.match(/process\.env\b[.\w[\]'"]*/g)).toEqual(['process.env.GEMINI_API_KEY', 'process.env.TURNSTILE_SECRET_KEY']);
     // Nothing in the repository's code looks like a Google key.
-    const files = ['netlify.toml', ...['netlify/functions', 'src', 'scripts'].flatMap(folder => readdirSync(join(root, folder)).map(name => `${folder}/${name}`))];
+    const files = ['netlify.toml', ...['netlify/functions', 'netlify/lib', 'src', 'scripts'].flatMap(folder => readdirSync(join(root, folder)).map(name => `${folder}/${name}`))];
     for (const file of files) expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/AIza[0-9A-Za-z_-]{20,}/);
     expect(readFileSync(join(root, 'netlify.toml'), 'utf8')).not.toMatch(/GEMINI|API_KEY|environment/i);
   });
@@ -185,19 +227,29 @@ describe('the function that reads a transcript', () => {
     expect(console_[3]).toHaveBeenCalledTimes(1);
     expect(console_[3]).toHaveBeenCalledWith('read-transcript: unavailable (no-key)');
     expect(source.match(/console\.\w+\(/g)).toEqual(['console.error(']);
-    expect(source.match(/outside\.log\(/g)).toHaveLength(1);
+    // (One line for a failure, one for a refusal: both fixed.)
+    expect(source.match(/outside\.log\(/g)).toHaveLength(2);
   });
 
-  it('stores nothing', async () => {
-    // The function is one file that uses nothing but what it is given: no file system, no store, no cache, no other code.
-    expect(source).not.toMatch(/^\s*import\s/m);
-    expect(source).not.toMatch(/\brequire\(|\bimport\(|node:|@netlify\/blobs|getStore|writeFile|appendFile|createWriteStream|localStorage|\bcaches\b|globalThis|setInterval/);
-    // It reaches out in one place, to Gemini; in Netlify that is the platform's own fetch.
-    expect(source.match(/\bfetch\(/g)).toEqual(['fetch(', 'fetch(']);
+  it('stores nothing of the transcript', async () => {
+    // The function and its counters are two files that use nothing but what they are given and Netlify's store:
+    // no file system, no cache, no other code.
+    const limits = readFileSync(join(root, 'netlify', 'lib', 'limits.mts'), 'utf8');
+    expect(source.match(/^import .*$/gm)?.map(line => line.replace(/^.* from /, ''))).toEqual(["'@netlify/blobs';", "'../lib/limits.mjs';"]);
+    expect(limits).not.toMatch(/^\s*import\s/m);
+    for (const text of [source, limits]) expect(text).not.toMatch(/\brequire\(|\bimport\(|node:|writeFile|appendFile|createWriteStream|localStorage|\bcaches\b|globalThis|setInterval/);
+    // The store is opened in one place, under one name, and is given numbers only (the counters' own tests).
+    expect(source.match(/getStore\(/g)).toHaveLength(1);
+    expect(source).toContain("getStore({ name: STORE, consistency: 'strong' })");
+    expect(STORE).toBe('pathcheck-limits');
+    // It reaches out in two places: to Cloudflare, for the bot check, and to Gemini; in Netlify that is the platform's own fetch.
+    expect(source.match(/\bfetch\(/g)).toEqual(['fetch(', 'fetch(', 'fetch(']);
     expect(source).toContain('outside.fetch(GEMINI, {');
+    expect(source).toContain('outside.fetch(SITEVERIFY, {');
     expect(source).toContain('fetch: (input, init) => fetch(input, init)');
     // It looks at two things a request says of itself, its type and its length, and at nothing that could say who sent it.
-    expect(source.match(/headers\.get\('([^']+)'\)/g)).toEqual(["headers.get('content-length')", "headers.get('content-type')"]);
+    // (And the two things the limits need: the token of the bot check and the browser's random number for the day.)
+    expect(source.match(/headers\.get\('([^']+)'\)/g)).toEqual(["headers.get('content-length')", "headers.get('content-type')", "headers.get('x-turnstile-token')", "headers.get('x-pathcheck-browser')"]);
     expect(source).not.toMatch(/cookie|authorization|x-forwarded|x-nf-|context\.ip|\bip\b/i);
     // Nothing is kept from one request to the next: the same PDF twice is two calls, and no answer may be cached.
     const { outside, calls } = world(() => gemini(sampleA.rows));
@@ -290,9 +342,12 @@ describe('the function that reads a transcript', () => {
   it('refuses before calling Gemini', async () => {
     const bytes = pdf('sample-a');
     const refused = async (request: Request, key: string | null = KEY) => {
-      const { outside, calls, logged } = world(() => gemini([]), key);
+      const { outside, calls, checks, logged, store } = world(() => gemini([]), key);
       const response = await readTranscript(request, outside);
       expect(calls).toEqual([]);
+      // Cloudflare is not asked and nothing is counted either.
+      expect(checks).toEqual([]);
+      expect(store.all()).toEqual({});
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       return { status: response.status, body: (await response.json()) as unknown, allow: response.headers.get('Allow'), logged };
     };
@@ -330,7 +385,7 @@ describe('the function that reads a transcript', () => {
     expect(await refused(broken)).toEqual({ status: 503, body: UNAVAILABLE, allow: null, logged: ['read-transcript: unavailable (body)'] });
     // What is accepted: a PDF of exactly the largest size, and a content type with a parameter or in capitals.
     const fits = heavy.slice(0, LARGEST_BODY);
-    for (const request of [post(fits), post(bytes, { 'Content-Type': 'Application/PDF; charset=binary' })]) {
+    for (const request of [post(fits), post(bytes, { ...PDF_HEADERS, 'Content-Type': 'Application/PDF; charset=binary' })]) {
       const { outside, calls } = world(() => gemini([]));
       expect((await readTranscript(request, outside)).status).toBe(200);
       expect(calls).toHaveLength(1);

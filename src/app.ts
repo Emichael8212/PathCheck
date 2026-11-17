@@ -5,7 +5,8 @@ import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, leftReport, refusalText, setupLeft, type LeftState } from './left';
 import { PRINT_TITLE, closeAfterPaper, openForPaper } from './print';
-import { CLEARED, canKeep, clearStored, keptText, loadKept, storeKept, type KeptResult } from './remember';
+import { CLEARED, browserNumber, canKeep, clearStored, keptText, loadKept, storeKept, type KeptResult } from './remember';
+import { botToken, siteKeyOf, type CheckWindow } from './turnstile';
 import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
@@ -289,7 +290,12 @@ export function startApp(win: AppWindow): App {
     let refusal: Refusal | null = null;
     let transcript: LeftState['transcript'] = null;
     try {
-      const upload = await readFile(file);
+      // On the hosted site the reader is asked only with a passed bot check, and counts the day's uploads
+      // under a random number of this browser's making (F22). On a development server neither is used.
+      const upload = await readFile(file, {
+        token: () => botToken(win as unknown as CheckWindow, part('[data-turnstile]'), siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),
+        browser: () => browserNumber(storage, (win.today?.() ?? new Date()).toISOString().slice(0, 10)),
+      });
       if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum, false, upload.madeUp);
       else refusal = upload.refusal;
     } catch (error) {

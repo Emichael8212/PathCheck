@@ -525,6 +525,9 @@ svg { display: block; flex-shrink: 0; }
 /* What to type, or why nothing was added. Empty, it takes no room. */
 .field-message { margin-top: 8px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .field-message:empty { margin-top: 0; }
+/* The place of Cloudflare's bot check (F22): empty, and out of sight, unless it wants a box ticked. */
+.bot-check { margin-top: 12px; }
+.bot-check:empty { display: none; }
 .empty-hint { color: var(--ink-2); font-size: 14px; line-height: 20px; }
 /* The credits of a course PathCheck doesn't know: the one number on the page the student sets. */
 .credits-select {

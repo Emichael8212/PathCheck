@@ -7,7 +7,8 @@
 //
 // On the built site a PDF is posted to PathCheck's one function (docs/sprints/F21.md;
 // netlify/functions/read-transcript.mts), which has it read and answers with rows. The
-// PDF's bytes go, and nothing else: no file name, nothing of PathCheck's that says who
+// PDF's bytes go, with a token of Cloudflare's bot check and the browser's random number
+// for today (docs/sprints/F22.md), and nothing else: no file name, nothing of PathCheck's that says who
 // (PathCheck sets no cookie; on a private Netlify deploy the browser adds Netlify's own
 // login for that site, without which the deploy answers nobody). The
 // answer is not trusted: the caller puts it through the same checks as a prepared one.
@@ -68,15 +69,26 @@ const madeUp = import.meta.env.DEV
   }
   : null;
 
+/** What the built site needs before it may ask the reader (F22). */
+export interface Asking {
+  /** A token of Cloudflare's bot check; nothing when the check did not pass or could not run. */
+  token(): Promise<string | null>;
+  /** The browser's random number for today: 32 hex digits. Asked for only when a PDF is about to be sent. */
+  browser(): string;
+}
+
 /** Has the PDF read by the function. Whatever goes wrong, the upload is not available; nothing of the file is kept. */
-async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
+async function askReader(bytes: Uint8Array, name: string, asking: Asking | undefined): Promise<Upload> {
+  // No passed bot check, no upload: the function would refuse it, and nothing is sent.
+  const token = asking ? await asking.token().catch(() => null) : null;
+  if (!asking || !token) return { ok: false, refusal: 'unavailable' };
   // The wait is a timer of its own: not every browser in use has a ready-made one.
   const stop = new AbortController();
   const timer = setTimeout(() => { stop.abort(); }, READER_WAIT);
   try {
     const response = await fetch(READER, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/pdf' },
+      headers: { 'Content-Type': 'application/pdf', 'x-turnstile-token': token, 'x-pathcheck-browser': asking.browser() },
       body: bytes as BufferSource,
       // To this site only. PathCheck has no cookie of its own; a private deploy needs the visitor's Netlify login.
       credentials: 'same-origin',
@@ -102,13 +114,13 @@ async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
 export const READS_MADE_UP = madeUp !== null;
 
 /** Looks at a chosen file and gives the reader's answer for it, or the reason it is refused. */
-export async function readFile(file: ChosenFile): Promise<Upload> {
+export async function readFile(file: ChosenFile, asking?: Asking): Promise<Upload> {
   if (file.size > LARGEST_FILE) return { ok: false, refusal: 'too-large' };
   const bytes = new Uint8Array(await file.arrayBuffer());
   // The size a file gives for itself is not taken on trust.
   if (bytes.length > LARGEST_FILE) return { ok: false, refusal: 'too-large' };
   if (!isPdf(bytes)) return { ok: false, refusal: 'not-a-pdf' };
-  if (!madeUp) return askReader(bytes, file.name);
+  if (!madeUp) return askReader(bytes, file.name, asking);
   const manifest = Object.values(madeUp.manifest)[0] ?? {};
   const fingerprint = fingerprintOf(bytes);
   const name = Object.keys(manifest).find(one => manifest[one]?.bytes === bytes.length && manifest[one]?.fingerprint === fingerprint);
