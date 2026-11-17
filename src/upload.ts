@@ -7,7 +7,9 @@
 //
 // On the built site a PDF is posted to PathCheck's one function (docs/sprints/F21.md;
 // netlify/functions/read-transcript.mts), which has it read and answers with rows. The
-// PDF's bytes go, and nothing else: no file name, no cookie, nothing that says who. The
+// PDF's bytes go, and nothing else: no file name, nothing of PathCheck's that says who
+// (PathCheck sets no cookie; on a private Netlify deploy the browser adds Netlify's own
+// login for that site, without which the deploy answers nobody). The
 // answer is not trusted: the caller puts it through the same checks as a prepared one.
 
 /** Files larger than this are refused before they are read or sent: the function takes no more. */
@@ -75,7 +77,8 @@ async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
       method: 'POST',
       headers: { 'Content-Type': 'application/pdf' },
       body: bytes as BufferSource,
-      credentials: 'omit',
+      // To this site only. PathCheck has no cookie of its own; a private deploy needs the visitor's Netlify login.
+      credentials: 'same-origin',
       cache: 'no-store',
       referrerPolicy: 'no-referrer',
       signal: stop.signal,

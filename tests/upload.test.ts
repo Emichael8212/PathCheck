@@ -126,10 +126,11 @@ describe('on the built site', () => {
     expect(url).toBe('/api/read-transcript');
     expect(READER).toBe('/api/read-transcript');
     expect(init.method).toBe('POST');
-    // The PDF's bytes as they are, and one header that says they are a PDF. No key, no cookie, nothing that says who.
+    // The PDF's bytes as they are, and one header that says they are a PDF. No key, nothing of PathCheck's that says who.
+    // (To this site only: on a private deploy the browser adds the visitor's Netlify login, without which nobody is answered.)
     expect(init.body).toEqual(bytes);
     expect(init.headers).toEqual({ 'Content-Type': 'application/pdf' });
-    expect([init.credentials, init.cache, init.referrerPolicy]).toEqual(['omit', 'no-store', 'no-referrer']);
+    expect([init.credentials, init.cache, init.referrerPolicy]).toEqual(['same-origin', 'no-store', 'no-referrer']);
     // The wait is the page's own timer, so that it works in a browser without a ready-made one; it is put away after the answer.
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect((init.signal as AbortSignal).aborted).toBe(false);

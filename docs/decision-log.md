@@ -841,6 +841,38 @@ What it decides:
 - "4. what are the options": the three wordings of the privacy sentence are given again
   in chat.
 
+### 2026-11-17 — The privacy sentence for M2; the address stays; previews opened briefly for the test
+
+The owner's message, in full:
+
+"This iis what got shown: Upload isn’t available right now — try again tomorrow.
+1. Keep the address as it is.
+2. Privacy sentence: "Google reads your PDF and may keep it briefly. Your result stays in this browser." Record it in docs/decision-log.md.
+3. Open previews briefly. Give me the exact clicks to open and to close them, and the command to run. Remind me to close them when the run finishes.
+4. The M2 milestone on GitHub is called "Transcript upload""
+
+What it decides:
+- **The privacy sentence** is now: "Google reads your PDF and may keep it briefly. Your result
+  stays in this browser." It replaces "Your PDF is read, then deleted. Only your result
+  stays in this browser." (answer i on PR #4) next to every upload control.
+- **The address stays as it is:** each page keeps its own address (`#/`, `#/check`,
+  `#/left`).
+- **The test against the real Gemini** is run by the owner with the Deploy Previews opened
+  for the length of the run and closed again afterwards. The agent gives the clicks and
+  the command, and reminds the owner to close them.
+- **The GitHub milestone of M2** is called "Transcript upload".
+
+*Agent's notes, not owner decisions:*
+- On the private preview the owner's first try of `sample-a.pdf` gave "Upload isn’t
+  available right now — try again tomorrow". The likely cause, not yet confirmed: the
+  page's request to the function was sent without the browser's cookies, and a private
+  Netlify deploy answers only a logged-in visitor, so Netlify refused it before the
+  function ran. The request now goes with the site's own cookies (to this site only).
+  PathCheck sets no cookie of its own, and the function reads nothing of a request but its
+  type and its length. Listed for the owner in the pull request.
+- The sentence is used as the owner wrote it. The mockups of M0 keep the earlier sentence:
+  they are the record of what was approved then.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -858,9 +890,8 @@ stand-in until the owner answers; it is not an owner decision.
   owner's real transcript at M2: how a summer term is printed; what the grade column
   shows on a transfer row; the layout of the transfer section; and whether a grade
   printed as "Passed" or "P" counts (an academic rule: the owner decides).
-- **2026-11-16 (F21; blocks F21's `passes`).** The privacy sentence once the PDF goes to
-  Google Gemini: see "Owner answers", "No pull request before the owner's setup". Status:
-  no reply yet.
+- **2026-11-16 (F21).** The privacy sentence once the PDF goes to Google Gemini. Answered
+  on 2026-11-17 (see "Owner answers").
 
 Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;

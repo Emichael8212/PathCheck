@@ -196,6 +196,9 @@ describe('the function that reads a transcript', () => {
     expect(source.match(/\bfetch\(/g)).toEqual(['fetch(', 'fetch(']);
     expect(source).toContain('outside.fetch(GEMINI, {');
     expect(source).toContain('fetch: (input, init) => fetch(input, init)');
+    // It looks at two things a request says of itself, its type and its length, and at nothing that could say who sent it.
+    expect(source.match(/headers\.get\('([^']+)'\)/g)).toEqual(["headers.get('content-length')", "headers.get('content-type')"]);
+    expect(source).not.toMatch(/cookie|authorization|x-forwarded|x-nf-|context\.ip|\bip\b/i);
     // Nothing is kept from one request to the next: the same PDF twice is two calls, and no answer may be cached.
     const { outside, calls } = world(() => gemini(sampleA.rows));
     const first = await readTranscript(post(pdf('sample-a')), outside);
