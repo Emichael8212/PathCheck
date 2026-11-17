@@ -89,6 +89,8 @@ beforeEach(async () => {
   await open();
 });
 afterEach(() => {
+  // (Whatever a test stood in for the reader or the bot check does not stay for the next.)
+  vi.unstubAllGlobals();
   app.stop();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();

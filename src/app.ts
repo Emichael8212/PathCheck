@@ -371,8 +371,11 @@ export function startApp(win: AppWindow): App {
         checkRefusal = refusal;
         checkView?.refresh();
         say(refusalText(refusal));
-        if (!inUse) part<{ focus(): void }>('[data-choose]')?.focus();
-        else if (active?.isConnected === false) (part<{ focus(): void }>(credits === null ? '[data-choose]' : `[data-credits="${credits.replace(/["\\]/g, '')}"]`) ?? part<{ focus(): void }>('[data-choose]'))?.focus();
+        if (!inUse || active?.isConnected === false) {
+          // Back on the same course's credits list when that was in use; otherwise where another file is chosen.
+          const list = inUse && credits !== null ? part<{ focus(): void }>(`[data-credits="${credits.replace(/["\\]/g, '')}"]`) : null;
+          (list ?? part<{ focus(): void }>('[data-choose]'))?.focus();
+        }
         return;
       }
       Object.assign(left, { transcript: null, continued: false, refusal, editing: null, draft: null });
