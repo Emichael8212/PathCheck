@@ -1152,6 +1152,25 @@ line: "POST https://pathcheck.netlify.app/api/read-transcript 429 (Too Many Requ
   that the plan shown by Netlify is Free; and whether the $5 spend cap stands in place
   of the budget alert of brief §12.
 
+### 2026-11-17 — The plan is Free; the $5 spend cap replaces the budget alert
+
+The owner's words:
+
+"1. Netlify plan: Free. I checked it in Billing.
+2. The $5 monthly spend cap in Google AI Studio replaces the budget alert. No alert needed. Record this in docs/decision-log.md as an owner answer."
+
+What it decides:
+- The staging address runs on Netlify's Free plan; no paid plan is enabled (F24, step 1
+  of the feature).
+- **The budget alert of brief §12 is replaced** by the $5 monthly spend cap in Google AI
+  Studio. No Google Cloud budget alert is set up, and none is asked for again. Where the
+  brief lists "a Google Cloud budget alert" among what the owner provides before M2, this
+  answer wins.
+
+*Agent's notes, not owner decisions:*
+- PathCheck's own stop at $5 a month (F22) and the three uploads a day for a browser
+  stand in front of Google's cap.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
