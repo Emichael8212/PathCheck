@@ -323,10 +323,11 @@ export async function readTranscript(request: Request, outside: Outside): Promis
   const read = await askGemini(pdf, key, outside);
   // What was set aside becomes what the upload did cost: Gemini's own counts when it gave them; nothing when
   // it refused the request (Google: "If your request fails with a 400 or 500 error, you won't be charged for
-  // the tokens used", read 2026-11-17: taken for a refusal of the request, any 4xx, and for 500 itself).
+  // the tokens used", read 2026-11-17: taken for a refusal of the request, a 4xx, and for 500 itself; not for
+  // 499, a request cancelled on its way, which may have been worked on).
   // When it is not known what was used (no answer in time, no counts, another failure of Google's) what was
   // set aside stays: the month's total may run ahead of the real cost, never behind it.
-  const notCharged = 'failure' in read && read.failure === 'refused' && typeof read.status === 'number' && ((read.status >= 400 && read.status < 500) || read.status === 500);
+  const notCharged = 'failure' in read && read.failure === 'refused' && typeof read.status === 'number' && ((read.status >= 400 && read.status < 499) || read.status === 500);
   const cost = notCharged ? 0 : costOf(read.usage);
   if (cost !== null) await settle(counters, month, RESERVED, cost).catch(() => undefined);
   // (After the first upload of a browser today, the counts of earlier days go. Tidying: it stops nothing.)

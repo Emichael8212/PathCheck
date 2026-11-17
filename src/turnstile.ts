@@ -60,11 +60,19 @@ function widgetOf(win: CheckWindow): Promise<Widget | null> {
   return asked;
 }
 
+/** What the page is told while the check runs, so that it can say so. */
+export interface Steps {
+  /** Cloudflare wants the visitor to do something (tick a box): the widget is now showing. */
+  asked?(): void;
+  /** That is over: the visitor did it, or the check ended without it. */
+  answered?(): void;
+}
+
 /**
  * A token of a passed check, drawn into the given place; nothing when there is no place,
  * the script is blocked, the check fails or it takes too long. Never throws.
  */
-export async function botToken(win: CheckWindow, container: unknown, siteKey: string, wait = CHECK_WAIT): Promise<string | null> {
+export async function botToken(win: CheckWindow, container: unknown, siteKey: string, wait = CHECK_WAIT, steps: Steps = {}): Promise<string | null> {
   if (!container) return null;
   try {
     const widget = await widgetOf(win);
@@ -72,8 +80,21 @@ export async function botToken(win: CheckWindow, container: unknown, siteKey: st
     return await new Promise<string | null>(resolve => {
       let id: string | null = null;
       let over = false;
+      let asking = false;
+      const ask = (now: boolean): void => {
+        if (over || asking === now) return;
+        asking = now;
+        try {
+          if (now) steps.asked?.();
+          else steps.answered?.();
+        } catch {
+          // (What the page does with it is the page's business.)
+        }
+      };
       const done = (token: string | null): void => {
         if (over) return;
+        // However the check ends, the page is no longer waiting for a tick.
+        ask(false);
         over = true;
         clearTimeout(timer);
         // The widget has done its work: it is taken off the page again.
@@ -93,6 +114,8 @@ export async function botToken(win: CheckWindow, container: unknown, siteKey: st
         'error-callback': () => { done(null); },
         'expired-callback': () => { done(null); },
         'timeout-callback': () => { done(null); },
+        'before-interactive-callback': () => { ask(true); },
+        'after-interactive-callback': () => { ask(false); },
       });
     });
   } catch {

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { BROWSER_KEY, STORED_KEYS, browserNumber, clearStored } from '../src/remember';
 import { ACTION, CHECK_WAIT, SCRIPT, TEST_SITE_KEY, botToken, siteKeyOf, type CheckWindow } from '../src/turnstile';
 
-type Options = Record<string, unknown> & { callback(token: unknown): void; 'error-callback'(): void; 'expired-callback'(): void; 'timeout-callback'(): void };
+type Options = Record<string, unknown> & { callback(token: unknown): void; 'error-callback'(): void; 'expired-callback'(): void; 'timeout-callback'(): void; 'before-interactive-callback'(): void; 'after-interactive-callback'(): void };
 /** A browser with Cloudflare's script standing in: how the script loads, and what the widget does once drawn. */
 const browserOf = (load: 'loads' | 'blocked', drawn: (options: Options) => void = options => { options.callback('a-token'); }) => {
   const seen = { scripts: [] as { src: string; async: boolean }[], rendered: [] as { container: unknown; options: Options }[], removed: [] as string[] };
@@ -50,7 +50,7 @@ describe("Cloudflare's bot check in the page", () => {
     expect(seen.rendered).toHaveLength(1);
     expect(seen.rendered[0]!.container).toBe(PLACE);
     expect(seen.rendered[0]!.options).toMatchObject({ sitekey: KEY, action: 'upload', appearance: 'interaction-only' });
-    expect(Object.keys(seen.rendered[0]!.options).sort()).toEqual(['action', 'appearance', 'callback', 'error-callback', 'expired-callback', 'sitekey', 'timeout-callback']);
+    expect(Object.keys(seen.rendered[0]!.options).sort()).toEqual(['action', 'after-interactive-callback', 'appearance', 'before-interactive-callback', 'callback', 'error-callback', 'expired-callback', 'sitekey', 'timeout-callback']);
     expect(ACTION).toBe('upload');
     // When it has done its work it is taken off the page again.
     expect(seen.removed).toEqual(['widget-1']);
@@ -61,6 +61,27 @@ describe("Cloudflare's bot check in the page", () => {
     // A second upload: a new widget and a new token, the same script.
     expect(await botToken(win, PLACE, KEY)).toBe('a-token');
     expect([seen.scripts.length, seen.rendered.length, seen.removed]).toEqual([1, 2, ['widget-1', 'widget-2']]);
+  });
+
+  it('tells the page when a box waits to be ticked', async () => {
+    const told = (drawn: (options: Options) => void) => {
+      const steps: string[] = [];
+      const { win } = browserOf('loads', drawn);
+      return botToken(win, PLACE, KEY, 50, { asked: () => { steps.push('asked'); }, answered: () => { steps.push('answered'); } }).then(token => ({ token, steps }));
+    };
+    // Nothing to tick (the usual case): the page is told nothing.
+    expect(await told(options => { options.callback('a-token'); })).toEqual({ token: 'a-token', steps: [] });
+    // Cloudflare wants a tick, gets it, and passes: asked, then answered, each once.
+    expect(await told(options => { options['before-interactive-callback'](); options['before-interactive-callback'](); options['after-interactive-callback'](); options.callback('a-token'); })).toEqual({ token: 'a-token', steps: ['asked', 'answered'] });
+    // The check ends while the box still waits (it fails, or nobody ticks it in time): the page is told that the waiting is over.
+    expect(await told(options => { options['before-interactive-callback'](); options['error-callback'](); })).toEqual({ token: null, steps: ['asked', 'answered'] });
+    expect(await told(options => { options['before-interactive-callback'](); })).toEqual({ token: null, steps: ['asked', 'answered'] });
+    // A token without the widget saying that the tick was done: the same.
+    expect(await told(options => { options['before-interactive-callback'](); options.callback('a-token'); })).toEqual({ token: 'a-token', steps: ['asked', 'answered'] });
+    // After the check is over the widget's words change nothing; and a page that breaks on being told breaks nothing here.
+    expect(await told(options => { options.callback('a-token'); options['before-interactive-callback'](); })).toEqual({ token: 'a-token', steps: [] });
+    const { win } = browserOf('loads', options => { options['before-interactive-callback'](); options.callback('a-token'); });
+    expect(await botToken(win, PLACE, KEY, 50, { asked: () => { throw new Error('the page broke'); } })).toBe('a-token');
   });
 
   it('gives no token when the check does not pass', async () => {
@@ -115,7 +136,7 @@ describe("Cloudflare's bot check in the page", () => {
     // The check is asked for in one place of the app, when a file is about to be read.
     const app = readFileSync(join(import.meta.dirname, '..', 'src', 'app.ts'), 'utf8');
     expect(app.match(/botToken\(/g)).toHaveLength(1);
-    expect(app).toContain('token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),');
+    expect(app).toContain('token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY), undefined, {');
     // Its place is one element beside the page, not a part of a page: drawing the page again does not take the widget away.
     expect(app).toContain("place.className = 'bot-check no-print';");
     for (const page of ['left.ts', 'check.ts', 'start.ts']) expect(readFileSync(join(import.meta.dirname, '..', 'src', page), 'utf8'), page).not.toMatch(/bot-check|turnstile/i);

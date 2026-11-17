@@ -19,7 +19,7 @@ import { clearRowHtml } from './remember';
 import { NOTHING_SHOWN, type Shown } from './report';
 import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { type Refusal } from './upload';
-import { ANOTHER_FORGETS, CAVEAT, CHANGE, LEGACY_LINE, PRIVACY, READING, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
+import { ANOTHER_FORGETS, CAVEAT, CHANGE, LEGACY_LINE, PRIVACY, READING, TICK, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
 
 /** Where the student is in this flow. */
 export interface LeftState {
@@ -30,6 +30,8 @@ export interface LeftState {
   refusal: Refusal | null;
   /** A chosen file is being read: said in the place of a refusal until it is. */
   reading?: boolean;
+  /** While it is being read, the bot check waits for the student to tick its box: the page says that. */
+  tick?: boolean;
   /** Another file was chosen while a transcript is already there: the page says how to use another one. */
   notice?: boolean;
   /** The row being edited, by its line. */
@@ -43,7 +45,7 @@ export interface LeftState {
   /** The entries of the draft plan the student moved later, each with its earliest term. */
   moves: Moves;
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, reading: false, notice: false, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, reading: false, tick: false, notice: false, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -118,14 +120,14 @@ export const fixingLine = (transcript: Transcript): string => {
 };
 
 /** The upload panel: the drop zone, "Browse files" and the sentence about what happens to the PDF. */
-export const uploadPanel = (refusal: Refusal | null = null, reading = false): string => `<div class="drop" data-drop>
+export const uploadPanel = (refusal: Refusal | null = null, reading = false, tick = false): string => `<div class="drop" data-drop>
       <span class="upload-icon">${icons.upload()}</span>
       <p class="drop-title">${esc(TEXT.drop)}</p>
       <span class="drop-or">${esc(TEXT.or)}</span>
       <button type="button" class="btn secondary" data-browse>${esc(TEXT.browse)} ${icons.arrow()}</button>
       <p class="privacy">${icons.doc(20)}${esc(PRIVACY)}</p>
     </div>
-    <p class="field-message" data-refusal>${reading ? esc(READING) : refusal ? esc(refusalText(refusal)) : ''}</p>`;
+    <p class="field-message" data-refusal>${reading ? esc(tick ? TICK : READING) : refusal ? esc(refusalText(refusal)) : ''}</p>`;
 
 const whatIsWrong = (problems: readonly Problem[]): string => problems.filter((one): one is Exclude<Problem, 'not-a-row'> => one !== 'not-a-row').map(one => WHAT[one]).join(', ');
 /** A row by its course and its term: a course can be on a transcript twice. */
@@ -364,7 +366,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
   const heading = !transcript ? TEXT.uploadHeading : result ? TEXT.resultHeading : TEXT.reviewHeading;
   const body = !transcript
     ? `<div class="upload" data-upload>
-    ${uploadPanel(state.refusal, state.reading === true)}
+    ${uploadPanel(state.refusal, state.reading === true, state.tick === true)}
   </div>`
     : result
       ? resultHtml(transcript, curriculum, legacy, state.pace, state.moves)

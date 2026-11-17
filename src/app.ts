@@ -13,7 +13,7 @@ import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } fr
 import { HREF, dayOf, oldReviewBanner, reportLink, routeOf, titleOf, type Day, type Route } from './shell';
 import { startPage } from './start';
 import { READS_MADE_UP, readFile, type ChosenFile, type Refusal } from './upload';
-import { READING } from './wording';
+import { READING, TICK } from './wording';
 
 /**
  * A page. `today` is the day on the student's device: with it, a curriculum whose last
@@ -126,7 +126,7 @@ export function startApp(win: AppWindow): App {
   let checkView: CheckView | null = null;
   const onCheck = (): OnCheck => {
     const { transcript } = left;
-    if (!transcript) return { state: 'none', refusal: left.reading ? READING : checkRefusal ? refusalText(checkRefusal) : null };
+    if (!transcript) return { state: 'none', refusal: left.reading ? (left.tick ? TICK : READING) : checkRefusal ? refusalText(checkRefusal) : null };
     if (!left.continued) return { state: 'reviewing' };
     const toFix = stillToFix(transcript).length;
     // With no row taken on there is nothing to go by; with rows still to fix nothing is exact.
@@ -169,6 +169,8 @@ export function startApp(win: AppWindow): App {
     const place = doc.createElement('div');
     place.id = CHECK_ID;
     place.className = 'bot-check no-print';
+    // (The keyboard can be put on it when a box waits there: the next Tab then enters the widget.)
+    place.tabIndex = -1;
     doc.body.append(place);
     return place;
   })();
@@ -293,6 +295,7 @@ export function startApp(win: AppWindow): App {
     const from = route;
     // Reading takes a moment on the hosted site: the page says so where a refusal would stand.
     left.reading = true;
+    left.tick = false;
     left.refusal = null;
     checkRefusal = null;
     if (route === 'check') {
@@ -308,8 +311,18 @@ export function startApp(win: AppWindow): App {
     try {
       // On the hosted site the reader is asked only with a passed bot check, and counts the day's uploads
       // under a random number of this browser's making (F22). On a development server neither is used.
+      // When Cloudflare wants its box ticked, the page says so where it said that it is reading, reads it out,
+      // and puts the keyboard on the box's place; afterwards it says again that it is reading.
+      const step = (tick: boolean): void => {
+        if (mine !== latest || !left.reading) return;
+        left.tick = tick;
+        if (route === 'check') checkView?.refresh();
+        else if (route === 'left' && !left.transcript) show(false);
+        say(tick ? TICK : READING);
+        if (tick) (checkPlace as { focus?(): void } | null)?.focus?.();
+      };
       const upload = await readFile(file, {
-        token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY)),
+        token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY), undefined, { asked: () => { step(true); }, answered: () => { step(false); } }),
         browser: () => browserNumber(storage, (win.today?.() ?? new Date()).toISOString().slice(0, 10)),
       });
       if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum, false, upload.madeUp);
@@ -321,6 +334,7 @@ export function startApp(win: AppWindow): App {
     // Another file was chosen meanwhile, or the student cleared their data: this file changes nothing.
     if (mine !== latest) return;
     left.reading = false;
+    left.tick = false;
     if (refusal && from === 'check' && route === 'check') {
       // Not taken: the student stays on "Check my courses", and the card says why.
       checkRefusal = refusal;

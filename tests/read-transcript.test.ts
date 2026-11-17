@@ -603,9 +603,9 @@ describe('the limits in front of Gemini', () => {
       return tried.store.all()[MONTH]! - 1000;
     };
     // Gemini refused the request (any 4xx, or 500: Google says such a request is not charged): it is taken off again.
-    for (const status of [400, 401, 403, 404, 429, 499, 500]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(0);
-    // Another failure of Google's, of which Google says nothing: what was set aside stays.
-    for (const status of [501, 502, 503, 504, 529]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(RESERVED);
+    for (const status of [400, 401, 403, 404, 429, 498, 500]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(0);
+    // Another failure of Google's, of which Google says nothing, or a request cancelled on its way (499): what was set aside stays.
+    for (const status of [499, 501, 502, 503, 504, 529]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(RESERVED);
     // Gemini answered with counts, but not with rows (blocked, cut off, no list): it cost what the counts say.
     expect(await after(() => Response.json({ candidates: [{ content: { parts: [{ text: 'no rows' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 1500 } }))).toBe(COST);
     expect(await after(() => Response.json({ candidates: [{ content: { parts: [{ text: '{"rows":[' }] }, finishReason: 'MAX_TOKENS' }], usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 16384 } }))).toBe(Math.ceil(900 * 0.3 + 16384 * 2.5));
