@@ -1044,6 +1044,20 @@ not show any box to thick."
 - Not yet sent: the Network list of an upload, and the number of rows on "Check what was
   read" (17 expected).
 
+### 2026-11-17 — F24, step 5: "Check my courses" on the staging address
+
+The owner's words: ""Check what was read" listed 17 rows". Then two screenshots of "Check
+my courses" on the staging address with sample-a.pdf in use: "Transcript added", "Your
+answers use your transcript (sample-a.pdf).", "17 rows taken on."; MGT 321 "Counts toward
+CIS — Business core" (no "unless …"), BIO 230 "Doesn’t count toward CIS — not in the CIS
+curriculum", FLS 161 "Doesn’t count toward CIS. Legacy students only." after "No"
+("Legacy CIS student: No"); 9 total credits, 3 count, 6 don't; "3 of these 9 credits
+count. To finish by Spring 2029, you need about 17 counting credits a term."
+
+*Agent's notes, not owner decisions:*
+- The Console, shown whole this time, holds the same six lines as in step 4, all from
+  Cloudflare's widget frame (`normal?lang=auto`); "Check my courses" added none.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
