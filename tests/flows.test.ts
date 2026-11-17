@@ -402,10 +402,11 @@ describe('the two flows together', () => {
     expect(answerOf('MGT 321')).toBe(`Counts toward CIS — Business core ${CONDITION}`);
     expect(answerOf('BIO 230')).toBe('Doesn’t count toward CIS — not in the CIS curriculum');
 
-    // On the built site nothing can be read: the brief's sentence, on both pages, and Flow A still works.
+    // On the built site, when the reader cannot be reached: the brief's sentence, on both pages, and Flow A still works.
     app.stop();
     window.localStorage.clear();
     vi.stubEnv('DEV', false);
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('no reader here')));
     vi.resetModules();
     await open('#/left');
     await app.takeFile(madeUp('sample-a'));

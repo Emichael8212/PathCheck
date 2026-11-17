@@ -496,13 +496,19 @@ describe('the demo', () => {
         expect(fake.location.hash).toBe(route);
       }
     }
-    // A file is read in one place only, and nothing in the app sends anything anywhere.
+    // A file is read in one place only. That place alone sends, once: the PDF to PathCheck's reader
+    // on the hosted site (F21). Nothing else in the app sends anything anywhere.
     const reading = /FileReader|\.items\b|getData|arrayBuffer|createObjectURL|\.text\(\)|\.stream\(\)/;
     const sending = /fetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|navigator\.connection|new Image\(/;
     for (const file of readdirSync(join(repo, 'src'), { recursive: true }).map(String).filter(name => /\.(tsx?|jsx?|html)$/.test(name))) {
       const source = readFileSync(join(repo, 'src', file), 'utf8');
-      expect(source, file).not.toMatch(sending);
-      if (file !== 'upload.ts') expect(source, file).not.toMatch(reading);
+      if (file === 'upload.ts') {
+        expect(source.match(/fetch\(/g), file).toHaveLength(1);
+        expect(source.replace('await fetch(READER, {', ''), file).not.toMatch(sending);
+      } else {
+        expect(source, file).not.toMatch(sending);
+        expect(source, file).not.toMatch(reading);
+      }
     }
   });
 });

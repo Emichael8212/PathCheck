@@ -12,6 +12,7 @@ import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } fr
 import { HREF, dayOf, oldReviewBanner, reportLink, routeOf, titleOf, type Day, type Route } from './shell';
 import { startPage } from './start';
 import { readFile, type ChosenFile, type Refusal } from './upload';
+import { READING } from './wording';
 
 /**
  * A page. `today` is the day on the student's device: with it, a curriculum whose last
@@ -121,7 +122,7 @@ export function startApp(win: AppWindow): App {
   let checkView: CheckView | null = null;
   const onCheck = (): OnCheck => {
     const { transcript } = left;
-    if (!transcript) return { state: 'none', refusal: checkRefusal ? refusalText(checkRefusal) : null };
+    if (!transcript) return { state: 'none', refusal: left.reading ? READING : checkRefusal ? refusalText(checkRefusal) : null };
     if (!left.continued) return { state: 'reviewing' };
     const toFix = stillToFix(transcript).length;
     // With no row taken on there is nothing to go by; with rows still to fix nothing is exact.
@@ -258,6 +259,14 @@ export function startApp(win: AppWindow): App {
     const mine = ++latest;
     // Where the file was chosen: a transcript asked for on "Check my courses" comes back there.
     const from = route;
+    // Reading takes a moment on the hosted site: the page says so where a refusal would stand.
+    left.reading = true;
+    left.refusal = null;
+    checkRefusal = null;
+    if (route === 'check') checkView?.refresh();
+    else if (route === 'left') show(false);
+    else showLeft();
+    say(READING);
     let refusal: Refusal | null = null;
     let transcript: LeftState['transcript'] = null;
     try {
@@ -268,8 +277,9 @@ export function startApp(win: AppWindow): App {
       // A reader's answer that is no answer; or a file that could not be opened at all.
       refusal = error instanceof ReaderError ? 'unavailable' : 'unreadable';
     }
-    // Another file was chosen meanwhile: this one changes nothing.
+    // The student cleared their data meanwhile: this file changes nothing.
     if (mine !== latest) return;
+    left.reading = false;
     if (refusal && from === 'check' && route === 'check') {
       // Not taken: the student stays on "Check my courses", and the card says why.
       checkRefusal = refusal;

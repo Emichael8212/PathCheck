@@ -19,7 +19,7 @@ import { clearRowHtml } from './remember';
 import { NOTHING_SHOWN, type Shown } from './report';
 import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { type Refusal } from './upload';
-import { ANOTHER_FORGETS, CAVEAT, CHANGE, LEGACY_LINE, PRIVACY, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
+import { ANOTHER_FORGETS, CAVEAT, CHANGE, LEGACY_LINE, PRIVACY, READING, USE_ANOTHER, notCurrent, transcriptHasLegacy } from './wording';
 
 /** Where the student is in this flow. */
 export interface LeftState {
@@ -28,6 +28,8 @@ export interface LeftState {
   continued: boolean;
   /** Why the last file was not taken, if it was not. */
   refusal: Refusal | null;
+  /** A chosen file is being read: said in the place of a refusal until it is. */
+  reading?: boolean;
   /** The row being edited, by its line. */
   editing: number | null;
   /** What the student has typed in the open edit, kept while the page is drawn again. */
@@ -39,7 +41,7 @@ export interface LeftState {
   /** The entries of the draft plan the student moved later, each with its earliest term. */
   moves: Moves;
 }
-export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
+export const emptyLeft = (): LeftState => ({ transcript: null, continued: false, refusal: null, reading: false, editing: null, draft: null, returnTo: 'left', pace: defaultSettings(), moves: {} });
 
 const TEXT = {
   drop: 'Drag & drop your transcript PDF here',
@@ -114,14 +116,14 @@ export const fixingLine = (transcript: Transcript): string => {
 };
 
 /** The upload panel: the drop zone, "Browse files" and the sentence about what happens to the PDF. */
-export const uploadPanel = (refusal: Refusal | null = null): string => `<div class="drop" data-drop>
+export const uploadPanel = (refusal: Refusal | null = null, reading = false): string => `<div class="drop" data-drop>
       <span class="upload-icon">${icons.upload()}</span>
       <p class="drop-title">${esc(TEXT.drop)}</p>
       <span class="drop-or">${esc(TEXT.or)}</span>
       <button type="button" class="btn secondary" data-browse>${esc(TEXT.browse)} ${icons.arrow()}</button>
       <p class="privacy">${icons.doc(20)}${esc(PRIVACY)}</p>
     </div>
-    <p class="field-message" data-refusal>${refusal ? esc(refusalText(refusal)) : ''}</p>`;
+    <p class="field-message" data-refusal>${reading ? esc(READING) : refusal ? esc(refusalText(refusal)) : ''}</p>`;
 
 const whatIsWrong = (problems: readonly Problem[]): string => problems.filter((one): one is Exclude<Problem, 'not-a-row'> => one !== 'not-a-row').map(one => WHAT[one]).join(', ');
 /** A row by its course and its term: a course can be on a transcript twice. */
@@ -360,7 +362,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
   const heading = !transcript ? TEXT.uploadHeading : result ? TEXT.resultHeading : TEXT.reviewHeading;
   const body = !transcript
     ? `<div class="upload" data-upload>
-    ${uploadPanel(state.refusal)}
+    ${uploadPanel(state.refusal, state.reading === true)}
   </div>`
     : result
       ? resultHtml(transcript, curriculum, legacy, state.pace, state.moves)

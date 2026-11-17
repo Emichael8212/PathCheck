@@ -1,0 +1,8 @@
+# How Netlify builds and serves PathCheck (docs/sprints/F21.md). The owner types no build
+# setting; secrets are never written here: the owner sets them in Netlify.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"

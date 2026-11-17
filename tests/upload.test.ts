@@ -1,16 +1,21 @@
-// F11: taking a transcript PDF (docs/sprints/F11.md; docs/BRIEF.md §7). At this milestone
-// only the two made-up transcripts can be "read", in the browser, and nothing is sent.
-import { readFileSync } from 'node:fs';
+// F11 and F21: taking a transcript PDF (docs/sprints/F11.md, F21.md; docs/BRIEF.md §7). On a
+// development server only the two made-up transcripts can be "read", in the browser, and
+// nothing is sent. On the built site the PDF goes to PathCheck's reader, and nothing else does.
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
-import { forbiddenText, leaksIn } from '../scripts/check-build.mjs';
+import { SERVER_ONLY, forbiddenText, leaksIn, serverPiecesIn } from '../scripts/check-build.mjs';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
 import { fingerprintOf as scriptFingerprint, manifestFor, transcripts } from '../scripts/make-synthetic-transcripts.mjs';
+import { GEMINI, LARGEST_BODY } from '../netlify/functions/read-transcript.mjs';
 import manifest from '../synthetic/transcripts/manifest.json';
 import sampleA from '../synthetic/transcripts/sample-a.json';
 import sampleB from '../synthetic/transcripts/sample-b.json';
-import { LARGEST_FILE, fingerprintOf, isPdf, readFile, type ChosenFile } from '../src/upload';
+import { curriculum } from '../src/curriculum';
+import { ReaderError, readRows } from '../src/reader';
+import { openTranscript } from '../src/review';
+import { LARGEST_FILE, READER, fingerprintOf, isPdf, readFile, type ChosenFile } from '../src/upload';
 
 const folder = join(import.meta.dirname, '..', 'synthetic', 'transcripts');
 const pdf = (name: string): Uint8Array => new Uint8Array(readFileSync(join(folder, `${name}.pdf`)));
@@ -46,7 +51,7 @@ describe('taking a file', () => {
     expect(isPdf(text('pdf'))).toBe(false);
 
     // Too large: refused before it is read.
-    expect(LARGEST_FILE).toBe(10 * 1024 * 1024);
+    expect(LARGEST_FILE).toBe(4 * 1024 * 1024);
     const huge = fileOf(pdf('sample-a'), 'huge.pdf', LARGEST_FILE + 1);
     expect(await readFile(huge)).toEqual({ ok: false, refusal: 'too-large' });
     expect(huge.reads).toBe(0);
@@ -88,14 +93,135 @@ describe('taking a file', () => {
     expect((await readFile(fileOf(text('%PDF-1.4 other')))).ok).toBe(false);
   });
 
-  it('leaves the made-up answers out of the built site', async () => {
-    // Outside a development server there is nothing to read with: the upload is not available.
+  it('sends nothing on a development server', async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal('fetch', (...call: unknown[]) => { sent.push(call); return Promise.reject(new Error('nothing may be sent')); });
+    expect((await readFile(fileOf(pdf('sample-a')))).ok).toBe(true);
+    expect(await readFile(fileOf(text('%PDF-1.4 somebody else')))).toEqual({ ok: false, refusal: 'not-made-up' });
+    expect(await readFile(fileOf(text('not a pdf')))).toEqual({ ok: false, refusal: 'not-a-pdf' });
+    expect(sent).toEqual([]);
+  });
+});
+
+describe('on the built site', () => {
+  type Call = { url: unknown; init: RequestInit };
+  /** The built site's upload, with a stand-in for the reader. */
+  const built = async (reader: () => Response | Promise<Response>) => {
+    const calls: Call[] = [];
     vi.stubEnv('DEV', false);
+    vi.stubGlobal('fetch', (url: unknown, init: RequestInit) => { calls.push({ url, init }); return Promise.resolve().then(reader); });
     vi.resetModules();
-    const built = await import('../src/upload');
-    expect(await built.readFile(fileOf(pdf('sample-a')))).toEqual({ ok: false, refusal: 'unavailable' });
-    expect(await built.readFile(fileOf(text('not a pdf')))).toEqual({ ok: false, refusal: 'not-a-pdf' });
-    expect(await built.readFile(fileOf(pdf('sample-a'), 'huge.pdf', LARGEST_FILE + 1))).toEqual({ ok: false, refusal: 'too-large' });
+    return { upload: await import('../src/upload'), calls };
+  };
+  const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+  it('posts the PDF and nothing else', async () => {
+    const answer = { rows: sampleA.rows, model: 'gemini-2.5-flash-lite' };
+    const { upload, calls } = await built(() => json(answer));
+    const bytes = pdf('sample-a');
+    expect(await upload.readFile(fileOf(bytes, 'My Transcript (final).pdf'))).toEqual({ ok: true, name: 'My Transcript (final).pdf', answer });
+    expect(calls).toHaveLength(1);
+    const { url, init } = calls[0]!;
+    // To PathCheck's own function, on the site's own address.
+    expect(url).toBe('/api/read-transcript');
+    expect(READER).toBe('/api/read-transcript');
+    expect(init.method).toBe('POST');
+    // The PDF's bytes as they are, and one header that says they are a PDF. No key, no cookie, nothing that says who.
+    expect(init.body).toEqual(bytes);
+    expect(init.headers).toEqual({ 'Content-Type': 'application/pdf' });
+    expect([init.credentials, init.cache, init.referrerPolicy]).toEqual(['omit', 'no-store', 'no-referrer']);
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    // The file's name stays in the browser, where it is shown; a very long one is cut.
+    expect(JSON.stringify([url, init.headers])).not.toMatch(/Transcript|final/);
+    const long = await upload.readFile(fileOf(bytes, `${'x'.repeat(300)}.pdf`));
+    expect(long.ok && long.name).toBe('x'.repeat(80));
+    // The made-up answers are not in the built site: what the reader says is what is used.
+    const { upload: other } = await built(() => json({ rows: [] }));
+    expect(await other.readFile(fileOf(bytes))).toEqual({ ok: true, name: 'transcript.pdf', answer: { rows: [] } });
+  });
+
+  it('refuses in the browser before anything is sent', async () => {
+    const { upload, calls } = await built(() => json({ rows: [] }));
+    expect(await upload.readFile(fileOf(text('not a pdf')))).toEqual({ ok: false, refusal: 'not-a-pdf' });
+    expect(await upload.readFile(fileOf(new Uint8Array([])))).toEqual({ ok: false, refusal: 'not-a-pdf' });
+    // Too large by what the file says of itself (it is then not even read), and by its bytes.
+    const huge = fileOf(pdf('sample-a'), 'huge.pdf', upload.LARGEST_FILE + 1);
+    expect(await upload.readFile(huge)).toEqual({ ok: false, refusal: 'too-large' });
+    expect(huge.reads).toBe(0);
+    const heavy = new Uint8Array(upload.LARGEST_FILE + 1);
+    heavy.set(text('%PDF-1.7'));
+    expect(await upload.readFile(fileOf(heavy, 'heavy.pdf', 10))).toEqual({ ok: false, refusal: 'too-large' });
+    expect(calls).toEqual([]);
+    // The largest that is taken is the largest the function takes.
+    expect(upload.LARGEST_FILE).toBe(LARGEST_BODY);
+  });
+
+  it('says upload isn’t available', async () => {
+    const unavailable = { ok: false, refusal: 'unavailable' };
+    const file = (): ChosenFile => fileOf(pdf('sample-b'));
+    // The function says so; or anything else that is not an answer.
+    for (const status of [503, 500, 502, 404, 405, 429, 401, 403, 400, 302]) {
+      const { upload } = await built(() => json({ error: 'unavailable' }, status));
+      expect(await upload.readFile(file()), String(status)).toEqual(unavailable);
+    }
+    // It cannot be reached, or does not answer in time.
+    for (const failure of [new TypeError('Failed to fetch'), new DOMException('The operation timed out.', 'TimeoutError')]) {
+      const { upload } = await built(() => Promise.reject(failure));
+      expect(await upload.readFile(file())).toEqual(unavailable);
+    }
+    // An answer that is not JSON (a host's error page with the wrong status).
+    const { upload } = await built(() => new Response('<!doctype html><title>Site not available</title>', { status: 200 }));
+    expect(await upload.readFile(file())).toEqual(unavailable);
+    // The function's own refusals are the sentences the browser already has.
+    expect(await (await built(() => json({ error: 'too-large' }, 413))).upload.readFile(file())).toEqual({ ok: false, refusal: 'too-large' });
+    expect(await (await built(() => json({ error: 'not-a-pdf' }, 415))).upload.readFile(file())).toEqual({ ok: false, refusal: 'not-a-pdf' });
+  });
+
+  it('puts the answer through the same checks as a prepared one', async () => {
+    const take = async (answer: unknown) => {
+      const { upload } = await built(() => json(answer));
+      const read = await upload.readFile(fileOf(pdf('sample-a'), 'mine.pdf'));
+      if (!read.ok) throw new Error('refused');
+      return openTranscript(read.name, read.answer, curriculum);
+    };
+    // The reader's answer for a made-up PDF is taken on exactly as its prepared rows are.
+    for (const sample of [sampleA, sampleB]) {
+      const transcript = await take({ rows: sample.rows, model: 'gemini-2.5-flash-lite' });
+      expect(transcript.reading).toEqual(readRows(sample, curriculum));
+      expect(transcript.reading.toFix).toEqual([]);
+    }
+    // What a reader gets wrong counts nothing: each such row is one to fix, and a totals line is thrown away.
+    const good = { term: 'Fall 2025', transfer: false, prefix: 'MGT', number: '321', description: 'Prin of Management', attempted: '3.00', earned: '3.00', grade: 'B', points: '9.00' };
+    const { reading } = await take({ rows: [
+      good,
+      { ...good, prefix: 'MGT321', number: '' },
+      { ...good, number: '422', attempted: '300' },
+      { ...good, number: '462', grade: 'Counts toward CIS' },
+      { ...good, prefix: 'Term GPA 3.10', number: '', description: '' },
+      {},
+      null,
+    ] });
+    expect(reading.rows.map(row => row.row.code)).toEqual(['MGT 321']);
+    expect(reading.toFix.map(row => [row.line, row.problems])).toEqual([[1, ['code']], [2, ['credits']], [3, ['grade']], [5, ['term', 'transfer', 'code', 'credits']], [6, ['not-a-row']]]);
+    expect(reading.thrownAway).toBe(1);
+    // An answer that is no list of rows is no answer: nothing is taken on (the page then says upload isn't available).
+    for (const answer of [{ rows: 'MGT 321 A' }, { error: 'unavailable' }, [], 'rows', null, 7]) {
+      await expect(take(answer), JSON.stringify(answer)).rejects.toBeInstanceOf(ReaderError);
+    }
+  });
+
+  it('holds nothing of the server piece', () => {
+    // `npm run check` looks through the built site for these after every build.
+    expect(SERVER_ONLY).toEqual(['GEMINI_API_KEY', 'generativelanguage.googleapis.com', 'x-goog-api-key']);
+    expect(serverPiecesIn('fetch("/api/read-transcript",{method:"POST"})')).toEqual([]);
+    expect(serverPiecesIn('const key=process.env.GEMINI_API_KEY')).toEqual(['GEMINI_API_KEY']);
+    expect(serverPiecesIn('headers:{"X-Goog-Api-Key":k}')).toEqual(['x-goog-api-key']);
+    expect(serverPiecesIn(`fetch("${GEMINI}")`)).toEqual(['generativelanguage.googleapis.com']);
+    // Nothing the browser runs names them: the function is not part of the site's code.
+    const src = join(folder, '..', '..', 'src');
+    for (const name of readdirSync(src)) expect(serverPiecesIn(readFileSync(join(src, name), 'utf8')), name).toEqual([]);
+    const check = readFileSync(join(folder, '..', '..', 'scripts', 'check-build.mjs'), 'utf8');
+    expect(check).toContain("serverPiecesIn(readFileSync(path, 'latin1'))");
   });
 
   it('fails the check of the built site when made-up data is in it', () => {

@@ -114,8 +114,9 @@ describe('bringing a transcript', () => {
     // Choosing a file in the picker opened on Start brings the review on the page of this flow.
     Object.defineProperty(made[1], 'files', { value: [madeUp('sample-b')] });
     made[1]!.dispatchEvent(new Event('change'));
-    await vi.waitFor(() => expect(app.route).toBe('left'));
-    expect(heading()).toBe('Check what was read');
+    // (While it is read the page of this flow says so; then the review.)
+    await vi.waitFor(() => expect(heading()).toBe('Check what was read'));
+    expect(app.route).toBe('left');
     expect(window.location.hash).toBe('#/left');
     vi.restoreAllMocks();
   });
@@ -131,8 +132,8 @@ describe('bringing a transcript', () => {
     // On the drop zone it is taken, and the review opens on the page of this flow.
     expect(drag('dragover', $('[data-drop] .drop-title'), ['Files'])).toEqual({ prevented: true, effect: 'copy' });
     expect(drag('drop', $('[data-drop] .drop-title'), ['Files'], [madeUp('sample-a')]).prevented).toBe(true);
-    await vi.waitFor(() => expect(app.route).toBe('left'));
-    expect(heading()).toBe('Check what was read');
+    await vi.waitFor(() => expect(heading()).toBe('Check what was read'));
+    expect(app.route).toBe('left');
     expect(rows()).toHaveLength(17);
     // During a review a dropped file is not read; the page says how to use another one. The
     // drag is let through (a browser gives no drop where the page refused the drag).
@@ -227,6 +228,49 @@ describe('bringing a transcript', () => {
       expect(rowOf(8)).toContain('Put back');
       expect(app.left.refusal).toBeNull();
     }
+  });
+
+  it('says that the transcript is being read', async () => {
+    // On the hosted site reading takes some seconds (F21): a file whose bytes arrive late stands for it.
+    const READING = 'Reading your transcript…';
+    const late = (name: string) => {
+      const file = madeUp(name);
+      let release = (): void => undefined;
+      return { file: { ...file, arrayBuffer: (): Promise<ArrayBuffer> => new Promise<ArrayBuffer>(resolve => { release = () => { void file.arrayBuffer().then(resolve); }; }) }, release: () => release() };
+    };
+    // On this page: where a refusal would stand, and read out.
+    let slow = late('sample-a');
+    let waiting = app.takeFile(slow.file);
+    expect(heading()).toBe('See what I have left');
+    expect(tidy($('[data-refusal]').textContent)).toBe(READING);
+    expect(said()).toBe(READING);
+    slow.release();
+    await waiting;
+    expect(heading()).toBe('Check what was read');
+    expect(tidy($('main').textContent)).not.toContain(READING);
+    expect(said()).not.toBe(READING);
+    // Chosen on Start: the page of this flow opens at once and says so.
+    $('[data-another]').click();
+    go('#/');
+    slow = late('sample-b');
+    waiting = app.takeFile(slow.file);
+    expect(app.route).toBe('left');
+    expect(tidy($('[data-refusal]').textContent)).toBe(READING);
+    expect(said()).toBe(READING);
+    slow.release();
+    await waiting;
+    expect(tidy($('.review-intro').textContent)).toContain('sample-b.pdf');
+    // On "Check my courses": under the card; a file that is then refused says why in the same place.
+    $('[data-another]').click();
+    go('#/check');
+    const other = fileOf(new TextEncoder().encode('%PDF-1.4 somebody else'), 'other.pdf');
+    let let_go = (): void => undefined;
+    waiting = app.takeFile({ ...other, arrayBuffer: (): Promise<ArrayBuffer> => new Promise<ArrayBuffer>(resolve => { let_go = () => { void other.arrayBuffer().then(resolve); }; }) });
+    expect(app.route).toBe('check');
+    expect(tidy($('[data-refusal]').textContent)).toBe(READING);
+    let_go();
+    await waiting;
+    expect(tidy($('[data-refusal]').textContent)).toBe('PathCheck can only read its two made-up transcripts for now. Nothing from this file was kept or sent.');
   });
 
   it('takes the file chosen last when two are being read', async () => {

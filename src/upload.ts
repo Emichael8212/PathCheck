@@ -1,13 +1,23 @@
 // Taking a transcript PDF from the student.
 //
-// At this milestone there is no reader yet: the only transcripts PathCheck can "read" are
-// its two made-up ones. A chosen file is looked at in the browser, recognised by its
-// length and a fingerprint, and answered with the rows prepared for it. Nothing of any
-// file is kept or sent. Outside a development server there is nothing to read with, and
-// the upload says it is not available.
+// On a development server there is no reader: the only transcripts PathCheck can "read"
+// there are its two made-up ones. A chosen file is looked at in the browser, recognised by
+// its length and a fingerprint, and answered with the rows prepared for it. Nothing of any
+// file is kept or sent.
+//
+// On the built site a PDF is posted to PathCheck's one function (docs/sprints/F21.md;
+// netlify/functions/read-transcript.mts), which has it read and answers with rows. The
+// PDF's bytes go, and nothing else: no file name, no cookie, nothing that says who. The
+// answer is not trusted: the caller puts it through the same checks as a prepared one.
 
-/** Files larger than this are refused before they are read. */
-export const LARGEST_FILE = 10 * 1024 * 1024;
+/** Files larger than this are refused before they are read or sent: the function takes no more. */
+export const LARGEST_FILE = 4 * 1024 * 1024;
+/** Where the built site has a PDF read. */
+export const READER = '/api/read-transcript';
+/** How long the reader is waited for (it gives up on its own before that). */
+export const READER_WAIT = 40_000;
+/** The longest file name kept to show which file was read. */
+const LONGEST_NAME = 80;
 
 export type Refusal = 'too-large' | 'not-a-pdf' | 'not-made-up' | 'unreadable' | 'unavailable';
 
@@ -55,6 +65,27 @@ const madeUp = import.meta.env.DEV
   }
   : null;
 
+/** Has the PDF read by the function. Whatever goes wrong, the upload is not available; nothing of the file is kept. */
+async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
+  try {
+    const response = await fetch(READER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/pdf' },
+      body: bytes as BufferSource,
+      credentials: 'omit',
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
+      signal: AbortSignal.timeout(READER_WAIT),
+    });
+    if (response.status === 413) return { ok: false, refusal: 'too-large' };
+    if (response.status === 415) return { ok: false, refusal: 'not-a-pdf' };
+    if (!response.ok) return { ok: false, refusal: 'unavailable' };
+    return { ok: true, name: name.slice(0, LONGEST_NAME), answer: (await response.json()) as unknown };
+  } catch {
+    return { ok: false, refusal: 'unavailable' };
+  }
+}
+
 /** Looks at a chosen file and gives the reader's answer for it, or the reason it is refused. */
 export async function readFile(file: ChosenFile): Promise<Upload> {
   if (file.size > LARGEST_FILE) return { ok: false, refusal: 'too-large' };
@@ -62,7 +93,7 @@ export async function readFile(file: ChosenFile): Promise<Upload> {
   // The size a file gives for itself is not taken on trust.
   if (bytes.length > LARGEST_FILE) return { ok: false, refusal: 'too-large' };
   if (!isPdf(bytes)) return { ok: false, refusal: 'not-a-pdf' };
-  if (!madeUp) return { ok: false, refusal: 'unavailable' };
+  if (!madeUp) return askReader(bytes, file.name);
   const manifest = Object.values(madeUp.manifest)[0] ?? {};
   const fingerprint = fingerprintOf(bytes);
   const name = Object.keys(manifest).find(one => manifest[one]?.bytes === bytes.length && manifest[one]?.fingerprint === fingerprint);
