@@ -102,12 +102,21 @@ describe('the pace line', () => {
     // None of them counts: the same sentence says so, and what the target needs is the same.
     expect(said(['BIO 230'], added(a))).toBe('0 of these 3 credits count. To finish by Spring 2029, you need about 17 counting credits a term.');
     expect(said(['BIO 230', 'ENG 131'], added(a))).toBe('0 of these 6 credits count. To finish by Spring 2029, you need about 17 counting credits a term.');
-    // A sequence course that is needed for its sequence only counts here: its credits are among those still to take.
+    // A sequence course that is "Needed for the … sequence" fills the sequence requirement only: it is never said to count,
+    // here as in the number above the line. Its credits are among those still to take (MGT 462 and it: 6).
     const held = having(...everything('GEO 206', 'HUM 101').filter(code => code !== 'MGT 462'));
-    expect(said(['HIS 132'], added(held))).toBe('3 of these 3 credits count. To finish by Spring 2026, you need about 6 counting credits a term.');
+    expect(said(['HIS 132'], added(held))).toBe('0 of these 3 credits count. To finish by Spring 2026, you need about 6 counting credits a term.');
+    expect(said(['HIS 132', 'MGT 462'], added(held))).toBe('3 of these 6 credits count. To finish by Spring 2026, you need about 6 counting credits a term.');
+    // n is the number the page shows above "Count toward CIS", whatever is typed.
+    const typedLists: [string[], OnCheck, string][] = [[['HIS 132'], added(held), '0'], [['HIS 132', 'MGT 462'], added(held), '3'], [[...FIFTEEN, 'BIO 230', 'ENG 131', 'ECO 251'], added(a), '15'], [['BIO 230'], added(a), '0'], [['MGT 321', 'BIO 230', 'FIN 201'], added(b), '6']];
+    for (const [codes, transcript, counts] of typedLists) {
+      const above = /<span class="num is-counts">(\d+)<\/span><span class="summary-label">Count toward CIS<\/span>/.exec(summaryHtml(typed(codes, { legacy: false }), curriculum, transcript))?.[1];
+      expect(above, codes.join(', ')).toBe(counts);
+      expect(said(codes, transcript, { legacy: false }).startsWith(`${above} of these `), codes.join(', ')).toBe(true);
+    }
     // The owner's words are kept exactly, also for a 1.
     expect(said(['ORI 100'], added(having('ENG 131:-@Fall 2026')))).toMatch(/^1 of these 1 credits count\. To finish by Spring 2030, you need about 17 counting credits a term\.$/);
-    const one = paceLineOf({ left: 1, after: 0, counting: 1, total: 1, latest: term('Fall 2026'), term: null, settings: defaultSettings() });
+    const one = paceLineOf({ left: 1, after: 0, counting: 1, needed: 0, total: 1, latest: term('Fall 2026'), term: null, settings: defaultSettings() });
     if (one.kind !== 'line') throw new Error('no line');
     expect(paceLineSentence({ kind: 'line', line: one })).toBe('1 of these 1 credits count. To finish by Spring 2027, you need about 1 counting credits a term.');
     // While rows still need fixing the line is shown all the same; the card says the pace may change.
@@ -181,7 +190,7 @@ describe('the pace line', () => {
     expect([termName(line.target), line.targets.map(termName), line.semesters, line.perTerm]).toEqual(['Summer 2029', ['Fall 2028', 'Spring 2029', 'Summer 2029', 'Fall 2029', 'Spring 2030', 'Fall 2030'], 5, 17]);
     expect(said(FIFTEEN, summer)).toBe('15 of these 15 credits count. To finish by Summer 2029, you need about 17 counting credits a term.');
     expect(paceLineHtml(paceLineFor(typed(FIFTEEN), curriculum, summer))).toContain('<option value="Summer 2029" selected>');
-    const direct = (left: number, target: string, from: string | null = null) => paceLineOf({ left, after: left - 3, counting: 3, total: 3, latest: term('Fall 2026'), term: from ? term(from) : null, settings: { ...defaultSettings(), summers: true, target: term(target) } });
+    const direct = (left: number, target: string, from: string | null = null) => paceLineOf({ left, after: left - 3, counting: 3, needed: 0, total: 3, latest: term('Fall 2026'), term: from ? term(from) : null, settings: { ...defaultSettings(), summers: true, target: term(target) } });
     expect(direct(30, 'Summer 2028')).toMatchObject({ semesters: 3, perTerm: 10 });
     expect(direct(30, 'Summer 2027')).toMatchObject({ semesters: 1, perTerm: 30, over: 18 });
     expect(direct(30, 'Summer 2028', 'Fall 2027')).toMatchObject({ semesters: 2, perTerm: 15 });
@@ -196,7 +205,7 @@ describe('the pace line', () => {
   });
 
   it('says when a term would need more than the most', () => {
-    const direct = (left: number, most = 18, target = 'Spring 2029') => paceLineOf({ left, after: left - 15, counting: 15, total: 15, latest: term('Fall 2026'), term: null, settings: { ...defaultSettings(), fewest: Math.min(12, most), most, target: term(target) } });
+    const direct = (left: number, most = 18, target = 'Spring 2029') => paceLineOf({ left, after: left - 15, counting: 15, needed: 0, total: 15, latest: term('Fall 2026'), term: null, settings: { ...defaultSettings(), fewest: Math.min(12, most), most, target: term(target) } });
     // Exactly the most is not more than the most.
     expect(direct(90)).toMatchObject({ semesters: 5, perTerm: 18, over: null });
     expect(direct(91)).toMatchObject({ perTerm: 19, over: 18 });
@@ -279,10 +288,13 @@ describe('the pace line', () => {
     // Typed with HUM 101 instead, all five count as well, but HUM 101 takes the pick the sequence needed: 18 are to take.
     expect(said(['MGT 462', 'MGT 422', 'CIS 461', 'CIS 410', 'HUM 101'], transcript)).toBe('15 of these 15 credits count. To finish by Spring 2026, you need about 18 counting credits a term.');
     // What a term needs is never less than what is left once the typed courses are taken allows.
-    const direct = (after: number) => paceLineOf({ left: 15, after, counting: 15, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() });
+    const direct = (after: number) => paceLineOf({ left: 15, after, counting: 15, needed: 0, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() });
     expect(direct(3)).toMatchObject({ perTerm: 18, over: null });
     expect(direct(0)).toMatchObject({ perTerm: 15 });
     expect(direct(6)).toMatchObject({ perTerm: 21, over: 18 });
+    // The credits of a typed course that is needed for its sequence only are taken as well: they are in what a term needs, not in n.
+    expect(paceLineOf({ left: 15, after: 3, counting: 12, needed: 3, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() })).toMatchObject({ counting: 12, total: 15, perTerm: 18 });
+    expect(paceLineOf({ left: 15, after: 0, counting: 12, needed: 3, total: 15, latest: term('Fall 2025'), term: null, settings: defaultSettings() })).toMatchObject({ counting: 12, total: 15, perTerm: 15 });
     // A typed course that is on the transcript without credit (a W) is taken again: 92 credits to take, six terms to Fall 2028.
     expect(said(['BIO 127'], added(b))).toBe('3 of these 3 credits count. To finish by Fall 2028, you need about 16 counting credits a term.');
   });
@@ -321,10 +333,10 @@ describe('the pace line', () => {
     for (const view of [paceLineFor(typed(['BIO 230']), curriculum, added(done)), paceLineFor(typed(['MGT 321']), curriculum, added(having('ENG 132:-@Winter 2026')))]) {
       expect(paceLineHtml(view)).toMatch(/^<p class="pace-line" data-pace-line>[^<]+<\/p>$/);
     }
-    expect(paceLineOf({ left: 0, after: 0, counting: 3, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toEqual({ kind: 'none' });
-    expect(paceLineOf({ left: 5, after: 2, counting: 3, total: 3, latest: null, term: null, settings: defaultSettings() })).toEqual({ kind: 'unreadable' });
+    expect(paceLineOf({ left: 0, after: 0, counting: 3, needed: 0, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toEqual({ kind: 'none' });
+    expect(paceLineOf({ left: 5, after: 2, counting: 3, needed: 0, total: 3, latest: null, term: null, settings: defaultSettings() })).toEqual({ kind: 'unreadable' });
     // Typed credits of which none counts are still a line: the sentence says "0 of these …".
-    expect(paceLineOf({ left: 5, after: 5, counting: 0, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toMatchObject({ kind: 'line', counting: 0, total: 3, perTerm: 5 });
+    expect(paceLineOf({ left: 5, after: 5, counting: 0, needed: 0, total: 3, latest: term('Fall 2026'), term: null, settings: defaultSettings() })).toMatchObject({ kind: 'line', counting: 0, total: 3, perTerm: 5 });
   });
 
   it('holds for any numbers', () => {
@@ -343,7 +355,7 @@ describe('the pace line', () => {
     const calendar = (one: Term): number => one.year * 3 + seasons.indexOf(one.season);
     /** The Fall and Spring terms from one term through another, both counted; a summer is reached by the Spring before it. */
     const through = (from: Term, to: Term): number => (to.season === 'Summer' ? to.year * 2 : halves(to)) - halves(from) + 1;
-    const seen = { over: 0, under: 0, exact: 0, summerTarget: 0, laterTerm: 0, earlierTarget: 0, extra: 0, noneCount: 0 };
+    const seen = { over: 0, under: 0, exact: 0, summerTarget: 0, laterTerm: 0, earlierTarget: 0, extra: 0, noneCount: 0, needed: 0 };
     for (let i = 0; i < 3000; i++) {
       const left = whole(1, 140);
       const counting = whole(0, 24);
@@ -359,11 +371,14 @@ describe('the pace line', () => {
       const label = `seed ${SEED}, case ${i}: ${left} left, ${counting} counting after ${termName(latest)}, term ${termName(chosenTerm)}, ${JSON.stringify(settings)}`;
       // What is left once this term's courses are taken: usually the rest, sometimes 3 more (a sequence course made necessary).
       const more = next() < 0.2 ? 3 : 0;
-      const after = left - counting + more;
-      const total = counting + extra;
-      const line = paceLineOf({ left, after, counting, total, latest, term: chosenTerm, settings });
+      // A typed sequence course that is needed for its sequence only: taken, but not among the credits that count.
+      const needed = next() < 0.15 ? 3 : 0;
+      const after = left - counting - needed + more;
+      const total = counting + needed + extra;
+      const line = paceLineOf({ left, after, counting, needed, total, latest, term: chosenTerm, settings });
       if (line.kind !== 'line') throw new Error(`${label}: no line`);
       if (more > 0) seen.extra++;
+      if (needed > 0) seen.needed++;
       if (counting === 0) seen.noneCount++;
       // The terms offered: the first Fall or Spring after the latest term and the next three; no summer.
       expect(line.terms.map(halves), label).toEqual([0, 1, 2, 3].map(n => halves(first) + n));
@@ -408,7 +423,7 @@ describe('the pace line', () => {
       expect(sentence.startsWith(`${counting} of these ${total} credits count. To finish by ${termName(line.target)}, you need about ${line.perTerm} counting credits a term.`), label).toBe(true);
       expect(sentence.includes('more than your'), label).toBe(line.perTerm > most);
       // A later target never needs more a term; a later term never needs less; credits that do not count change nothing.
-      const at = (over: Partial<{ total: number; term: Term; target: Term }>) => paceLineOf({ left, after, counting, total: over.total ?? total, latest, term: over.term ?? used, settings: { ...settings, target: over.target ?? line.target } });
+      const at = (over: Partial<{ total: number; term: Term; target: Term }>) => paceLineOf({ left, after, counting, needed, total: over.total ?? total, latest, term: over.term ?? used, settings: { ...settings, target: over.target ?? line.target } });
       const laterTarget = at({ target: { season: 'Fall', year: line.target.year + 1 } });
       if (laterTarget.kind === 'line') expect(laterTarget.perTerm, label).toBeLessThanOrEqual(line.perTerm);
       const laterTerm = at({ term: line.terms[Math.min(3, line.terms.findIndex(one => termName(one) === termName(used)) + 1)]! });

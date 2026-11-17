@@ -168,27 +168,29 @@ const halfYears = (term: Term): number => term.year * 2 + (term.season === 'Spri
 /**
  * The pace line (the owner's answer of 2026-11-16 to the M1 check): how many counting
  * credits a term it takes to finish by the target. `left` credits are still to take; the
- * student has typed `total` credits of which `counting` count toward the degree, for
- * `term` (null: the first Fall or Spring after the transcript's latest term). `after` is
- * what will still be to take once those courses are taken: usually `left - counting`, but
+ * student has typed `total` credits, for `term` (null: the first Fall or Spring after the
+ * transcript's latest term). Of them `counting` count toward the degree (the page's own
+ * "Count toward CIS" number) and `needed` are a sequence course's that is needed for its
+ * sequence only: taken toward the degree, but never said to count. `after` is what will
+ * still be to take once those courses are taken: usually `left - counting - needed`, but
  * more when one of them fills the last pick a sequence could have gone through. So the
- * credits to take, this term's among them, are `after + counting`: never less than the
- * list really leaves to do.
+ * credits to take, this term's among them, are `after + counting + needed`: never less
+ * than the list really leaves to do.
  *
  * They are divided by the Fall and Spring terms from the term through the target, both
  * counted, and rounded up. The target is the one of "See what I have left"; when that is
  * earlier than the term, no term is left to it, and the term itself is the target here.
  * Summers are never counted, and no finish is named.
  */
-export function paceLineOf(input: { left: number; after: number; counting: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
-  const { left, after, counting, total, latest, settings } = input;
+export function paceLineOf(input: { left: number; after: number; counting: number; needed: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
+  const { left, after, counting, needed, total, latest, settings } = input;
   if (left <= 0) return { kind: 'none' };
   if (latest === null) return { kind: 'unreadable' };
   const first = termAfter(latest, false);
   const terms = [1, 2, 3, 4].map(count => termAt(first, count, false));
   // The chosen term, when it is one of those offered.
   const term = terms.find(one => input.term !== null && sameTerm(one, input.term)) ?? first;
-  const toTake = Math.max(left, after + counting);
+  const toTake = Math.max(left, after + counting + needed);
   const most = Math.max(1, Math.floor(settings.most));
   // The target as "See what I have left" has it; a summer only when summers count there.
   const shared = paceOf(left, latest, settings);

@@ -394,9 +394,10 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     about 17 counting credits a term.", and after it, when a term would need more than
     the student's most credits, "That's more than your 18-credit limit — consider a later
     target.";
-  - the two lists on a line of their own, each with its name beside it in `--ink-2`, 14px:
-    "Term for these courses [Spring 2027 ▾]" and "Target semester [Spring 2029 ▾]"; the
-    lists are 44px high, and the two wrap one under the other on a phone;
+  - the two lists on a line of their own, each with its name in `--ink-2`, 14px (above its
+    list on a phone, beside it from 650px): "Term for these courses [Spring 2027 ▾]" and
+    "Target semester [Spring 2029 ▾]"; the lists are 44px high, and at 320 the two wrap
+    one under the other;
   - "Credits only — course order may add semesters."
 
   No finish date is named. In its place, unchanged: "Answer “Are you a legacy CIS student?”

@@ -223,14 +223,16 @@ function withTaken(standings: readonly CourseStanding[], codes: readonly string[
 
 /**
  * The pace line for the list, or nothing: only with a reviewed transcript that is used,
- * and at least one course. The pace uses the credits that count toward the degree; a
- * course that doesn't count brings the finish no closer.
+ * and at least one course. What a term needs comes from the credits still to take toward
+ * the degree; a typed course that doesn't count changes how many of the typed credits
+ * count, not that.
  */
 export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript: OnCheck): LineView | null {
   const use = useOf(transcript);
   if (!use || transcript.state !== 'added' || list.entries.length === 0) return null;
   const answers = answersFor(list.entries, curriculum, list.legacy, use);
-  // The typed courses that count, and what is still to take now and once they are taken.
+  // The typed courses that go toward the degree (those that count, and a sequence course needed
+  // for its sequence only), and what is still to take now and once they are taken.
   // Taking them is worked out on the checklist itself: a course that fills the last pick a
   // sequence could have gone through makes a sequence course necessary, with extra credits.
   const counted = list.entries.filter((_, at) => answers[at]?.kind === 'counts' || answers[at]?.kind === 'needed').map(entry => entry.code);
@@ -240,7 +242,7 @@ export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript
     return { left: now.credits.left + now.extraLeft, after: then.credits.left + then.extraLeft };
   };
   if (list.legacy === null) {
-    // No finish before a legacy answer that could change it: asked on a row, or here.
+    // No pace before a legacy answer that could change it: asked on a row, or here.
     if (answers.some(answer => answer.kind === 'ask')) return { kind: 'text', text: TEXT.answerFirst };
     const [yes, no] = [toTake(true), toTake(false)];
     if (yes.left !== no.left || yes.after !== no.after) {
@@ -248,9 +250,10 @@ export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript
       return { kind: 'ask', because: because.length > 0 ? transcriptHasLegacy(because) : null };
     }
   }
+  // n is the number the page shows above "Count toward CIS": a course needed for its sequence only is not said to count.
   const totals = totalsOf(list.entries, answers);
   const line = paceLineOf({
-    ...toTake(list.legacy === true), counting: totals.counts + totals.needed, total: totals.total,
+    ...toTake(list.legacy === true), counting: totals.counts, needed: totals.needed, total: totals.total,
     latest: latestTermOf(use.standings), term: list.term ?? null, settings: transcript.pace ?? defaultSettings(),
   });
   if (line.kind === 'line') return { kind: 'line', line };
@@ -356,7 +359,7 @@ export function checkShown(curriculum: Curriculum, list: CourseList, transcript:
   const { entries, legacy } = list;
   const answers = answersFor(entries, curriculum, legacy, useOf(transcript));
   const pace = paceLineWritten(paceLineFor(list, curriculum, transcript));
-  // What the page says about its own answers goes with them: that they are not exact yet, and the caveat of a finish.
+  // What the page says about its own answers goes with them: that they are not exact yet, and the pace line with its caveat.
   const notExact = transcript.state === 'added' && transcript.use && transcript.toFix > 0 ? [TEXT.notExact(transcript.toFix)] : [];
   return {
     lines: [statusText(transcript), ...notExact, ...(legacy === null ? [] : [`${TEXT.legacyLine} ${legacy ? LEGACY_YES : LEGACY_NO}`]), ...(entries.length === 0 ? [TEXT.reportEmpty] : [])],
