@@ -116,7 +116,7 @@ describe('on the built site', () => {
   const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
   it('posts the PDF and nothing else', async () => {
-    const answer = { rows: sampleA.rows, model: 'gemini-2.5-flash-lite' };
+    const answer = { rows: sampleA.rows, model: 'gemini-3.5-flash-lite' };
     const { upload, calls } = await built(() => json(answer));
     const bytes = pdf('sample-a');
     expect(await upload.readFile(fileOf(bytes, 'My Transcript (final).pdf'))).toEqual({ ok: true, name: 'My Transcript (final).pdf', answer });
@@ -215,7 +215,7 @@ describe('on the built site', () => {
     };
     // The reader's answer for a made-up PDF is taken on exactly as its prepared rows are.
     for (const sample of [sampleA, sampleB]) {
-      const transcript = await take({ rows: sample.rows, model: 'gemini-2.5-flash-lite' });
+      const transcript = await take({ rows: sample.rows, model: 'gemini-3.5-flash-lite' });
       expect(transcript.reading).toEqual(readRows(sample, curriculum));
       expect(transcript.reading.toFix).toEqual([]);
     }

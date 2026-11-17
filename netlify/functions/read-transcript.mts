@@ -16,8 +16,11 @@
 export const PATH = '/api/read-transcript';
 /** The largest PDF taken: Netlify itself stops a binary body at about 4.5 MB. */
 export const LARGEST_BODY = 4 * 1024 * 1024;
-/** The one model. The cheapest stable one that reads a PDF into a fixed answer shape (2026-11-16). */
-export const MODEL = 'gemini-2.5-flash-lite';
+/**
+ * The one model: the cheapest stable one that a new Gemini project is given and that reads a PDF into a
+ * fixed answer shape (2026-11-17). The cheaper 2.5 models are kept by Google for projects that already used them.
+ */
+export const MODEL = 'gemini-3.5-flash-lite';
 export const GEMINI = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 /** How long Gemini is waited for. Netlify stops a function at 60 seconds; the student gets a plain answer before that. */
 export const WAIT = 25_000;

@@ -29,7 +29,7 @@ type Reply = (call: Call) => Response | Promise<Response>;
 /** What Gemini answers when it has read rows. */
 const gemini = (rows: unknown, over: Record<string, unknown> = {}): Response => Response.json({
   candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify({ rows }) }] }, finishReason: 'STOP' }],
-  modelVersion: 'gemini-2.5-flash-lite', usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 1500 }, ...over,
+  modelVersion: 'gemini-3.5-flash-lite', usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 1500 }, ...over,
 });
 /** Gemini's answer with this text as what it wrote. */
 const wrote = (text: string, finishReason = 'STOP'): Response => Response.json({ candidates: [{ content: { parts: [{ text }] }, finishReason }] });
@@ -58,7 +58,7 @@ describe('the function that reads a transcript', () => {
     expect(response.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
     const answer = (await response.json()) as { rows: unknown[]; model: string };
     expect(Object.keys(answer)).toEqual(['rows', 'model']);
-    expect(answer.model).toBe('gemini-2.5-flash-lite');
+    expect(answer.model).toBe('gemini-3.5-flash-lite');
     expect(answer.rows).toHaveLength(sampleA.rows.length);
     expect(logged).toEqual([]);
 
@@ -67,7 +67,7 @@ describe('the function that reads a transcript', () => {
     const { url, init } = calls[0]!;
     expect(url).toBe(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`);
     expect(url).toBe(GEMINI);
-    expect(MODEL).toBe('gemini-2.5-flash-lite');
+    expect(MODEL).toBe('gemini-3.5-flash-lite');
     expect(init.method).toBe('POST');
     expect(init.headers).toEqual({ 'Content-Type': 'application/json', 'x-goog-api-key': KEY });
     expect(init.signal).toBeInstanceOf(AbortSignal);
@@ -239,7 +239,7 @@ describe('the function that reads a transcript', () => {
     expect(reading.rows.map(row => row.row.code)).toEqual(['MGT 321']);
     expect(reading.toFix.map(row => row.line)).toEqual([1, 2, 3, 4, 5]);
     // The model's name is passed on only when it looks like one.
-    for (const [version, model] of [['gemini-2.5-flash-lite-001', 'gemini-2.5-flash-lite-001'], ['<script>alert(1)</script>', null], ['a'.repeat(61), null], [7, null], [undefined, null]] as const) {
+    for (const [version, model] of [['gemini-3.5-flash-lite-001', 'gemini-3.5-flash-lite-001'], ['<script>alert(1)</script>', null], ['a'.repeat(61), null], [7, null], [undefined, null]] as const) {
       const said = (await (await readTranscript(post(pdf('sample-a')), world(() => gemini([], { modelVersion: version })).outside)).json()) as { model: unknown };
       expect(said.model, String(version)).toBe(model);
     }
@@ -384,7 +384,7 @@ describe('the reader check', () => {
   it('passes an answer that reads as the prepared rows', () => {
     for (const sample of [sampleA, sampleB] as Rows[]) {
       expect(differ(sample, sample)).toEqual([]);
-      expect(differ(sample, { rows: sample.rows, model: 'gemini-2.5-flash-lite' })).toEqual([]);
+      expect(differ(sample, { rows: sample.rows, model: 'gemini-3.5-flash-lite' })).toEqual([]);
       // Figures as printed, nothing where a column is empty, and a description in other capitals and spacing.
       // (A totals line among the prepared rows is left as it is: the app throws it away.)
       const printed = { rows: sample.rows.map(row => (!/^\d{3}$/.test(String(row.number)) ? row : {
