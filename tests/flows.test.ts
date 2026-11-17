@@ -89,6 +89,8 @@ beforeEach(async () => {
   await open();
 });
 afterEach(() => {
+  // (Whatever a test stood in for the reader or the bot check does not stay for the next.)
+  vi.unstubAllGlobals();
   app.stop();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
@@ -407,6 +409,8 @@ describe('the two flows together', () => {
     window.localStorage.clear();
     vi.stubEnv('DEV', false);
     vi.stubGlobal('fetch', () => Promise.reject(new Error('no reader here')));
+    // (The bot check passes, by a stand-in: nothing of Cloudflare's is asked for in a test.)
+    vi.stubGlobal('turnstile', { render: (_place: unknown, options: { callback(token: string): void }) => { queueMicrotask(() => { options.callback('a-token'); }); return 'widget'; }, remove: () => undefined });
     vi.resetModules();
     await open('#/left');
     await app.takeFile(madeUp('sample-a'));

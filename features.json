@@ -445,9 +445,13 @@
         "On an outage or when a limit is reached, the student sees \"Upload isn't available right now — try again tomorrow\"",
         "Flow A without a transcript still works"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F23.md — QA PASS (2026-11-17, round 2): fifteen causes of an outage, a limit and a bot check that does not pass, on both pages and from Start, on the built site's app with stand-ins and in a real browser on a built copy; Flow A after a refusal; reviewer: no blocker after round 2. The owner saw the day's limit's sentence on the hosted preview during F22",
+      "tests": [
+        "tests/unavailable.test.ts",
+        "tests/upload.test.ts",
+        "tests/flows.test.ts"
+      ]
     },
     {
       "id": "F24",
