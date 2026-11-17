@@ -227,11 +227,14 @@ describe('Flow A: "Check my courses"', () => {
     expect(answerOf('MGT 321')).toBe('Counts toward CIS — Business core');
     expect(tidy($('[data-entries]').textContent)).not.toContain('unless');
     expect(answerOf('BIO 230')).toBe('Doesn’t count toward CIS — not in the CIS curriculum');
-    // 5. Pace, with a transcript only: the target semester is asked, and one line says when the student finishes, with its caveat.
+    // 5. Pace, with a transcript only: the target semester is asked, and one line says what a term needs to finish by it, with its caveat.
+    // (The owner's sentence of the M1 check, 2026-11-16: no finish date is named.)
     const line = tidy($('.pace-line').textContent);
-    expect(line).toMatch(/credits in .* — at this pace you finish /);
+    expect(line).toMatch(/^\d+ of these \d+ credits count\. To finish by (Spring|Fall) \d{4}, you need about \d+ counting credits a term\./);
+    expect(line).not.toMatch(/finish (Spring|Fall|Summer)|semesters? after|at this pace/);
     expect(line).toContain(CAVEAT);
-    expect($('[data-line-target]').getAttribute('aria-label')).toBe('Target semester');
+    expect(tidy($('label[for="line-target"]').textContent)).toBe('Target semester');
+    expect($('[data-line-target]').id).toBe('line-target');
     const targets = [...$<HTMLSelectElement>('[data-line-target]').options].map(option => option.value);
     choose('[data-line-target]', targets[targets.length - 1]!);
     expect(tidy($('.pace-line').textContent)).not.toBe(line);
@@ -482,7 +485,7 @@ describe('through both flows', () => {
       }
       // A finish or a pace is never named without its caveat.
       for (const pace of all('[data-pace], .pace-line')) {
-        if (/On pace|Not on pace|at this pace you finish/.test(tidy(pace.textContent))) expect(tidy(pace.textContent), where).toContain(CAVEAT);
+        if (/On pace|Not on pace|To finish by/.test(tidy(pace.textContent))) expect(tidy(pace.textContent), where).toContain(CAVEAT);
       }
       // The plan, whenever it is there, says what it is.
       for (const plan of all('.plan')) expect(tidy(plan.textContent), where).toContain('Order not checked — your portal checks prerequisites');

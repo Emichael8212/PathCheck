@@ -1065,11 +1065,15 @@ describe('the pace line', () => {
   const said = (): string => tidy($('[data-said]').textContent);
   const fifteen = ['mgt 321', 'mgt 422', 'cis 300', 'cis 302', 'fin 201'];
 
+  const NEEDS_17 = 'To finish by Spring 2029, you need about 17 counting credits a term.';
+  const OVER_18 = 'That’s more than your 18-credit limit — consider a later target.';
+  const lists = (term: string, target: string): string => `Term for these courses [${term}] Target semester [${target}] ${CAVEAT}`;
+
   it('shows the pace line with a transcript', async () => {
     for (const one of fifteen) add(one);
     // Without a transcript: no line, no list, no word about pace.
     expect(document.querySelector('[data-pace-line], [data-line-term], [data-line-target]')).toBeNull();
-    expect(tidy($('main').textContent)).not.toMatch(/at this pace|Target semester|you finish/);
+    expect(tidy($('main').textContent)).not.toMatch(/counting credits a term|Target semester|To finish by/);
     // Still in the review: the same.
     await app.takeFile(madeUp('sample-a'));
     go('#/check');
@@ -1077,13 +1081,16 @@ describe('the pace line', () => {
     $('[data-review]').click();
     $('[data-continue]').click();
     expect(app.route).toBe('check');
-    // With it: the owner's sentence, with its two lists and the caveat under it.
-    expect(line()).toBe(`15 credits in [Spring 2027] — at this pace you finish Fall 2029, one semester after your target [Spring 2029]. ${CAVEAT}`);
+    // With it: the owner's sentence of the M1 check, then its two lists, then the caveat.
+    expect(line()).toBe(`15 of these 15 credits count. ${NEEDS_17} ${lists('Spring 2027', 'Spring 2029')}`);
     expect(offered('[data-line-term]')).toEqual(['Spring 2027', 'Fall 2027', 'Spring 2028', 'Fall 2028']);
     expect(offered('[data-line-target]')).toEqual(['Fall 2028', 'Spring 2029', 'Fall 2029', 'Spring 2030', 'Fall 2030']);
-    expect([$('[data-line-term]').getAttribute('aria-label'), $('[data-line-target]').getAttribute('aria-label')]).toEqual(['Term for these courses', 'Target semester']);
     // It sits under the three numbers.
     expect($('[data-summary]').lastElementChild).toBe($('[data-pace-line]'));
+    // No finish is named, whatever the list: the line that used to say "finish Spring 2040, 22 semesters after your target".
+    for (const one of ['MGT 422', 'CIS 300', 'CIS 302', 'FIN 201']) $(`[data-remove="${one}"]`).click();
+    expect(line()).toBe(`3 of these 3 credits count. ${NEEDS_17} ${lists('Spring 2027', 'Spring 2029')}`);
+    expect(tidy($('main').textContent)).not.toMatch(/finish (Spring|Fall|Summer)|semesters? after|at this pace|2040/);
     // Forgetting the transcript takes the line away; the next transcript starts with its own first term.
     choose('[data-line-term]', 'Fall 2027');
     expect(shown('[data-line-term]')).toBe('Fall 2027');
@@ -1102,24 +1109,51 @@ describe('the pace line', () => {
     expect(document.querySelector('[data-pace-line]')).toBeNull();
   });
 
+  it('puts the two lists under the sentence', async () => {
+    for (const one of fifteen) add(one);
+    await withTranscript('sample-a');
+    const parts = [...$('[data-pace-line]').children];
+    // The sentence, with no list inside it; then one line with the two lists; then the caveat.
+    expect(parts.map(one => `${one.tagName}.${one.className}`)).toEqual(['P.', 'DIV.line-lists', 'P.caveat']);
+    expect(tidy(parts[0]!.textContent)).toBe(`15 of these 15 credits count. ${NEEDS_17}`);
+    expect(parts[0]!.querySelector('select, label')).toBeNull();
+    expect(parts[1]!.querySelectorAll('select')).toHaveLength(2);
+    // Each list is named by the words shown beside it.
+    for (const [marker, name] of [['[data-line-term]', 'Term for these courses'], ['[data-line-target]', 'Target semester']] as const) {
+      const list = $<HTMLSelectElement>(marker);
+      const label = $(`label[for="${list.id}"]`);
+      expect(tidy(label.textContent)).toBe(name);
+      expect(label.parentElement).toBe(list.parentElement);
+      expect(list.getAttribute('aria-label')).toBeNull();
+    }
+    // Choosing in either keeps the keyboard on that list and says the new sentence once.
+    choose('[data-line-term]', 'Fall 2027');
+    expect(document.activeElement).toBe($('[data-line-term]'));
+    expect(said()).toBe(`15 of these 15 credits count. To finish by Spring 2029, you need about 21 counting credits a term. ${OVER_18}`);
+    choose('[data-line-target]', 'Fall 2029');
+    expect(document.activeElement).toBe($('[data-line-target]'));
+    expect(said()).toBe('15 of these 15 credits count. To finish by Fall 2029, you need about 17 counting credits a term.');
+    expect([...$('[data-pace-line]').children].map(one => `${one.tagName}.${one.className}`)).toEqual(['P.', 'DIV.line-lists', 'P.caveat']);
+  });
+
   it('follows the two lists', async () => {
     for (const one of fifteen) add(one);
     await withTranscript('sample-a');
-    // The term: one later, the finish one later.
+    // The term: one later, one term fewer to the target. 81 ÷ 4 is more than the most.
     type('mgt');
     choose('[data-line-term]', 'Fall 2027');
-    expect(line()).toBe(`15 credits in [Fall 2027] — at this pace you finish Spring 2030, 2 semesters after your target [Spring 2029]. ${CAVEAT}`);
+    expect(line()).toBe(`15 of these 15 credits count. To finish by Spring 2029, you need about 21 counting credits a term. ${OVER_18} ${lists('Fall 2027', 'Spring 2029')}`);
     expect(document.activeElement).toBe($('[data-line-term]'));
-    expect(said()).toBe('15 credits in Fall 2027 — at this pace you finish Spring 2030, 2 semesters after your target.');
+    expect(said()).toBe(`15 of these 15 credits count. To finish by Spring 2029, you need about 21 counting credits a term. ${OVER_18}`);
     // What was being typed in the field is still there.
     expect(field().value).toBe('mgt');
-    // The target: the finish stays, the comparison follows.
+    // The target: a later one leaves more terms. 81 ÷ 6, then 81 ÷ 7.
     choose('[data-line-target]', 'Spring 2030');
-    expect(line()).toBe(`15 credits in [Fall 2027] — at this pace you finish in your target semester [Spring 2030]. ${CAVEAT}`);
+    expect(line()).toBe(`15 of these 15 credits count. To finish by Spring 2030, you need about 14 counting credits a term. ${lists('Fall 2027', 'Spring 2030')}`);
     expect(document.activeElement).toBe($('[data-line-target]'));
-    expect(said()).toBe('15 credits in Fall 2027 — at this pace you finish in your target semester.');
+    expect(said()).toBe('15 of these 15 credits count. To finish by Spring 2030, you need about 14 counting credits a term.');
     choose('[data-line-target]', 'Fall 2030');
-    expect(line()).toContain('you finish Spring 2030, one semester before your target [Fall 2030].');
+    expect(line()).toContain('To finish by Fall 2030, you need about 12 counting credits a term.');
     // The same target on "See what I have left"; one chosen there is shown here.
     go('#/left');
     expect($('[data-pace-target] option[selected]').getAttribute('value')).toBe('Fall 2030');
@@ -1128,8 +1162,8 @@ describe('the pace line', () => {
     there.dispatchEvent(new Event('change', { bubbles: true }));
     go('#/check');
     expect([shown('[data-line-term]'), shown('[data-line-target]')]).toEqual(['Fall 2027', 'Fall 2029']);
-    expect(line()).toContain('you finish Spring 2030, one semester after your target [Fall 2029].');
-    // With summers counted there and a summer as the target, this page shows it as itself and compares in calendar order.
+    expect(line()).toContain('To finish by Fall 2029, you need about 17 counting credits a term.');
+    // With summers counted there and a summer as the target, this page shows it as itself; summers are not counted here.
     go('#/left');
     $('[data-pace-summers]').click();
     const summer = $<HTMLSelectElement>('[data-pace-target]');
@@ -1140,37 +1174,79 @@ describe('the pace line', () => {
     expect(shown('[data-line-target]')).toBe('Summer 2029');
     expect(offered('[data-line-target]').filter(one => one.startsWith('Summer'))).toEqual(['Summer 2029']);
     expect(offered('[data-line-term]').some(one => one.startsWith('Summer'))).toBe(false);
-    expect(line()).toContain('you finish Spring 2030, 2 semesters after your target [Summer 2029].');
+    // Fall 2027, Spring 2028, Fall 2028 and Spring 2029: four terms to it.
+    expect(line()).toContain(`To finish by Summer 2029, you need about 21 counting credits a term. ${OVER_18}`);
     // Being shown here has not changed it there.
     expect(app.left.pace).toMatchObject({ summers: true, target: { season: 'Summer', year: 2029 } });
+  });
+
+  it('follows the most credits of See what I have left', async () => {
+    for (const one of fifteen) add(one);
+    await withTranscript('sample-a');
+    expect(line()).not.toContain('more than your');
+    // The most raised to 21 there: the target there is then Fall 2028, and 21 a term is not more than 21.
+    go('#/left');
+    for (let i = 0; i < 3; i++) $('[data-stepper="most"] [data-delta="1"]').click();
+    go('#/check');
+    expect(line()).toBe(`15 of these 15 credits count. To finish by Fall 2028, you need about 21 counting credits a term. ${lists('Spring 2027', 'Fall 2028')}`);
+    // The most lowered to 12 with Spring 2029 as the target: 17 a term is more than that, and the limit named is the student's own.
+    Object.assign(app.left, { pace: { ...app.left.pace, fewest: 12, most: 12, target: { season: 'Spring', year: 2029 } } });
+    go('#/');
+    go('#/check');
+    expect(line()).toContain(`${NEEDS_17} That’s more than your 12-credit limit — consider a later target.`);
+    // A later target chosen here, as the sentence suggests: no limit sentence any more.
+    const later = offered('[data-line-target]');
+    choose('[data-line-target]', later[later.length - 1]!);
+    expect(line()).not.toContain('more than your');
+    expect(app.left.pace.target).toEqual({ season: later[later.length - 1]!.split(' ')[0], year: Number(later[later.length - 1]!.split(' ')[1]) });
+  });
+
+  it('never has a target before the term', async () => {
+    // Twelve credits left: the target of "See what I have left" is the very next term.
+    const all = curriculum.blocks.flatMap(block => [...block.required.map(course => course.code), ...block.picks.map(group => (group.courses.some(course => course.code === 'HIS 132') ? 'HIS 132' : group.courses.some(course => course.code === 'ENG 210') ? 'ENG 210' : group.courses[0]!.code))]);
+    const left = ['MGT 462', 'MGT 422', 'CIS 461', 'CIS 410'];
+    const rows = [...all, 'FIN 201', 'MKT 410', 'CIS 499'].filter(code => !left.includes(code)).map(code => ({ term: 'Fall 2025', transfer: false, prefix: code.split(' ')[0], number: code.split(' ')[1], description: 'A course', attempted: 3, earned: 3, grade: 'B', points: 0 }));
+    Object.assign(app.left, { transcript: openTranscript('made-up.pdf', { rows }, curriculum), continued: true });
+    go('#/');
+    go('#/check');
+    add('mgt 462');
+    expect(line()).toBe(`3 of these 3 credits count. To finish by Spring 2026, you need about 12 counting credits a term. ${lists('Spring 2026', 'Spring 2026')}`);
+    // The courses are for the term after: the term itself is the target here, and no earlier one is offered.
+    choose('[data-line-term]', 'Fall 2026');
+    expect(line()).toBe(`3 of these 3 credits count. To finish by Fall 2026, you need about 12 counting credits a term. ${lists('Fall 2026', 'Fall 2026')}`);
+    expect(offered('[data-line-target]')[0]).toBe('Fall 2026');
+    // The target of "See what I have left" is still its own until the student chooses one here.
+    expect(app.left.pace.target).toBeNull();
+    go('#/left');
+    expect($('[data-pace-target] option[selected]').getAttribute('value')).toBe('Spring 2026');
   });
 
   it('says the new pace when the list changes', async () => {
     add('mgt 321');
     await withTranscript('sample-a');
-    expect(line()).toBe(`3 credits in [Spring 2027] — at this pace you finish Spring 2040, 22 semesters after your target [Spring 2029]. ${CAVEAT}`);
+    expect(line()).toBe(`3 of these 3 credits count. ${NEEDS_17} ${lists('Spring 2027', 'Spring 2029')}`);
     // What happened and the new line, as one message.
     add('mgt 422');
     // (The note about fewer than 12 credits was already there with one course: it is not said again.)
-    expect(said()).toBe('MGT 422 added. 6 credits in Spring 2027 — at this pace you finish Fall 2033, 9 semesters after your target.');
+    expect(said()).toBe(`MGT 422 added. 6 of these 6 credits count. ${NEEDS_17}`);
     expect(said()).not.toContain('Below 12 credits');
-    expect(line()).toContain('6 credits in [Spring 2027] — at this pace you finish Fall 2033, 9 semesters after your target');
-    // A course that doesn't count changes the wording, not the finish.
+    expect(line()).toContain(`6 of these 6 credits count. ${NEEDS_17}`);
+    // A course that doesn't count changes how many of the credits count, not what the target needs.
     add('bio 230');
-    expect(said()).toBe('BIO 230 added. 6 of your 9 credits in Spring 2027 count toward CIS — at this pace you finish Fall 2033, 9 semesters after your target.');
-    // Its credits changed: still the same finish.
+    expect(said()).toBe(`BIO 230 added. 6 of these 9 credits count. ${NEEDS_17}`);
+    // Its credits changed: the same.
     const credits = $<HTMLSelectElement>('[data-credits="BIO 230"]');
     credits.focus();
     credits.value = '6';
     credits.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(line()).toContain('6 of your 12 credits in [Spring 2027] count toward CIS — at this pace you finish Fall 2033, 9 semesters after your target');
-    expect(said()).toBe('Total credits: 12. 6 of your 12 credits in Spring 2027 count toward CIS — at this pace you finish Fall 2033, 9 semesters after your target.');
-    // Removed down to a course that does not count: no finish is named.
+    expect(line()).toContain(`6 of these 12 credits count. ${NEEDS_17}`);
+    expect(said()).toBe(`Total credits: 12. 6 of these 12 credits count. ${NEEDS_17}`);
+    // Removed down to a course that does not count: the sentence says so, with its lists and caveat.
     $('[data-remove="MGT 321"]').click();
     $('[data-remove="MGT 422"]').click();
-    expect(line()).toBe('None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
+    expect(line()).toBe(`0 of these 6 credits count. ${NEEDS_17} ${lists('Spring 2027', 'Spring 2029')}`);
     // (The note about fewer than 12 credits was said when it appeared, one removal earlier; it is not repeated.)
-    expect(said()).toBe('MGT 422 removed. None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.');
+    expect(said()).toBe(`MGT 422 removed. 0 of these 6 credits count. ${NEEDS_17}`);
     // One live region carries it on this page.
     expect(document.querySelectorAll('main [role="status"][data-said]')).toHaveLength(1);
     expect($('[data-pace-line]').closest('[aria-live]')).toBeNull();
@@ -1188,10 +1264,11 @@ describe('the pace line', () => {
     expect(document.querySelector('[data-line-term], [data-pace-line] .caveat')).toBeNull();
     $<HTMLElement>('[data-pace-line] [data-legacy="yes"]').focus();
     $('[data-pace-line] [data-legacy="yes"]').click();
-    // 89 credits still to take with Yes.
-    expect(line()).toBe(`3 credits in [Spring 2026] — at this pace you finish Fall 2040, 25 semesters after your target [Spring 2028]. ${CAVEAT}`);
+    // 89 credits still to take with Yes: five terms to Spring 2028.
+    const yes = 'To finish by Spring 2028, you need about 18 counting credits a term.';
+    expect(line()).toBe(`3 of these 3 credits count. ${yes} ${lists('Spring 2026', 'Spring 2028')}`);
     expect(window.localStorage.getItem('pathcheck.legacy')).not.toBeNull();
-    expect(said()).toBe('Legacy CIS student: Yes. 3 credits in Spring 2026 — at this pace you finish Fall 2040, 25 semesters after your target.');
+    expect(said()).toBe(`Legacy CIS student: Yes. 3 of these 3 credits count. ${yes}`);
     // The keyboard goes to the line that shows the answer and lets the student change it.
     expect(document.activeElement).toBe($('[data-legacy-change]'));
     // The answer is shown under the list with "Change", although no typed course is a legacy course.
@@ -1204,14 +1281,15 @@ describe('the pace line', () => {
     // The question is said once, although it is both what happened and what the line now holds.
     expect(said()).toBe('Are you a legacy CIS student?');
     $('[data-pace-line] [data-legacy="yes"]').click();
-    expect(line()).toContain('you finish Fall 2040, 25 semesters after your target [Spring 2028].');
-    // It is the answer of the checklist too; changed there, the line here follows: 92 with No.
+    expect(line()).toContain(yes);
+    // It is the answer of the checklist too; changed there, the line here follows: 92 with No, six terms to Fall 2028.
     go('#/left');
     expect(tidy($('.legacy-line').textContent)).toBe('Legacy CIS student: Yes Change');
     $('[data-legacy-change]').click();
     $('[data-legacy="no"]').click();
     go('#/check');
-    expect(line()).toBe(`3 credits in [Spring 2026] — at this pace you finish Spring 2041, 25 semesters after your target [Fall 2028]. ${CAVEAT}`);
+    const no = 'To finish by Fall 2028, you need about 16 counting credits a term.';
+    expect(line()).toBe(`3 of these 3 credits count. ${no} ${lists('Spring 2026', 'Fall 2028')}`);
     // When a typed row shows the question, the line points to it.
     window.localStorage.clear();
     app.stop();
@@ -1222,6 +1300,6 @@ describe('the pace line', () => {
     await withTranscript('sample-b');
     expect(tidy($('[data-pace-line]').textContent)).toBe('Answer “Are you a legacy CIS student?” to see your pace.');
     $('[data-entries] [data-legacy="no"]').click();
-    expect(line()).toBe(`6 credits in [Spring 2026] — at this pace you finish Fall 2033, 10 semesters after your target [Fall 2028]. ${CAVEAT}`);
+    expect(line()).toBe(`6 of these 6 credits count. ${no} ${lists('Spring 2026', 'Fall 2028')}`);
   });
 });
