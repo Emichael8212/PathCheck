@@ -1137,6 +1137,21 @@ read from sample-a.pdf.", the first rows under "Fall 2025".
 - Netlify's own bar for the logged-in owner ("Make public") lies over the page on the
   phone; a visitor of a public site does not get it.
 
+### 2026-11-17 — F24, step 8: the fourth upload of the day is refused on the staging address
+
+After three uploads that day in the same browser (the made-up transcript once, the
+owner's own twice), the owner chose `sample-a.pdf` again on "See what I have left" and
+sent a screenshot: the upload area, under it "Upload isn’t available right now — try
+again tomorrow", no rows; the Console, with Cloudflare's frame filtered out, holding one
+line: "POST https://pathcheck.netlify.app/api/read-transcript 429 (Too Many Requests)".
+
+*Agent's notes, not owner decisions:*
+- That one line is the browser's own for a request that was refused on purpose (as noted
+  at F21 and F22); it is the limit doing its work, not an error of the page.
+- With this the walk-through of F24 is done: steps 1 to 8. Still to be said by the owner:
+  that the plan shown by Netlify is Free; and whether the $5 spend cap stands in place
+  of the budget alert of brief §12.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
