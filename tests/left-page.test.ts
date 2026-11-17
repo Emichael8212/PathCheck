@@ -387,6 +387,8 @@ describe('bringing a transcript', () => {
       expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
       expect(said()).toBe(TICK);
       expect(document.activeElement).toBe(place);
+      // (The place is on the page while a tick is asked, also before the widget has drawn anything into it.)
+      expect(place.hasAttribute('data-asked')).toBe(true);
       // The page is drawn again and another page is opened meanwhile: the place is still the same element, still in the document.
       go('#/check');
       expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
@@ -396,6 +398,7 @@ describe('bringing a transcript', () => {
       expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
       // The box is ticked: the page says again that it is reading; then the token comes and the transcript is read.
       drawn[0]!.options['after-interactive-callback']!();
+      expect(place.hasAttribute('data-asked')).toBe(false);
       expect(tidy($('[data-refusal]').textContent)).toBe(READING);
       expect(said()).toBe(READING);
       drawn[0]!.options.callback!('a-token');
@@ -403,13 +406,53 @@ describe('bringing a transcript', () => {
       expect(heading()).toBe('Check what was read');
       expect(tidy($('main').textContent)).not.toMatch(/One more step|Reading your transcript/);
 
-      // Nobody ticks it and the check gives up: the existing sentence, and the tick is no longer asked for.
+      // A check that is no longer wanted sends nothing, however it ends.
+      // "Clear my data" while the box waits: the box is taken away; a token that still comes posts no file and keeps no number.
       $('[data-another]').click();
-      const again = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 my own transcript'), 'mine.pdf'));
+      const posted = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
+      vi.stubGlobal('fetch', posted);
+      const removed: string[] = [];
+      vi.stubGlobal('turnstile', { render: (place: unknown, options: Drawn['options']) => { drawn.push({ place, options }); return `widget-${drawn.length}`; }, remove: (id: string) => { removed.push(id); } });
+      go('#/check');
+      const field = $<HTMLInputElement>('#add-course');
+      field.value = 'mgt 321';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      const given = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 my own transcript'), 'mine.pdf'));
       await vi.waitFor(() => expect(drawn).toHaveLength(2));
       drawn[1]!.options['before-interactive-callback']!();
       expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
-      drawn[1]!.options['error-callback']!();
+      $('[data-clear]').click();
+      expect(removed).toEqual(['widget-2']);
+      drawn[1]!.options.callback!('a-late-token');
+      await given;
+      expect(posted).not.toHaveBeenCalled();
+      expect(window.localStorage.getItem('pathcheck.browser')).toBeNull();
+      expect(Object.keys(window.localStorage)).toEqual([]);
+      expect(tidy($('main').textContent)).not.toMatch(/One more step|Reading your transcript|Upload isn’t available/);
+      // Another file chosen while the first is still being checked: the first check is ended, and only the second file is posted.
+      go('#/left');
+      const first = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 the first file'), 'first.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(3));
+      const second = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 the second file'), 'second.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(4));
+      expect(removed).toEqual(['widget-2', 'widget-3']);
+      drawn[2]!.options.callback!('a-late-token');
+      await first;
+      expect(posted).not.toHaveBeenCalled();
+      drawn[3]!.options.callback!('a-token');
+      await second;
+      expect(posted).toHaveBeenCalledTimes(1);
+      expect(new TextDecoder().decode((posted.mock.calls[0] as unknown as [string, { body: Uint8Array }])[1].body)).toBe('%PDF-1.7 the second file');
+      expect(tidy($('.review-intro').textContent)).toContain('second.pdf');
+
+      // Nobody ticks it and the check gives up: the existing sentence, and the tick is no longer asked for.
+      $('[data-another]').click();
+      const again = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 my own transcript'), 'mine.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(5));
+      drawn[4]!.options['before-interactive-callback']!();
+      expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
+      drawn[4]!.options['error-callback']!();
       await again;
       expect(tidy($('[data-refusal]').textContent)).toBe('Upload isn’t available right now — try again tomorrow');
       expect(tidy($('main').textContent)).not.toContain('One more step');

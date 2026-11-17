@@ -281,6 +281,14 @@ export function startApp(win: AppWindow): App {
 
   // Each file taken has a number: only the last one chosen may change the page.
   let latest = 0;
+  // The bot check that is running for a file, if one is: ended when that file is no longer wanted, so that
+  // no box waits for a tick that would send a file the student has given up.
+  let endCheck: (() => void) | null = null;
+  const noCheck = (): void => {
+    const end = endCheck;
+    endCheck = null;
+    end?.();
+  };
   const takeFile = async (file: ChosenFile): Promise<void> => {
     // A transcript is already there: another file is not read. "Use another transcript" is the way.
     if (left.transcript) {
@@ -290,6 +298,8 @@ export function startApp(win: AppWindow): App {
       say(ANOTHER_FIRST);
       return;
     }
+    // Another file takes the place of one that is still being checked: that check is over.
+    noCheck();
     const mine = ++latest;
     // Where the file was chosen: a transcript asked for on "Check my courses" comes back there.
     const from = route;
@@ -319,10 +329,24 @@ export function startApp(win: AppWindow): App {
         if (route === 'check') checkView?.refresh();
         else if (route === 'left' && !left.transcript) show(false);
         say(tick ? TICK : READING);
-        if (tick) (checkPlace as { focus?(): void } | null)?.focus?.();
+        // While a tick is asked the place is on the page even if the widget has drawn nothing into it yet,
+        // so that it can take the keyboard whatever the widget does first.
+        const place = checkPlace as { focus?(): void; toggleAttribute?(name: string, on: boolean): void } | null;
+        place?.toggleAttribute?.('data-asked', tick);
+        if (tick) place?.focus?.();
       };
       const upload = await readFile(file, {
-        token: () => botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY), undefined, { asked: () => { step(true); }, answered: () => { step(false); } }),
+        // A token for a file that is no longer wanted (another was chosen, or the data was cleared) is no token:
+        // nothing is sent for it, and no number of the browser's is made or kept.
+        token: async () => {
+          const token = await botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY), undefined, {
+            asked: () => { step(true); },
+            answered: () => { step(false); },
+            begun: end => { if (mine === latest) endCheck = end; else end(); },
+          });
+          if (mine === latest) endCheck = null;
+          return mine === latest ? token : null;
+        },
         browser: () => browserNumber(storage, (win.today?.() ?? new Date()).toISOString().slice(0, 10)),
       });
       if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum, false, upload.madeUp);
@@ -403,8 +427,9 @@ export function startApp(win: AppWindow): App {
   // "Clear my data": everything PathCheck stored in the browser goes, the legacy answer
   // included, and with it what is on the pages. The page is then as on a first visit.
   function clearData(): void {
-    // A file that is still being read is not taken any more.
+    // A file that is still being read is not taken any more, and a bot check waiting for it is ended.
     latest++;
+    noCheck();
     clearStored(storage);
     Object.assign(courses, emptyList());
     Object.assign(left, emptyLeft());

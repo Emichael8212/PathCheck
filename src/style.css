@@ -528,7 +528,7 @@ svg { display: block; flex-shrink: 0; }
 /* The place of Cloudflare's bot check (F22), beside the page: empty and out of sight unless it wants a box
    ticked; then at the bottom of the window, over the page. */
 .bot-check { position: fixed; left: 50%; bottom: 16px; z-index: 30; max-width: calc(100vw - 32px); transform: translateX(-50%); }
-.bot-check:empty { display: none; }
+.bot-check:empty:not([data-asked]) { display: none; }
 .empty-hint { color: var(--ink-2); font-size: 14px; line-height: 20px; }
 /* The credits of a course PathCheck doesn't know: the one number on the page the student sets. */
 .credits-select {

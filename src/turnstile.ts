@@ -66,6 +66,8 @@ export interface Steps {
   asked?(): void;
   /** That is over: the visitor did it, or the check ended without it. */
   answered?(): void;
+  /** The check has begun; the page is given the way to end it when it is no longer wanted (no token then). */
+  begun?(end: () => void): void;
 }
 
 /**
@@ -106,6 +108,11 @@ export async function botToken(win: CheckWindow, container: unknown, siteKey: st
         resolve(typeof token === 'string' && token !== '' ? token : null);
       };
       const timer = setTimeout(() => { done(null); }, wait);
+      try {
+        steps.begun?.(() => { done(null); });
+      } catch {
+        // (What the page does with it is the page's business.)
+      }
       id = widget.render(container, {
         sitekey: siteKey,
         action: ACTION,
