@@ -303,10 +303,12 @@
         "Without a transcript, no pace question or pace line is shown"
       ],
       "passes": true,
-      "evidence": "docs/sprints/F15.md — QA PASS in a real browser (round 2, after round 1 failed on \"Change\"); reviewer: no blocker after round 2",
+      "evidence": "docs/sprints/F15.md — QA PASS in a real browser (round 2); reviewer: no blocker after round 2. Changed after the owner's M1 check of 2026-11-16 (the new pace sentence): section \"Change after the M1 check\", QA PASS (round 2), reviewer: no blocker (round 2)",
       "tests": [
         "tests/pace-line.test.ts",
-        "tests/check-page.test.ts"
+        "tests/check-page.test.ts",
+        "tests/flows.test.ts",
+        "tests/trust.test.ts"
       ]
     },
     {

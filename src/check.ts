@@ -45,18 +45,12 @@ const TEXT = {
   uses: (name: string): string => `Your answers use your transcript (${name}).`,
   notUsed: (name: string): string => `No row of your transcript (${name}) was taken on, so these answers don’t use it.`,
   notExact: (rows: number): string => `${rows} ${rows === 1 ? 'row of your transcript still needs' : 'rows of your transcript still need'} fixing, so these answers are not exact yet. The pace may change too.`,
-  // The pace line (the owner's sentence of 2026-11-16).
-  credits: (count: number): string => `${count} ${count === 1 ? 'credit' : 'credits'}`,
-  ofYour: (counting: number, total: number): string => `${counting} of your ${total} ${total === 1 ? 'credit' : 'credits'}`,
-  inTerm: 'in',
-  countToward: 'count toward CIS',
-  atThisPace: 'at this pace you finish',
-  yourTarget: 'your target',
-  inYourTarget: 'in your target semester',
-  semesters: (count: number): string => (count === 1 ? 'one semester' : `${count} semesters`),
+  // The pace line: the owner's sentences of 2026-11-16 (the M1 check), word for word for every number.
+  paceLine: (counting: number, total: number, target: string, perTerm: number): string =>
+    `${counting} of these ${total} credits count. To finish by ${target}, you need about ${perTerm} counting credits a term.`,
+  overMost: (most: number): string => `That’s more than your ${most}-credit limit — consider a later target.`,
   termLabel: 'Term for these courses',
   targetLabel: 'Target semester',
-  noneCount: 'None of these credits counts toward CIS, so this list doesn’t bring you closer to finishing.',
   answerFirst: `Answer “${LEGACY_QUESTION}” to see your pace.`,
   fix: (rows: number): string => (rows === 1 ? 'Fix it' : 'Fix them'),
 };
@@ -229,14 +223,16 @@ function withTaken(standings: readonly CourseStanding[], codes: readonly string[
 
 /**
  * The pace line for the list, or nothing: only with a reviewed transcript that is used,
- * and at least one course. The pace uses the credits that count toward the degree; a
- * course that doesn't count brings the finish no closer.
+ * and at least one course. What a term needs comes from the credits still to take toward
+ * the degree; a typed course that doesn't count changes how many of the typed credits
+ * count, not that.
  */
 export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript: OnCheck): LineView | null {
   const use = useOf(transcript);
   if (!use || transcript.state !== 'added' || list.entries.length === 0) return null;
   const answers = answersFor(list.entries, curriculum, list.legacy, use);
-  // The typed courses that count, and what is still to take now and once they are taken.
+  // The typed courses that go toward the degree (those that count, and a sequence course needed
+  // for its sequence only), and what is still to take now and once they are taken.
   // Taking them is worked out on the checklist itself: a course that fills the last pick a
   // sequence could have gone through makes a sequence course necessary, with extra credits.
   const counted = list.entries.filter((_, at) => answers[at]?.kind === 'counts' || answers[at]?.kind === 'needed').map(entry => entry.code);
@@ -246,7 +242,7 @@ export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript
     return { left: now.credits.left + now.extraLeft, after: then.credits.left + then.extraLeft };
   };
   if (list.legacy === null) {
-    // No finish before a legacy answer that could change it: asked on a row, or here.
+    // No pace before a legacy answer that could change it: asked on a row, or here.
     if (answers.some(answer => answer.kind === 'ask')) return { kind: 'text', text: TEXT.answerFirst };
     const [yes, no] = [toTake(true), toTake(false)];
     if (yes.left !== no.left || yes.after !== no.after) {
@@ -254,43 +250,44 @@ export function paceLineFor(list: CourseList, curriculum: Curriculum, transcript
       return { kind: 'ask', because: because.length > 0 ? transcriptHasLegacy(because) : null };
     }
   }
+  // n is the number the page shows above "Count toward CIS": a course needed for its sequence only is not said to count.
   const totals = totalsOf(list.entries, answers);
   const line = paceLineOf({
-    ...toTake(list.legacy === true), counting: totals.counts + totals.needed, total: totals.total,
+    ...toTake(list.legacy === true), counting: totals.counts, needed: totals.needed, total: totals.total,
     latest: latestTermOf(use.standings), term: list.term ?? null, settings: transcript.pace ?? defaultSettings(),
   });
   if (line.kind === 'line') return { kind: 'line', line };
-  return { kind: 'text', text: line.kind === 'none' ? NO_CREDITS_LEFT : line.kind === 'unreadable' ? PACE_UNREADABLE : TEXT.noneCount };
+  return { kind: 'text', text: line.kind === 'none' ? NO_CREDITS_LEFT : PACE_UNREADABLE };
 }
 
-const lineParts = (line: Extract<PaceLine, { kind: 'line' }>): { before: string; middle: string; after: string } => {
-  const credits = line.counting === line.total ? `${TEXT.credits(line.counting)} ${TEXT.inTerm}` : `${TEXT.ofYour(line.counting, line.total)} ${TEXT.inTerm}`;
-  const counted = line.counting === line.total ? '' : ` ${TEXT.countToward}`;
-  const { compare } = line;
-  return compare.kind === 'on'
-    ? { before: credits, middle: `${counted} — ${TEXT.atThisPace} ${TEXT.inYourTarget}`, after: '.' }
-    : { before: credits, middle: `${counted} — ${TEXT.atThisPace} ${termName(line.finish)}, ${TEXT.semesters(compare.semesters)} ${compare.kind} ${TEXT.yourTarget}`, after: '.' };
-};
+/** The owner's sentence, and after it the one about the most credits when a term would need more. */
+const lineSentence = (line: Extract<PaceLine, { kind: 'line' }>): string =>
+  `${TEXT.paceLine(line.counting, line.total, termName(line.target), line.perTerm)}${line.over === null ? '' : ` ${TEXT.overMost(line.over)}`}`;
 
-/** The pace line as one sentence, as it is read out: the term by name, the target not repeated. */
+/** The pace line as it is read out: the sentence; or what stands in its place. */
 export function paceLineSentence(view: LineView | null): string {
   if (!view) return '';
   if (view.kind === 'text') return view.text;
   if (view.kind === 'ask') return LEGACY_QUESTION;
-  const parts = lineParts(view.line);
-  return `${parts.before} ${termName(view.line.term)}${parts.middle}${parts.after}`;
+  return lineSentence(view.line);
 }
 
-const termList = (label: string, marker: string, terms: readonly Term[], chosen: Term): string => `<select class="line-select" aria-label="${esc(label)}" ${marker}>${
-  terms.map(term => `<option value="${esc(termName(term))}"${termName(term) === termName(chosen) ? ' selected' : ''}>${esc(termName(term))}</option>`).join('')}</select>`;
+/** A list of terms with its name beside it. */
+const termList = (label: string, marker: string, id: string, terms: readonly Term[], chosen: Term): string => `<span class="line-list">
+        <label for="${id}">${esc(label)}</label>
+        <select id="${id}" class="line-select" ${marker}>${
+  terms.map(term => `<option value="${esc(termName(term))}"${termName(term) === termName(chosen) ? ' selected' : ''}>${esc(termName(term))}</option>`).join('')}</select>
+      </span>`;
 
-/** The pace line written out as the page has it, with both of its lists' terms in their places: for a report. */
-function paceLineWritten(view: LineView | null): string {
-  if (!view || view.kind !== 'line') return paceLineSentence(view);
-  const parts = lineParts(view.line);
-  return `${parts.before} ${termName(view.line.term)}${parts.middle} ${termName(view.line.target)}${parts.after}`;
+/** The pace line written out for a report: the sentence, what the two lists are set to, and the caveat. */
+function paceLineWritten(view: LineView | null): string[] {
+  if (!view || view.kind !== 'line') return [paceLineSentence(view)].filter(Boolean);
+  return [lineSentence(view.line), `${TEXT.termLabel}: ${termName(view.line.term)}. ${TEXT.targetLabel}: ${termName(view.line.target)}.`, CAVEAT];
 }
-/** The pace line under the numbers; nothing without a transcript. A finish is never named without the caveat. */
+/**
+ * The pace line under the numbers; nothing without a transcript. The sentence, then the
+ * two lists on a line of their own, then the caveat: it is an estimate from credits alone.
+ */
 export function paceLineHtml(view: LineView | null): string {
   if (!view) return '';
   if (view.kind === 'text') return `<p class="pace-line" data-pace-line>${esc(view.text)}</p>`;
@@ -307,9 +304,12 @@ export function paceLineHtml(view: LineView | null): string {
   </div>`;
   }
   const { line } = view;
-  const parts = lineParts(line);
   return `<div class="pace-line" data-pace-line>
-    <p>${esc(parts.before)} ${termList(TEXT.termLabel, 'data-line-term', line.terms, line.term)}${esc(parts.middle)} ${termList(TEXT.targetLabel, 'data-line-target', line.targets, line.target)}${esc(parts.after)}</p>
+    <p data-line-sentence>${esc(lineSentence(line))}</p>
+    <div class="line-lists">
+      ${termList(TEXT.termLabel, 'data-line-term', 'line-term', line.terms, line.term)}
+      ${termList(TEXT.targetLabel, 'data-line-target', 'line-target', line.targets, line.target)}
+    </div>
     <p class="caveat">${esc(CAVEAT)}</p>
   </div>`;
 }
@@ -352,20 +352,19 @@ const answerWords = (answer: Answer): string => (answer.kind === 'ask' ? LEGACY_
 /**
  * What the page shows, for "Report a mistake": whether a transcript is in use (and that
  * the answers are not exact while rows of it still need fixing), the legacy answer when
- * one was given, each course with its answer, and the pace line with its caveat. Nothing
- * of the transcript itself.
+ * one was given, each course with its answer, and the pace line with what its two lists
+ * are set to and its caveat. Nothing of the transcript itself.
  */
 export function checkShown(curriculum: Curriculum, list: CourseList, transcript: OnCheck): Shown {
   const { entries, legacy } = list;
   const answers = answersFor(entries, curriculum, legacy, useOf(transcript));
-  const view = paceLineFor(list, curriculum, transcript);
-  const pace = paceLineWritten(view);
-  // What the page says about its own answers goes with them: that they are not exact yet, and the caveat of a finish.
+  const pace = paceLineWritten(paceLineFor(list, curriculum, transcript));
+  // What the page says about its own answers goes with them: that they are not exact yet, and the pace line with its caveat.
   const notExact = transcript.state === 'added' && transcript.use && transcript.toFix > 0 ? [TEXT.notExact(transcript.toFix)] : [];
   return {
     lines: [statusText(transcript), ...notExact, ...(legacy === null ? [] : [`${TEXT.legacyLine} ${legacy ? LEGACY_YES : LEGACY_NO}`]), ...(entries.length === 0 ? [TEXT.reportEmpty] : [])],
     list: entries.map((entry, i) => `${entry.code} — ${answerWords(answers[i] as Answer)}`),
-    after: pace ? [pace, ...(view?.kind === 'line' ? [CAVEAT] : [])] : [],
+    after: pace,
   };
 }
 

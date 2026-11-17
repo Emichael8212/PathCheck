@@ -143,8 +143,6 @@ export type PaceLine =
   | { readonly kind: 'none' }
   /** The latest term could not be read from the transcript. */
   | { readonly kind: 'unreadable' }
-  /** None of the typed credits counts: the list brings the finish no closer. */
-  | { readonly kind: 'no-count' }
   | {
     readonly kind: 'line';
     /** The typed credits that count toward the degree, and all the typed credits. */
@@ -153,46 +151,63 @@ export type PaceLine =
     /** The term the typed courses are for, and the terms offered: the default and the next three. */
     readonly term: Term;
     readonly terms: readonly Term[];
-    /** The term in which the credits still to take run out, at this many credits in every Fall and Spring. */
-    readonly finish: Term;
+    /** The target: the one of "See what I have left", or the term itself when that target is earlier. */
     readonly target: Term;
     readonly targets: readonly Term[];
-    /** The finish against the target, in Fall and Spring terms; a summer target is one step. */
-    readonly compare: { readonly kind: 'on' } | { readonly kind: 'before' | 'after'; readonly semesters: number };
+    /** The Fall and Spring terms from the term through the target, both counted. */
+    readonly semesters: number;
+    /** The counting credits a term that finishing by the target takes: the credits to take ÷ those terms, rounded up. */
+    readonly perTerm: number;
+    /** The most credits per term, when a term would need more than that; otherwise null. */
+    readonly over: number | null;
   };
 
 /** A term's place among Fall and Spring terms; a summer sits half-way between its Spring and its Fall. */
 const halfYears = (term: Term): number => term.year * 2 + (term.season === 'Spring' ? 0 : term.season === 'Summer' ? 0.5 : 1);
 
 /**
- * The pace line: `left` credits are still to take; the student has typed `total` credits
- * of which `counting` count toward the degree, for `term` (null: the first Fall or Spring
- * after the transcript's latest term). `after` is what will still be to take once those
- * courses are taken: usually `left - counting`, but more when one of them fills the last
- * pick a sequence could have gone through. The target is the one of "See what I have
- * left". Summers are never counted here.
+ * The pace line (the owner's answer of 2026-11-16 to the M1 check): how many counting
+ * credits a term it takes to finish by the target. `left` credits are still to take; the
+ * student has typed `total` credits, for `term` (null: the first Fall or Spring after the
+ * transcript's latest term). Of them `counting` count toward the degree (the page's own
+ * "Count toward CIS" number) and `needed` are a sequence course's that is needed for its
+ * sequence only: taken toward the degree, but never said to count. `after` is what will
+ * still be to take once those courses are taken: usually `left - counting - needed`, but
+ * more when one of them fills the last pick a sequence could have gone through. So the
+ * credits to take, this term's among them, are `after + counting + needed`: never less
+ * than the list really leaves to do.
+ *
+ * They are divided by the Fall and Spring terms from the term through the target, both
+ * counted, and rounded up. The target is the one of "See what I have left"; when that is
+ * earlier than the term, no term is left to it, and the term itself is the target here.
+ * Summers are never counted, and no finish is named.
  */
-export function paceLineOf(input: { left: number; after: number; counting: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
-  const { left, after, counting, total, latest, settings } = input;
+export function paceLineOf(input: { left: number; after: number; counting: number; needed: number; total: number; latest: Term | null; term: Term | null; settings: PaceSettings }): PaceLine {
+  const { left, after, counting, needed, total, latest, settings } = input;
   if (left <= 0) return { kind: 'none' };
   if (latest === null) return { kind: 'unreadable' };
-  if (counting <= 0) return { kind: 'no-count' };
   const first = termAfter(latest, false);
   const terms = [1, 2, 3, 4].map(count => termAt(first, count, false));
   // The chosen term, when it is one of those offered.
   const term = terms.find(one => input.term !== null && sameTerm(one, input.term)) ?? first;
-  // This term, and then as many more at the same pace as what is left after it takes.
-  const finish = after <= 0 ? term : termAt(term, 1 + Math.ceil(after / counting), false);
+  const toTake = Math.max(left, after + counting + needed);
+  const most = Math.max(1, Math.floor(settings.most));
   // The target as "See what I have left" has it; a summer only when summers count there.
   const shared = paceOf(left, latest, settings);
   const plain = paceOf(left, latest, { ...settings, summers: false, target: null });
   // (Credits are left and the latest term is known, so both are estimates.)
-  if ((shared.kind !== 'on' && shared.kind !== 'off') || (plain.kind !== 'on' && plain.kind !== 'off')) throw new Error('The pace line has no target to compare with.');
-  const { target } = shared;
-  const targets = [...plain.options, target].filter((one, i, all) => all.findIndex(other => sameTerm(other, one)) === i).sort((a, b) => place(a) - place(b));
-  const apart = halfYears(finish) - halfYears(target);
-  const compare: Extract<PaceLine, { kind: 'line' }>['compare'] = apart === 0 ? { kind: 'on' } : { kind: apart > 0 ? 'after' : 'before', semesters: Math.ceil(Math.abs(apart)) };
-  return { kind: 'line', counting, total, term, terms, finish, target, targets, compare };
+  if ((shared.kind !== 'on' && shared.kind !== 'off') || (plain.kind !== 'on' && plain.kind !== 'off')) throw new Error('The pace line has no target to divide by.');
+  const target = place(shared.target) < place(term) ? term : shared.target;
+  const semesters = Math.floor(halfYears(target) - halfYears(term)) + 1;
+  const perTerm = Math.ceil(toTake / semesters);
+  // The targets offered: those of the other page that are not before the term, the target
+  // itself, and one late enough to need no more than the most credits a term.
+  const reachable = termAt(term, Math.ceil(toTake / most), false);
+  const targets = [...plain.options, target, reachable]
+    .filter(one => place(one) >= place(term))
+    .filter((one, i, all) => all.findIndex(other => sameTerm(other, one)) === i)
+    .sort((a, b) => place(a) - place(b));
+  return { kind: 'line', counting, total, term, terms, target, targets, semesters, perTerm, over: perTerm > most ? most : null };
 }
 
 // ---- The page ----

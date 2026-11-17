@@ -387,18 +387,25 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     transcript"; with no row taken on, "No row of your transcript was taken on, so there
     is nothing to show yet.";
   - the cards are in the curriculum's order (the screenshots show the done ones first).
-- **The pace line on "Check my courses"** (F15; the brief's Flow A step 5). The design has
-  no place for it: it is one line under the three numbers, shown only with a transcript,
-  in the owner's sentence of 2026-11-16 with two small lists inside it: "15 credits in
-  [Spring 2027 ▾] — at this pace you finish Fall 2029, one semester after your target
-  [Spring 2029 ▾]." and under it "Credits only — course order may add semesters." In the
-  agent's words where the owner's example does not reach: "12 of your 15 credits in
-  [Spring 2027 ▾] count toward CIS — at this pace you finish …" when some typed credits do
-  not count; "… at this pace you finish in your target semester [Fall 2029 ▾]."; "None of
-  these credits counts toward CIS, so this list doesn't bring you closer to finishing.";
-  "Answer “Are you a legacy CIS student?” to see your pace."; and the legacy question
-  itself in the line's place when no typed course shows it. The lists are 44px high and
-  named for a screen reader ("Term for these courses", "Target semester").
+- **The pace line on "Check my courses"** (F15; the brief's Flow A step 5; the owner's answer
+  of 2026-11-16 to the M1 check). The design has no place for it: it sits under the three
+  numbers, shown only with a transcript. Three lines:
+  - the owner's sentence: "15 of these 15 credits count. To finish by Spring 2029, you need
+    about 17 counting credits a term.", and after it, when a term would need more than
+    the student's most credits, "That's more than your 18-credit limit — consider a later
+    target.";
+  - the two lists on a line of their own, each with its name in `--ink-2`, 14px (above its
+    list on a phone, beside it from 650px): "Term for these courses [Spring 2027 ▾]" and
+    "Target semester [Spring 2029 ▾]"; the lists are 44px high, and at 320 the two wrap
+    one under the other;
+  - "Credits only — course order may add semesters."
+
+  No finish date is named. In its place, unchanged: "Answer “Are you a legacy CIS student?”
+  to see your pace."; the legacy question itself when no typed course shows it; "No
+  credits left to plan"; and the sentence for a latest term that cannot be read. (Until
+  the M1 check the line read "15 credits in [Spring 2027 ▾] — at this pace you finish Fall
+  2029, one semester after your target [Spring 2029 ▾].", with the lists inside the
+  sentence.)
 - **The draft plan** (F16; the owner approved these choices on 2026-11-16). Drawn as the
   design has it: the section head, the dashed label, the line under it, the semester
   bands, the entries, "Open choice", "Move later", "Always the final semester". Where it

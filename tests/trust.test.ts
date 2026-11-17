@@ -212,19 +212,18 @@ describe('"Report a mistake"', () => {
     go('#/check');
     add('mgt 422');
     expect(shown()[0]).toBe('Transcript added');
-    const paceLine = (): string => shown().find(line => /at this pace|credits in /.test(line)) ?? '';
-    expect(tidy($('.pace-line').textContent)).toContain('at this pace you finish');
-    // Written out with both lists' terms in their places, as the page has them.
+    const paceLine = (): string => shown().find(line => /To finish by /.test(line)) ?? '';
+    // The page's own sentence, then what its two lists are set to, then its caveat: in the email as on the page.
     const lists = (): string[] => ['[data-line-term]', '[data-line-target]'].map(one => $(`${one} option[selected]`).getAttribute('value') ?? '');
-    expect(paceLine()).toContain(`credits in ${lists()[0]} — `);
-    expect(paceLine()).toMatch(new RegExp(`${lists()[1]}\\.$`));
-    expect(paceLine()).toMatch(/credits in Spring 2027 — at this pace you finish .* your target/);
-    // A finish is never named without its caveat, in the email as on the page.
-    expect(shown().slice(-2)).toEqual([paceLine(), 'Credits only — course order may add semesters.']);
+    expect(paceLine()).toBe(tidy($('.pace-line [data-line-sentence]').textContent));
+    expect(paceLine()).toMatch(/^\d+ of these \d+ credits count\. To finish by Spring 2029, you need about 17 counting credits a term\.$/);
+    expect(shown().slice(-3)).toEqual([paceLine(), `Term for these courses: ${lists()[0]}. Target semester: ${lists()[1]}.`, 'Credits only — course order may add semesters.']);
+    expect(lists()).toEqual(['Spring 2027', 'Spring 2029']);
     expect(tidy($('.pace-line .caveat').textContent)).toBe('Credits only — course order may add semesters.');
     const first = paceLine();
     choose('[data-line-term]', 'Fall 2027');
-    expect(paceLine()).toMatch(/credits in Fall 2027 — at this pace you finish/);
+    expect(shown().slice(-2)[0]).toBe(`Term for these courses: Fall 2027. Target semester: Spring 2029.`);
+    expect(paceLine()).toContain('you need about 21 counting credits a term. That’s more than your 18-credit limit — consider a later target.');
     expect(paceLine()).not.toBe(first);
     const targets = [...$<HTMLSelectElement>('[data-line-target]').options].map(option => option.value);
     choose('[data-line-target]', targets[targets.length - 1]!);
@@ -232,11 +231,20 @@ describe('"Report a mistake"', () => {
     // An empty list again.
     for (const button of [...document.querySelectorAll<HTMLElement>('[data-remove]')]) $(`[data-remove="${button.dataset.remove}"]`).click();
     expect(shown().slice(0, 3)).toEqual(['Transcript added', 'Legacy CIS student: Yes', 'No course is in the list.']);
-    // The caveat belongs to a finish: a sentence that names none has none, in the email as on the page.
+    // A list of which nothing counts has the same sentence, with its caveat, in the email as on the page.
     add('bio 230');
-    expect(shown()[shown().length - 1]).toMatch(/^None of these credits counts toward CIS/);
+    expect(paceLine()).toMatch(/^0 of these 3 credits count\. To finish by /);
+    expect(shown()[shown().length - 1]).toBe('Credits only — course order may add semesters.');
+    expect(tidy($('.pace-line').textContent)).toContain('Credits only — course order may add semesters.');
+    // Where the line says something else in the sentence's place, there is no caveat: nothing is estimated.
+    $('[data-clear]').click();
+    add('fin 201');
+    add('cis 499');
+    await result('sample-b');
+    go('#/check');
+    expect(tidy($('.pace-line').textContent)).toBe('Answer “Are you a legacy CIS student?” to see your pace.');
+    expect(shown()[shown().length - 1]).toBe('Answer “Are you a legacy CIS student?” to see your pace.');
     expect(shown().join('\n')).not.toContain('Credits only');
-    expect(tidy($('.pace-line').textContent)).not.toContain('Credits only');
   });
 
   it('fills the email with the result', async () => {
@@ -338,8 +346,8 @@ describe('"Report a mistake"', () => {
     expect(listed.length).toBeLessThan(30);
     expect(listed.map(line => line.slice(0, line.indexOf(' — ')))).toEqual(codes.slice(0, listed.length));
     expect(more).toBe(`… and ${30 - listed.length} more courses, left out to keep this message short.`);
-    expect(lines.slice(-2)).toEqual([expect.stringMatching(/at this pace you finish/), 'Credits only — course order may add semesters.']);
-    expect(lines.indexOf(more!)).toBe(lines.length - 3);
+    expect(lines.slice(-3)).toEqual([expect.stringMatching(/To finish by .* counting credits a term\./), expect.stringMatching(/^Term for these courses: .*\. Target semester: .*\.$/), 'Credits only — course order may add semesters.']);
+    expect(lines.indexOf(more!)).toBe(lines.length - 4);
     // One course too many is said in the singular; a list that fits is whole.
     const one = emailOf(reportHref('s', { lines: [], list: ['x'.repeat(900), 'y'.repeat(900)] }, [])).lines;
     expect(one).toContain('… and 1 more course, left out to keep this message short.');
