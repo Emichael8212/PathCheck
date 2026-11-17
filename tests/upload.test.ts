@@ -130,7 +130,8 @@ describe('on the built site', () => {
     // (To this site only: on a private deploy the browser adds the visitor's Netlify login, without which nobody is answered.)
     expect(init.body).toEqual(bytes);
     expect(init.headers).toEqual({ 'Content-Type': 'application/pdf' });
-    expect([init.credentials, init.cache, init.referrerPolicy]).toEqual(['same-origin', 'no-store', 'no-referrer']);
+    // An answer that points to another address is not followed: the PDF goes to this site's function or nowhere.
+    expect([init.credentials, init.cache, init.referrerPolicy, init.redirect]).toEqual(['same-origin', 'no-store', 'no-referrer', 'error']);
     // The wait is the page's own timer, so that it works in a browser without a ready-made one; it is put away after the answer.
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect((init.signal as AbortSignal).aborted).toBe(false);
@@ -172,6 +173,30 @@ describe('on the built site', () => {
     for (const failure of [new TypeError('Failed to fetch'), new DOMException('The operation timed out.', 'TimeoutError')]) {
       const { upload } = await built(() => Promise.reject(failure));
       expect(await upload.readFile(file())).toEqual(unavailable);
+    }
+    // It never answers: the page stops waiting after 40 seconds, tells the request to stop, and says the same.
+    vi.useFakeTimers();
+    try {
+      const sent: RequestInit[] = [];
+      vi.stubEnv('DEV', false);
+      // (The stand-in ends, as a browser's request does, when it is told to stop.)
+      vi.stubGlobal('fetch', (_url: unknown, init: RequestInit) => {
+        sent.push(init);
+        return new Promise<Response>((_, reject) => { init.signal?.addEventListener('abort', () => { reject(new DOMException('aborted', 'AbortError')); }); });
+      });
+      vi.resetModules();
+      const slow = await import('../src/upload');
+      expect(slow.READER_WAIT).toBe(40_000);
+      let result: unknown = 'waiting';
+      void slow.readFile(file()).then(read => { result = read; });
+      await vi.advanceTimersByTimeAsync(slow.READER_WAIT - 1);
+      expect(result).toBe('waiting');
+      expect(sent[0]!.signal!.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(2);
+      expect(result).toEqual(unavailable);
+      expect(sent[0]!.signal!.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
     }
     // An answer that is not JSON (a host's error page with the wrong status).
     const { upload } = await built(() => new Response('<!doctype html><title>Site not available</title>', { status: 200 }));

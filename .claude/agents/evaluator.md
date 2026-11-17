@@ -39,8 +39,10 @@ one-line cases. Follow them.
   requirements show their courses without a tap, Done ones open with "Show courses";
   credits per term has "Fewest" and "Most", with no hard limit; no uppercase grey table
   header and no legend (bar segments are labelled directly); "Counts" and "Done" have
-  different marks, and all five statuses differ; the privacy sentence is "Your PDF is read,
-  then deleted. Only your result stays in this browser."
+  different marks, and all five statuses differ; the privacy sentence is "Google reads your
+  PDF and may keep it briefly. Your result stays in this browser." (the owner's answer of
+  2026-11-17 for M2; until then it was "Your PDF is read, then deleted. Only your result
+  stays in this browser.", which the M0 mockups keep).
 - 2026-11-15 — The visual reference is the owner's published design **plus these answers**.
   `docs/design/screens/` shows the mockups after the answers; where a page differs from the
   published site, it must be because of a dated owner answer in `docs/decision-log.md`.

@@ -81,6 +81,8 @@ async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
       credentials: 'same-origin',
       cache: 'no-store',
       referrerPolicy: 'no-referrer',
+      // The PDF goes to this site's function or nowhere: an answer that points elsewhere is not followed.
+      redirect: 'error',
       signal: stop.signal,
     });
     if (response.status === 413) return { ok: false, refusal: 'too-large' };
