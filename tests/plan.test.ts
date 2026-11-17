@@ -57,6 +57,34 @@ const everything = (social: string, humanities: string): string[] => [
 ];
 const when = (one: Term): number => one.year * 3 + ['Spring', 'Summer', 'Fall'].indexOf(one.season);
 
+/**
+ * An open pick as the plan names it, with the alternatives the curriculum file has today: "Composition pick (ENG 131
+ * or ENG 140)", and the block's name alone when there are more than three. The lists are the file's and are written
+ * in no test (F25, docs/CURRICULUM-HANDOVER.md); that three or fewer are named is the plan's own rule, stated here.
+ */
+const pickLabel = (blockId: string, group: number): string => {
+  const block = curriculum.blocks.find(one => one.id === blockId);
+  const codes = block?.picks[group]?.courses.map(course => course.code);
+  if (!block || !codes) throw new Error(`no pick ${group} in ${blockId}`);
+  const named = codes.length <= 1 ? codes.join('') : `${codes.slice(0, -1).join(', ')} or ${codes[codes.length - 1]}`;
+  return codes.length <= 3 ? `${block.name} pick (${named})` : `${block.name} pick`;
+};
+/**
+ * An open choice of the approved design, with today's alternatives where the design lists a pick's courses. (The
+ * mockups are a frozen record; "… or another" and the electives are rules and stay in the design's words.)
+ */
+const designChoice = (text: string): string => {
+  const listed = /^(.+) pick \((.+)\)$/.exec(text);
+  if (!listed || listed[2]!.endsWith('or another')) return text;
+  const block = curriculum.blocks.find(one => one.name === listed[1]);
+  if (!block) throw new Error(`the design names a pick of "${listed[1]}", which is no block`);
+  const shared = block.picks.map(group => group.courses.filter(course => listed[2]!.includes(course.code)).length);
+  const group = shared.indexOf(Math.max(...shared));
+  // The design's pick is one of the block's: something of what it names is still there.
+  expect(shared[group], text).toBeGreaterThan(0);
+  return pickLabel(block.id, group);
+};
+
 describe('the draft plan', () => {
   it("matches the approved design's student", () => {
     const made = planOf(a, curriculum, false, LATEST, defaultSettings());
@@ -70,7 +98,7 @@ describe('the draft plan', () => {
     const theirs = design.flatMap(one => one.entries);
     expect(mine).toHaveLength(27);
     expect(mine.filter(entry => entry.course).map(entry => entry.course!.code).sort()).toEqual(theirs.filter(entry => !entry.choice).map(entry => entry.code!).sort());
-    expect(mine.filter(entry => entry.choice).map(entry => entry.choice!).sort()).toEqual(theirs.filter(entry => entry.choice).map(entry => entry.text!).sort());
+    expect(mine.filter(entry => entry.choice).map(entry => entry.choice!).sort()).toEqual(theirs.filter(entry => entry.choice).map(entry => designChoice(entry.text!)).sort());
     // Where the design gives a title, it is the curriculum's.
     for (const entry of theirs) if (!entry.choice && entry.title) expect(mine.find(one => one.course?.code === entry.code)?.course?.title, entry.code).toBe(entry.title);
     // The order by level puts the open picks of the lowest level first (the screenshot has them later): the one listed difference.
@@ -209,6 +237,8 @@ describe('the draft plan', () => {
   });
 
   it('is a draft and nothing more', () => {
+    // The wording itself: the block, "pick", and up to three courses joined with commas and "or".
+    expect(pickLabel('composition', 0)).toMatch(/^Composition pick( \((?:[A-Z]{2,4} \d{3}, )?[A-Z]{2,4} \d{3} or [A-Z]{2,4} \d{3}\))?$/);
     const html = planHtml(plan([]));
     // The only control is "Move later", once for each entry.
     const buttons = html.match(/<button[^>]*>/g) ?? [];
@@ -226,13 +256,15 @@ describe('the draft plan', () => {
     const entries = planEntries(having([]), curriculum, false);
     const choices = entries.filter(entry => entry.choice).map(entry => [entry.key, entry.choice, entry.credits, entry.nth]);
     expect(choices).toEqual([
-      ['pick:composition:0:0', 'Composition pick (ENG 131 or ENG 140)', 3, null],
-      ['pick:composition:1:0', 'Composition pick (ENG 132 or ENG 141)', 3, null],
-      ['pick:humanities:0:0', 'Humanities pick (ART 131, THE 111 or MUS 121)', 3, null],
+      // (Which courses a pick offers is the curriculum file's: the label is built from it. As approved: "Composition
+      // pick (ENG 131 or ENG 140)", "Humanities pick (ART 131, THE 111 or MUS 121)".)
+      ['pick:composition:0:0', pickLabel('composition', 0), 3, null],
+      ['pick:composition:1:0', pickLabel('composition', 1), 3, null],
+      ['pick:humanities:0:0', pickLabel('humanities', 0), 3, null],
       // The first open pick through which a sequence can still be completed names that course; the other does not.
       ['pick:humanities:1:0', 'Humanities pick (ENG 210 or another)', 3, null],
       ['pick:social-sciences:0:0', 'Social sciences pick', 3, null],
-      ['pick:pre-professional:0:0', 'Pre-professional pick (PED 114 or PED 122)', 1, null],
+      ['pick:pre-professional:0:0', pickLabel('pre-professional', 0), 1, null],
       // One entry for each elective place, told apart by their count.
       ['elective:0', 'CIS elective', 3, { n: 1, of: 3 }], ['elective:1', 'CIS elective', 3, { n: 2, of: 3 }], ['elective:2', 'CIS elective', 3, { n: 3, of: 3 }],
     ]);
