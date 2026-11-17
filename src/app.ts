@@ -223,7 +223,8 @@ export function startApp(win: AppWindow): App {
           left.returnTo = 'left';
           goTo('check');
         },
-      }, next => { Object.assign(left, next); });
+        // Whatever the student does next on this page, the sentence about another transcript has been read.
+      }, next => { Object.assign(left, next, { notice: false }); });
     }
     if (moved) {
       // What was said on the page before does not stay behind on this one.
@@ -252,6 +253,8 @@ export function startApp(win: AppWindow): App {
   const takeFile = async (file: ChosenFile): Promise<void> => {
     // A transcript is already there: another file is not read. "Use another transcript" is the way.
     if (left.transcript) {
+      // Said on the page, under its heading, and read out: the file chosen is not the one whose rows are shown.
+      left.notice = true;
       showLeft();
       say(ANOTHER_FIRST);
       return;
@@ -326,7 +329,10 @@ export function startApp(win: AppWindow): App {
   const onHashChange: Listener = () => {
     const already = shownAlready === win.location.hash;
     shownAlready = null;
-    if (!already) show(true);
+    if (already) return;
+    // The student moved on: the sentence about another transcript does not follow.
+    left.notice = false;
+    show(true);
   };
   root.addEventListener?.('click', event => {
     // "Browse files" on Start; the page of the flow has its own.
@@ -382,6 +388,8 @@ export function startApp(win: AppWindow): App {
     if (!carriesFiles(event)) return;
     event.preventDefault();
     if (reviewing()) {
+      left.notice = true;
+      showLeft();
       say(ANOTHER_FIRST);
     } else if (onDropZone(event)) {
       const file = event.dataTransfer?.files?.[0];

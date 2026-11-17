@@ -277,6 +277,54 @@ describe('bringing a transcript', () => {
     expect(tidy($('[data-refusal]').textContent)).toBe('PathCheck can only read its two made-up transcripts for now. Nothing from this file was kept or sent.');
   });
 
+  it('says on the page that another transcript must be chosen first', async () => {
+    const SENTENCE = 'To use another transcript, choose “Use another transcript” first.';
+    const notice = (): string | null => document.querySelector('[data-notice]')?.textContent?.trim() ?? null;
+    // No transcript: nothing to say.
+    expect(notice()).toBeNull();
+    await app.takeFile(madeUp('sample-a'));
+    expect(heading()).toBe('Check what was read');
+    expect(notice()).toBeNull();
+    // Another file chosen during the review: it is not read, and the page says why under its heading; it is read out too.
+    await app.takeFile(madeUp('sample-b'));
+    expect(tidy($('.review-intro').textContent)).toContain('sample-a.pdf');
+    expect(notice()).toBe(SENTENCE);
+    expect(said()).toBe(SENTENCE);
+    const main = [...$('main').children];
+    expect(main.indexOf($('[data-notice]'))).toBe(main.indexOf($('.page-head')) + 1);
+    // It is not a second announcement, and it is not printed.
+    expect($('[data-notice]').closest('[aria-live], [role="status"], [role="alert"]')).toBeNull();
+    expect($('[data-notice]').classList.contains('no-print')).toBe(true);
+    // The next thing the student does on the page takes it away.
+    $('[data-out="0"]').click();
+    expect(notice()).toBeNull();
+    // With the result shown, a file chosen on Start: the result of the first transcript, and the sentence above it.
+    $('[data-continue]').click();
+    expect(heading()).toBe('Your degree, in focus.');
+    go('#/');
+    await app.takeFile(madeUp('sample-b'));
+    expect(app.route).toBe('left');
+    expect(heading()).toBe('Your degree, in focus.');
+    expect(notice()).toBe(SENTENCE);
+    expect(app.left.transcript?.name).toBe('sample-a.pdf');
+    // Going to another page and back: it has been read, and does not follow.
+    go('#/check');
+    go('#/left');
+    expect(notice()).toBeNull();
+    // A file dropped while a transcript is there says the same.
+    const dropped = new Event('drop', { bubbles: true, cancelable: true }) as Event & { dataTransfer?: unknown };
+    dropped.dataTransfer = { types: ['Files'], files: [madeUp('sample-b')], dropEffect: 'none' };
+    $('main').dispatchEvent(dropped);
+    expect(notice()).toBe(SENTENCE);
+    // "Use another transcript" takes it away with the transcript; the upload control is back, with nothing said under it.
+    $('[data-another]').click();
+    expect(notice()).toBeNull();
+    expect(document.querySelector('[data-browse]')).not.toBeNull();
+    expect(tidy($('[data-refusal]').textContent)).toBe('');
+    // It is never kept in the browser.
+    expect(JSON.stringify(window.localStorage)).not.toContain('notice');
+  });
+
   it('takes the file chosen last when two are being read', async () => {
     const first = madeUp('sample-a');
     let release = (): void => undefined;
