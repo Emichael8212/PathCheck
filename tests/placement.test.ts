@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import madeUp from './fixtures/made-up-program.json';
 import { curriculum, loadCurriculum, type Curriculum } from '../src/curriculum';
+import { briefTable } from './brief';
 import { countsByElectiveRule, placeCourses, type Placement } from '../src/placement';
 import { courseStandings, type TranscriptRow } from '../src/transcript';
 
@@ -455,8 +456,10 @@ describe('credits and totals', () => {
     const filled = new Set(result.blocks.flatMap(one => one.picks.flatMap(pick => pick.filled.map(f => f.course.code))));
     const spare = curriculum.blocks.flatMap(block => block.picks.flatMap(group => group.courses.map(course => course.code))).filter(code => !filled.has(code));
     expect(result.unplaced.map(one => one.code).sort()).toEqual([...spare].sort());
-    // Brief §5: 21 courses in the six pick groups, six of them placed.
-    expect(spare).toHaveLength(21 - 6);
+    // Brief §5 (read from the brief itself): the courses of the pick groups, less the one or more each group takes.
+    const groups = briefTable().blocks.flatMap(block => block.picks);
+    expect(groups.length).toBeGreaterThan(0);
+    expect(spare).toHaveLength(groups.reduce((total, group) => total + group.courses.length - group.choose, 0));
     for (const one of result.unplaced) {
       expect(one.reason).toBe('pick-filled');
       if (one.reason !== 'pick-filled') continue;

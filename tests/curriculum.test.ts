@@ -1,12 +1,14 @@
 // F02: the curriculum is data (docs/sprints/F02.md, docs/BRIEF.md §5, owner answers of
 // 2026-11-15). These tests run against the real data file on every `npm test`, so an edit
-// that breaks a rule fails CI. The expected table is written out here from the brief; it
-// is not derived from the file.
+// that breaks a rule fails CI. The expected table is the brief's own, read from
+// docs/BRIEF.md (F25): the data file must equal the approved statement of the curriculum.
+// It is not derived from the data file.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import rawData from '../docs/curriculum/provisional-current.json';
 import madeUp from './fixtures/made-up-program.json';
+import { briefCourses, briefTable } from './brief';
 import { CurriculumError, curriculum, findCourse, loadCurriculum, normalizeCode, programs } from '../src/curriculum';
 
 const repo = join(import.meta.dirname, '..');
@@ -115,27 +117,20 @@ describe('the curriculum comes from the data file', () => {
 });
 
 describe('the curriculum matches brief section 5', () => {
-  // Brief §5, written out by hand. Order of blocks matters; order of courses does not.
-  const brief: [name: string, credits: number, required: string[], picks: string[][]][] = [
-    ['Orientation', 1, ['ORI 100'], []],
-    ['Composition', 6, [], [['ENG 131', 'ENG 140'], ['ENG 132', 'ENG 141']]],
-    ['Humanities', 12, ['HUM 103', 'ENG 209'], [['ART 131', 'THE 111', 'MUS 121'], ['ENG 210', 'HUM 101', 'HUM 102', 'CMS 200', 'CMS 205', 'PHL 201']]],
-    ['Social sciences', 12, ['HIS 131', 'ECO 251', 'ECO 252'], [['HIS 132', 'GEO 206', 'ANT 113', 'POS 207', 'PSY 251', 'SOC 110']]],
-    ['Science & math', 11, ['BIO 127', 'BIOL 127', 'BIO 128', 'BIOL 128', 'MAT 137'], []],
-    ['Pre-professional', 19, ['CIS 205', 'ACT 214', 'ACT 215', 'MGT 202', 'MGT 252', 'MGT 255'], [['PED 114', 'PED 122']]],
-    ['Business core', 27, ['MGT 201', 'CIS 206', 'MGT 204', 'FIN 321', 'MGT 321', 'MKT 321', 'CIS 329', 'MGT 422', 'MGT 462'], []],
-    ['Major (CIS)', 24, ['CIS 300', 'CIS 302', 'CIS 310', 'CIS 341', 'CIS 351', 'CIS 404', 'CIS 410', 'CIS 461'], []],
-  ];
+  // Brief §5, read from docs/BRIEF.md itself (tests/brief.ts). Order of blocks matters; order of courses does not.
+  const brief = briefTable();
 
   it('matches the table in brief section 5', () => {
-    expect(curriculum.blocks.map(block => [block.name, block.credits])).toEqual(brief.map(([name, credits]) => [name, credits]));
+    // The table as approved has eight blocks and the electives; a table that lost its rows proves nothing.
+    expect(brief.blocks.length).toBeGreaterThanOrEqual(8);
+    expect(curriculum.blocks.map(block => [block.name, block.credits])).toEqual(brief.blocks.map(block => [block.name, block.credits]));
     curriculum.blocks.forEach((block, i) => {
-      const [name, , required, picks] = brief[i] ?? ['', 0, [], []];
+      const { name, required, picks } = brief.blocks[i] ?? { name: '', required: [], picks: [] };
       expect(codes(block.required), `${name}: required`).toEqual([...required].sort());
-      expect(block.picks.map(group => group.choose), `${name}: choose 1 of each group`).toEqual(picks.map(() => 1));
-      expect(block.picks.map(group => codes(group.courses)), `${name}: picks`).toEqual(picks.map(group => [...group].sort()));
+      expect(block.picks.map(group => group.choose), `${name}: how many of each group`).toEqual(picks.map(group => group.choose));
+      expect(block.picks.map(group => codes(group.courses)), `${name}: picks`).toEqual(picks.map(group => [...group.courses].sort()));
     });
-    expect([curriculum.electives.name, curriculum.electives.credits, curriculum.electives.courseCount]).toEqual(['CIS electives', 9, 3]);
+    expect([curriculum.electives.name, curriculum.electives.credits, curriculum.electives.courseCount]).toEqual([brief.electives.name, brief.electives.credits, brief.electives.courses]);
   });
 
   it('adds up to 121', () => {
@@ -152,8 +147,10 @@ describe('the curriculum matches brief section 5', () => {
 
   it('lists each course once', () => {
     const listed = [...curriculum.blocks.flatMap(block => [...block.required, ...block.picks.flatMap(group => group.courses)]), ...curriculum.electives.named].map(course => course.code);
-    // Brief §5: 1 + 4 + 11 + 9 + 5 + 8 + 9 + 8 courses in the blocks, and one named elective.
-    expect(listed).toHaveLength(56);
+    // As many as the brief's table names in its blocks, and the named electives (brief §5: FIN 201).
+    expect(briefCourses(brief).length).toBeGreaterThanOrEqual(50);
+    expect(listed).toHaveLength(briefCourses(brief).length + curriculum.electives.named.length);
+    expect(curriculum.electives.named.map(course => course.code)).toEqual(['FIN 201']);
     expect(new Set(listed).size).toBe(listed.length);
   });
 
