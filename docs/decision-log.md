@@ -1198,6 +1198,27 @@ What it settles:
   transcript is what the owner expects: the credits left and the requirements (F24's
   check 7).
 
+### 2026-11-17 — M2 approved
+
+After pull request #38 (F24) was merged and the owner was asked for the M2 decision, the
+owner sent a screenshot of "Check what was read" on their phone and wrote:
+
+"It shows "Passed"
+M2 Approved."
+
+What it decides:
+- **M2 is approved** (the "Milestone checks" table, M2 row). The owner closes the GitHub
+  milestone themselves. M3 is not started by this answer: the owner has not said so.
+
+*Agent's notes, not owner decisions:*
+- "It shows "Passed"": on that screen "Passed" is PathCheck's own word under a row whose
+  grade passes. The screenshot is of a result that was kept in the browser and opened
+  again; there a passed course shows "Passed" without its letter, because no passing
+  letter grade is kept (F19). It is not a grade "P" or "Passed" printed on a transcript,
+  so the open question whether such a grade counts is unchanged. The owner was told this
+  reading.
+- Nothing of the rows on the screenshot is recorded.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -1235,5 +1256,5 @@ owner reviewed the curriculum on 2026-11-15 (see "Owner answers").
 |---|---|---|
 | M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
 | M1 | 2026-11-16 | **Approved:** "M1 approved". First answer the same day: "Everything works as intended except for one thing.": the pace line of "Check my courses" was replaced (pull request #30), and the owner then approved M1 and the choices of `docs/milestones/M1.md` part 5, and said "Start M2." (see "Owner answers"). The owner closes the GitHub milestone themselves. What was checked: `docs/milestones/M1.md`. |
-| M2 | | |
+| M2 | 2026-11-17 | **Approved:** "M2 Approved." The owner did the check on `https://pathcheck.netlify.app` the same day (`docs/milestones/M2.md` part 3): their own transcript was read correctly after the fix of pull request #37 ("Every course is one row under the right term, with its code, credits and grade as printed, and no row that isn't on the PDF."), with "The credits look accurate." and "Each requirement showed as I expected". What stays open is in `docs/milestones/M2.md` part 4. |
 | M3 | | |
