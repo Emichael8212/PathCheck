@@ -983,6 +983,18 @@ model gemini-3.5-flash-lite.
 - The owner was told again that an opened project leaves a preview protected by the
   month's cap only, and was reminded to close it after the run.
 
+### 2026-11-17 — F24, step 1: the bot check's two keys are set for Production
+
+The owner created a Cloudflare Turnstile widget (name `PathCheck`, hostname
+`pathcheck.netlify.app`, mode Managed, pre-clearance off; a screenshot of the form before
+"Create") and stored its two keys in Netlify for Production only. The owner's words:
+"both variables are listed, with TURNSTILE_SECRET_KEY hidden."
+
+*Agent's notes, not owner decisions:*
+- Cloudflare's form showed no "Region" field, which the agent's step had named from
+  Cloudflare's documentation ("No option for Region."). The owner was told to skip it.
+- The agent saw neither key. Nothing is built or published yet: that is step 3.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
