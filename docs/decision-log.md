@@ -1020,6 +1020,30 @@ this deploy." and the control "Unlock to start auto publishing".
   locked after a publish by hand: a later merge still publishes nothing.
 - Still to be reported by the owner: that the plan shown by Netlify is Free.
 
+### 2026-11-17 — F24, step 4: a made-up transcript is read on the staging address
+
+The owner opened `https://pathcheck.netlify.app` (a screenshot of Start with that address
+and Netlify's "Private" mark), chose `sample-a.pdf` and sent screenshots: "Check what was
+read" ("This is what PathCheck read from sample-a.pdf."), then the result: 81 credits
+left, "On pace for Spring 2029", "about 16 credits a term", 27 counted, 13 in progress,
+121 total, and no label "Synthetic transcript result". The owner's words: "cloudflare did
+not show any box to thick."
+
+*Agent's notes, not owner decisions:*
+- This is the first read with the owner's own Turnstile keys and the Production Gemini
+  key. The function takes a token only for the action `upload` and the hostname
+  `pathcheck.netlify.app`, so a read on that address is the proof of the real bot check.
+- The browser's console showed, with the developer tools open, four errors and two
+  warnings whose source is `normal?lang=auto`, Cloudflare's widget frame: a font warning,
+  "Connecting to 'data:,' violates the following Content Security Policy directive:
+  connect-src 'self' https://…challenges.cloudflare.com …" three times, "Fetch API cannot
+  load data:,", "No available adapters." PathCheck sets no content security policy, so
+  the policy and the requests it blocks are Cloudflare's own; none names a PathCheck
+  file. The Sources panel showed a `debugger` line from the same frame. They are put to
+  the evaluator against the feature's "no console errors".
+- Not yet sent: the Network list of an upload, and the number of rows on "Check what was
+  read" (17 expected).
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
