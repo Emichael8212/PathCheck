@@ -1079,6 +1079,32 @@ owner sent one screenshot of "Check what was read".
   Cloudflare's and that the page itself has none, the widget did its job in the same
   run, and they are written down here; an error naming a PathCheck file fails.
 
+### 2026-11-17 — F24, step 6: the reader passes on the owner's own transcript
+
+After the owner built and published the fix (pull request #37) and uploaded their own
+transcript again on the staging address, the owner's words:
+
+"Every course is one row under the right term, with its code, credits and grade as printed, and no row that isn't on the PDF.
+No row still asks to be fixed.
+No "Synthetic transcript result" label is shown.
+None. because I did not take  a summer term, and No transfer credit.
+All credit figure are a whole number."
+
+What it settles:
+- The reader passes on the owner's real transcript (brief §9; F24's check 7).
+- The label "Synthetic transcript result" is not shown over the owner's own result.
+
+*Agent's notes, not owner decisions:*
+- The owner's transcript has no summer term and no transfer credit, so it cannot answer
+  how those are printed: the questions stay open, and the made-up PDFs keep following
+  the owner's description. "None." is read as also answering that no grade is printed as
+  "P" or "Passed"; the owner is asked to confirm.
+- Not yet said by the owner: that the credits left and the requirements of the result
+  are what they expect.
+- The owner sent a screenshot with the Console filtered to leave out Cloudflare's frame:
+  it holds no error and no line of PathCheck's (only the browser's own warning about
+  pasting into the console). Nothing of the result on that screenshot is recorded.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
