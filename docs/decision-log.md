@@ -964,6 +964,23 @@ What it decides:
   (Google notes that costs can take hours to show). Google's month resets on the first
   day of the month, Pacific time.
 
+### 2026-11-17 — F22 on the hosted preview: the limits work with the real services
+
+The owner ran the hosted steps of F22 on the preview of pull request #35 and sent
+screenshots: an upload of `sample-a.pdf` read (Cloudflare's script and frame loaded when
+the file was chosen; one request to PathCheck's function, answered 200; none to Google);
+three uploads read and the fourth refused (the browser's console line "429 (Too Many
+Requests)"; the page: "Upload isn’t available right now — try again tomorrow"). Then the
+owner opened the project and ran the reader check in the session: six runs, each "PASS",
+model gemini-3.5-flash-lite.
+
+*Agent's notes, not owner decisions:*
+- This is the first run of Netlify Blobs and of Cloudflare's check (with its test keys, as
+  on every Deploy Preview) for PathCheck. The owner's real Turnstile keys are for the
+  published site and are looked at with F24.
+- The owner was told again that an opened project leaves a preview protected by the
+  month's cap only, and was reminded to close it after the run.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
