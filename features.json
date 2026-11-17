@@ -463,9 +463,17 @@
         "Both flows work on the staging address with a synthetic transcript, with no console errors",
         "Stop: the owner uploads their own transcript and checks the rows read from it"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F24.md — QA PASS (2026-11-17, round 2), judged from the owner's walk-through on https://pathcheck.netlify.app as recorded in docs/milestones/M2.md part 3 and docs/decision-log.md: the owner's keys, main@1734547 published by the owner on the Free plan, both flows with a made-up transcript, the phone, the refused fourth upload, and the owner's own transcript read correctly. No automated test is specific to F24; the tests named are those behind what was walked",
+      "tests": [
+        "tests/read-transcript.test.ts",
+        "tests/limits.test.ts",
+        "tests/turnstile.test.ts",
+        "tests/upload.test.ts",
+        "tests/unavailable.test.ts",
+        "tests/reader.test.ts",
+        "tests/review.test.ts"
+      ]
     },
     {
       "id": "F25",

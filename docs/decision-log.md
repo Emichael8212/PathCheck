@@ -984,6 +984,220 @@ model gemini-3.5-flash-lite.
 - The owner was told again that an opened project leaves a preview protected by the
   month's cap only, and was reminded to close it after the run.
 
+### 2026-11-17 — F24, step 1: the bot check's two keys are set for Production
+
+The owner created a Cloudflare Turnstile widget (name `PathCheck`, hostname
+`pathcheck.netlify.app`, mode Managed, pre-clearance off; a screenshot of the form before
+"Create") and stored its two keys in Netlify for Production only. The owner's words:
+"both variables are listed, with TURNSTILE_SECRET_KEY hidden."
+
+*Agent's notes, not owner decisions:*
+- Cloudflare's form showed no "Region" field, which the agent's step had named from
+  Cloudflare's documentation ("No option for Region."). The owner was told to skip it.
+- The agent saw neither key. Nothing is built or published yet: that is step 3.
+
+### 2026-11-17 — F24, step 2: the Gemini key has a Production value
+
+The owner added a Production value to `GEMINI_API_KEY` and sent a screenshot of
+Netlify's list: `GEMINI_API_KEY` (secret; scoped to Builds, Functions, Runtime) with a
+hidden value for Production and for Deploy Previews and the other contexts empty;
+`TURNSTILE_SECRET_KEY` (secret) and `VITE_TURNSTILE_SITE_KEY` (not secret) with one
+value in one context each.
+
+*Agent's notes, not owner decisions:*
+- Netlify's list shows the last characters of a hidden value; they are not recorded.
+- Nothing is built or published yet: that is step 3.
+
+### 2026-11-17 — F24, step 3: the owner built `main` with the keys and published it
+
+The owner started a build in Netlify ("Trigger deploy") and published it by hand. The
+owner's screenshots of the deploy's page: first "Deploy successful for pathcheck", today
+at 6:04 AM, "Production: main@8770a71", every stage of the log complete; then, after
+"Publish deploy", "Published & locked deploy for pathcheck" with "Publishing is locked to
+this deploy." and the control "Unlock to start auto publishing".
+
+*Agent's notes, not owner decisions:*
+- So the staging address serves commit 8770a71 (F21, F22 and F23), and publishing stays
+  locked after a publish by hand: a later merge still publishes nothing.
+- Still to be reported by the owner: that the plan shown by Netlify is Free.
+
+### 2026-11-17 — F24, step 4: a made-up transcript is read on the staging address
+
+The owner opened `https://pathcheck.netlify.app` (a screenshot of Start with that address
+and Netlify's "Private" mark), chose `sample-a.pdf` and sent screenshots: "Check what was
+read" ("This is what PathCheck read from sample-a.pdf."), then the result: 81 credits
+left, "On pace for Spring 2029", "about 16 credits a term", 27 counted, 13 in progress,
+121 total, and no label "Synthetic transcript result". The owner's words: "cloudflare did
+not show any box to thick."
+
+*Agent's notes, not owner decisions:*
+- This is the first read with the owner's own Turnstile keys and the Production Gemini
+  key. The function takes a token only for the action `upload` and the hostname
+  `pathcheck.netlify.app`, so a read on that address is the proof of the real bot check.
+- The browser's console showed, with the developer tools open, four errors and two
+  warnings whose source is `normal?lang=auto`, Cloudflare's widget frame: a font warning,
+  "Connecting to 'data:,' violates the following Content Security Policy directive:
+  connect-src 'self' https://…challenges.cloudflare.com …" three times, "Fetch API cannot
+  load data:,", "No available adapters." PathCheck sets no content security policy, so
+  the policy and the requests it blocks are Cloudflare's own; none names a PathCheck
+  file. The Sources panel showed a `debugger` line from the same frame. They are put to
+  the evaluator against the feature's "no console errors".
+- Not sent for this upload: the Network list (the one of the owner's own upload, step 6,
+  stands for it). Sent with step 5: the number of rows on "Check what was
+  read" (17 expected).
+
+### 2026-11-17 — F24, step 5: "Check my courses" on the staging address
+
+The owner's words: ""Check what was read" listed 17 rows". Then two screenshots of "Check
+my courses" on the staging address with sample-a.pdf in use: "Transcript added", "Your
+answers use your transcript (sample-a.pdf).", "17 rows taken on."; MGT 321 "Counts toward
+CIS — Business core" (no "unless …"), BIO 230 "Doesn’t count toward CIS — not in the CIS
+curriculum", FLS 161 "Doesn’t count toward CIS. Legacy students only." after "No"
+("Legacy CIS student: No"); 9 total credits, 3 count, 6 don't; "3 of these 9 credits
+count. To finish by Spring 2029, you need about 17 counting credits a term."
+
+*Agent's notes, not owner decisions:*
+- The Console, shown whole this time, holds the same six lines as in step 4, all from
+  Cloudflare's widget frame (`normal?lang=auto`); "Check my courses" added none.
+
+### 2026-11-17 — F24, step 6, first try: the owner's transcript prints three decimals
+
+The owner uploaded their own transcript on the staging address. It was read, and every
+row asked to be fixed: "Needs fixing: the credits, the earned credits, the points". The
+owner sent one screenshot of "Check what was read".
+
+*Agent's notes, not owner decisions:*
+- What is kept of that screenshot is how the transcript prints a figure: with three
+  decimals ("3.000"). Nothing else of it is recorded or copied into the repository.
+- The check took at most two decimals (a sanity mark of F10, not an academic rule). It
+  now takes three: pull request #37, merged; see the row "(2026-11-17, F10)" above and
+  the last section of `docs/sprints/F10.md`. It reaches the staging address with the
+  owner's next build and publish.
+- A result kept from before the fix keeps its rows as rows to fix; the owner uploads
+  again after "Use another transcript".
+- The evaluator's rule for the feature's "no console errors": lines from Cloudflare's
+  widget frame are recorded and not counted when the Console shows that they are
+  Cloudflare's and that the page itself has none, the widget did its job in the same
+  run, and they are written down here; an error naming a PathCheck file fails.
+
+### 2026-11-17 — F24, step 6: the reader passes on the owner's own transcript
+
+After the owner built and published the fix (pull request #37) and uploaded their own
+transcript again on the staging address, the owner's words:
+
+"Every course is one row under the right term, with its code, credits and grade as printed, and no row that isn't on the PDF.
+No row still asks to be fixed.
+No "Synthetic transcript result" label is shown.
+None. because I did not take  a summer term, and No transfer credit.
+All credit figure are a whole number."
+
+What it settles:
+- The reader passes on the owner's real transcript (brief §9; F24's check 7).
+- The label "Synthetic transcript result" is not shown over the owner's own result.
+
+*Agent's notes, not owner decisions:*
+- The owner's transcript has no summer term and no transfer credit, so it cannot answer
+  how those are printed: the questions stay open, and the made-up PDFs keep following
+  the owner's description. "None." is read as also answering that no grade is printed as
+  "P" or "Passed"; the owner asked what was meant, and no confirmation is needed: such a
+  row would have asked to be fixed, and the owner reported that none does.
+- Not yet said by the owner: that the credits left and the requirements of the result
+  are what they expect.
+- The owner sent a screenshot with the Console filtered to leave out Cloudflare's frame:
+  it holds no error and no line of PathCheck's (only the browser's own warning about
+  pasting into the console). Nothing of the result on that screenshot is recorded.
+
+### 2026-11-17 — F24, step 6: "The credits look accurate."; the request seen in the browser
+
+The owner's words, about the result of their own transcript and the browser's Network
+list of that upload: "The credits look accurate." · "read-transcript is status 200" ·
+"google list is empty." With a screenshot of the Network list filtered on "google": 0 of
+22 requests.
+
+*Agent's notes, not owner decisions:*
+- So the browser asked PathCheck's function once and nothing of Google's: the key and
+  the call to Gemini stay on the server, on the staging address too.
+- No grade of the owner's transcript is printed as "P" or "Passed": such a row would
+  have asked to be fixed, and the owner reported that none does. Whether such a grade
+  counts stays a rule for the owner, for when a transcript shows one.
+- Nothing of the result on the screenshot is recorded.
+
+### 2026-11-17 — F24, step 7: the upload works on the owner's phone
+
+The owner opened the staging address on their phone. At first: "I typed
+https://pathcheck.netlify.app but it says it is private." (Netlify's page for a visitor
+who is not logged in); after logging in to Netlify in the phone's browser, a screenshot
+of the phone: `pathcheck.netlify.app`, "Check what was read", "This is what PathCheck
+read from sample-a.pdf.", the first rows under "Fall 2025".
+
+*Agent's notes, not owner decisions:*
+- This is the first time the file picker ("Browse files") is used on a real phone with a
+  real PDF, open since M1 (F11's review): it opens, the PDF is chosen and read.
+- The first screenshot is of the review, before "Continue". A second one followed: the
+  result on the phone, 81 credits left, "On pace for Spring 2029", 27 counted, 13 in
+  progress, 121 total, on `pathcheck.netlify.app`.
+- Netlify's own bar for the logged-in owner ("Make public") lies over the page on the
+  phone; a visitor of a public site does not get it.
+
+### 2026-11-17 — F24, step 8: the fourth upload of the day is refused on the staging address
+
+After three uploads that day in the same browser (the made-up transcript once, the
+owner's own twice), the owner chose `sample-a.pdf` again on "See what I have left" and
+sent a screenshot: the upload area, under it "Upload isn’t available right now — try
+again tomorrow", no rows; the Console, with Cloudflare's frame filtered out, holding one
+line: "POST https://pathcheck.netlify.app/api/read-transcript 429 (Too Many Requests)".
+
+*Agent's notes, not owner decisions:*
+- That one line is the browser's own for a request that was refused on purpose (as noted
+  at F21 and F22); it is the limit doing its work, not an error of the page.
+- With this the walk-through of F24 is done: steps 1 to 8. Still to be said by the owner:
+  that the plan shown by Netlify is Free; and whether the $5 spend cap stands in place
+  of the budget alert of brief §12.
+
+### 2026-11-17 — The plan is Free; the $5 spend cap replaces the budget alert
+
+The owner's words:
+
+"1. Netlify plan: Free. I checked it in Billing.
+2. The $5 monthly spend cap in Google AI Studio replaces the budget alert. No alert needed. Record this in docs/decision-log.md as an owner answer."
+
+What it decides:
+- The staging address runs on Netlify's Free plan; no paid plan is enabled (F24's
+  check 1).
+- **The budget alert of brief §12 is replaced** by the $5 monthly spend cap in Google AI
+  Studio. No Google Cloud budget alert is set up, and none is asked for again. Where the
+  brief lists "a Google Cloud budget alert" among what the owner provides before M2, this
+  answer wins.
+
+*Agent's notes, not owner decisions:*
+- PathCheck's own stop at $5 a month (F22) and the three uploads a day for a browser
+  stand in front of Google's cap.
+
+### 2026-11-17 — F24: the published deploy is `main@1734547`, and publishing is locked
+
+Asked which commit is published after the second build, the owner sent a screenshot of
+Netlify's "Deploys for pathcheck": `pathcheck.netlify.app`, "Auto Publishing Locked",
+"Published main@1734547", the control "Unlock to start auto publishing"; in the list,
+"Production: main@1734547" marked "Published", today at 1:26 PM (the build the owner
+started), above the one Netlify built from the merge of pull request #37 at 1:22 PM and
+the earlier "Production: main@8770a71" of 6:04 AM.
+
+*Agent's notes, not owner decisions:*
+- So the staging address serves the current `main` (1734547: F21, F22, F23 and the fix
+  of #37), published by the owner by hand, and the lock held through both publishes: no
+  merge published anything.
+
+### 2026-11-17 — F24: the requirements of the owner's own result are as expected
+
+Asked whether, on the result of their own transcript, each requirement showed as
+expected (finished, in progress or still needed), the owner's words: "yes. Each
+requirement showed as I expected"
+
+What it settles:
+- With "The credits look accurate." (the same day), the result of the owner's own
+  transcript is what the owner expects: the credits left and the requirements (F24's
+  check 7).
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -1001,6 +1215,9 @@ stand-in until the owner answers; it is not an owner decision.
   owner's real transcript at M2: how a summer term is printed; what the grade column
   shows on a transfer row; the layout of the transfer section; and whether a grade
   printed as "Passed" or "P" counts (an academic rule: the owner decides).
+  Status, 2026-11-17: the owner's transcript has no summer term, no transfer credit and
+  no such grade, so all four stay open; they are listed in `docs/milestones/M2.md`
+  part 4.
 - **2026-11-16 (F21).** The privacy sentence once the PDF goes to Google Gemini. Answered
   on 2026-11-17 (see "Owner answers").
 
