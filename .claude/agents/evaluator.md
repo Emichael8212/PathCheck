@@ -48,6 +48,11 @@ one-line cases. Follow them.
   changed silently: it is listed for the owner in the PR under "Conflicts with the brief".
   Report such an item, and check that it is on that list; a listed item kept as the owner
   designed it is not, on its own, a FAIL. An unlisted one is.
+- 2026-11-16 — **The M1 check: QA scored F15's pace line Clarity 4; the owner found it
+  confusing** ("…finish Spring 2040, 22 semesters after your target") and ruled: "Never
+  show a finish date years away from this term's courses alone." (The agent's lesson, not
+  an owner rule: grade a sentence by the most extreme thing the page can make it say, not
+  by the contract's example.)
 
 ## Mode 1 — CONTRACT REVIEW (before code)
 

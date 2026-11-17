@@ -299,7 +299,7 @@
       "milestone": "M1",
       "description": "Flow A pace line, with a transcript only",
       "steps": [
-        "With a transcript, Flow A asks the target semester and adds one line, for example \"6 credits this term — at this pace you finish Fall 2029, one semester after your target.\"",
+        "With a transcript, Flow A asks the target semester and adds one line, for example \"15 of these 15 credits count. To finish by Spring 2029, you need about 17 counting credits a term.\"",
         "Without a transcript, no pace question or pace line is shown"
       ],
       "passes": true,
