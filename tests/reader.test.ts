@@ -206,7 +206,15 @@ describe('transfer credit, rows in progress and printed numbers', () => {
     expect(read(good({ attempted: '3.0000' })).toFix[0]?.problems).toEqual(['credits']);
     expect(read(good({ attempted: '3.125' })).toFix[0]?.problems).toEqual(['credits']);
     expect(read(good({ earned: '3.0000', points: '12.0000' })).toFix[0]?.problems).toEqual(['earned', 'points']);
-    expect(read(good({ attempted: '30.001' })).toFix[0]?.problems).toEqual(['credits']);
+    // The range on its own: 30 is the most, however it is printed.
+    expect(read(good({ attempted: '30.010' })).toFix[0]?.problems).toEqual(['credits']);
+    const most = read(good({ attempted: '30.000' }));
+    expect(most.toFix).toEqual([]);
+    expect(most.rows[0]?.row.credits).toBe(30);
+    // A result kept in the browser is read back by the same rule: a row kept as printed is still a read row.
+    const back = readRows({ rows: [good({ attempted: '3.000', earned: '3.000', points: '9.000' })] }, curriculum, true);
+    expect(back.toFix).toEqual([]);
+    expect(back.rows[0]?.row.credits).toBe(3);
   });
 });
 
