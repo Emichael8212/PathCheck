@@ -35,6 +35,15 @@ Read this before writing a sprint contract; delete a line when its feature has d
   mini-term if there is one: `readTerm` in `src/pace.ts` reads "Fall", "Spr"/"Spring",
   "Sum"/"Summer" and a four-digit year, and gives no pace estimate for anything else.
   (F14 contract review; the owner's open question since F10)
+- **For F24, from F22 (its check 11): the published site with the owner's real Turnstile
+  keys.** The owner sets `VITE_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` for
+  Production (a widget for `pathcheck.netlify.app`) and adds `GEMINI_API_KEY` for
+  Production. F24's contract checks: the main address without the keys refuses every
+  upload; with them an upload is read, and the function took the token only for the
+  action `upload` and the site's own hostname; the staging address is the Production
+  context, not a branch deploy; once, the real widget asking for a tick, with the
+  keyboard (Cloudflare's test site key `3x00000000000000000000FF` forces one on a
+  preview). (F22 QA part 2; code review rounds 1 and 2)
 - **For F24:** the pill "Synthetic transcript result" is shown only over a made-up
   transcript's result (the owner, 2026-11-17; done before the owner's own upload, see
   `docs/sprints/F13.md`). F24's contract checks on the published site that the owner's
