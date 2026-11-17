@@ -87,7 +87,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         const answer = await response.json();
         const found = differences(prepared, answer, readRows, curriculum);
         if (found.length > 0) failed++;
-        console.log(`${name}.pdf, run ${run}: ${found.length === 0 ? `PASS (${prepared.rows.length} rows)` : 'FAIL'}; model ${answer.model ?? 'not named'}`);
+        const taken = found.length === 0 ? readRows(answer, curriculum).rows.length : 0;
+        console.log(`${name}.pdf, run ${run}: ${found.length === 0 ? `PASS (${taken} course rows, as prepared)` : 'FAIL'}; model ${answer.model ?? 'not named'}`);
         for (const one of found) console.log(`  ${one}`);
       }
     }

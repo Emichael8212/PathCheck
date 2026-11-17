@@ -899,6 +899,24 @@ What it decides:
 - F21's hosted checks can be run with the made-up transcripts on either tier; F24 (the
   owner's own transcript) cannot be done before the paid tier.
 
+### 2026-11-17 — Billing is set; the reader check with the real Gemini passed
+
+The owner's message, with two screenshots of the review step on the preview:
+
+"I've also successfully set the billing tier to $5 monthly."
+
+Then the owner ran the reader check in the session
+(`node scripts/reader-check.mjs https://deploy-preview-32--pathcheck.netlify.app`): six
+runs, each "PASS", model gemini-3.5-flash-lite, and "reader-check: every run read the
+made-up transcripts as prepared."
+
+*Agent's notes, not owner decisions:*
+- The agent cannot see the Google account: that the project is on the paid tier with a $5
+  limit is the owner's word.
+- Netlify offers no setting that opens the previews and keeps the main site private. The
+  agent told the owner so before the run; the owner ran the check with the project
+  opened, and was reminded to set it back to private.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
