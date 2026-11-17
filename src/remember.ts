@@ -21,7 +21,9 @@ import { KEPT_AS_PASSED, rowStanding } from './transcript';
 /** The one entry, beside the legacy answer, that PathCheck keeps in the browser's storage. */
 export const VISIT_KEY = 'pathcheck.visit';
 /** Everything PathCheck ever stores in the browser. "Clear my data" removes each of them. */
-export const STORED_KEYS: readonly string[] = [VISIT_KEY, LEGACY_KEY];
+/** The browser's random number for today's uploads (F22), on the hosted site only. */
+export const BROWSER_KEY = 'pathcheck.browser';
+export const STORED_KEYS: readonly string[] = [VISIT_KEY, LEGACY_KEY, BROWSER_KEY];
 /** What a transcript that came back is called, where the page named its file. */
 export const KEPT_NAME = 'your transcript';
 
@@ -197,6 +199,32 @@ export function readKept(text: string | null | undefined, curriculum: Curriculum
     if (typeof credits === 'number') entries = setCredits(entries, added.added.code, credits);
   }
   return { entries, term: entries.length > 0 ? termOf(own(stored, 'term')) : null, result: resultOf(own(stored, 'result'), curriculum, readsMadeUp) };
+}
+
+/**
+ * The browser's number for a day (docs/sprints/F22.md): 16 random bytes of the browser's own
+ * making, as 32 hex digits, kept with the UTC day it was made for and made new when the day
+ * is another. PathCheck's function counts a day's uploads under it. It says nothing about
+ * the person or the device and links nothing from one day to the next; "Clear my data"
+ * removes it. Where nothing can be kept, every upload gets a new one.
+ */
+export function browserNumber(storage: AnswerStorage | null | undefined, day: string, random: (bytes: Uint8Array<ArrayBuffer>) => void = bytes => { crypto.getRandomValues(bytes); }): string {
+  try {
+    const kept: unknown = JSON.parse(storage?.getItem(BROWSER_KEY) ?? 'null');
+    const number = isObject(kept) && own(kept, 'day') === day ? own(kept, 'number') : undefined;
+    if (typeof number === 'string' && /^[0-9a-f]{32}$/.test(number)) return number;
+  } catch {
+    // (What is kept cannot be read: a new number is made.)
+  }
+  const bytes = new Uint8Array(16);
+  random(bytes);
+  const number = [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  try {
+    storage?.setItem(BROWSER_KEY, JSON.stringify({ day, number }));
+  } catch {
+    // (Nothing can be kept: the number serves this upload.)
+  }
+  return number;
 }
 
 // Storage can be missing, switched off or full. Then nothing is remembered and nothing

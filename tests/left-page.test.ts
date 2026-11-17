@@ -351,6 +351,125 @@ describe('bringing a transcript', () => {
     expect(JSON.stringify(window.localStorage)).not.toContain('notice');
   });
 
+  it('says when the bot check wants a box ticked', async () => {
+    // The hosted site, with a stand-in for Cloudflare's widget that wants a tick before it passes (F22).
+    const READING = 'Reading your transcript…';
+    const TICK = 'One more step: tick the box at the bottom of the window.';
+    type Drawn = { place: unknown; options: Record<string, (value?: unknown) => void> };
+    const drawn: Drawn[] = [];
+    const sampleRows = (name: string): unknown[] => (JSON.parse(readFileSync(join(folder, name + '.json'), 'utf8')) as { rows: unknown[] }).rows;
+    let site: App | null = null;
+    app.stop();
+    try {
+      vi.stubEnv('DEV', false);
+      vi.stubGlobal('turnstile', { render: (place: unknown, options: Drawn['options']) => { drawn.push({ place, options }); return `widget-${drawn.length}`; }, remove: () => undefined });
+      vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
+      vi.resetModules();
+      const hosted = await import('../src/app');
+      window.localStorage.clear();
+      document.body.innerHTML = '<div id="app"></div>';
+      window.history.replaceState(null, '', '#/left');
+      site = hosted.startApp(onTestDay(window as unknown as AppWindow));
+      const place = document.getElementById('pathcheck-check')!;
+      // The widget's place is one element beside the page, not a part of it; empty and out of the tab order until it is needed.
+      expect(place.parentElement).toBe(document.body);
+      expect(document.getElementById('app')!.contains(place)).toBe(false);
+      expect([place.className, place.getAttribute('tabindex'), place.childElementCount]).toEqual(['bot-check no-print', '-1', 0]);
+
+      const waiting = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 my own transcript'), 'mine.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(1));
+      // The widget is drawn in that place, and the page says that it is reading.
+      expect(drawn[0]!.place).toBe(place);
+      expect(tidy($('[data-refusal]').textContent)).toBe(READING);
+      // Cloudflare wants its box ticked: the page says so where it said that it is reading, it is read out,
+      // and the keyboard is on the box's place.
+      drawn[0]!.options['before-interactive-callback']!();
+      expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
+      expect(said()).toBe(TICK);
+      expect(document.activeElement).toBe(place);
+      // (The place is on the page while a tick is asked, also before the widget has drawn anything into it.)
+      expect(place.hasAttribute('data-asked')).toBe(true);
+      // The page is drawn again and another page is opened meanwhile: the place is still the same element, still in the document.
+      go('#/check');
+      expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
+      go('#/left');
+      expect(document.getElementById('pathcheck-check')).toBe(place);
+      expect(place.isConnected).toBe(true);
+      expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
+      // The box is ticked: the page says again that it is reading; then the token comes and the transcript is read.
+      drawn[0]!.options['after-interactive-callback']!();
+      expect(place.hasAttribute('data-asked')).toBe(false);
+      expect(tidy($('[data-refusal]').textContent)).toBe(READING);
+      expect(said()).toBe(READING);
+      drawn[0]!.options.callback!('a-token');
+      await waiting;
+      expect(heading()).toBe('Check what was read');
+      expect(tidy($('main').textContent)).not.toMatch(/One more step|Reading your transcript/);
+
+      // A check that is no longer wanted sends nothing, however it ends.
+      // "Clear my data" while the box waits: the box is taken away; a token that still comes posts no file and keeps no number.
+      $('[data-another]').click();
+      const posted = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
+      vi.stubGlobal('fetch', posted);
+      const removed: string[] = [];
+      vi.stubGlobal('turnstile', { render: (place: unknown, options: Drawn['options']) => { drawn.push({ place, options }); return `widget-${drawn.length}`; }, remove: (id: string) => { removed.push(id); } });
+      go('#/check');
+      const field = $<HTMLInputElement>('#add-course');
+      field.value = 'mgt 321';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      const given = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 my own transcript'), 'mine.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(2));
+      drawn[1]!.options['before-interactive-callback']!();
+      expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
+      $('[data-clear]').click();
+      expect(removed).toEqual(['widget-2']);
+      // (The place no longer says that a tick is waited for.)
+      expect(place.hasAttribute('data-asked')).toBe(false);
+      drawn[1]!.options.callback!('a-late-token');
+      await given;
+      expect(posted).not.toHaveBeenCalled();
+      expect(window.localStorage.getItem('pathcheck.browser')).toBeNull();
+      expect(Object.keys(window.localStorage)).toEqual([]);
+      expect(tidy($('main').textContent)).not.toMatch(/One more step|Reading your transcript|Upload isn’t available/);
+      // Another file chosen while the first is still being checked: the first check is ended, and only the second file is posted.
+      go('#/left');
+      const first = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 the first file'), 'first.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(3));
+      const second = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 the second file'), 'second.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(4));
+      expect(removed).toEqual(['widget-2', 'widget-3']);
+      drawn[2]!.options.callback!('a-late-token');
+      await first;
+      expect(posted).not.toHaveBeenCalled();
+      drawn[3]!.options.callback!('a-token');
+      await second;
+      expect(posted).toHaveBeenCalledTimes(1);
+      expect(new TextDecoder().decode((posted.mock.calls[0] as unknown as [string, { body: Uint8Array }])[1].body)).toBe('%PDF-1.7 the second file');
+      expect(tidy($('.review-intro').textContent)).toContain('second.pdf');
+
+      // Nobody ticks it and the check gives up: the existing sentence, and the tick is no longer asked for.
+      $('[data-another]').click();
+      const again = site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 my own transcript'), 'mine.pdf'));
+      await vi.waitFor(() => expect(drawn).toHaveLength(5));
+      drawn[4]!.options['before-interactive-callback']!();
+      expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
+      drawn[4]!.options['error-callback']!();
+      await again;
+      expect(tidy($('[data-refusal]').textContent)).toBe('Upload isn’t available right now — try again tomorrow');
+      expect(tidy($('main').textContent)).not.toContain('One more step');
+    } finally {
+      site?.stop();
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+      vi.resetModules();
+      window.localStorage.clear();
+      document.body.innerHTML = '<div id="app"></div>';
+      window.history.replaceState(null, '', '#/left');
+      app = startApp(onTestDay(window as unknown as AppWindow));
+    }
+  });
+
   it('takes the file chosen last when two are being read', async () => {
     const first = madeUp('sample-a');
     let release = (): void => undefined;
@@ -666,6 +785,8 @@ describe('the checklist', () => {
     let site: App | null = null;
     try {
       vi.stubEnv('DEV', false);
+      // (The hosted site asks its reader only with a passed bot check: a stand-in for Cloudflare's widget passes it. F22)
+      vi.stubGlobal('turnstile', { render: (_place: unknown, options: { callback(token: string): void }) => { queueMicrotask(() => { options.callback('a-token'); }); return 'widget'; }, remove: () => undefined });
       vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
       vi.resetModules();
       const hosted = await import('../src/app');

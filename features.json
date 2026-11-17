@@ -427,9 +427,15 @@
         "The counters hold no personal data",
         "Automated tests cover each limit being reached"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F22.md — QA PASS (2026-11-17): part 1 on localhost and a built copy with stand-ins for Cloudflare, Netlify's store and Gemini; part 2 on the hosted preview with the real services, run by the owner (the bot check loaded on demand, three uploads read and the fourth refused, the reader check: six runs, both made-up transcripts read as prepared); reviewer: no blocker after round 4. The published site with the owner's real Turnstile keys is checked with F24",
+      "tests": [
+        "tests/limits.test.ts",
+        "tests/read-transcript.test.ts",
+        "tests/turnstile.test.ts",
+        "tests/upload.test.ts",
+        "tests/left-page.test.ts"
+      ]
     },
     {
       "id": "F23",

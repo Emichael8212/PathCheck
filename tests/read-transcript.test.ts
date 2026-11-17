@@ -6,8 +6,9 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import handler, {
-  FIELDS, GEMINI, INSTRUCTION, LARGEST_BODY, MODEL, MOST_ANSWER_TOKENS, MOST_ROWS, MOST_TEXT, PATH, SHAPE, WAIT, config, readTranscript, rowsOf, type Outside,
+  ACTION, CHECK_WAIT, FIELDS, GEMINI, INSTRUCTION, LARGEST_BODY, MODEL, MOST_ANSWER_TOKENS, MOST_ROWS, MOST_TEXT, PATH, RESERVED, SHAPE, SITEVERIFY, STORE, TEST_SECRET, WAIT, config, readTranscript, rowsOf, type Outside,
 } from '../netlify/functions/read-transcript.mjs';
+import { CAP, type Counters } from '../netlify/lib/limits.mjs';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
 import { differences, isDeploy } from '../scripts/reader-check.mjs';
 import { curriculum } from '../src/curriculum';
@@ -22,7 +23,34 @@ const source = readFileSync(join(root, 'netlify', 'functions', 'read-transcript.
 /** A made-up key: the shape of none, so that it can be looked for in everything that leaves the function. */
 const KEY = 'made-up-key-0123456789-for-tests-only';
 const UNAVAILABLE = { error: 'unavailable' };
-const FAILURE_LINE = /^read-transcript: unavailable \((body|no-key|unreachable|timeout|refused \d{3}|blocked|cut-off|not-rows)\)$/;
+const FAILURE_LINE = /^read-transcript: unavailable \((body|no-key|unreachable|timeout|refused \d{3}|blocked|cut-off|not-rows|check|store)\)$/;
+/** A made-up secret of the bot check, and a browser's made-up number for the day. */
+const SECRET = 'made-up-turnstile-secret-for-tests-only';
+const BROWSER = '0123456789abcdef0123456789abcdef';
+const TOKEN = 'a-made-up-token-of-a-passed-check';
+const HOST = 'pathcheck.netlify.app';
+/** The moment of the tests' uploads: a Tuesday noon, UTC. */
+const NOON = '2026-11-17T12:00:00Z';
+const PDF_HEADERS: Record<string, string> = { 'Content-Type': 'application/pdf', 'x-turnstile-token': TOKEN, 'x-pathcheck-browser': BROWSER };
+
+/** A stand-in for the store: numbers with marks, written only on a condition, as Netlify Blobs does. */
+const storeOf = (start: Record<string, number> = {}) => {
+  const entries = new Map(Object.entries(start).map(([key, value]) => [key, { value, mark: 'start' }]));
+  let writes = 0;
+  const counters: Counters = {
+    read: key => Promise.resolve(entries.has(key) ? { ...entries.get(key)! } : null),
+    write: (key, value, mark) => {
+      if ((entries.get(key)?.mark ?? null) !== mark) return Promise.resolve(false);
+      entries.set(key, { value, mark: `write-${++writes}` });
+      return Promise.resolve(true);
+    },
+    keys: prefix => Promise.resolve([...entries.keys()].filter(key => key.startsWith(prefix))),
+    remove: key => { entries.delete(key); return Promise.resolve(); },
+  };
+  return { counters, all: (): Record<string, number> => Object.fromEntries([...entries].map(([key, entry]) => [key, entry.value])) };
+};
+/** What Cloudflare answers for a passed check made for an upload on this site. */
+const passed = (): Response => Response.json({ success: true, action: 'upload', hostname: HOST, challenge_ts: NOON, 'error-codes': [] });
 
 type Call = { url: string; init: RequestInit };
 type Reply = (call: Call) => Response | Promise<Response>;
@@ -33,15 +61,29 @@ const gemini = (rows: unknown, over: Record<string, unknown> = {}): Response => 
 });
 /** Gemini's answer with this text as what it wrote. */
 const wrote = (text: string, finishReason = 'STOP'): Response => Response.json({ candidates: [{ content: { parts: [{ text }] }, finishReason }] });
-/** The world outside the function: a stand-in for Gemini, a key and a log that is kept. */
-/** (A key of `null`: no key is set.) */
-const world = (reply: Reply, key: string | null = KEY, wait = 2_000) => {
+/**
+ * The world outside the function: stand-ins for Gemini (`calls`), for Cloudflare's check of a token
+ * (`checks`), for the store and the clock, the keys, and a log that is kept. (A key of `null`: none is set.)
+ */
+const world = (reply: Reply, key: string | null = KEY, wait = 2_000, more: Partial<Outside> & { check?: Reply; store?: ReturnType<typeof storeOf> } = {}) => {
   const calls: Call[] = [];
+  const checks: Call[] = [];
   const logged: string[] = [];
-  const outside: Outside = { fetch: (url, init) => { const call = { url, init }; calls.push(call); return Promise.resolve().then(() => reply(call)); }, key: key ?? undefined, log: line => { logged.push(line); }, wait };
-  return { outside, calls, logged };
+  const { check = passed, store = storeOf(), ...over } = more;
+  const outside: Outside = {
+    fetch: (url, init) => {
+      const call = { url, init };
+      const cloudflare = url === SITEVERIFY;
+      (cloudflare ? checks : calls).push(call);
+      return Promise.resolve().then(() => (cloudflare ? check : reply)(call));
+    },
+    key: key ?? undefined, log: line => { logged.push(line); }, wait,
+    secret: SECRET, checkWait: 2_000, deploy: 'production', host: HOST, counters: () => store.counters, now: () => new Date(NOON),
+    ...over,
+  };
+  return { outside, calls, checks, logged, store };
 };
-const post = (bytes: Uint8Array, headers: Record<string, string> = { 'Content-Type': 'application/pdf' }, method = 'POST'): Request =>
+const post = (bytes: Uint8Array, headers: Record<string, string> = PDF_HEADERS, method = 'POST'): Request =>
   new Request(`https://pathcheck.example${PATH}`, { method, headers, ...(method === 'GET' || method === 'HEAD' ? {} : { body: bytes as BodyInit }) });
 /** Everything that leaves the function towards the browser: status, headers and body, as text. */
 const leaving = async (response: Response): Promise<string> => JSON.stringify([response.status, [...response.headers], await response.clone().text()]);
@@ -138,9 +180,9 @@ describe('the function that reads a transcript', () => {
     await readTranscript(post(bytes), pasted.outside);
     expect((pasted.calls[0]!.init.headers as Record<string, string>)['x-goog-api-key']).toBe(KEY);
     // The key comes from the environment and from nowhere else: the function names one variable, once.
-    expect(source.match(/process\.env\b[.\w[\]'"]*/g)).toEqual(['process.env.GEMINI_API_KEY']);
+    expect(source.match(/process\.env\b[.\w[\]'"]*/g)).toEqual(['process.env.GEMINI_API_KEY', 'process.env.TURNSTILE_SECRET_KEY']);
     // Nothing in the repository's code looks like a Google key.
-    const files = ['netlify.toml', ...['netlify/functions', 'src', 'scripts'].flatMap(folder => readdirSync(join(root, folder)).map(name => `${folder}/${name}`))];
+    const files = ['netlify.toml', ...['netlify/functions', 'netlify/lib', 'src', 'scripts'].flatMap(folder => readdirSync(join(root, folder)).map(name => `${folder}/${name}`))];
     for (const file of files) expect(readFileSync(join(root, file), 'utf8'), file).not.toMatch(/AIza[0-9A-Za-z_-]{20,}/);
     expect(readFileSync(join(root, 'netlify.toml'), 'utf8')).not.toMatch(/GEMINI|API_KEY|environment/i);
   });
@@ -185,19 +227,29 @@ describe('the function that reads a transcript', () => {
     expect(console_[3]).toHaveBeenCalledTimes(1);
     expect(console_[3]).toHaveBeenCalledWith('read-transcript: unavailable (no-key)');
     expect(source.match(/console\.\w+\(/g)).toEqual(['console.error(']);
-    expect(source.match(/outside\.log\(/g)).toHaveLength(1);
+    // (One line for a failure, one for a refusal: both fixed.)
+    expect(source.match(/outside\.log\(/g)).toHaveLength(2);
   });
 
-  it('stores nothing', async () => {
-    // The function is one file that uses nothing but what it is given: no file system, no store, no cache, no other code.
-    expect(source).not.toMatch(/^\s*import\s/m);
-    expect(source).not.toMatch(/\brequire\(|\bimport\(|node:|@netlify\/blobs|getStore|writeFile|appendFile|createWriteStream|localStorage|\bcaches\b|globalThis|setInterval/);
-    // It reaches out in one place, to Gemini; in Netlify that is the platform's own fetch.
-    expect(source.match(/\bfetch\(/g)).toEqual(['fetch(', 'fetch(']);
+  it('stores nothing of the transcript', async () => {
+    // The function and its counters are two files that use nothing but what they are given and Netlify's store:
+    // no file system, no cache, no other code.
+    const limits = readFileSync(join(root, 'netlify', 'lib', 'limits.mts'), 'utf8');
+    expect(source.match(/^import .*$/gm)?.map(line => line.replace(/^.* from /, ''))).toEqual(["'@netlify/blobs';", "'../lib/limits.mjs';"]);
+    expect(limits).not.toMatch(/^\s*import\s/m);
+    for (const text of [source, limits]) expect(text).not.toMatch(/\brequire\(|\bimport\(|node:|writeFile|appendFile|createWriteStream|localStorage|\bcaches\b|globalThis|setInterval/);
+    // The store is opened in one place, under one name, and is given numbers only (the counters' own tests).
+    expect(source.match(/getStore\(/g)).toHaveLength(1);
+    expect(source).toContain("getStore({ name: STORE, consistency: 'strong' })");
+    expect(STORE).toBe('pathcheck-limits');
+    // It reaches out in two places: to Cloudflare, for the bot check, and to Gemini; in Netlify that is the platform's own fetch.
+    expect(source.match(/\bfetch\(/g)).toEqual(['fetch(', 'fetch(', 'fetch(']);
     expect(source).toContain('outside.fetch(GEMINI, {');
+    expect(source).toContain('outside.fetch(SITEVERIFY, {');
     expect(source).toContain('fetch: (input, init) => fetch(input, init)');
     // It looks at two things a request says of itself, its type and its length, and at nothing that could say who sent it.
-    expect(source.match(/headers\.get\('([^']+)'\)/g)).toEqual(["headers.get('content-length')", "headers.get('content-type')"]);
+    // (And the two things the limits need: the token of the bot check and the browser's random number for the day.)
+    expect(source.match(/headers\.get\('([^']+)'\)/g)).toEqual(["headers.get('content-length')", "headers.get('content-type')", "headers.get('x-turnstile-token')", "headers.get('x-pathcheck-browser')"]);
     expect(source).not.toMatch(/cookie|authorization|x-forwarded|x-nf-|context\.ip|\bip\b/i);
     // Nothing is kept from one request to the next: the same PDF twice is two calls, and no answer may be cached.
     const { outside, calls } = world(() => gemini(sampleA.rows));
@@ -290,9 +342,12 @@ describe('the function that reads a transcript', () => {
   it('refuses before calling Gemini', async () => {
     const bytes = pdf('sample-a');
     const refused = async (request: Request, key: string | null = KEY) => {
-      const { outside, calls, logged } = world(() => gemini([]), key);
+      const { outside, calls, checks, logged, store } = world(() => gemini([]), key);
       const response = await readTranscript(request, outside);
       expect(calls).toEqual([]);
+      // Cloudflare is not asked and nothing is counted either.
+      expect(checks).toEqual([]);
+      expect(store.all()).toEqual({});
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       return { status: response.status, body: (await response.json()) as unknown, allow: response.headers.get('Allow'), logged };
     };
@@ -330,7 +385,7 @@ describe('the function that reads a transcript', () => {
     expect(await refused(broken)).toEqual({ status: 503, body: UNAVAILABLE, allow: null, logged: ['read-transcript: unavailable (body)'] });
     // What is accepted: a PDF of exactly the largest size, and a content type with a parameter or in capitals.
     const fits = heavy.slice(0, LARGEST_BODY);
-    for (const request of [post(fits), post(bytes, { 'Content-Type': 'Application/PDF; charset=binary' })]) {
+    for (const request of [post(fits), post(bytes, { ...PDF_HEADERS, 'Content-Type': 'Application/PDF; charset=binary' })]) {
       const { outside, calls } = world(() => gemini([]));
       expect((await readTranscript(request, outside)).status).toBe(200);
       expect(calls).toHaveLength(1);
@@ -373,6 +428,280 @@ describe('the function that reads a transcript', () => {
     expect((calls[0]!.init.signal as AbortSignal).aborted).toBe(false);
     // Whatever failed, the browser gets one and the same answer.
     expect([...bodies]).toEqual([JSON.stringify(UNAVAILABLE)]);
+  });
+});
+
+describe('the limits in front of Gemini', () => {
+  const bytes = pdf('sample-a');
+  const DAY = `day/2026-11-17/${BROWSER}`;
+  const MONTH = 'month/2026-11';
+  /** What the made-up reading in these tests costs: 900 tokens in, 1,500 out. */
+  const COST = Math.ceil(900 * 0.3 + 1500 * 2.5);
+  const other = (n: number): string => n.toString(16).padStart(32, '0');
+  const from = (browser: string, token = TOKEN): Request => post(bytes, { ...PDF_HEADERS, 'x-pathcheck-browser': browser, 'x-turnstile-token': token });
+
+  it('refuses an upload that fails the bot check', async () => {
+    // A passed check: Cloudflare is asked once, with the secret and the token and nothing else. No address of the visitor.
+    const ok = world(() => gemini(sampleA.rows));
+    expect((await readTranscript(post(bytes), ok.outside)).status).toBe(200);
+    expect(ok.checks).toHaveLength(1);
+    const { url, init } = ok.checks[0]!;
+    expect(url).toBe('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    expect(init.method).toBe('POST');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(JSON.parse(init.body as string)).toEqual({ secret: SECRET, response: TOKEN });
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect([ACTION, CHECK_WAIT]).toEqual(['upload', 10_000]);
+
+    // Refused: Gemini is not called, nothing is counted, and the browser gets no reason beyond "check".
+    const refusedBy = async (check: Reply | null, request: Request = post(bytes), more: Partial<Outside> = {}) => {
+      const tried = world(() => gemini(sampleA.rows), KEY, 2_000, { ...(check ? { check } : {}), ...more });
+      const response = await readTranscript(request, tried.outside);
+      expect(tried.calls).toEqual([]);
+      expect(tried.store.all()).toEqual({});
+      expect(response.headers.get('Cache-Control')).toBe('no-store');
+      return { status: response.status, body: (await response.json()) as unknown, logged: tried.logged, checks: tried.checks.length };
+    };
+    const failed = { status: 403, body: { error: 'check' }, logged: ['read-transcript: refused (check)'], checks: 1 };
+    // Each of Cloudflare's reasons, and an answer that is not a success at all.
+    for (const codes of [['invalid-input-response'], ['timeout-or-duplicate'], ['missing-input-response'], ['bad-request'], []]) {
+      expect(await refusedBy(() => Response.json({ success: false, 'error-codes': codes })), codes.join()).toEqual(failed);
+    }
+    for (const not of [{ success: 'true', action: 'upload', hostname: HOST }, { action: 'upload', hostname: HOST }, { success: 1, action: 'upload', hostname: HOST }]) {
+      expect(await refusedBy(() => Response.json(not)), JSON.stringify(not)).toEqual(failed);
+    }
+    // A passed check that was made for something else, or for another site.
+    for (const wrong of [{ action: 'login' }, { action: undefined }, { hostname: 'example.com' }, { hostname: 'deploy-preview-9--pathcheck.netlify.app' }, { hostname: undefined }]) {
+      expect(await refusedBy(() => Response.json({ success: true, action: 'upload', hostname: HOST, ...wrong })), JSON.stringify(wrong)).toEqual(failed);
+    }
+    // No token, or one too long to be one: Cloudflare is not even asked.
+    const tokenless: Record<string, string>[] = [{ 'Content-Type': 'application/pdf', 'x-pathcheck-browser': BROWSER }, { ...PDF_HEADERS, 'x-turnstile-token': '' }, { ...PDF_HEADERS, 'x-turnstile-token': 'x'.repeat(2049) }];
+    for (const headers of tokenless) {
+      expect(await refusedBy(null, post(bytes, headers))).toEqual({ ...failed, checks: 0 });
+    }
+    // Cloudflare cannot say: it answers an error, something that is no answer, nothing in time, or cannot be reached. Not available.
+    const cannot = { status: 503, body: UNAVAILABLE, logged: ['read-transcript: unavailable (check)'], checks: 1 };
+    expect(await refusedBy(() => Response.json({ success: true }, { status: 500 }))).toEqual(cannot);
+    expect(await refusedBy(() => new Response('<html>', { status: 200 }))).toEqual(cannot);
+    expect(await refusedBy(() => Response.json('yes'))).toEqual(cannot);
+    expect(await refusedBy(() => Promise.reject(new TypeError('fetch failed')))).toEqual(cannot);
+    expect(await refusedBy(() => new Promise<Response>(() => undefined), post(bytes), { checkWait: 30 })).toEqual(cannot);
+    // No secret on the published site: nothing can be checked, so nothing is read, and Cloudflare is not asked.
+    for (const none of [undefined, '', '  ']) expect(await refusedBy(null, post(bytes), { secret: none })).toEqual({ ...cannot, checks: 0 });
+    // The secret and the token are in no answer and no log line.
+    const leaked = world(() => gemini([]), KEY, 2_000, { check: () => Response.json({ success: false, 'error-codes': [`bad secret ${SECRET}`], token: TOKEN }) });
+    const response = await readTranscript(post(bytes), leaked.outside);
+    expect(`${await leaving(response)}\n${leaked.logged.join('\n')}`).not.toMatch(new RegExp(`${SECRET}|${TOKEN}`));
+  });
+
+  it('uses the test keys on a Deploy Preview only', async () => {
+    expect(TEST_SECRET).toBe('1x0000000000000000000000000000000AA');
+    // Cloudflare's test secret answers for the test token with neither an action nor the site's hostname.
+    const testAnswer = (): Response => Response.json({ success: true, hostname: 'example.com', 'error-codes': [] });
+    // A preview with no secret set: the test secret is used, and its answer is taken.
+    const preview = world(() => gemini(sampleA.rows), KEY, 2_000, { secret: undefined, deploy: 'deploy-preview', check: testAnswer });
+    expect((await readTranscript(post(bytes), preview.outside)).status).toBe(200);
+    expect(JSON.parse(preview.checks[0]!.init.body as string)).toEqual({ secret: TEST_SECRET, response: TOKEN });
+    // The limits hold on a preview as everywhere: it spends from the same month.
+    expect(preview.store.all()).toEqual({ [DAY]: 1, [MONTH]: COST });
+    // A failed check is refused there too.
+    const failing = world(() => gemini([]), KEY, 2_000, { secret: undefined, deploy: 'deploy-preview', check: () => Response.json({ success: false, 'error-codes': ['invalid-input-response'] }) });
+    expect((await readTranscript(post(bytes), failing.outside)).status).toBe(403);
+    // Anywhere else without a secret (the published site, a branch deploy, an unnamed deploy): nothing is read, and the test secret is never sent.
+    for (const deploy of ['production', 'branch-deploy', 'dev', 'preview-server', '', 'Deploy-Preview']) {
+      const tried = world(() => gemini([]), KEY, 2_000, { secret: undefined, deploy, check: testAnswer });
+      expect((await readTranscript(post(bytes), tried.outside)).status, deploy).toBe(503);
+      expect([tried.checks.length, tried.calls.length], deploy).toEqual([0, 0]);
+    }
+    // On the published site the test keys' answer is not a check of this upload, even with a secret set.
+    const published = world(() => gemini([]), KEY, 2_000, { check: testAnswer });
+    expect((await readTranscript(post(bytes), published.outside)).status).toBe(403);
+    // And without the site's own hostname known, no answer can be for it.
+    const nameless = world(() => gemini([]), KEY, 2_000, { host: '', check: () => Response.json({ success: true, action: 'upload', hostname: '' }) });
+    expect((await readTranscript(post(bytes), nameless.outside)).status).toBe(403);
+    // The owner's real secret set for a preview is used there instead of the test secret.
+    const own = world(() => gemini([]), KEY, 2_000, { deploy: 'deploy-preview', check: testAnswer });
+    await readTranscript(post(bytes), own.outside);
+    expect(JSON.parse(own.checks[0]!.init.body as string)).toEqual({ secret: SECRET, response: TOKEN });
+  });
+
+  it('reads three uploads a day for one browser', async () => {
+    const store = storeOf();
+    let now = NOON;
+    const upload = async (browser = BROWSER, reply: Reply = () => gemini(sampleA.rows)) => {
+      const tried = world(reply, KEY, 2_000, { store, now: () => new Date(now) });
+      const response = await readTranscript(from(browser), tried.outside);
+      return { status: response.status, body: (await response.json()) as { error?: string }, gemini: tried.calls.length, logged: tried.logged };
+    };
+    for (const n of [1, 2, 3]) {
+      expect((await upload()).status, String(n)).toBe(200);
+      expect(store.all()[DAY]).toBe(n);
+    }
+    // The fourth: refused, Gemini not called, nothing set aside, the count unchanged.
+    const month = store.all()[MONTH];
+    expect(await upload()).toEqual({ status: 429, body: { error: 'limit' }, gemini: 0, logged: ['read-transcript: refused (day-limit)'] });
+    expect(store.all()).toEqual({ [DAY]: 3, [MONTH]: month });
+    // Another browser the same day is read.
+    expect((await upload(other(1))).status).toBe(200);
+    // An upload that Gemini fails still counts toward the day.
+    expect((await upload(other(2), () => Response.json({ error: {} }, { status: 500 }))).status).toBe(503);
+    expect(store.all()[`day/2026-11-17/${other(2)}`]).toBe(1);
+    // (While Gemini is being asked the counts of earlier days are still there: tidying comes after the answer.)
+    // The next UTC day the same browser is read again, and the counts of the day before are gone.
+    now = '2026-11-18T00:00:01Z';
+    expect((await upload()).status).toBe(200);
+    expect(Object.keys(store.all()).sort()).toEqual([`day/2026-11-18/${BROWSER}`, MONTH]);
+    // Without a well-formed number of the browser: refused before anything is counted.
+    for (const bad of ['', 'abc', 'A'.repeat(32), `${'a'.repeat(31)}/`, '../../month/2026-11']) {
+      const tried = world(() => gemini([]), KEY, 2_000, { store: storeOf() });
+      const response = await readTranscript(from(bad), tried.outside);
+      expect([response.status, await response.json(), tried.calls.length, tried.store.all(), tried.logged], bad).toEqual([400, { error: 'browser' }, 0, {}, ['read-transcript: refused (browser)']]);
+    }
+    const none = world(() => gemini([]));
+    expect((await readTranscript(post(bytes, { 'Content-Type': 'application/pdf', 'x-turnstile-token': TOKEN }), none.outside)).status).toBe(400);
+  });
+
+  it('stops reading when the month reaches $5', async () => {
+    expect(RESERVED).toBe(355_533);
+    expect(CAP).toBe(5_000_000);
+    // Under the cap: the most an upload can cost is set aside before Gemini is asked, and afterwards the month has grown by exactly what it did cost.
+    let during: number | undefined;
+    const store = storeOf({ [MONTH]: 1_000_000 });
+    const read = world(() => { during = store.all()[MONTH]; return gemini(sampleA.rows); }, KEY, 2_000, { store });
+    expect((await readTranscript(from(other(1)), read.outside)).status).toBe(200);
+    expect(during).toBe(1_000_000 + RESERVED);
+    expect(store.all()[MONTH]).toBe(1_000_000 + COST);
+    expect(COST).toBe(4020);
+    // Thinking is counted as output.
+    const thinking = world(() => gemini(sampleA.rows, { usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 1500, thoughtsTokenCount: 200 } }), KEY, 2_000, { store });
+    await readTranscript(from(other(2)), thinking.outside);
+    expect(store.all()[MONTH]).toBe(1_000_000 + COST + COST + 500);
+
+    // Less than one reservation under $5: refused, Gemini not called, the total unchanged. (The day's upload was counted.)
+    const full = storeOf({ [MONTH]: CAP - RESERVED + 1 });
+    const capped = world(() => gemini(sampleA.rows), KEY, 2_000, { store: full });
+    const response = await readTranscript(post(bytes), capped.outside);
+    expect([response.status, await response.json(), capped.calls.length, capped.logged]).toEqual([429, { error: 'limit' }, 0, ['read-transcript: refused (month-cap)']]);
+    expect(full.all()).toEqual({ [MONTH]: CAP - RESERVED + 1, [DAY]: 1 });
+    // Exactly one reservation under: read.
+    const last = world(() => gemini(sampleA.rows), KEY, 2_000, { store: storeOf({ [MONTH]: CAP - RESERVED }) });
+    expect((await readTranscript(post(bytes), last.outside)).status).toBe(200);
+    expect(last.store.all()[MONTH]).toBe(CAP - RESERVED + COST);
+
+    // The month is Google's billing month (Pacific time): 02:00 UTC on December 1 is still November; 09:00 UTC is December, and starts at zero.
+    const year = storeOf({ 'month/2026-11': CAP });
+    const november = world(() => gemini(sampleA.rows), KEY, 2_000, { store: year, now: () => new Date('2026-12-01T02:00:00Z') });
+    expect((await readTranscript(from(other(3)), november.outside)).status).toBe(429);
+    const december = world(() => gemini(sampleA.rows), KEY, 2_000, { store: year, now: () => new Date('2026-12-01T09:00:00Z') });
+    expect((await readTranscript(from(other(4)), december.outside)).status).toBe(200);
+    expect([year.all()['month/2026-11'], year.all()['month/2026-12']]).toEqual([CAP, COST]);
+
+    // What happens to what was set aside when the upload does not go well:
+    const after = async (reply: Reply, more: Partial<Outside> = {}): Promise<number> => {
+      const tried = world(reply, KEY, 30, { store: storeOf({ [MONTH]: 1000 }), ...more });
+      await readTranscript(post(bytes), tried.outside);
+      return tried.store.all()[MONTH]! - 1000;
+    };
+    // Gemini refused the request (any 4xx, or 500: Google says such a request is not charged): it is taken off again.
+    for (const status of [400, 401, 403, 404, 429, 498, 500]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(0);
+    // Another failure of Google's, of which Google says nothing, or a request cancelled on its way (499): what was set aside stays.
+    for (const status of [499, 501, 502, 503, 504, 529]) expect(await after(() => Response.json({ error: {} }, { status })), String(status)).toBe(RESERVED);
+    // Gemini answered with counts, but not with rows (blocked, cut off, no list): it cost what the counts say.
+    expect(await after(() => Response.json({ candidates: [{ content: { parts: [{ text: 'no rows' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 1500 } }))).toBe(COST);
+    expect(await after(() => Response.json({ candidates: [{ content: { parts: [{ text: '{"rows":[' }] }, finishReason: 'MAX_TOKENS' }], usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 16384 } }))).toBe(Math.ceil(900 * 0.3 + 16384 * 2.5));
+    // It is not known what was used: no answer in time, not reachable, an answer without counts. What was set aside stays.
+    expect(await after(() => new Promise<Response>(() => undefined))).toBe(RESERVED);
+    expect(await after(() => Promise.reject(new TypeError('fetch failed')))).toBe(RESERVED);
+    expect(await after(() => new Response('not json', { status: 200 }))).toBe(RESERVED);
+    expect(await after(() => gemini(sampleA.rows, { usageMetadata: undefined }))).toBe(RESERVED);
+    expect(await after(() => gemini(sampleA.rows, { usageMetadata: { promptTokenCount: 'many' } }))).toBe(RESERVED);
+    // The write that settles the cost fails, or keeps losing: what was set aside stays, and the student still gets the rows.
+    for (const breaking of ['throws', 'loses'] as const) {
+      const store2 = storeOf({ [MONTH]: 1000 });
+      let asked = false;
+      const counters: Counters = { ...store2.counters, write: (key, value, mark) => (asked && key === MONTH ? (breaking === 'throws' ? Promise.reject(new Error('store down')) : Promise.resolve(false)) : store2.counters.write(key, value, mark)) };
+      const tried = world(() => { asked = true; return gemini(sampleA.rows); }, KEY, 2_000, { counters: () => counters });
+      expect((await readTranscript(post(bytes), tried.outside)).status, breaking).toBe(200);
+      expect(store2.all()[MONTH], breaking).toBe(1000 + RESERVED);
+    }
+    // The function is stopped between setting aside and settling (it never comes back from Gemini): what was set aside is in the store.
+    const stopped = storeOf({ [MONTH]: 1000 });
+    void readTranscript(post(bytes), world(() => new Promise<Response>(() => undefined), KEY, 60_000, { store: stopped }).outside);
+    await vi.waitFor(() => expect(stopped.all()[MONTH]).toBe(1000 + RESERVED));
+  });
+
+  it('reads nothing when the counters cannot be kept', async () => {
+    const breaking = (broken: Partial<Counters> | 'unopened'): Outside['counters'] => () => {
+      if (broken === 'unopened') throw new Error('no store here: Sample Student');
+      return { ...storeOf().counters, ...broken };
+    };
+    const down = (): Promise<never> => Promise.reject(new Error('store down: Sample Student'));
+    for (const [name, counters] of [
+      ['cannot be opened', breaking('unopened')],
+      ['cannot be read', breaking({ read: down })],
+      ['cannot be written', breaking({ write: down })],
+      ['never lets a write win', breaking({ write: () => Promise.resolve(false) })],
+    ] as const) {
+      const tried = world(() => gemini(sampleA.rows), KEY, 2_000, { counters });
+      const response = await readTranscript(post(bytes), tried.outside);
+      // Not available, Gemini not called, one fixed line, and nothing of what was thrown.
+      expect([response.status, await response.json(), tried.calls.length, tried.logged], name).toEqual([503, UNAVAILABLE, 0, ['read-transcript: unavailable (store)']]);
+    }
+    // A write that keeps losing to other uploads, for one counter while the other can be written: refused all the same.
+    // Gemini is never asked unless both counters were written.
+    for (const losing of ['day/', 'month/']) {
+      const store = storeOf();
+      const lost: Counters = { ...store.counters, write: (key, value, mark) => (key.startsWith(losing) ? Promise.resolve(false) : store.counters.write(key, value, mark)) };
+      const tried = world(() => gemini(sampleA.rows), KEY, 2_000, { counters: () => lost });
+      const response = await readTranscript(post(bytes), tried.outside);
+      expect([response.status, await response.json(), tried.calls.length, tried.logged], losing).toEqual([503, UNAVAILABLE, 0, ['read-transcript: unavailable (store)']]);
+      // What the other counter took is there; nothing was written for the one that lost.
+      expect(Object.keys(store.all()), losing).toEqual(losing === 'day/' ? [] : [DAY]);
+    }
+    // The month's total cannot be written although the day's count could: Gemini is still not called.
+    const store = storeOf();
+    const half: Counters = { ...store.counters, write: (key, value, mark) => (key.startsWith('month/') ? down() : store.counters.write(key, value, mark)) };
+    const tried = world(() => gemini(sampleA.rows), KEY, 2_000, { counters: () => half });
+    expect([(await readTranscript(post(bytes), tried.outside)).status, tried.calls.length]).toEqual([503, 0]);
+    // Deleting the counts of earlier days failing does not stop an upload: it is tidying, not a limit.
+    const untidy = storeOf({ [`day/2026-11-16/${BROWSER}`]: 3 });
+    const kept = world(() => gemini(sampleA.rows), KEY, 2_000, { counters: () => ({ ...untidy.counters, keys: down }) });
+    expect((await readTranscript(post(bytes), kept.outside)).status).toBe(200);
+  });
+
+  it('keeps two kinds of numbers and nothing else', async () => {
+    const store = storeOf();
+    const logged: string[] = [];
+    const moments = ['2026-11-16T23:00:00Z', '2026-11-17T08:00:00Z', '2026-11-17T12:00:00Z', '2026-11-17T12:00:01Z', '2026-11-17T18:30:00Z'];
+    for (const [at, moment] of moments.entries()) {
+      for (const browser of [BROWSER, other(at + 1)]) {
+        const tried = world(() => gemini(sampleA.rows), KEY, 2_000, { store, now: () => new Date(moment) });
+        await readTranscript(new Request(`https://pathcheck.example${PATH}`, {
+          method: 'POST', body: bytes as BodyInit,
+          headers: { ...PDF_HEADERS, 'x-pathcheck-browser': browser, Cookie: 'session=Sample Student', 'User-Agent': 'A Browser/1.0', 'X-Forwarded-For': '203.0.113.7', 'X-Nf-Client-Connection-Ip': '203.0.113.7' },
+        }), tried.outside);
+        logged.push(...tried.logged);
+      }
+    }
+    const kept = store.all();
+    // Only keys of the two forms, and whole numbers under them. The day before is gone.
+    expect(Object.keys(kept).length).toBeGreaterThan(3);
+    for (const [key, value] of Object.entries(kept)) {
+      expect(key, key).toMatch(/^(day\/2026-11-17\/[0-9a-f]{32}|month\/2026-11)$/);
+      expect(Number.isSafeInteger(value) && value >= 0, key).toBe(true);
+    }
+    expect(kept[DAY]).toBe(3);
+    // Nothing of the request's other headers, of the transcript or of a time of day is anywhere in it.
+    expect(JSON.stringify(kept)).not.toMatch(/203\.0\.113|Sample|Browser\/|session|ORI|T\d\d:|sample-a/);
+    // The counters' code names no address, cookie or user agent, and the function passes none to Cloudflare.
+    // (Its code, without the comments that say so.)
+    const limits = readFileSync(join(root, 'netlify', 'lib', 'limits.mts'), 'utf8').split('\n').filter(line => !/^\s*(\/\/|\/\*|\*)/.test(line)).join('\n');
+    expect(limits).not.toMatch(/headers|cookie|user-agent|remoteip|\bip\b|request/i);
+    expect(source).not.toMatch(/remoteip|context\.ip|context\.geo|user-agent/i);
+    // The log: fixed words only; never a token, a browser's number or an amount.
+    expect(logged.every(line => /^read-transcript: (refused \((check|browser|day-limit|month-cap)\)|unavailable \([a-z-]+( \d{3})?\))$/.test(line))).toBe(true);
+    expect(logged).toContain('read-transcript: refused (day-limit)');
+    expect(logged.join('\n')).not.toMatch(new RegExp(`${BROWSER}|${TOKEN}|${SECRET}|\\d{4,}`));
   });
 });
 
@@ -426,6 +755,12 @@ describe('the reader check', () => {
     const script = readFileSync(join(root, 'scripts', 'reader-check.mjs'), 'utf8');
     expect(script).toContain('server: { middlewareMode: true, ws: false, hmr: false }');
     expect(script).toContain("redirect: 'error'");
+    // It passes the limits of a preview (F22): Cloudflare's test token, and a browser number of its own for each PDF's three runs.
+    expect(script).toContain("export const TEST_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';");
+    expect(script).toContain("'x-turnstile-token': TEST_TOKEN, 'x-pathcheck-browser': browser");
+    expect(script).toContain("const browser = randomBytes(16).toString('hex');");
+    // (So it runs each PDF at most three times: the day's limit for one number.)
+    expect(script).toContain('!/^[1-3]$/.test(times)');
     expect(script.match(/\bfetch\(/g)).toHaveLength(1);
     for (const address of ['http://pathcheck-staging.netlify.app', 'https://example.com', 'https://pathcheck.netlify.app.example.com', 'https://pathcheck-staging.netlify.app/api', 'https://generativelanguage.googleapis.com', '', undefined]) {
       expect(isDeploy(address), String(address)).toBe(false);

@@ -18,10 +18,11 @@ export function forbiddenText(folder, curriculumText) {
 
 /**
  * What also must not be in the built site: anything of the server piece (docs/sprints/F21.md).
- * The key lives in Netlify, and only the function knows its variable's name, Gemini's
- * address and the header the key travels in.
+ * The keys live in Netlify, and only the function knows their variables' names, Gemini's
+ * address and the header its key travels in, and the address and the test secret of
+ * Cloudflare's check of a token (F22).
  */
-export const SERVER_ONLY = ['GEMINI_API_KEY', 'generativelanguage.googleapis.com', 'x-goog-api-key'];
+export const SERVER_ONLY = ['GEMINI_API_KEY', 'generativelanguage.googleapis.com', 'x-goog-api-key', 'TURNSTILE_SECRET_KEY', 'turnstile/v0/siteverify', '1x0000000000000000000000000000000AA'];
 /** The pieces of the server found in a built file's text. */
 export const serverPiecesIn = text => SERVER_ONLY.filter(piece => text.toLowerCase().includes(piece.toLowerCase()));
 

@@ -5,14 +5,15 @@ import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, leftReport, refusalText, setupLeft, type LeftState } from './left';
 import { PRINT_TITLE, closeAfterPaper, openForPaper } from './print';
-import { CLEARED, canKeep, clearStored, keptText, loadKept, storeKept, type KeptResult } from './remember';
+import { CLEARED, browserNumber, canKeep, clearStored, keptText, loadKept, storeKept, type KeptResult } from './remember';
+import { botToken, siteKeyOf, type CheckWindow } from './turnstile';
 import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
 import { HREF, dayOf, oldReviewBanner, reportLink, routeOf, titleOf, type Day, type Route } from './shell';
 import { startPage } from './start';
 import { READS_MADE_UP, readFile, type ChosenFile, type Refusal } from './upload';
-import { READING } from './wording';
+import { READING, TICK } from './wording';
 
 /**
  * A page. `today` is the day on the student's device: with it, a curriculum whose last
@@ -77,6 +78,8 @@ export interface App {
 
 /** The id of the line that tells a screen reader what happened. It is outside the page that is drawn again. */
 export const STATUS_ID = 'pathcheck-status';
+/** The place of Cloudflare's bot check (F22): one element beside the page, kept through every redraw. */
+export const CHECK_ID = 'pathcheck-check';
 
 export function startApp(win: AppWindow): App {
   const root = win.document.getElementById('app');
@@ -123,7 +126,7 @@ export function startApp(win: AppWindow): App {
   let checkView: CheckView | null = null;
   const onCheck = (): OnCheck => {
     const { transcript } = left;
-    if (!transcript) return { state: 'none', refusal: left.reading ? READING : checkRefusal ? refusalText(checkRefusal) : null };
+    if (!transcript) return { state: 'none', refusal: left.reading ? (left.tick ? TICK : READING) : checkRefusal ? refusalText(checkRefusal) : null };
     if (!left.continued) return { state: 'reviewing' };
     const toFix = stillToFix(transcript).length;
     // With no row taken on there is nothing to go by; with rows still to fix nothing is exact.
@@ -155,6 +158,22 @@ export function startApp(win: AppWindow): App {
     return line;
   })();
   const say = (text: string): void => { status?.replaceChildren(text); };
+  // The place where Cloudflare's widget is drawn when a file is read on the hosted site: made once, beside
+  // the page, so that a box to tick is not lost when the page is drawn again or the student moves on.
+  // Empty, it is out of sight.
+  const checkPlace = ((): unknown => {
+    const doc = win.document as unknown as Partial<Document>;
+    if (!doc.body || !doc.createElement) return null;
+    const existing = doc.getElementById?.(CHECK_ID);
+    if (existing) return existing;
+    const place = doc.createElement('div');
+    place.id = CHECK_ID;
+    place.className = 'bot-check no-print';
+    // (The keyboard can be put on it when a box waits there: the next Tab then enters the widget.)
+    place.tabIndex = -1;
+    doc.body.append(place);
+    return place;
+  })();
 
   // Printing (F17). The result is opened for paper and the tab named for the file: by the
   // button before its own print call, and for the browser's own Print when the browser
@@ -262,6 +281,14 @@ export function startApp(win: AppWindow): App {
 
   // Each file taken has a number: only the last one chosen may change the page.
   let latest = 0;
+  // The bot check that is running for a file, if one is: ended when that file is no longer wanted, so that
+  // no box waits for a tick that would send a file the student has given up.
+  let endCheck: (() => void) | null = null;
+  const noCheck = (): void => {
+    const end = endCheck;
+    endCheck = null;
+    end?.();
+  };
   const takeFile = async (file: ChosenFile): Promise<void> => {
     // A transcript is already there: another file is not read. "Use another transcript" is the way.
     if (left.transcript) {
@@ -271,11 +298,14 @@ export function startApp(win: AppWindow): App {
       say(ANOTHER_FIRST);
       return;
     }
+    // Another file takes the place of one that is still being checked: that check is over.
+    noCheck();
     const mine = ++latest;
     // Where the file was chosen: a transcript asked for on "Check my courses" comes back there.
     const from = route;
     // Reading takes a moment on the hosted site: the page says so where a refusal would stand.
     left.reading = true;
+    left.tick = false;
     left.refusal = null;
     checkRefusal = null;
     if (route === 'check') {
@@ -289,7 +319,36 @@ export function startApp(win: AppWindow): App {
     let refusal: Refusal | null = null;
     let transcript: LeftState['transcript'] = null;
     try {
-      const upload = await readFile(file);
+      // On the hosted site the reader is asked only with a passed bot check, and counts the day's uploads
+      // under a random number of this browser's making (F22). On a development server neither is used.
+      // When Cloudflare wants its box ticked, the page says so where it said that it is reading, reads it out,
+      // and puts the keyboard on the box's place; afterwards it says again that it is reading.
+      const step = (tick: boolean): void => {
+        if (mine !== latest || !left.reading) return;
+        left.tick = tick;
+        if (route === 'check') checkView?.refresh();
+        else if (route === 'left' && !left.transcript) show(false);
+        say(tick ? TICK : READING);
+        // While a tick is asked the place is on the page even if the widget has drawn nothing into it yet,
+        // so that it can take the keyboard whatever the widget does first.
+        const place = checkPlace as { focus?(): void; toggleAttribute?(name: string, on: boolean): void } | null;
+        place?.toggleAttribute?.('data-asked', tick);
+        if (tick) place?.focus?.();
+      };
+      const upload = await readFile(file, {
+        // A token for a file that is no longer wanted (another was chosen, or the data was cleared) is no token:
+        // nothing is sent for it, and no number of the browser's is made or kept.
+        token: async () => {
+          const token = await botToken(win as unknown as CheckWindow, checkPlace, siteKeyOf(import.meta.env.VITE_TURNSTILE_SITE_KEY), undefined, {
+            asked: () => { step(true); },
+            answered: () => { step(false); },
+            begun: end => { if (mine === latest) endCheck = end; else end(); },
+          });
+          if (mine === latest) endCheck = null;
+          return mine === latest ? token : null;
+        },
+        browser: () => browserNumber(storage, (win.today?.() ?? new Date()).toISOString().slice(0, 10)),
+      });
       if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum, false, upload.madeUp);
       else refusal = upload.refusal;
     } catch (error) {
@@ -299,6 +358,7 @@ export function startApp(win: AppWindow): App {
     // Another file was chosen meanwhile, or the student cleared their data: this file changes nothing.
     if (mine !== latest) return;
     left.reading = false;
+    left.tick = false;
     if (refusal && from === 'check' && route === 'check') {
       // Not taken: the student stays on "Check my courses", and the card says why.
       checkRefusal = refusal;
@@ -367,7 +427,9 @@ export function startApp(win: AppWindow): App {
   // "Clear my data": everything PathCheck stored in the browser goes, the legacy answer
   // included, and with it what is on the pages. The page is then as on a first visit.
   function clearData(): void {
-    // A file that is still being read is not taken any more.
+    // A bot check waiting for a file is ended (while the file is still the one wanted, so that the page is
+    // told the waiting is over), and a file that is still being read is not taken any more.
+    noCheck();
     latest++;
     clearStored(storage);
     Object.assign(courses, emptyList());

@@ -96,6 +96,10 @@ describe('taking a file', () => {
   it('sends nothing on a development server', async () => {
     const sent: unknown[] = [];
     vi.stubGlobal('fetch', (...call: unknown[]) => { sent.push(call); return Promise.reject(new Error('nothing may be sent')); });
+    // Neither a bot check nor a browser's number is asked for there (F22): there is nobody to send them to.
+    const never = { token: (): Promise<string | null> => { sent.push('token'); return Promise.resolve('x'); }, browser: (): string => { sent.push('browser'); return 'x'; } };
+    expect((await readFile(fileOf(pdf('sample-b')), never)).ok).toBe(true);
+    expect(await readFile(fileOf(text('%PDF-1.4 somebody else')), never)).toEqual({ ok: false, refusal: 'not-made-up' });
     expect((await readFile(fileOf(pdf('sample-a')))).ok).toBe(true);
     expect(await readFile(fileOf(text('%PDF-1.4 somebody else')))).toEqual({ ok: false, refusal: 'not-made-up' });
     expect(await readFile(fileOf(text('not a pdf')))).toEqual({ ok: false, refusal: 'not-a-pdf' });
@@ -114,12 +118,19 @@ describe('on the built site', () => {
     return { upload: await import('../src/upload'), calls };
   };
   const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  /** A passed bot check and the browser's number for the day (F22), counting how often each is asked for. */
+  const NUMBER = '00112233445566778899aabbccddeeff';
+  const asking = (token: string | null = 'a-token-of-a-passed-check') => {
+    const asked = { token: 0, browser: 0 };
+    return { asked, token: (): Promise<string | null> => { asked.token++; return Promise.resolve(token); }, browser: (): string => { asked.browser++; return NUMBER; } };
+  };
+  const ASKING = asking();
 
   it('posts the PDF and nothing else', async () => {
     const answer = { rows: sampleA.rows, model: 'gemini-3.5-flash-lite' };
     const { upload, calls } = await built(() => json(answer));
     const bytes = pdf('sample-a');
-    expect(await upload.readFile(fileOf(bytes, 'My Transcript (final).pdf'))).toEqual({ ok: true, name: 'My Transcript (final).pdf', answer, madeUp: false });
+    expect(await upload.readFile(fileOf(bytes, 'My Transcript (final).pdf'), ASKING)).toEqual({ ok: true, name: 'My Transcript (final).pdf', answer, madeUp: false });
     // What the reader was given is never called one of the made-up transcripts, even when it is one of them, byte for byte:
     // the built site cannot tell, and holds nothing to tell by.
     expect(upload.READS_MADE_UP).toBe(false);
@@ -129,10 +140,11 @@ describe('on the built site', () => {
     expect(url).toBe('/api/read-transcript');
     expect(READER).toBe('/api/read-transcript');
     expect(init.method).toBe('POST');
-    // The PDF's bytes as they are, and one header that says they are a PDF. No key, nothing of PathCheck's that says who.
+    // The PDF's bytes as they are, a header that says they are a PDF, the token of the bot check and the browser's
+    // random number for the day (F22). No key, nothing of PathCheck's that says who.
     // (To this site only: on a private deploy the browser adds the visitor's Netlify login, without which nobody is answered.)
     expect(init.body).toEqual(bytes);
-    expect(init.headers).toEqual({ 'Content-Type': 'application/pdf' });
+    expect(init.headers).toEqual({ 'Content-Type': 'application/pdf', 'x-turnstile-token': 'a-token-of-a-passed-check', 'x-pathcheck-browser': NUMBER });
     // An answer that points to another address is not followed: the PDF goes to this site's function or nowhere.
     expect([init.credentials, init.cache, init.referrerPolicy, init.redirect]).toEqual(['same-origin', 'no-store', 'no-referrer', 'error']);
     // The wait is the page's own timer, so that it works in a browser without a ready-made one; it is put away after the answer.
@@ -141,11 +153,39 @@ describe('on the built site', () => {
     expect(readFileSync(join(folder, '..', '..', 'src', 'upload.ts'), 'utf8')).not.toContain('AbortSignal.timeout');
     // The file's name stays in the browser, where it is shown; a very long one is cut.
     expect(JSON.stringify([url, init.headers])).not.toMatch(/Transcript|final/);
-    const long = await upload.readFile(fileOf(bytes, `${'x'.repeat(300)}.pdf`));
+    const long = await upload.readFile(fileOf(bytes, `${'x'.repeat(300)}.pdf`), ASKING);
     expect(long.ok && long.name).toBe('x'.repeat(80));
     // The made-up answers are not in the built site: what the reader says is what is used.
     const { upload: other } = await built(() => json({ rows: [] }));
-    expect(await other.readFile(fileOf(bytes))).toEqual({ ok: true, name: 'transcript.pdf', answer: { rows: [] }, madeUp: false });
+    expect(await other.readFile(fileOf(bytes), ASKING)).toEqual({ ok: true, name: 'transcript.pdf', answer: { rows: [] }, madeUp: false });
+  });
+
+  it('asks the reader only with a passed bot check', async () => {
+    const { upload, calls } = await built(() => json({ rows: [] }));
+    const file = (): ChosenFile => fileOf(pdf('sample-a'));
+    // No check passed (the script blocked, the check failed, the wait ran out), or the check itself broke: nothing is posted,
+    // the browser's number is not even made, and the page says upload isn't available.
+    for (const none of [asking(null), asking(''), { ...asking(), token: () => Promise.reject(new Error('the widget broke')) }]) {
+      expect(await upload.readFile(file(), none)).toEqual({ ok: false, refusal: 'unavailable' });
+      if ('asked' in none) expect(none.asked.browser).toBe(0);
+    }
+    expect(await upload.readFile(file())).toEqual({ ok: false, refusal: 'unavailable' });
+    expect(calls).toEqual([]);
+    // A file that is refused in the browser asks for no check at all.
+    const never = asking();
+    expect(await upload.readFile(fileOf(text('not a pdf')), never)).toEqual({ ok: false, refusal: 'not-a-pdf' });
+    expect(await upload.readFile(fileOf(pdf('sample-a'), 'huge.pdf', upload.LARGEST_FILE + 1), never)).toEqual({ ok: false, refusal: 'too-large' });
+    expect(never.asked).toEqual({ token: 0, browser: 0 });
+    // With a passed check: one token and one number for one upload.
+    const once = asking();
+    expect((await upload.readFile(file(), once)).ok).toBe(true);
+    expect(once.asked).toEqual({ token: 1, browser: 1 });
+    expect(calls).toHaveLength(1);
+    // The function's refusals of a check or a limit are the sentence the browser already has.
+    for (const [status, error] of [[403, 'check'], [429, 'limit'], [400, 'browser']] as const) {
+      const refusing = await built(() => json({ error }, status));
+      expect(await refusing.upload.readFile(file(), asking()), String(status)).toEqual({ ok: false, refusal: 'unavailable' });
+    }
   });
 
   it('refuses in the browser before anything is sent', async () => {
@@ -170,12 +210,12 @@ describe('on the built site', () => {
     // The function says so; or anything else that is not an answer.
     for (const status of [503, 500, 502, 404, 405, 429, 401, 403, 400, 302]) {
       const { upload } = await built(() => json({ error: 'unavailable' }, status));
-      expect(await upload.readFile(file()), String(status)).toEqual(unavailable);
+      expect(await upload.readFile(file(), ASKING), String(status)).toEqual(unavailable);
     }
     // It cannot be reached, or does not answer in time.
     for (const failure of [new TypeError('Failed to fetch'), new DOMException('The operation timed out.', 'TimeoutError')]) {
       const { upload } = await built(() => Promise.reject(failure));
-      expect(await upload.readFile(file())).toEqual(unavailable);
+      expect(await upload.readFile(file(), ASKING)).toEqual(unavailable);
     }
     // It never answers: the page stops waiting after 40 seconds, tells the request to stop, and says the same.
     vi.useFakeTimers();
@@ -191,7 +231,7 @@ describe('on the built site', () => {
       const slow = await import('../src/upload');
       expect(slow.READER_WAIT).toBe(40_000);
       let result: unknown = 'waiting';
-      void slow.readFile(file()).then(read => { result = read; });
+      void slow.readFile(file(), ASKING).then(read => { result = read; });
       await vi.advanceTimersByTimeAsync(slow.READER_WAIT - 1);
       expect(result).toBe('waiting');
       expect(sent[0]!.signal!.aborted).toBe(false);
@@ -203,16 +243,16 @@ describe('on the built site', () => {
     }
     // An answer that is not JSON (a host's error page with the wrong status).
     const { upload } = await built(() => new Response('<!doctype html><title>Site not available</title>', { status: 200 }));
-    expect(await upload.readFile(file())).toEqual(unavailable);
+    expect(await upload.readFile(file(), ASKING)).toEqual(unavailable);
     // The function's own refusals are the sentences the browser already has.
-    expect(await (await built(() => json({ error: 'too-large' }, 413))).upload.readFile(file())).toEqual({ ok: false, refusal: 'too-large' });
-    expect(await (await built(() => json({ error: 'not-a-pdf' }, 415))).upload.readFile(file())).toEqual({ ok: false, refusal: 'not-a-pdf' });
+    expect(await (await built(() => json({ error: 'too-large' }, 413))).upload.readFile(file(), ASKING)).toEqual({ ok: false, refusal: 'too-large' });
+    expect(await (await built(() => json({ error: 'not-a-pdf' }, 415))).upload.readFile(file(), ASKING)).toEqual({ ok: false, refusal: 'not-a-pdf' });
   });
 
   it('puts the answer through the same checks as a prepared one', async () => {
     const take = async (answer: unknown) => {
       const { upload } = await built(() => json(answer));
-      const read = await upload.readFile(fileOf(pdf('sample-a'), 'mine.pdf'));
+      const read = await upload.readFile(fileOf(pdf('sample-a'), 'mine.pdf'), ASKING);
       if (!read.ok) throw new Error('refused');
       return openTranscript(read.name, read.answer, curriculum);
     };
@@ -244,7 +284,10 @@ describe('on the built site', () => {
 
   it('holds nothing of the server piece', () => {
     // `npm run check` looks through the built site for these after every build.
-    expect(SERVER_ONLY).toEqual(['GEMINI_API_KEY', 'generativelanguage.googleapis.com', 'x-goog-api-key']);
+    expect(SERVER_ONLY).toEqual(['GEMINI_API_KEY', 'generativelanguage.googleapis.com', 'x-goog-api-key', 'TURNSTILE_SECRET_KEY', 'turnstile/v0/siteverify', '1x0000000000000000000000000000000AA']);
+    expect(serverPiecesIn('fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify")')).toEqual(['turnstile/v0/siteverify']);
+    // (The widget's script and the test site key are the browser's and may be there.)
+    expect(serverPiecesIn('src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";k="1x00000000000000000000AA"')).toEqual([]);
     expect(serverPiecesIn('fetch("/api/read-transcript",{method:"POST"})')).toEqual([]);
     expect(serverPiecesIn('const key=process.env.GEMINI_API_KEY')).toEqual(['GEMINI_API_KEY']);
     expect(serverPiecesIn('headers:{"X-Goog-Api-Key":k}')).toEqual(['x-goog-api-key']);

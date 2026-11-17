@@ -22,6 +22,8 @@ export const CAVEAT = 'Credits only — course order may add semesters.';
 export const PRIVACY = 'Google reads your PDF and may keep it briefly. Your result stays in this browser.';
 /** Said and shown while a chosen PDF is being read (on the hosted site it takes some seconds). */
 export const READING = 'Reading your transcript…';
+/** Said and shown in its place while Cloudflare's bot check waits for the student to tick its box (F22). */
+export const TICK = 'One more step: tick the box at the bottom of the window.';
 
 /** The answer for a course in a curriculum list; `block` is the block's name from the curriculum. */
 export const countsToward = (block: string): string => `Counts toward CIS — ${block}`;
