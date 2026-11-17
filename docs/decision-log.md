@@ -1219,6 +1219,29 @@ What it decides:
   reading.
 - Nothing of the rows on the screenshot is recorded.
 
+### 2026-11-17 — Start M3; the owner makes the site public and deploys to production
+
+The owner's words: "I have now closed Milestone 2." and, pasted with it:
+
+"M2 approved, <date>. I uploaded my own transcript on staging and the results are right. Record it in docs/decision-log.md (Milestone checks, M2 row). I'll close the GitHub milestone myself.
+
+Start M3. Contact email for "Report a mistake": <email>. Curriculum review date stays 2026-11-15.
+Stop before anything goes public. I make the site public and run the production deploy myself."
+
+What it decides:
+- **M2 is approved** (already in the "Milestone checks" table, M2 row, from the owner's
+  "M2 Approved." of the same day), and the owner has closed the GitHub milestone.
+- **M3 is started.**
+- **The curriculum review date stays 2026-11-15.**
+- **The agent stops before anything goes public.** Making the site public and the
+  production deploy are the owner's.
+
+*Agent's notes, not owner decisions:*
+- "<date>" and "<email>" are written as in the owner's message: they were not filled in.
+  The date of the approval is 2026-11-17, the day of the message (as was done for M1).
+  **The contact email is not given yet**: the owner is asked for it; until then "Report a
+  mistake" keeps the placeholder address, and F26 cannot pass. F25 does not need it.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
