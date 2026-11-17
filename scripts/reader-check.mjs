@@ -68,7 +68,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const folder = join(root, 'synthetic', 'transcripts');
   // The app's own checks, loaded the way the app's code is.
   const { createServer } = await import('vite');
-  const vite = await createServer({ root, server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
+  // (No port is opened: no live-reload socket, no server.)
+  const vite = await createServer({ root, server: { middlewareMode: true, ws: false, hmr: false }, appType: 'custom', logLevel: 'silent' });
   let failed = 0;
   try {
     const { readRows } = await vite.ssrLoadModule('/src/reader.ts');
@@ -77,7 +78,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       const prepared = JSON.parse(readFileSync(join(folder, `${name}.json`), 'utf8'));
       const pdf = readFileSync(join(folder, `${name}.pdf`));
       for (let run = 1; run <= Number(times); run++) {
-        const response = await fetch(new URL('/api/read-transcript', address), { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: pdf });
+        const response = await fetch(new URL('/api/read-transcript', address), { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: pdf, redirect: 'error' });
         if (!response.ok) {
           failed++;
           console.log(`${name}.pdf, run ${run}: FAIL (the function answered ${response.status})`);

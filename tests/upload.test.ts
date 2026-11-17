@@ -130,7 +130,10 @@ describe('on the built site', () => {
     expect(init.body).toEqual(bytes);
     expect(init.headers).toEqual({ 'Content-Type': 'application/pdf' });
     expect([init.credentials, init.cache, init.referrerPolicy]).toEqual(['omit', 'no-store', 'no-referrer']);
+    // The wait is the page's own timer, so that it works in a browser without a ready-made one; it is put away after the answer.
     expect(init.signal).toBeInstanceOf(AbortSignal);
+    expect((init.signal as AbortSignal).aborted).toBe(false);
+    expect(readFileSync(join(folder, '..', '..', 'src', 'upload.ts'), 'utf8')).not.toContain('AbortSignal.timeout');
     // The file's name stays in the browser, where it is shown; a very long one is cut.
     expect(JSON.stringify([url, init.headers])).not.toMatch(/Transcript|final/);
     const long = await upload.readFile(fileOf(bytes, `${'x'.repeat(300)}.pdf`));

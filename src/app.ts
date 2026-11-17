@@ -263,9 +263,13 @@ export function startApp(win: AppWindow): App {
     left.reading = true;
     left.refusal = null;
     checkRefusal = null;
-    if (route === 'check') checkView?.refresh();
-    else if (route === 'left') show(false);
-    else showLeft();
+    if (route === 'check') {
+      checkView?.refresh();
+      part<{ focus(): void }>('[data-choose]')?.focus();
+    } else if (route === 'left') {
+      show(false);
+      part<{ focus(): void }>('[data-browse]')?.focus();
+    } else showLeft();
     say(READING);
     let refusal: Refusal | null = null;
     let transcript: LeftState['transcript'] = null;
@@ -277,7 +281,7 @@ export function startApp(win: AppWindow): App {
       // A reader's answer that is no answer; or a file that could not be opened at all.
       refusal = error instanceof ReaderError ? 'unavailable' : 'unreadable';
     }
-    // The student cleared their data meanwhile: this file changes nothing.
+    // Another file was chosen meanwhile, or the student cleared their data: this file changes nothing.
     if (mine !== latest) return;
     left.reading = false;
     if (refusal && from === 'check' && route === 'check') {

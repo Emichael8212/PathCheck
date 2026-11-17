@@ -12,7 +12,7 @@
 //     every reader's answer (`readRows` in src/reader.ts) before anything counts. Only
 //     the nine named fields of a row are passed on, each cut to a short length.
 
-/** Where the function is served. */
+/** Where the function is served (also written out in `config`, at the end). */
 export const PATH = '/api/read-transcript';
 /** The largest PDF taken: Netlify itself stops a binary body at about 4.5 MB. */
 export const LARGEST_BODY = 4 * 1024 * 1024;
@@ -63,7 +63,7 @@ export const SHAPE = {
 };
 
 /** Why nothing could be read. Each is one fixed word in the log; the student hears one sentence for all of them. */
-export type Failure = 'no-key' | 'unreachable' | 'timeout' | 'refused' | 'blocked' | 'cut-off' | 'not-rows';
+export type Failure = 'body' | 'no-key' | 'unreachable' | 'timeout' | 'refused' | 'blocked' | 'cut-off' | 'not-rows';
 
 /** What the function uses of the world outside it. */
 export interface Outside {
@@ -191,14 +191,20 @@ export async function readTranscript(request: Request, outside: Outside): Promis
   if (request.method !== 'POST') return answer(405, { error: 'method' }, { Allow: 'POST' });
   const type = (request.headers.get('content-type') ?? '').split(';')[0]?.trim().toLowerCase();
   if (type !== 'application/pdf') return answer(415, { error: 'not-a-pdf' });
-  const pdf = await bodyOf(request);
-  if (pdf === null) return answer(413, { error: 'too-large' });
-  if (!isPdf(pdf)) return answer(415, { error: 'not-a-pdf' });
-
   const unavailable = (failure: Failure, status?: number): Response => {
     outside.log(`read-transcript: unavailable (${failure}${typeof status === 'number' ? ` ${Math.trunc(status)}` : ''})`);
     return answer(503, { error: 'unavailable' });
   };
+  let pdf: Uint8Array | null;
+  try {
+    pdf = await bodyOf(request);
+  } catch {
+    // The upload broke off on its way here. What was thrown is not looked at.
+    return unavailable('body');
+  }
+  if (pdf === null) return answer(413, { error: 'too-large' });
+  if (!isPdf(pdf)) return answer(415, { error: 'not-a-pdf' });
+
   const key = outside.key?.trim();
   if (!key) return unavailable('no-key');
   const read = await askGemini(pdf, key, outside);
@@ -209,4 +215,5 @@ export async function readTranscript(request: Request, outside: Outside): Promis
 export default (request: Request): Promise<Response> =>
   readTranscript(request, { fetch: (input, init) => fetch(input, init), key: process.env.GEMINI_API_KEY, log: line => console.error(line) });
 
-export const config = { path: PATH };
+// Netlify reads this from the file's text without running it: the path is written out, not named.
+export const config = { path: '/api/read-transcript' };

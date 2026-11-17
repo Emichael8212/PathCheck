@@ -67,6 +67,9 @@ const madeUp = import.meta.env.DEV
 
 /** Has the PDF read by the function. Whatever goes wrong, the upload is not available; nothing of the file is kept. */
 async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
+  // The wait is a timer of its own: not every browser in use has a ready-made one.
+  const stop = new AbortController();
+  const timer = setTimeout(() => { stop.abort(); }, READER_WAIT);
   try {
     const response = await fetch(READER, {
       method: 'POST',
@@ -75,7 +78,7 @@ async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
       credentials: 'omit',
       cache: 'no-store',
       referrerPolicy: 'no-referrer',
-      signal: AbortSignal.timeout(READER_WAIT),
+      signal: stop.signal,
     });
     if (response.status === 413) return { ok: false, refusal: 'too-large' };
     if (response.status === 415) return { ok: false, refusal: 'not-a-pdf' };
@@ -83,6 +86,8 @@ async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
     return { ok: true, name: name.slice(0, LONGEST_NAME), answer: (await response.json()) as unknown };
   } catch {
     return { ok: false, refusal: 'unavailable' };
+  } finally {
+    clearTimeout(timer);
   }
 }
 

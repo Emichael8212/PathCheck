@@ -240,10 +240,13 @@ describe('bringing a transcript', () => {
     };
     // On this page: where a refusal would stand, and read out.
     let slow = late('sample-a');
+    $('[data-browse]').focus();
     let waiting = app.takeFile(slow.file);
     expect(heading()).toBe('See what I have left');
     expect(tidy($('[data-refusal]').textContent)).toBe(READING);
     expect(said()).toBe(READING);
+    // The keyboard is still on the button the file was chosen with.
+    expect(document.activeElement).toBe($('[data-browse]'));
     slow.release();
     await waiting;
     expect(heading()).toBe('Check what was read');
@@ -268,6 +271,7 @@ describe('bringing a transcript', () => {
     waiting = app.takeFile({ ...other, arrayBuffer: (): Promise<ArrayBuffer> => new Promise<ArrayBuffer>(resolve => { let_go = () => { void other.arrayBuffer().then(resolve); }; }) });
     expect(app.route).toBe('check');
     expect(tidy($('[data-refusal]').textContent)).toBe(READING);
+    expect(document.activeElement).toBe($('[data-choose]'));
     let_go();
     await waiting;
     expect(tidy($('[data-refusal]').textContent)).toBe('PathCheck can only read its two made-up transcripts for now. Nothing from this file was kept or sent.');
