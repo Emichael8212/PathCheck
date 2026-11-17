@@ -1007,6 +1007,19 @@ value in one context each.
 - Netlify's list shows the last characters of a hidden value; they are not recorded.
 - Nothing is built or published yet: that is step 3.
 
+### 2026-11-17 — F24, step 3: the owner built `main` with the keys and published it
+
+The owner started a build in Netlify ("Trigger deploy") and published it by hand. The
+owner's screenshots of the deploy's page: first "Deploy successful for pathcheck", today
+at 6:04 AM, "Production: main@8770a71", every stage of the log complete; then, after
+"Publish deploy", "Published & locked deploy for pathcheck" with "Publishing is locked to
+this deploy." and the control "Unlock to start auto publishing".
+
+*Agent's notes, not owner decisions:*
+- So the staging address serves commit 8770a71 (F21, F22 and F23), and publishing stays
+  locked after a publish by hand: a later merge still publishes nothing.
+- Still to be reported by the owner: that the plan shown by Netlify is Free.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
