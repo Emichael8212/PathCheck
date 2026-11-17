@@ -84,6 +84,10 @@ describe("Cloudflare's bot check in the page", () => {
     const pending = botToken(unwanted.win, PLACE, KEY, 60_000, { asked: () => { ended.push('asked'); }, answered: () => { ended.push('answered'); }, begun: end => { setTimeout(end, 5); } });
     expect(await pending).toBeNull();
     expect([ended, unwanted.seen.removed]).toEqual([['asked', 'answered'], ['widget-1']]);
+    // Ended as it begins (the file was given up while the script was loading): no widget is drawn at all, and there is no token.
+    const stale = browserOf('loads');
+    expect(await botToken(stale.win, PLACE, KEY, 60_000, { begun: end => { end(); } })).toBeNull();
+    expect([stale.seen.rendered.length, stale.seen.removed]).toEqual([0, []]);
     // After the check is over the widget's words change nothing; and a page that breaks on being told breaks nothing here.
     expect(await told(options => { options.callback('a-token'); options['before-interactive-callback'](); })).toEqual({ token: 'a-token', steps: [] });
     const { win } = browserOf('loads', options => { options['before-interactive-callback'](); options.callback('a-token'); });

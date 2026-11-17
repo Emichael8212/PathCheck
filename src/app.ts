@@ -427,9 +427,10 @@ export function startApp(win: AppWindow): App {
   // "Clear my data": everything PathCheck stored in the browser goes, the legacy answer
   // included, and with it what is on the pages. The page is then as on a first visit.
   function clearData(): void {
-    // A file that is still being read is not taken any more, and a bot check waiting for it is ended.
-    latest++;
+    // A bot check waiting for a file is ended (while the file is still the one wanted, so that the page is
+    // told the waiting is over), and a file that is still being read is not taken any more.
     noCheck();
+    latest++;
     clearStored(storage);
     Object.assign(courses, emptyList());
     Object.assign(left, emptyLeft());

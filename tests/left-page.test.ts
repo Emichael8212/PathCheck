@@ -424,6 +424,8 @@ describe('bringing a transcript', () => {
       expect(tidy($('[data-refusal]').textContent)).toBe(TICK);
       $('[data-clear]').click();
       expect(removed).toEqual(['widget-2']);
+      // (The place no longer says that a tick is waited for.)
+      expect(place.hasAttribute('data-asked')).toBe(false);
       drawn[1]!.options.callback!('a-late-token');
       await given;
       expect(posted).not.toHaveBeenCalled();

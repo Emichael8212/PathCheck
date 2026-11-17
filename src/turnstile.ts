@@ -113,6 +113,8 @@ export async function botToken(win: CheckWindow, container: unknown, siteKey: st
       } catch {
         // (What the page does with it is the page's business.)
       }
+      // Ended as it began (the file is no longer wanted): no widget is drawn at all.
+      if (over) return;
       id = widget.render(container, {
         sitekey: siteKey,
         action: ACTION,
