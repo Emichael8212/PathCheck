@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import sampleA from '../synthetic/transcripts/sample-a.json';
 import sampleB from '../synthetic/transcripts/sample-b.json';
 import { onTestDay } from './day';
+import { FIRST_OLD_DAY, at } from './reviewed';
 import { startApp, type App, type AppWindow } from '../src/app';
 import { curriculum } from '../src/curriculum';
 import { CLEARED, STORED_KEYS, VISIT_KEY, keptRows, keptText, readKept } from '../src/remember';
@@ -708,7 +709,7 @@ describe('nothing leaves the browser', () => {
     app.stop();
     document.body.innerHTML = '<div id="app"></div>';
     win.print = () => {};
-    win.today = () => new Date(2027, 10, 16, 9);
+    win.today = () => at(FIRST_OLD_DAY, 9);
     app = startApp(win);
     expect(tidy($('.old-review').textContent)).toContain('more than 12 months ago');
     expect(page()).toBe(before.page);
@@ -724,6 +725,6 @@ describe('nothing leaves the browser', () => {
     // "Clear my data" and its sentence are not printed: they sit in the row that print hides.
     expect($('[data-clear]').closest('.no-print')).not.toBeNull();
     expect($('[data-kept-note]').closest('.no-print')).not.toBeNull();
-    expect(window.localStorage.getItem(VISIT_KEY)).not.toMatch(/2027-11|old-review/);
+    expect(window.localStorage.getItem(VISIT_KEY)).not.toMatch(new RegExp(`${FIRST_OLD_DAY.year}-${String(FIRST_OLD_DAY.month).padStart(2, '0')}|old-review`));
   });
 });
