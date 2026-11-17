@@ -404,7 +404,9 @@ describe('the draft plan', () => {
     const pool = [...everyCourse, 'MKT 410', 'CIS 499', 'ECO 301', 'ACT 350', 'CIS 304', 'BIO 230'];
     const marks = ['A', 'B', 'B', 'B', 'C', 'D', 'F', 'W', '-', '-'];
     const seen = { late: 0, split: 0, moved: 0, extra: 0, throughHeld: 0, finalAlone: 0, underFewest: 0, summers: 0, gaps: 0 };
-    for (let i = 0; i < 400; i++) {
+    // (Many cases, so that each situation counted below comes up often enough whatever courses the curriculum file
+    // lists: the cases are drawn from its list, and a course added to a pick changes which ones are drawn. F25.)
+    for (let i = 0; i < 2000; i++) {
       const rows = Array.from({ length: Math.floor(next() * (i % 4 === 0 ? pool.length * 1.4 : 30)) }, () => `${pick(pool)}:${pick(marks)}`);
       const standings = having(rows);
       const legacy = next() < 0.5;

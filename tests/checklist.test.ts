@@ -86,7 +86,22 @@ describe('the requirements', () => {
     type Shown = { code?: string; title?: string; note?: string; open?: boolean; text?: string };
     const blocks = approved.blocks as { name: string; counted: number; needed: number; status: string; done?: Shown[]; progress?: Shown[]; still?: Shown[] }[];
     expect(blocks.map(block => block.name).sort()).toEqual(checklist.cards.map(card => card.name).sort());
-    const wanted = (items: Shown[] = []): string[] => items.map(one => (one.open ? one.text! : one.note ? `${one.code} (${one.note})` : one.code!));
+    // An open pick is written by the design as "1 of A / B / C". The mockups are a frozen record of the approved
+    // design, and a pick's alternatives are the curriculum file's (F25, docs/CURRICULUM-HANDOVER.md): so the pick is
+    // found by the courses the design names, and its alternatives are those the file has today, in its order.
+    // (The electives' sentence is a rule and stays as the design writes it.)
+    const groups = curriculum.blocks.flatMap(block => block.picks);
+    const openText = (text: string): string => {
+      const pick = /^(\d+) of (.+)$/.exec(text);
+      if (!pick) return text;
+      const named = pick[2]!.split(' / ');
+      const shared = (group: (typeof groups)[number]): number => group.courses.filter(course => named.includes(course.code)).length;
+      const group = [...groups].sort((a, b) => shared(b) - shared(a))[0]!;
+      // The design's pick is one of the curriculum's: most of what it names is still there.
+      expect(shared(group) * 2, text).toBeGreaterThan(named.length);
+      return `${pick[1]} of ${group.courses.map(course => course.code).join(' / ')}`;
+    };
+    const wanted = (items: Shown[] = []): string[] => items.map(one => (one.open ? openText(one.text!) : one.note ? `${one.code} (${one.note})` : one.code!));
     for (const block of blocks) {
       const card = cardOf(checklist, block.name);
       expect([card.status, card.counted, card.needed], block.name).toEqual([block.status, block.counted, block.needed]);
