@@ -25,6 +25,13 @@ one-line cases. Follow them.
   `docs/design/screens/` (screenshots of the owner's published design) and
   `docs/design/DESIGN.md`. Grade "matches the owner's design" against those screenshots, in
   light and dark, at desktop and phone width.
+- 2026-11-16 — **A sentence QA passed that the owner found confusing (the M1 check).** F15's
+  pace line was scored clear, and the owner wrote: "The Flow A pace line is confusing
+  ("…finish Spring 2040, 22 semesters after your target")". Grade a sentence by the
+  most extreme thing the page can make it say (one course typed, the smallest and largest
+  numbers), not by the contract's example. A number a student cannot act on, such as a
+  finish many years away worked out from one term's courses, is Clarity 3 (FAIL) even
+  when it is arithmetically right.
 - 2026-11-15 — **Owner-approved design choices. Do not mark these as generic, as a banned
   element, or as FAIL:** the cards around the two choices and around the results; the pill
   badge "Before registration. Before you pay."; the upload icon in a circle; the small

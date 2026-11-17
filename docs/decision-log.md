@@ -747,6 +747,36 @@ not changed without the owner's yes (asked in the pull request).
 - M1 is not closed by this answer: the change is made first, and the owner is asked
   again.
 
+### 2026-11-16 — M1 approved; x stays as built; F15 step 1 reworded; M2 started
+
+The owner's message, in full (an answer to the three questions of pull request #30):
+
+"1. x stays as built (credits needed per term from this term to the target). No change.
+2. Approved: reword F15 step 1 as you proposed.
+3. M1 approved, <date>. Record it in docs/decision-log.md (Milestone checks, M1 row). Your choices in docs/milestones/M1.md part 5 are approved. I'll close the GitHub milestone myself.
+
+Start M2. Tell me exactly what to set up and where, one step at a time. I set every secret myself — never ask me to paste a key in chat."
+
+What it decides:
+- **x** on the pace line of "Check my courses" stays as built: the credits needed per term
+  from this term to the target. The other reading (what the terms after this one need) is
+  not built.
+- **F15 step 1** in `features.json` now reads: "With a transcript, Flow A asks the target semester and adds one line, for example "15 of these 15 credits count. To finish by Spring 2029, you need about 17 counting credits a term.""
+- **M1 is approved.** The choices listed in `docs/milestones/M1.md` part 5 are approved: what
+  "counting credits left" and "semesters left to the target" mean; "Most" as the most
+  credits per term of "See what I have left"; n as the number above "Count toward CIS"; the
+  term as the target when the target is earlier; no summers on this line; the owner's
+  words used exactly for every number; the caveat kept under the line.
+- **M2 is started.** The owner sets every secret themselves; a key is never asked for in
+  chat. The owner closes the GitHub milestone "M1: Working prototype" themselves.
+
+*Agent's notes, not owner decisions:*
+- The message has "<date>" where a date was meant. The approval is recorded with
+  2026-11-16, the day the message arrived.
+- The message approves M1 and the choices of part 5. The items of `docs/milestones/M1.md`
+  part 3 were not mentioned one by one; they stay listed there as the agent's choices, and
+  the question about the review step stays under "Open questions to the owner".
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -772,6 +802,6 @@ owner reviewed the curriculum on 2026-11-15 (see "Owner answers").
 | Milestone | Date | Owner's answer |
 |---|---|---|
 | M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
-| M1 | 2026-11-16 | "Everything works as intended except for one thing.": the pace line of "Check my courses" is to be replaced (see "Owner answers", the same day). The change is made on `fix/F15-pace-line`; M1 is closed, and M2 started, only when the owner says so after it. What was checked: `docs/milestones/M1.md`. |
+| M1 | 2026-11-16 | **Approved:** "M1 approved". First answer the same day: "Everything works as intended except for one thing.": the pace line of "Check my courses" was replaced (pull request #30), and the owner then approved M1 and the choices of `docs/milestones/M1.md` part 5, and said "Start M2." (see "Owner answers"). The owner closes the GitHub milestone themselves. What was checked: `docs/milestones/M1.md`. |
 | M2 | | |
 | M3 | | |
