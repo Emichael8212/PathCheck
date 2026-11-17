@@ -1059,6 +1059,26 @@ count. To finish by Spring 2029, you need about 17 counting credits a term."
 - The Console, shown whole this time, holds the same six lines as in step 4, all from
   Cloudflare's widget frame (`normal?lang=auto`); "Check my courses" added none.
 
+### 2026-11-17 — F24, step 6, first try: the owner's transcript prints three decimals
+
+The owner uploaded their own transcript on the staging address. It was read, and every
+row asked to be fixed: "Needs fixing: the credits, the earned credits, the points". The
+owner sent one screenshot of "Check what was read".
+
+*Agent's notes, not owner decisions:*
+- What is kept of that screenshot is how the transcript prints a figure: with three
+  decimals ("3.000"). Nothing else of it is recorded or copied into the repository.
+- The check took at most two decimals (a sanity mark of F10, not an academic rule). It
+  now takes three: pull request #37, merged; see the row "(2026-11-17, F10)" above and
+  the last section of `docs/sprints/F10.md`. It reaches the staging address with the
+  owner's next build and publish.
+- A result kept from before the fix keeps its rows as rows to fix; the owner uploads
+  again after "Use another transcript".
+- The evaluator's rule for the feature's "no console errors": lines from Cloudflare's
+  widget frame are recorded and not counted when the Console shows that they are
+  Cloudflare's and that the page itself has none, the widget did its job in the same
+  run, and they are written down here; an error naming a PathCheck file fails.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
