@@ -130,6 +130,14 @@ export function startApp(win: AppWindow): App {
     return { state: 'added', name: transcript.name, use, counts: countLine(transcript), toFix, pace: left.pace };
   };
 
+  // The sentence about another transcript goes with the next thing the student does on the page:
+  // out of the state, and off the page at once, also where only a part of the page is drawn again.
+  const noNotice = (): void => {
+    if (!left.notice) return;
+    left.notice = false;
+    part<{ remove(): void }>('[data-notice]')?.remove();
+  };
+
   // One polite status line for what happens on a page that is drawn again as a whole: made
   // once, beside the page, so that what is said in it is read out.
   const status = ((): { replaceChildren(text: string): void } | null => {
@@ -212,6 +220,7 @@ export function startApp(win: AppWindow): App {
         print,
         // One legacy answer for both flows, remembered in the browser.
         legacy: answer => {
+          noNotice();
           courses.legacy = answer;
           if (answer === null) clearLegacyAnswer(browserStorage());
           else writeLegacyAnswer(browserStorage(), answer);
@@ -223,8 +232,10 @@ export function startApp(win: AppWindow): App {
           left.returnTo = 'left';
           goTo('check');
         },
-        // Whatever the student does next on this page, the sentence about another transcript has been read.
-      }, next => { Object.assign(left, next, { notice: false }); });
+      }, next => {
+        Object.assign(left, next);
+        noNotice();
+      });
     }
     if (moved) {
       // What was said on the page before does not stay behind on this one.
@@ -401,6 +412,14 @@ export function startApp(win: AppWindow): App {
   win.addEventListener('drop', onDrop);
   // After anything the student does, when every handler of the page has run, the visit is kept as it now stands.
   const onChange: Listener = () => keep();
+  // Anything pressed or chosen on "See what I have left" (a card opened, the filter, Print, a list) is such a next thing.
+  // (Moving through the page with the keyboard is not: the sentence stays while it is being reached.)
+  const onAct: Listener = event => {
+    const target = (event as { target?: unknown }).target as { closest?(selector: string): unknown } | null | undefined;
+    if (route === 'left' && target?.closest?.('main')) noNotice();
+  };
+  win.addEventListener('click', onAct);
+  win.addEventListener('change', onAct);
   win.addEventListener('click', onChange);
   win.addEventListener('change', onChange);
   win.addEventListener('keydown', onChange);
@@ -421,6 +440,8 @@ export function startApp(win: AppWindow): App {
       win.removeEventListener?.('hashchange', onHashChange);
       win.removeEventListener?.('dragover', onDragOver);
       win.removeEventListener?.('drop', onDrop);
+      win.removeEventListener?.('click', onAct);
+      win.removeEventListener?.('change', onAct);
       win.removeEventListener?.('click', onChange);
       win.removeEventListener?.('change', onChange);
       win.removeEventListener?.('keydown', onChange);

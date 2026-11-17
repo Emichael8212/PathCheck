@@ -307,10 +307,36 @@ describe('bringing a transcript', () => {
     expect(heading()).toBe('Your degree, in focus.');
     expect(notice()).toBe(SENTENCE);
     expect(app.left.transcript?.name).toBe('sample-a.pdf');
+    // Whatever the student does next on the result takes it away at once, also where only a part of the page is drawn again
+    // or nothing is: a pace control, a requirement opened, the filter. Each time another file brings it back.
+    const again = async (): Promise<void> => {
+      go('#/');
+      await app.takeFile(madeUp('sample-b'));
+      expect(notice()).toBe(SENTENCE);
+    };
+    $('[data-stepper="most"] [data-delta="1"]').click();
+    expect(notice()).toBeNull();
+    await again();
+    $('main details summary').click();
+    expect(notice()).toBeNull();
+    await again();
+    $('[data-reqs="not-done"]').click();
+    expect(notice()).toBeNull();
+    await again();
+    const target = $<HTMLSelectElement>('[data-pace-target]');
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(notice()).toBeNull();
+    // Moving through the page with the keyboard is not such a thing: the sentence stays while it is reached.
+    await again();
+    $('main').dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(notice()).toBe(SENTENCE);
+    // What is kept in the browser is the same with the sentence shown as without it.
+    const kept = JSON.stringify(Object.entries(window.localStorage));
     // Going to another page and back: it has been read, and does not follow.
     go('#/check');
     go('#/left');
     expect(notice()).toBeNull();
+    expect(JSON.stringify(Object.entries(window.localStorage))).toBe(kept);
     // A file dropped while a transcript is there says the same.
     const dropped = new Event('drop', { bubbles: true, cancelable: true }) as Event & { dataTransfer?: unknown };
     dropped.dataTransfer = { types: ['Files'], files: [madeUp('sample-b')], dropEffect: 'none' };
