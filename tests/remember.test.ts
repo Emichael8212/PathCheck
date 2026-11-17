@@ -333,6 +333,17 @@ describe('what is kept', () => {
     const first = tidy(document.querySelector('.review-row')?.textContent);
     expect(first).toContain('HIS 131');
     expect(first.match(/Passed/g)).toHaveLength(1);
+    // Opened for editing, its grade list has "Passed", chosen; it stays in the list while another grade is tried.
+    const grades = (): string[] => [...document.querySelectorAll('#row-0-grade option')].map(one => `${one.getAttribute('value')}${one.hasAttribute('selected') ? '*' : ''}`);
+    $('[data-edit="0"]').click();
+    expect(grades()).toEqual(['', 'A', 'B', 'C', 'D', 'F', 'W', 'I', 'Passed*']);
+    const list = $<HTMLSelectElement>('#row-0-grade');
+    list.value = 'D';
+    list.dispatchEvent(new Event('change', { bubbles: true }));
+    $('[data-out="3"]').click();
+    expect(grades()).toEqual(['', 'A', 'B', 'C', 'D*', 'F', 'W', 'I', 'Passed']);
+    $('[data-back="3"], [data-put-back="3"]').click();
+    $('[data-cancel="0"]').click();
     // A row opened for editing and saved unchanged is still "Passed".
     const unchanged = reviewRows(transcript, curriculum)[0]!.editable!;
     expect(unchanged.grade).toBe('Passed');

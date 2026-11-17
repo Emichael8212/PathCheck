@@ -151,6 +151,9 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
             <input id="${id(name)}" type="text" data-field="${name}" value="${esc(start[name])}" autocomplete="off" spellcheck="false"${more}>
           </div>`;
   const grades = gradeChoices(curriculum.grades);
+  // A grade that is not on the scale is in the list too while the row has it: the one that was read, and
+  // the one the row has now ("Passed" of a kept result), so that it can be chosen again after another was tried.
+  const others = [...new Set([row.editable?.grade ?? '', start.grade])].filter(grade => grade !== '' && !grades.includes(grade));
   // The whole form is one cell of the row, across its width.
   return `<div role="cell" aria-colspan="${TEXT.columns.length}" class="row-edit-cell">
         <div class="row-edit" role="group" aria-label="${esc(`${TEXT.edit} ${nameOf(row)}`)}" data-editing="${row.line}">
@@ -162,8 +165,8 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
             <label for="${id('grade')}">${esc(TEXT.fields.grade)}</label>
             <select id="${id('grade')}" data-field="grade">
               <option value=""${start.grade === '' ? ' selected' : ''}>${esc(TEXT.fields.noGrade)}</option>${grades.map(grade => `
-              <option value="${esc(grade)}"${grade === start.grade ? ' selected' : ''}>${esc(grade)}</option>`).join('')}${start.grade !== '' && !grades.includes(start.grade) ? `
-              <option value="${esc(start.grade)}" selected>${esc(start.grade)}</option>` : ''}
+              <option value="${esc(grade)}"${grade === start.grade ? ' selected' : ''}>${esc(grade)}</option>`).join('')}${others.map(grade => `
+              <option value="${esc(grade)}"${grade === start.grade ? ' selected' : ''}>${esc(grade)}</option>`).join('')}
             </select>
           </div>
           <label class="tick" for="${id('transfer')}"><input id="${id('transfer')}" type="checkbox" data-field="transfer"${start.transfer ? ' checked' : ''}> ${esc(TEXT.fields.transfer)}</label>
