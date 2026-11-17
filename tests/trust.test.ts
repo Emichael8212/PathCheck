@@ -400,7 +400,7 @@ describe('the banner of an old review', () => {
     expect(tidy($('footer.foot').textContent)).toContain(REVIEWED);
     // Later still.
     app.stop();
-    start(2031, 1, 1);
+    start(FIRST_OLD_DAY.year + 4, 1, 1);
     banner('years later');
   });
 
@@ -506,8 +506,9 @@ describe('the banner of an old review', () => {
       keep();
       return { pages, emails, banners };
     };
-    const early = await visit(2020);
-    const late = await visit(2035);
+    // (Years before the review, and years after it has become old: whatever the review's date is.)
+    const early = await visit(REVIEW_DAY.year - 6);
+    const late = await visit(FIRST_OLD_DAY.year + 8);
     vi.useRealTimers();
     expect(early.banners).toEqual([false, false, false, false, false]);
     expect(late.banners).toEqual([true, true, true, true, true]);

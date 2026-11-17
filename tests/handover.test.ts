@@ -166,6 +166,9 @@ describe('the curriculum handover guide', () => {
       // A missing comma: the words are those of a real run of `npm run check` (docs/sprints/F25.md), where the type
       // check stops at the file before any test runs. Here: such a text is not a curriculum file at all.
       "error TS1005: ',' expected.": () => (refusal(() => JSON.parse(file.replace('",\n', '"\n')) as unknown) === '' ? '' : "error TS1005: ',' expected."),
+      // A comma left before a closing bracket: again the words of a real run (the build's own reading of the file
+      // stops every test file), and here the proof that such a text does not parse.
+      'trailing comma at line': () => (refusal(() => JSON.parse(file.replace('\n  ]', ',\n  ]')) as unknown) === '' ? '' : 'trailing comma at line'),
       'must be null or a date written YYYY-MM-DD': () => broken(data => { data.lastReviewed = '10 Nov 2027'; }),
       'must be 2 to 4 capital letters, a hyphen and 3 digits': () => broken(data => { const course = aChoice(data).courses[0]!; course.courseId = spaced(course.courseId); }),
       'the same course is listed twice': () => broken(data => { const { courses } = aChoice(data); courses.push({ ...courses[0]! }); }),
@@ -181,9 +184,15 @@ describe('the curriculum handover guide', () => {
     expect([...quoted].sort()).toEqual(Object.keys(mistakes).sort());
     // And the rule for a red check looks for the three kinds of line in the order they can appear.
     const rule = section('### Is this mine to fix?');
-    const order = ['`docs/curriculum/provisional-current.json` with two numbers', '`Curriculum data:`', '`docs/BRIEF.md §5`', '`FAIL`', 'None of these'].map(words => rule.replace(/\s+/g, ' ').indexOf(words));
+    const order = ['`docs/curriculum/provisional-current.json` with two numbers', '`trailing comma at line`', '`Curriculum data:`', '`docs/BRIEF.md §5`', '`FAIL`', 'None of these'].map(words => rule.replace(/\s+/g, ' ').indexOf(words));
     expect(order.every(at => at >= 0), String(order)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // A refusal whose words the table does not have is not the reader's to fix: such a change is handed over.
+    // (For example a sequence course taken out of its choice: "is not a course in a core block".)
+    expect(rule.replace(/\s+/g, ' ')).toContain('If they are in that table, do what the table says. If they are not, hand the change over.');
+    expect(broken(data => { const sequence = data.sequence as unknown as { alternatives: { courses: string[] }[] }; const code = sequence.alternatives[0]!.courses[1]!; for (const block of blocksOf(data)) for (const choice of block.choices) choice.courses = choice.courses.filter(course => course.courseId !== code); })).not.toBe('');
+    // And a course that the file names more than once is handed over before any edit: the guide says how to tell.
+    expect(prose).toContain('the course appears more than once in the curriculum file');
     // (What a refusal starts with, and what a badly written row of the brief starts with.)
     expect(broken(data => { data.lastReviewed = 'soon'; })).toMatch(/^Curriculum data: /);
     expect(refusal(() => briefTable(brief.replace(/\| 1 of ([A-Z]{2,4} \d{3} \/)/, '| $1')))).toMatch(/^docs\/BRIEF\.md §5, row /);
@@ -197,6 +206,9 @@ describe('the curriculum handover guide', () => {
     // Publishing is told apart by what Netlify's page says; nobody is told to deploy from a command line.
     expect(prose).toContain('**Auto Publishing Locked**');
     expect(prose).not.toMatch(/netlify deploy|--prod/i);
+    // It promises no more than was tried: what usually works, and what is usually handed over.
+    expect(prose).toContain('Adding a course and changing a title usually work.');
+    expect(prose).not.toMatch(/does not have this problem|always works|never fails/i);
     // Never merged while red, and never straight to `main`.
     expect(prose).toContain('Never merge while it is red');
     expect(prose).toContain('Do not commit directly to `main`');

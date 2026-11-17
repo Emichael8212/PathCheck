@@ -1,57 +1,55 @@
 # Keeping PathCheck's curriculum true
 
 This guide is for the person responsible for PathCheck. You do not need to be a developer
-or to install anything: a GitHub login that can change this repository and a web browser
-are enough. It covers the one job PathCheck needs every year: checking its curriculum
-against the department's and setting the date the pages show.
+and you do not need to install anything. You need a GitHub login that can change this
+repository, and a web browser.
+
+It covers one job: once a year, check PathCheck's curriculum against the department's,
+and set the date the pages show.
 
 ## The yearly routine
 
 Do this once a year, and whenever the department changes the B.S. CIS curriculum.
 
-1. **Compare.** Put the department's current curriculum guide for the B.S. CIS next to the
-   table in section 5 of `docs/BRIEF.md`. Go through it block by block, then read the
-   rules under the table. ([Step 1](#step-1-compare))
+1. **Compare.** Put the department's current curriculum guide next to the table in
+   section 5 of `docs/BRIEF.md`. ([Step 1](#step-1-compare))
 2. **Nothing changed?** Set the review date. It is written in two places.
    ([Step 2A](#step-2a-nothing-changed-set-the-review-date))
-3. **Something changed?** Write the change down, then change the curriculum in its two
-   places, and set the review date. ([Step 2B](#step-2b-something-changed))
-4. **Wait for the green check** on your pull request, then merge it. If the check is red,
-   the section [Is this mine to fix?](#is-this-mine-to-fix) tells you what to do. Never
-   merge while it is red.
+3. **Something changed?** Write it down first. Then either make the change yourself or
+   hand it over. ([Step 2B](#step-2b-something-changed))
+4. **Wait for the green check** on your pull request, then merge it. Never merge while it
+   is red. If it is red, read [Is this mine to fix?](#is-this-mine-to-fix)
 5. **Publish and look.** ([Step 3](#step-3-publish-and-look))
 
-Why the date matters: every page says "Curriculum last reviewed:" with the month and year
-of the review. Twelve months after that date, every page also shows a sentence saying
-that the review is more than 12 months old and that requirements may have changed. It
-stays until the date is set again. For example, a review dated 2026-11-15 shows the
-sentence from 2027-11-16.
+Why the date matters: every page says "Curriculum last reviewed:" with the month and year.
+Twelve months after that date, every page also warns that the review is more than 12
+months old. The warning stays until the date is set again. For example, a review dated
+2026-11-15 shows the sentence from 2027-11-16.
 
 ## Before you start
 
-**Who decides.** What the curriculum requires is decided by the university. The person
-responsible for PathCheck confirms what PathCheck should say. Nobody guesses a rule: if
-the department's guide is unclear about a requirement, PathCheck keeps what it has until
-the requirement is clear in writing.
+**Who decides.** The university decides what the curriculum requires. The person
+responsible for PathCheck confirms what PathCheck should say. Nobody guesses a rule. If
+the department's guide is unclear, PathCheck keeps what it has until the requirement is
+clear in writing.
 
-**What PathCheck promises.** It must never say a course counts when it may not. So when
-you are not sure a change is right, do not make it.
+**The one promise.** PathCheck must never say a course counts when it may not. If you are
+not sure a change is right, do not make it.
 
 **Words used here.**
 
-- A *repository* is the project's folder on GitHub, with every file and its history.
-- A *branch* is a private copy of the files where you make your change.
-- A *pull request* is the page that proposes your branch's change. Nothing changes for
-  students until a pull request is merged and the result is published.
-- The *check* is an automatic run of all of PathCheck's tests on your pull request. Green
-  means every test passed. Red means something is wrong, and the change must not be
-  merged.
-- *Merge* means accepting the pull request into the main copy of the files.
+- A *repository* is the project's folder on GitHub: every file, with its history.
+- A *branch* is a separate copy of the files, where you make your change.
+- A *pull request* is the page that proposes your change. Nothing changes for students
+  until it is merged and the result is published.
+- The *check* runs all of PathCheck's tests on your pull request. Green means every test
+  passed. Red means something is wrong.
+- To *merge* is to accept the pull request into the main copy of the files.
 
 ## Step 1: Compare
 
 1. Get the department's current curriculum guide for the B.S. Computer Information
-   Systems. Note its date or the years printed on it.
+   Systems. Note the date or the years printed on it.
 2. Open `docs/BRIEF.md` on GitHub and find section 5, "Academic rules". Its table starts
    with this line:
 
@@ -61,9 +59,9 @@ you are not sure a change is right, do not make it.
    ```
 3. For each block, compare the credits, the required courses, and the courses of each
    "1 of …" choice.
-4. Read the rules under the table (grades, repeats, electives, legacy electives, transfer
-   credit) and compare them with the department's guide.
-5. Note every difference. If there is none, go to Step 2A. Otherwise go to Step 2B.
+4. Read the rules under the table and compare them too: grades, repeats, electives,
+   legacy electives, transfer credit.
+5. Note every difference. With none, go to Step 2A. Otherwise go to Step 2B.
 
 ## Step 2A: Nothing changed. Set the review date
 
@@ -73,9 +71,9 @@ finished comparing.
 ### The first place: the curriculum file
 
 1. On GitHub, open `docs/curriculum/provisional-current.json`.
-2. Click the pencil button at the top right of the file (it is named "Edit file").
-3. Find the line that starts like this and change only the date between the quotation
-   marks. Keep the quotation marks and the comma at the end.
+2. Click the pencil button at the top right of the file. It is named "Edit file".
+3. Find the line that starts like this. Change only the date between the quotation marks.
+   Keep the quotation marks and the comma at the end of the line.
 
    In `docs/curriculum/provisional-current.json`:
    ```
@@ -87,9 +85,9 @@ finished comparing.
    ```
    "sources": [
    ```
-   Go to its last entry, which ends with `}` just before the list's closing `]`. Type a
-   comma after that `}` and add a new entry under it. Write it like this, with your own
-   year, date and words:
+   Its last entry ends with `}`, just before the list's closing `]`. Type a comma after
+   that `}`. Then add a new entry under it, like this one, with your own year, date and
+   words:
 
    ```json
        {
@@ -97,125 +95,144 @@ finished comparing.
          "description": "Yearly review on 2027-11-10 against the department's B.S. CIS curriculum guide dated 2027: no change."
        }
    ```
-   The last entry of a list has no comma after it; every entry before it has one.
-5. Click **Commit changes...**. In the box that opens, choose the option that creates a
-   **new branch** and starts a pull request. Do not commit directly to `main`. Then click
-   **Propose changes**.
-6. On the next page click **Create pull request**.
+   The comma rule: every entry of a list has a comma after it, except the last.
+5. Click **Commit changes...**. A box opens. Choose the option that creates a **new
+   branch** and starts a pull request. Do not commit directly to `main`. Click **Propose
+   changes**.
+6. On the next page, click **Create pull request**.
 
 ### The second place: the test that states the date
 
-One test states the review date on purpose, so that the date cannot change by accident.
+One test states the review date on purpose, so the date cannot change by accident.
 
-1. Go back to the repository's first page. Open the branch menu above the list of files
-   (it shows `main`) and choose the branch you just created.
+1. Go back to the repository's first page. Above the list of files is the branch menu,
+   which shows `main`. Open it and choose the branch you just created.
 2. Open `tests/curriculum.test.ts` and click the pencil button.
-3. Find these two lines, one under the other, and change the date in both to the same
-   date you used in the curriculum file:
+3. Find these two lines, one under the other. Change the date in both, to the same date
+   you put in the curriculum file:
 
    In `tests/curriculum.test.ts`:
    ```
    expect(rawData.lastReviewed).toBe(
    expect(curriculum.lastReviewed).toBe(
    ```
-4. Click **Commit changes...** and choose to commit to the branch you are on (not a new
-   one, and not `main`). Click **Commit changes**.
+4. Click **Commit changes...**. Choose to commit to the branch you are on: not a new one,
+   and not `main`. Click **Commit changes**.
 
-Now go to your pull request (the **Pull requests** tab) and wait for the check. Continue
-with [The check](#the-check).
+Now open your pull request from the **Pull requests** tab and wait for the check. Go on
+to [The check](#the-check).
 
 ## Step 2B: Something changed
 
 ### First, write the change down
 
-Open `docs/decision-log.md`, click the pencil button, and add an entry at the end of the
-section "Owner answers", before the heading "Open questions to the owner". Give the date,
-what changed, and where the department's guide says so. Commit it to a new branch, as in
-Step 2A. Every later edit goes to that same branch.
+1. Open `docs/decision-log.md` and click the pencil button.
+2. Go to the end of the section "Owner answers". That is just above the heading "Open
+   questions to the owner".
+3. Add an entry there. Start it with a heading line like the others, then say what
+   changed and where the department's guide says so:
+
+   ```
+   ### 2027-11-10 — The curriculum changed: POS 208 joins the Social sciences choice
+
+   The department's B.S. CIS curriculum guide dated 2027 lists POS 208 among the Social
+   sciences choices. PathCheck's table did not have it.
+   ```
+4. Commit it to a new branch, as in Step 2A. Every later edit goes to that same branch.
 
 ### Then decide whether the change is yours to make
 
-**Hand it over** (see [Handing a change over](#handing-a-change-over)) when the change is
-any of these:
+**Hand it over** (see [Handing a change over](#handing-a-change-over)) when:
 
 - a required course is added, removed or replaced;
-- a course's credits, a block's credits or the degree's total change;
+- credits change: a course's, a block's, or the degree's total;
 - a rule changes: grades, repeats, electives, legacy electives, the two-course sequence,
   transfer credit;
-- a block is added, removed or renamed.
+- a block is added, removed or renamed;
+- the course appears more than once in the curriculum file. Search the file for its code,
+  written with a hyphen, such as `ENG-210`. A course found twice is part of a rule.
 
-**You can make these changes yourself**, in the two places described below:
+**You can try these yourself:**
 
-- a course is **added to** a "1 of …" choice;
-- a course is **taken out of** a "1 of …" choice;
-- a course in a "1 of …" choice is **replaced** by another;
-- a course's **title** changes.
+- adding a course to a "1 of …" choice;
+- changing a course's title;
+- taking a course out of a "1 of …" choice;
+- replacing a course in a "1 of …" choice with another.
 
-Some courses are used by PathCheck's own tests as their examples. Taking out, replacing
-or renaming one of those ends in a red check on a test that is not yours, and then the
-change is handed over too. You do not need to know which courses these are: the check
-tells you. Adding a course to a choice does not have this problem.
+Be ready for a hand-over all the same. Most courses already in the file are the examples
+PathCheck's own tests are written with. Taking one of those out, or replacing it, turns
+the check red on a test that is not yours, and then the change is handed over. Today only
+a few courses can be taken out or replaced without that. Adding a course and changing a
+title usually work.
+
+You do not need to know which courses the tests use. Make the change, and the check tells
+you.
 
 ### The two places a course is written
 
-**1. The curriculum file**, `docs/curriculum/provisional-current.json`. Each course is
-written like this, inside the `required` list or a `choices` list of its block:
+**1. The curriculum file**, `docs/curriculum/provisional-current.json`. A course looks
+like this, inside the `courses` list of a choice:
 
 ```json
             {
               "courseId": "POS-207",
               "title": "American Government",
               "credits": 3
-            },
+            }
 ```
 
-- To **add** a course to a choice, copy such an entry, put it after the last course of
-  that choice's `courses` list, and change the three values. Remember the comma rule: a
-  comma after every entry except the last.
-- To **take out** a course, delete its entry, from `{` to `}`, and its comma.
-- To **replace** a course, change the three values of its entry.
+- To **add** a course, copy such an entry and put it after the last course of that
+  choice. Change the three values. Mind the comma rule: type a comma after the entry that
+  was last until now, and none after your new one.
 - To change a **title**, change only the text after `"title":`.
+- To **take out** a course, delete its entry from `{` to `}`, and the comma after it. If
+  it was the last course of the list, delete the comma after the course before it
+  instead.
+- To **replace** a course, change the three values of its entry.
 
-The course code is written with a hyphen here: `POS-207`. All courses of one choice have
-the same credits.
+Here the course code has a hyphen: `POS-207`. All courses of one choice have the same
+credits.
 
-**2. The table in section 5 of `docs/BRIEF.md`.** Change the same course in the row of
-its block. Here the code is written with a space, `POS 207`, and the courses of a choice
-are separated by ` / `. A title is not in the table, so a title change needs no edit
-here.
+**2. The table in section 5 of `docs/BRIEF.md`.** Change the same course in the row of its
+block. There the code has a space, `POS 207`, and the courses of a choice are separated by
+` / `. Keep the courses in the same order as in the file: a new course goes last in its
+choice in both. Titles are not in the table, so a title change needs no edit there.
 
-Then add an entry to `sources` and set the review date in its two places, exactly as in
-Step 2A. Commit every edit to the same branch.
+Then add an entry to `sources` and set the review date in its two places, as in Step 2A.
+Commit every edit to the same branch.
 
 ## The check
 
-On the pull request's page, near the bottom, a box shows the check, named `check`. It
+Near the bottom of the pull request's page, a box shows the check. It is named `check` and
 takes a few minutes.
 
 - **Green tick:** every test passed. Click **Merge pull request** (or **Squash and
   merge**), then the confirm button. Go to Step 3.
-- **Red cross:** do not merge. Click the link beside the red cross (**Details**) to open
-  the log of the run, and use the search box of that page.
+- **Red cross:** do not merge. Click **Details** beside the red cross. That opens the log
+  of the run. Use that page's search box.
 
 ### Is this mine to fix?
 
-Look in the log in this order, and stop at the first one that applies.
+Search the log for these, in this order. Stop at the first one you find.
 
 1. **A line that names `docs/curriculum/provisional-current.json` with two numbers in
-   brackets**, for example `docs/curriculum/provisional-current.json(8,3): error TS1005: ',' expected.`
-   The file is not written correctly at that place: the first number is the line, the
-   second the position in it. Almost always a comma or a quotation mark is missing or
-   left over on that line or the one before. Fix it on your branch. (In this case no
-   test has run yet.)
-2. **A line containing `Curriculum data:`** PathCheck read the file and refused it. The
-   words after it say where and why; the table [Mistakes the check catches](#mistakes-the-check-catches)
-   explains them. Fix it on your branch.
-3. **A line containing `docs/BRIEF.md §5`.** A row of the brief's table is not written
+   round brackets**, for example
+   `docs/curriculum/provisional-current.json(8,3): error TS1005: ',' expected.`
+   The file is not written correctly there. The first number is the line, the second the
+   position in it. Almost always a comma or a quotation mark is missing, or one too many,
+   on that line or the one before. Fix it on your branch.
+2. **A line containing `trailing comma at line`.** The curriculum file has a comma just
+   before a closing `]` or `}`. The two numbers after it are the line and the position.
+   Delete that comma on your branch.
+3. **A line containing `Curriculum data:`** PathCheck read the file and refused it. Look
+   up the words after it in [Mistakes the check catches](#mistakes-the-check-catches). If
+   they are in that table, do what the table says. If they are not, hand the change over.
+4. **A line containing `docs/BRIEF.md §5`.** A row of the brief's table is not written
    like the others. The line says which row. Fix it on your branch.
-4. **Lines containing `FAIL`** followed by the name of a test. If every such test is one
-   of [the tests that are yours](#the-tests-that-are-yours), fix what it says. If any
-   other test is named, hand the change over.
-5. **None of these:** hand the change over.
+5. **Lines containing `FAIL`**, each followed by the name of a test. If every one of
+   those tests is in [The tests that are yours](#the-tests-that-are-yours), fix what the
+   list says. If any other test is named, hand the change over.
+6. **None of these:** hand the change over.
 
 After a fix, the check runs again by itself.
 
@@ -223,35 +240,38 @@ After a fix, the check runs again by itself.
 
 - `matches the table in brief section 5`: the curriculum file and the brief's table
   disagree. The lines under it name the block. Make the two say the same.
-- `lists each course once`: the same cause. The file and the brief's table do not name
-  the same number of courses.
+- `lists each course once`: the same cause. The file and the table do not name the same
+  number of courses.
 - `reaches 121 with everything passed`: the same cause, when it fails together with the
   two above.
 - `carries the last-reviewed date`: the date in the curriculum file and the date in
-  `tests/curriculum.test.ts` are not the same. Make them the same.
-- `has no CIS 304, CIS 415, replacement, older-code or not-offered entry`: a title or a
-  description in the curriculum file uses a word the file must not contain. Reword it
-  without "replacement", "formerly", "older code", "not offered", "historical" or
-  "unresolved".
+  `tests/curriculum.test.ts` differ. Make them the same.
+- `has no CIS 304, CIS 415, replacement, older-code or not-offered entry`: the curriculum
+  file uses words it must not contain: "CIS 304", "CIS 415", "replacement", "old code"
+  or "older code", "formerly", "supersede", "not offered", "historical", "unresolved".
+  If they are in a `description` you wrote under `sources`, reword it. If they are in a
+  course's title, hand the change over: PathCheck shows titles as the department writes
+  them.
 
 ### Mistakes the check catches
 
 | What went wrong | The check says | What to do |
 |---|---|---|
 | A comma or quotation mark is missing in the curriculum file | `error TS1005: ',' expected.` (for example) | Fix the line it names |
+| A comma is left before a closing `]` or `}` | `trailing comma at line` | Delete that comma |
 | The review date is not written as year-month-day | `must be null or a date written YYYY-MM-DD` | Write it like `2027-11-10` |
 | A course code is not written like `POS-207` | `must be 2 to 4 capital letters, a hyphen and 3 digits` | Use capital letters, a hyphen, three digits |
 | The same course is in the file twice | `the same course is listed twice` | Delete one of the two entries |
-| The courses of one choice have different credits | `courses in one pick group must have the same credits` | Hand it over: this is a change of credits |
-| A block's credits do not match its courses | `but its courses add up to` | Hand it over: this is a change of credits |
+| The courses of one choice have different credits | `courses in one pick group must have the same credits` | Hand it over: credits changed |
+| A block's credits do not match its courses | `but its courses add up to` | Hand it over: credits changed |
 | A word in the file is misspelled or new | `unknown field` | Spell it as in the entries around it |
 | A row of the brief's table is not written like the others | `is not written as "1 of AAA 101 / BBB 102"` | Write the choice as `1 of AAA 101 / BBB 102` |
 
 ## Handing a change over
 
-A change you cannot make yourself needs someone who can change PathCheck's code and its
-tests: a developer, or Claude Code working in this repository. Leave your pull request
-open, do not merge it, and give them this request, filled in:
+Some changes need someone who can change PathCheck's code and its tests: a developer, or
+Claude Code working in this repository. Leave your pull request open and do not merge it.
+Give them this request, filled in:
 
 > PathCheck's curriculum has to change. Please make the change below and nothing else.
 >
@@ -266,57 +286,55 @@ open, do not merge it, and give them this request, filled in:
 > `npm run check` until it passes. In the pull request, say in plain language what you
 > changed, which tests you edited, and why each one had to change.
 
-Before you merge their work, read that explanation. A test that was changed without a
-reason you understand is a question to ask before merging.
+Read that explanation before you merge their work. If a test was changed and you do not
+understand why, ask before merging.
 
 ## Step 3: Publish and look
 
-Merging does not always change the site. Open the project in Netlify and click
-**Deploys**.
+Merging does not always change the site. Open Netlify at `https://app.netlify.com`, open
+the project named `pathcheck`, and click **Deploys**.
 
 - If the page says **Auto Publishing Locked**: wait until the newest deploy at the top of
-  the list, named `Production: main@…`, is finished. Click it, then click **Publish
+  the list is finished. It is named `Production: main@…`. Click it, then click **Publish
   deploy**.
-- If it does not say so, the merge published the new version by itself.
+- If the page does not say that, the merge has already published the new version.
 
 Then open the site and look:
 
 - the foot of every page says "Curriculum last reviewed:" with the new month and year;
-- no page shows the sentence about a review that is more than 12 months old;
-- after a course change, "Check my courses" answers the course you changed as you expect.
+- no page warns that the review is more than 12 months old;
+- after a course change, "Check my courses" answers the changed course as you expect.
 
-The printed summary of "See what I have left" carries the same date in its top line.
+A printed summary of "See what I have left" carries the same date in its top line.
 
 ## Reference: the curriculum file, field by field
 
 The file is `docs/curriculum/provisional-current.json`. It is a list of named values.
-Text is written in quotation marks; numbers are not. The fields you may change yourself
-are marked "yours".
+Text is in quotation marks; numbers are not. "Yours" marks what you may change yourself.
 
 | Field | What it holds | Example |
 |---|---|---|
-| `schemaVersion` | The file format's version. Not yours | `2` |
+| `schemaVersion` | The version of the file's format. Not yours | `2` |
 | `id` | The curriculum's short name inside PathCheck. Not yours | `asu-bs-cis` |
 | `institution` | The university's name, as the pages show it. Not yours | `Alabama State University` |
 | `program` | The degree's name, as the pages show it. Not yours | `B.S. Computer Information Systems` |
 | `degreeCredits` | The degree's total credits. Hand over | `121` |
 | `lastReviewed` | The date of the last review. **Yours** | `2026-11-15` |
-| `finalSemesterCourse` | The required course that the draft plan keeps for the last semester. Hand over | `MGT-462` |
-| `sources` | What the curriculum was compared with. Each entry has an `id` (a short name, no spaces) and a `description`. **Yours** | see Step 2A |
+| `finalSemesterCourse` | The required course the draft plan keeps for the last semester. Hand over | `MGT-462` |
+| `sources` | What the curriculum was compared with. Each entry has an `id` (a short name without spaces) and a `description`. **Yours** | see Step 2A |
 | `grades` | The grade rules: `letters` (the grades that exist), `minimumCounting` (the lowest grade that counts) and `neverCounting` (marks that never count). Hand over | `C` |
-| `blocks` | The eight blocks of the degree. Each has an `id`, a `name`, its `credits`, its `required` courses and its `choices`. Hand over, except as below | |
+| `blocks` | The blocks of the degree. Each has an `id`, a `name`, its `credits`, its `required` courses and its `choices`. Hand over, except as below | |
 | `required` | A block's required courses. Hand over | |
-| `choices` | A block's "1 of …" choices. Each has `choose` (how many to take) and `courses` (what to take them from). The `courses` list is **yours** | `1` |
+| `choices` | A block's "1 of …" choices. Each has `choose` (how many to take) and `courses` (what to take them from). The `courses` list is **yours** | |
 | `courseId` | A course's code, with a hyphen. **Yours** inside a choice | `POS-207` |
 | `title` | A course's title. **Yours** | `American Government` |
 | `credits` | The credits of a course, a block or the electives. Hand over | `3` |
-| `sequence` | The two-course sequence rule: `choose` (how many sequences), `alternatives` (each with an `id`, a `name` and its `courses`), `additionalCredits`, `coreBlocks` and `coreCredits` (the blocks the sequence sits in and their credits). Hand over | |
+| `sequence` | The two-course sequence rule: `choose` (how many sequences), `alternatives` (each with an `id`, a `name` and its `courses`), `additionalCredits`, and `coreBlocks` with `coreCredits` (the blocks the sequence sits in, and their credits). Hand over | |
 | `electives` | The electives rule: its `id`, `name`, `credits` and `courseCount`; `namedCourses` (electives named one by one); `subjectRule` (which other courses count: `prefixes`, `minCourseNumber`, `maxCourseNumber`, `creditsPerCourse`, and `exceptCourses`, which never count); `excludeRequiredCourses`; and `legacyOnlyCourses` (electives for legacy students only). Hand over | |
 
 ## Why a course and the date are each written twice
 
-A change made in one place only makes the check red. That is on purpose: one slip of the
+A change made in one place only turns the check red. That is on purpose: one slip of the
 keyboard cannot change what PathCheck tells students. The brief's table is the approved
-statement of the curriculum, the curriculum file is what the pages read, and the check
-compares the two. The date is written in the file and in the test that records the
-review.
+statement of the curriculum. The curriculum file is what the pages read. The check
+compares the two. The date is in the file, and in the test that records the review.

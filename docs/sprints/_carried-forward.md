@@ -8,7 +8,8 @@ Read this before writing a sprint contract; delete a line when its feature has d
   the agent cannot rehearse them in a browser. It is a step of the M3 check in the
   milestone file; the two labels GitHub's documentation does not print (the choice of a
   new branch in the "Commit changes" box; the lines of the merge box) are confirmed
-  there. (F25)
+  there, with Netlify's "Auto Publishing Locked" and "Publish deploy" as the owner's
+  screenshots of 2026-11-17 showed them. (F25)
 - **The contact address is a placeholder**: `REPORT_ADDRESS` in `src/wording.ts`
   (`report@pathcheck.example`). The owner gives the real one before M3 (brief §12); it
   changes in that one place. Then decide whether the address should also be readable
