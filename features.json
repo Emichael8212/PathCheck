@@ -408,9 +408,13 @@
         "The function's output goes through the same validation and curriculum matching as F10 before anything counts",
         "The transcript reader passes on the synthetic transcripts: the function returns the expected rows for each synthetic PDF (tests use synthetic transcripts only)"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F21.md — QA PASS (2026-11-17): part 1 on localhost and a built copy; part 2 on the hosted preview, where the owner ran the reader check with the real Gemini (six runs, both made-up transcripts read as prepared, gemini-3.5-flash-lite) and the hosted page (one request to the function, none to Google, no console error); reviewer: no blocker after round 3",
+      "tests": [
+        "tests/read-transcript.test.ts",
+        "tests/upload.test.ts",
+        "tests/left-page.test.ts"
+      ]
     },
     {
       "id": "F22",
