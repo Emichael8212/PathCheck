@@ -243,7 +243,8 @@ and answer across the full width. The transcript card stacks with its button und
 ## Page 3: What I have left
 
 **Desktop (1440).** Label "WHAT I HAVE LEFT", heading "Your degree, in focus.", and a pill
-"Synthetic transcript result" at the right.
+"Synthetic transcript result" at the right (only over the result of one of the made-up
+transcripts in `synthetic/transcripts/`; never over a student's own: the owner, 2026-11-17).
 
 **Overview card** (radius 24): a ring (175px; counted, in progress, remaining) with **81**
 "credits left" in the middle; beside it "LOOKING AHEAD", "On pace for Spring 2029", "about

@@ -11,7 +11,7 @@ import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
 import { HREF, dayOf, oldReviewBanner, reportLink, routeOf, titleOf, type Day, type Route } from './shell';
 import { startPage } from './start';
-import { readFile, type ChosenFile, type Refusal } from './upload';
+import { READS_MADE_UP, readFile, type ChosenFile, type Refusal } from './upload';
 import { READING } from './wording';
 
 /**
@@ -96,7 +96,8 @@ export function startApp(win: AppWindow): App {
   // it changes: the list always, a result once the student has continued from the review
   // (a review in progress is not a result, and the last result stays kept meanwhile).
   const storage = browserStorage();
-  const back = loadKept(storage, curriculum);
+  // (A kept result is called made-up only where the made-up transcripts can be read at all.)
+  const back = loadKept(storage, curriculum, READS_MADE_UP);
   let keptResult: KeptResult | null = back?.result ?? null;
   if (back) {
     Object.assign(courses, { entries: back.entries, term: back.term });
@@ -289,7 +290,7 @@ export function startApp(win: AppWindow): App {
     let transcript: LeftState['transcript'] = null;
     try {
       const upload = await readFile(file);
-      if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum);
+      if (upload.ok) transcript = openTranscript(upload.name, upload.answer, curriculum, false, upload.madeUp);
       else refusal = upload.refusal;
     } catch (error) {
       // A reader's answer that is no answer; or a file that could not be opened at all.

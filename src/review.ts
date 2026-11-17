@@ -20,13 +20,18 @@ export interface Transcript {
   readonly reading: Reading;
   /** A result that came back from the browser's storage: its passing grades are kept without their letters. */
   readonly kept?: boolean;
+  /**
+   * One of PathCheck's made-up transcripts (synthetic/transcripts/). Only then does the result say
+   * "Synthetic transcript result": over a student's own transcript it would be untrue (the owner, 2026-11-17).
+   */
+  readonly madeUp?: boolean;
 }
 
 /** Starts a review from a reader's answer. Throws `ReaderError` when it is no answer. */
-export function openTranscript(name: string, answer: unknown, curriculum: Curriculum, kept = false): Transcript {
+export function openTranscript(name: string, answer: unknown, curriculum: Curriculum, kept = false, madeUp = false): Transcript {
   const reading = readRows(answer, curriculum, kept);
   const rows = (answer as { rows: unknown[] }).rows;
-  return { name, raw: [...rows], leftOut: new Set(), reading, ...(kept ? { kept: true } : {}) };
+  return { name, raw: [...rows], leftOut: new Set(), reading, ...(kept ? { kept: true } : {}), ...(madeUp ? { madeUp: true } : {}) };
 }
 
 /** What the student can correct in a row. Everything is text, as typed. */

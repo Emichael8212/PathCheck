@@ -631,6 +631,86 @@ describe('the checklist', () => {
   const listOf = (name: string): string => tidy(cardOf(name).querySelector('.req-body')?.textContent);
   const ring = (): string => tidy($('.donut strong').textContent);
 
+  it('says "Synthetic transcript result" only over a made-up transcript', async () => {
+    const pill = (): string | null => { const found = document.querySelector('.pill'); return found ? tidy(found.textContent) : null; };
+    const reloaded = (): void => {
+      app.stop();
+      document.body.innerHTML = '<div id="app"></div>';
+      app = startApp(onTestDay(window as unknown as AppWindow));
+    };
+    const sampleRows = (name: string): unknown[] => (JSON.parse(readFileSync(join(folder, name + '.json'), 'utf8')) as { rows: unknown[] }).rows;
+    const stored = (): { result?: Record<string, unknown> } => JSON.parse(window.localStorage.getItem('pathcheck.visit') ?? '{}') as { result?: Record<string, unknown> };
+
+    // One of the made-up transcripts in synthetic/transcripts/, recognised by its bytes: its result says so,
+    // during the visit and when it comes back from the browser.
+    await app.takeFile(madeUp('sample-a'));
+    expect(app.left.transcript?.madeUp).toBe(true);
+    expect(pill()).toBeNull();
+    $('[data-continue]').click();
+    expect(heading()).toBe('Your degree, in focus.');
+    expect(pill()).toBe('Synthetic transcript result');
+    // (A row left out does not change what the file is.)
+    $('[data-review-again]').click();
+    $('[data-out="0"]').click();
+    $('[data-continue]').click();
+    expect(pill()).toBe('Synthetic transcript result');
+    reloaded();
+    expect(heading()).toBe('Your degree, in focus.');
+    expect(pill()).toBe('Synthetic transcript result');
+    expect(stored().result?.madeUp).toBe(true);
+
+    // A student's own transcript, read by the reader on the hosted site: the same rows, and no such label, ever.
+    $('[data-another]').click();
+    window.localStorage.clear();
+    app.stop();
+    let site: App | null = null;
+    try {
+      vi.stubEnv('DEV', false);
+      vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify({ rows: sampleRows('sample-a') }), { status: 200 })));
+      vi.resetModules();
+      const hosted = await import('../src/app');
+      document.body.innerHTML = '<div id="app"></div>';
+      site = hosted.startApp(onTestDay(window as unknown as AppWindow));
+      await site.takeFile(fileOf(new TextEncoder().encode('%PDF-1.7 a student\'s own transcript'), 'my-transcript.pdf'));
+      expect(heading()).toBe('Check what was read');
+      expect(site.left.transcript?.madeUp).toBeUndefined();
+      $('[data-continue]').click();
+      expect(heading()).toBe('Your degree, in focus.');
+      expect(tidy($('.donut strong').textContent)).toBe('81');
+      expect(pill()).toBeNull();
+      expect(tidy($('main').textContent)).not.toMatch(/synthetic/i);
+      // Not when it comes back from the browser either,
+      expect(stored().result && 'madeUp' in stored().result!).toBe(false);
+      site.stop();
+      document.body.innerHTML = '<div id="app"></div>';
+      site = hosted.startApp(onTestDay(window as unknown as AppWindow));
+      expect(heading()).toBe('Your degree, in focus.');
+      expect(pill()).toBeNull();
+      // and not even when what is kept in the browser was changed to say so: the hosted site knows no made-up transcript.
+      const forged = stored();
+      forged.result!.madeUp = true;
+      window.localStorage.setItem('pathcheck.visit', JSON.stringify(forged));
+      site.stop();
+      document.body.innerHTML = '<div id="app"></div>';
+      site = hosted.startApp(onTestDay(window as unknown as AppWindow));
+      expect(heading()).toBe('Your degree, in focus.');
+      expect(pill()).toBeNull();
+      // The very bytes of a made-up transcript, uploaded to the hosted site, are a file like any other there.
+      $('[data-another]').click();
+      await site.takeFile(madeUp('sample-a'));
+      $('[data-continue]').click();
+      expect(pill()).toBeNull();
+    } finally {
+      site?.stop();
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+      vi.resetModules();
+      window.localStorage.clear();
+      document.body.innerHTML = '<div id="app"></div>';
+      app = startApp(onTestDay(window as unknown as AppWindow));
+    }
+  });
+
   it('shows and hides the requirements', async () => {
     await app.takeFile(madeUp('sample-a'));
     $('[data-continue]').click();

@@ -35,12 +35,10 @@ Read this before writing a sprint contract; delete a line when its feature has d
   mini-term if there is one: `readTerm` in `src/pace.ts` reads "Fall", "Spr"/"Spring",
   "Sum"/"Summer" and a four-digit year, and gives no pace estimate for anything else.
   (F14 contract review; the owner's open question since F10)
-- **For F24, before the owner uploads their own transcript:** the pill "Synthetic
-  transcript result" on the result (`TEXT.pill` in `src/left.ts`) is true only while the
-  made-up transcripts are the only ones read. On the hosted site it would stand over a
-  real transcript's result. It is the owner's design: put to the owner on 2026-11-17
-  (leave it out on the hosted site, reword it, or keep it); F24's contract checks what
-  the owner chose. (F13 contract review; F21 QA part 2)
+- **For F24:** the pill "Synthetic transcript result" is shown only over a made-up
+  transcript's result (the owner, 2026-11-17; done before the owner's own upload, see
+  `docs/sprints/F13.md`). F24's contract checks on the published site that the owner's
+  own result does not show it. (F13 contract review; F21 QA part 2)
 - "Browse files" opens the picker through a file control that is not in the page; it is
   held until a file is chosen. Not tried on a real iPhone yet: the owner's M1 check on a
   phone is the first real test, and M2 must repeat it with a real PDF. If the picker does
