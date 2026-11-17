@@ -1042,7 +1042,8 @@ not show any box to thick."
   the policy and the requests it blocks are Cloudflare's own; none names a PathCheck
   file. The Sources panel showed a `debugger` line from the same frame. They are put to
   the evaluator against the feature's "no console errors".
-- Not yet sent: the Network list of an upload, and the number of rows on "Check what was
+- Not sent for this upload: the Network list (the one of the owner's own upload, step 6,
+  stands for it). Sent with step 5: the number of rows on "Check what was
   read" (17 expected).
 
 ### 2026-11-17 — F24, step 5: "Check my courses" on the staging address
@@ -1098,14 +1099,15 @@ What it settles:
 - The owner's transcript has no summer term and no transfer credit, so it cannot answer
   how those are printed: the questions stay open, and the made-up PDFs keep following
   the owner's description. "None." is read as also answering that no grade is printed as
-  "P" or "Passed"; the owner is asked to confirm.
+  "P" or "Passed"; the owner asked what was meant, and no confirmation is needed: such a
+  row would have asked to be fixed, and the owner reported that none does.
 - Not yet said by the owner: that the credits left and the requirements of the result
   are what they expect.
 - The owner sent a screenshot with the Console filtered to leave out Cloudflare's frame:
   it holds no error and no line of PathCheck's (only the browser's own warning about
   pasting into the console). Nothing of the result on that screenshot is recorded.
 
-### 2026-11-17 — F24, step 6: the result looks right; the request seen in the browser
+### 2026-11-17 — F24, step 6: "The credits look accurate."; the request seen in the browser
 
 The owner's words, about the result of their own transcript and the browser's Network
 list of that upload: "The credits look accurate." · "read-transcript is status 200" ·
@@ -1160,8 +1162,8 @@ The owner's words:
 2. The $5 monthly spend cap in Google AI Studio replaces the budget alert. No alert needed. Record this in docs/decision-log.md as an owner answer."
 
 What it decides:
-- The staging address runs on Netlify's Free plan; no paid plan is enabled (F24, step 1
-  of the feature).
+- The staging address runs on Netlify's Free plan; no paid plan is enabled (F24's
+  check 1).
 - **The budget alert of brief §12 is replaced** by the $5 monthly spend cap in Google AI
   Studio. No Google Cloud budget alert is set up, and none is asked for again. Where the
   brief lists "a Google Cloud budget alert" among what the owner provides before M2, this
@@ -1188,6 +1190,9 @@ stand-in until the owner answers; it is not an owner decision.
   owner's real transcript at M2: how a summer term is printed; what the grade column
   shows on a transfer row; the layout of the transfer section; and whether a grade
   printed as "Passed" or "P" counts (an academic rule: the owner decides).
+  Status, 2026-11-17: the owner's transcript has no summer term, no transfer credit and
+  no such grade, so all four stay open; they are listed in `docs/milestones/M2.md`
+  part 4.
 - **2026-11-16 (F21).** The privacy sentence once the PDF goes to Google Gemini. Answered
   on 2026-11-17 (see "Owner answers").
 
