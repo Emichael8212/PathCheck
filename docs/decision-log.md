@@ -995,6 +995,18 @@ The owner created a Cloudflare Turnstile widget (name `PathCheck`, hostname
   Cloudflare's documentation ("No option for Region."). The owner was told to skip it.
 - The agent saw neither key. Nothing is built or published yet: that is step 3.
 
+### 2026-11-17 — F24, step 2: the Gemini key has a Production value
+
+The owner added a Production value to `GEMINI_API_KEY` and sent a screenshot of
+Netlify's list: `GEMINI_API_KEY` (secret; scoped to Builds, Functions, Runtime) with a
+hidden value for Production and for Deploy Previews and the other contexts empty;
+`TURNSTILE_SECRET_KEY` (secret) and `VITE_TURNSTILE_SITE_KEY` (not secret) with one
+value in one context each.
+
+*Agent's notes, not owner decisions:*
+- Netlify's list shows the last characters of a hidden value; they are not recorded.
+- Nothing is built or published yet: that is step 3.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
