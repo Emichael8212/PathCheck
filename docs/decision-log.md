@@ -1173,6 +1173,20 @@ What it decides:
 - PathCheck's own stop at $5 a month (F22) and the three uploads a day for a browser
   stand in front of Google's cap.
 
+### 2026-11-17 — F24: the published deploy is `main@1734547`, and publishing is locked
+
+Asked which commit is published after the second build, the owner sent a screenshot of
+Netlify's "Deploys for pathcheck": `pathcheck.netlify.app`, "Auto Publishing Locked",
+"Published main@1734547", the control "Unlock to start auto publishing"; in the list,
+"Production: main@1734547" marked "Published", today at 1:26 PM (the build the owner
+started), above the one Netlify built from the merge of pull request #37 at 1:22 PM and
+the earlier "Production: main@8770a71" of 6:04 AM.
+
+*Agent's notes, not owner decisions:*
+- So the staging address serves the current `main` (1734547: F21, F22, F23 and the fix
+  of #37), published by the owner by hand, and the lock held through both publishes: no
+  merge published anything.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
