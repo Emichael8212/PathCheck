@@ -377,7 +377,7 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
     <div>${result ? `
       ${eyebrow(TEXT.resultEyebrow)}` : ''}
       <h1 tabindex="-1">${esc(heading)}</h1>
-    </div>${result ? `
+    </div>${result && transcript.madeUp === true ? `
     <span class="pill">${icons.doc(15)}${esc(TEXT.pill)}</span>` : ''}
   </div>${transcript && state.notice ? `
   <p class="notice no-print" data-notice>${esc(ANOTHER_FIRST)}</p>` : ''}

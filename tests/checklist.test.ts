@@ -106,7 +106,8 @@ describe('the requirements', () => {
     expect(checklist.unused).toEqual([]);
     expect(legacyChanges(reviewed(sampleA), curriculum)).toBe(false);
     // The page, in the design's words.
-    const html = leftPage(curriculum, { ...emptyLeft(), transcript: openTranscript('sample-a.pdf', sampleA, curriculum), continued: true });
+    // (The design's student is one of the made-up transcripts: its result says so, as the design has it.)
+    const html = leftPage(curriculum, { ...emptyLeft(), transcript: openTranscript('sample-a.pdf', sampleA, curriculum, false, true), continued: true });
     const text = decode(html);
     for (const words of [approved.eyebrow, approved.heading, approved.pill, approved.remainingLabel, approved.reqEyebrow, approved.reqTitle, approved.reqNote, approved.show, approved.hide, approved.sequence, ...approved.reqTabs]) {
       expect(text, words).toContain(words);

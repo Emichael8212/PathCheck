@@ -30,8 +30,8 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetModules(); 
 
 describe('taking a file', () => {
   it('recognises only the made-up transcripts', async () => {
-    expect(await readFile(fileOf(pdf('sample-a'), 'whatever-it-is-called.pdf'))).toEqual({ ok: true, name: 'sample-a.pdf', answer: sampleA });
-    expect(await readFile(fileOf(pdf('sample-b')))).toEqual({ ok: true, name: 'sample-b.pdf', answer: sampleB });
+    expect(await readFile(fileOf(pdf('sample-a'), 'whatever-it-is-called.pdf'))).toEqual({ ok: true, name: 'sample-a.pdf', answer: sampleA, madeUp: true });
+    expect(await readFile(fileOf(pdf('sample-b')))).toEqual({ ok: true, name: 'sample-b.pdf', answer: sampleB, madeUp: true });
 
     // The same PDF with one byte changed, at the start, the middle and the end; and another PDF.
     const bytes = pdf('sample-a');
@@ -119,7 +119,10 @@ describe('on the built site', () => {
     const answer = { rows: sampleA.rows, model: 'gemini-3.5-flash-lite' };
     const { upload, calls } = await built(() => json(answer));
     const bytes = pdf('sample-a');
-    expect(await upload.readFile(fileOf(bytes, 'My Transcript (final).pdf'))).toEqual({ ok: true, name: 'My Transcript (final).pdf', answer });
+    expect(await upload.readFile(fileOf(bytes, 'My Transcript (final).pdf'))).toEqual({ ok: true, name: 'My Transcript (final).pdf', answer, madeUp: false });
+    // What the reader was given is never called one of the made-up transcripts, even when it is one of them, byte for byte:
+    // the built site cannot tell, and holds nothing to tell by.
+    expect(upload.READS_MADE_UP).toBe(false);
     expect(calls).toHaveLength(1);
     const { url, init } = calls[0]!;
     // To PathCheck's own function, on the site's own address.
@@ -142,7 +145,7 @@ describe('on the built site', () => {
     expect(long.ok && long.name).toBe('x'.repeat(80));
     // The made-up answers are not in the built site: what the reader says is what is used.
     const { upload: other } = await built(() => json({ rows: [] }));
-    expect(await other.readFile(fileOf(bytes))).toEqual({ ok: true, name: 'transcript.pdf', answer: { rows: [] } });
+    expect(await other.readFile(fileOf(bytes))).toEqual({ ok: true, name: 'transcript.pdf', answer: { rows: [] }, madeUp: false });
   });
 
   it('refuses in the browser before anything is sent', async () => {

@@ -115,6 +115,8 @@ export function keptText(curriculum: Curriculum, list: Pick<CourseList, 'entries
     term: list.term && list.entries.length > 0 ? termName(list.term) : null,
     result: result ? {
       ...keptRows(result.transcript, curriculum),
+      // That it is one of the made-up transcripts is kept with it, so that the result still says so on a return.
+      ...(result.transcript.madeUp === true ? { madeUp: true } : {}),
       pace: { fewest: result.pace.fewest, most: result.pace.most, summers: result.pace.summers, target: result.pace.target ? termName(result.pace.target) : null },
       moves: Object.fromEntries(Object.entries(movesOfPlan(result.moves, result.transcript, curriculum)).map(([key, term]) => [key, termName(term)])),
     } : null,
@@ -151,14 +153,15 @@ function movesOf(value: unknown): Moves {
   return Object.fromEntries(moves);
 }
 
-function resultOf(value: unknown, curriculum: Curriculum): KeptResult | null {
+function resultOf(value: unknown, curriculum: Curriculum, readsMadeUp: boolean): KeptResult | null {
   if (!isObject(value)) return null;
   const rows = own(value, 'rows');
   if (!Array.isArray(rows) || rows.length > MOST_ROWS) return null;
   let transcript: Transcript;
   try {
     // The same checks as a freshly read transcript; only here may a grade be the kept word for a passing one.
-    transcript = openTranscript(KEPT_NAME, { rows }, curriculum, true);
+    // A result is called made-up only where the made-up transcripts can be read: nowhere else can what is kept make it so.
+    transcript = openTranscript(KEPT_NAME, { rows }, curriculum, true, readsMadeUp && own(value, 'madeUp') === true);
   } catch {
     return null;
   }
@@ -172,7 +175,7 @@ function resultOf(value: unknown, curriculum: Curriculum): KeptResult | null {
  * What was kept, checked again; null when nothing was kept or it cannot be read (not
  * JSON, another version, not PathCheck's shape). Parts that are not valid are dropped.
  */
-export function readKept(text: string | null | undefined, curriculum: Curriculum): Kept | null {
+export function readKept(text: string | null | undefined, curriculum: Curriculum, readsMadeUp = false): Kept | null {
   if (typeof text !== 'string' || text.length > MOST_TEXT) return null;
   let stored: unknown;
   try {
@@ -193,16 +196,16 @@ export function readKept(text: string | null | undefined, curriculum: Curriculum
     const credits = isObject(one) ? own(one, 'credits') : undefined;
     if (typeof credits === 'number') entries = setCredits(entries, added.added.code, credits);
   }
-  return { entries, term: entries.length > 0 ? termOf(own(stored, 'term')) : null, result: resultOf(own(stored, 'result'), curriculum) };
+  return { entries, term: entries.length > 0 ? termOf(own(stored, 'term')) : null, result: resultOf(own(stored, 'result'), curriculum, readsMadeUp) };
 }
 
 // Storage can be missing, switched off or full. Then nothing is remembered and nothing
 // fails: every use of it is inside a try.
 
 /** What the browser keeps for PathCheck, or null. */
-export function loadKept(storage: AnswerStorage | null | undefined, curriculum: Curriculum): Kept | null {
+export function loadKept(storage: AnswerStorage | null | undefined, curriculum: Curriculum, readsMadeUp = false): Kept | null {
   try {
-    return readKept(storage?.getItem(VISIT_KEY), curriculum);
+    return readKept(storage?.getItem(VISIT_KEY), curriculum, readsMadeUp);
   } catch {
     return null;
   }

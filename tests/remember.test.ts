@@ -255,7 +255,9 @@ describe('what is kept', () => {
     const visit = kept()!;
     expect(Object.keys(visit).sort()).toEqual(['list', 'result', 'term', 'v']);
     expect(visit).toMatchObject({ v: 1, list: [{ code: 'MGT 321' }, { code: 'XYZ 999', credits: 3 }], term: 'Fall 2027' });
-    expect(Object.keys(visit.result!).sort()).toEqual(['leftOut', 'moves', 'pace', 'rows']);
+    // (With it: that it is one of the made-up transcripts, so that its result still says so on a return.)
+    expect(Object.keys(visit.result!).sort()).toEqual(['leftOut', 'madeUp', 'moves', 'pace', 'rows']);
+    expect((visit.result as { madeUp?: unknown }).madeUp).toBe(true);
     expect(visit.result!.pace).toEqual({ fewest: 12, most: 18, summers: false, target: null });
     expect(visit.result!.moves).toEqual({ 'MGT 321': 'Spring 2028' });
     // A row holds the course, its printed title, the term, the credits, whether it is transfer credit, and of the grade only what the result uses.

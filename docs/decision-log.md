@@ -117,6 +117,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-17, F21) While a PDF is being read the page says "Reading your transcript…" where a refusal would stand, and it is read out; a file chosen on Start opens the page of the flow at once. The wording is the agent's, listed for the owner. | On the hosted site reading takes seconds; without it the page shows nothing meanwhile. The owner's design has no such state. | `READING` in `src/wording.ts`; `takeFile` in `src/app.ts`. |
 | (2026-11-17, F21) The reader check with the real Gemini is `scripts/reader-check.mjs <address>`, run by hand against a Netlify deploy, never by CI. It sends only the made-up PDFs, uses no key, and accepts only an `https://….netlify.app` address. | CI has no key and must not spend the owner's money; the made-up PDFs must not go anywhere else. | The script. |
 | (2026-11-17, F11, after the owner's test on the preview) When a file is chosen or dropped while a transcript is already there, "To use another transcript, choose “Use another transcript” first." is shown under the heading of "See what I have left", and is still read out once. It goes away with the student's next action on the page or when they go to another page; it is not kept and not printed. | The owner, 2026-11-17: "Make the fix so the sentence is shown on the page as well" (see "Owner answers"). Until then only a screen reader was told why the new file was not read. Its place, its look and when it goes away are the agent's choices. | `notice` in `LeftState` (`src/left.ts`); `takeFile`, `onDrop` in `src/app.ts`; `.notice` in `src/style.css`. |
+| (2026-11-17, F13, before the owner's own upload) "Synthetic transcript result" is shown over a result only when the transcript is one of the made-up ones in `synthetic/transcripts/`, recognised by its bytes. That is possible on a development server only; on the built site every file is a student's own as far as PathCheck knows, so the label never shows there, also for a made-up PDF uploaded there and whatever the browser's storage says. | The owner, 2026-11-17 (see "Owner answers"). The built site must hold nothing of the made-up transcripts (F10, the build check), so it cannot tell them from other files: that the label is absent there for them too is the agent's reading, listed in the pull request. | `madeUp` in `Upload` (`src/upload.ts`) and `Transcript` (`src/review.ts`); `leftPage` in `src/left.ts`; `resultOf` in `src/remember.ts`. |
 | (2026-11-16, F16) The curriculum file names the course of the final semester (`finalSemesterCourse`: MGT-462). The loader checks that it is a required course; a program whose file has no such line has no final-semester rule. No course code is written in the code. | The brief, §4 Flow B step 5: "MGT 462 Business Policies in the final semester". Approved by the owner on 2026-11-16 (see "Owner answers"). | The line in `docs/curriculum/provisional-current.json`; `finalSemester` in `src/curriculum.ts`. |
 | (2026-11-16, F16) The draft plan holds exactly what the checklist says is still to take: each still-needed required course, one entry for each open place of a pick, one for each open elective place, and the sequence course when both sequence picks are held (the owner, 2026-11-16). When the checklist says a sequence course is still needed but no open pick takes it (a legacy student's legacy course holds its pick and would move to an open elective place), one elective place is planned as that course ("HIS 132, for the history sequence"), so the plan never leaves out what the checklist names. Its credits are the credits still to take that pace uses. A course that is passed or in progress is never in it. | Brief §4 Flow B step 5; F16 steps 1 and 2; the owner's answer on the sequence. | `planEntries` in `src/plan.ts`. |
 | (2026-11-16, F16) Order: by the hundred of the course number, lowest first, and within a level the curriculum's order. An open pick has the level of its lowest course; an open elective the highest level of the elective rule; the extra sequence course the level of its lower course. The final-semester course is the last entry of the last semester. This puts the 100-level open picks in the first semester, where the screenshot has 200-level courses. | The brief: "ordered by course level 100 → 400". Layout of a draft labelled "Order not checked", not an academic rule. Approved by the owner on 2026-11-16. | The sort in `planEntries` (`src/plan.ts`). |
@@ -935,6 +936,28 @@ What it decides:
 *Agent's notes, not owner decisions:*
 - Where it stands (under the heading), how it looks (a quiet box in the design's colours)
   and when it goes away are the agent's choices, listed in the pull request.
+
+### 2026-11-17 — "Synthetic transcript result" only over the made-up transcripts
+
+The agent had asked what the label on the result page should do on the hosted site, where
+it would be untrue over a real transcript. The owner's answer, in full:
+
+"1. Show "Synthetic transcript result" only for the made-up transcripts in synthetic/transcripts/. A real transcript's result never shows it. Add a test for both cases. Settle this before I upload my own transcript."
+
+What it decides:
+- The label is shown only for the made-up transcripts in `synthetic/transcripts/`; a real
+  transcript's result never shows it; a test covers both cases; it is settled before the
+  owner's own upload (F24).
+
+*Agent's notes, not owner decisions:*
+- The made-up transcripts are recognised by their bytes, which only a development server
+  can do: the built site holds nothing of them. So on the hosted site the label never
+  shows, also when one of the made-up PDFs is uploaded there.
+- The owner also sent a screenshot of Google AI Studio's Spend page the same day: Tier 1
+  (the paid tier), a monthly spend cap of $5.00 with $0.04 spent, after about nine
+  readings of the made-up PDFs with `gemini-3.5-flash-lite`: under half a cent a reading
+  (Google notes that costs can take hours to show). Google's month resets on the first
+  day of the month, Pacific time.
 
 ## Open questions to the owner
 

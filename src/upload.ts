@@ -31,7 +31,8 @@ export interface ChosenFile {
 }
 
 export type Upload =
-  | { readonly ok: true; readonly name: string; readonly answer: unknown }
+  /** `madeUp`: the file is one of PathCheck's made-up transcripts (synthetic/transcripts/), recognised by its bytes. */
+  | { readonly ok: true; readonly name: string; readonly answer: unknown; readonly madeUp: boolean }
   | { readonly ok: false; readonly refusal: Refusal };
 
 /**
@@ -88,13 +89,17 @@ async function askReader(bytes: Uint8Array, name: string): Promise<Upload> {
     if (response.status === 413) return { ok: false, refusal: 'too-large' };
     if (response.status === 415) return { ok: false, refusal: 'not-a-pdf' };
     if (!response.ok) return { ok: false, refusal: 'unavailable' };
-    return { ok: true, name: name.slice(0, LONGEST_NAME), answer: (await response.json()) as unknown };
+    // Whatever the reader was given, it is a student's own file as far as PathCheck knows: never called made-up.
+    return { ok: true, name: name.slice(0, LONGEST_NAME), answer: (await response.json()) as unknown, madeUp: false };
   } catch {
     return { ok: false, refusal: 'unavailable' };
   } finally {
     clearTimeout(timer);
   }
 }
+
+/** Whether the made-up transcripts can be recognised here at all: on a development server only. */
+export const READS_MADE_UP = madeUp !== null;
 
 /** Looks at a chosen file and gives the reader's answer for it, or the reason it is refused. */
 export async function readFile(file: ChosenFile): Promise<Upload> {
@@ -109,5 +114,5 @@ export async function readFile(file: ChosenFile): Promise<Upload> {
   const name = Object.keys(manifest).find(one => manifest[one]?.bytes === bytes.length && manifest[one]?.fingerprint === fingerprint);
   const answer = name === undefined ? undefined : madeUp.answers[`../synthetic/transcripts/${name}.json`];
   if (name === undefined || answer === undefined) return { ok: false, refusal: 'not-made-up' };
-  return { ok: true, name: `${name}.pdf`, answer };
+  return { ok: true, name: `${name}.pdf`, answer, madeUp: true };
 }
