@@ -102,7 +102,7 @@ describe('the draft plan', () => {
     // Where the design gives a title, it is the curriculum's.
     for (const entry of theirs) if (!entry.choice && entry.title) expect(mine.find(one => one.course?.code === entry.code)?.course?.title, entry.code).toBe(entry.title);
     // The order by level puts the open picks of the lowest level first (the screenshot has them later): the one listed difference.
-    expect(shape(made)[0]).toBe('Spring 2027 18: Humanities pick (ART 131, THE 111 or MUS 121), Humanities pick (ENG 210 or another), Social sciences pick, ENG 209, ECO 252, ACT 215');
+    expect(shape(made)[0]).toBe(`Spring 2027 18: ${pickLabel('humanities', 0)}, Humanities pick (ENG 210 or another), Social sciences pick, ENG 209, ECO 252, ACT 215`);
     expect(shape(made)[4]).toBe('Spring 2029 15: CIS 461, CIS elective, CIS elective, CIS elective, MGT 462');
     // The section, in the design's words.
     const html = planHtml(made);
