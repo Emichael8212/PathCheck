@@ -747,7 +747,7 @@ not changed without the owner's yes (asked in the pull request).
 - M1 is not closed by this answer: the change is made first, and the owner is asked
   again.
 
-### 2026-11-16 — M1 approved; x stays as built; F15 step 1 reworded; M2 started
+### 2026-11-16 — M1 approved; x stays as built; F15 step 1 reworded; M2 to start
 
 The owner's message, in full (an answer to the three questions of pull request #30):
 
@@ -767,7 +767,7 @@ What it decides:
   credits per term of "See what I have left"; n as the number above "Count toward CIS"; the
   term as the target when the target is earlier; no summers on this line; the owner's
   words used exactly for every number; the caveat kept under the line.
-- **M2 is started.** The owner sets every secret themselves; a key is never asked for in
+- **The owner said "Start M2."** The owner sets every secret themselves; a key is never asked for in
   chat. The owner closes the GitHub milestone "M1: Working prototype" themselves.
 
 *Agent's notes, not owner decisions:*
@@ -787,7 +787,13 @@ stand-in until the owner answers; it is not an owner decision.
   with rows to correct). It was built from the design's own pieces, and its layout and
   words are the agent's. The owner was told in chat on 2026-11-16 before it was built, and
   it is listed in F11's pull request. Does the owner want to change it, or design it?
-  Status: no reply yet.
+  Status: no reply yet. M1 was approved on 2026-11-16 without an answer to this; it stays
+  open.
+- **2026-11-16 (for M2).** The other questions without an answer are listed in
+  `docs/milestones/M1.md` part 3, "Questions without an answer". Four of them need the
+  owner's real transcript at M2: how a summer term is printed; what the grade column
+  shows on a transfer row; the layout of the transfer section; and whether a grade
+  printed as "Passed" or "P" counts (an academic rule: the owner decides).
 
 Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
