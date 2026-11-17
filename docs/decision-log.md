@@ -1105,6 +1105,21 @@ What it settles:
   it holds no error and no line of PathCheck's (only the browser's own warning about
   pasting into the console). Nothing of the result on that screenshot is recorded.
 
+### 2026-11-17 — F24, step 6: the result looks right; the request seen in the browser
+
+The owner's words, about the result of their own transcript and the browser's Network
+list of that upload: "The credits look accurate." · "read-transcript is status 200" ·
+"google list is empty." With a screenshot of the Network list filtered on "google": 0 of
+22 requests.
+
+*Agent's notes, not owner decisions:*
+- So the browser asked PathCheck's function once and nothing of Google's: the key and
+  the call to Gemini stay on the server, on the staging address too.
+- No grade of the owner's transcript is printed as "P" or "Passed": such a row would
+  have asked to be fixed, and the owner reported that none does. Whether such a grade
+  counts stays a rule for the owner, for when a transcript shows one.
+- Nothing of the result on the screenshot is recorded.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
