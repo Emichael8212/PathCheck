@@ -113,6 +113,9 @@ describe('what was read', () => {
     expect(reviewRows(b, curriculum).slice(0, 3).map(row => [row.credits, row.editable?.attempted])).toEqual([['', ''], ['', ''], ['', '']]);
     // Transfer credit that does print its credits shows them.
     expect(rowsOf(drawn(open(good({ transfer: true, grade: 'T', attempted: '3.00', term: 'Transfer Credit' }))))[0]).toBe('MGT 321 Prin of Management 3 cr T Transfer credit Passed Edit Not on my transcript');
+    // Figures printed with three decimals, as a real transcript prints them: the row is read, and shows its credits plainly.
+    expect(rowsOf(drawn(open(good({ attempted: '3.000', earned: '3.000', points: '9.000' }))))[0]).toMatch(/^MGT 321 Prin of Management 3 cr B /);
+    expect(drawn(open(good({ attempted: '3.000', earned: '3.000', points: '9.000' })))).not.toContain('Needs fixing');
     // The two courses that never count, in the owner's words; a D; a grade read with spaces, in small letters.
     const more = rowsOf(drawn(open(good({ prefix: 'CIS', number: '304', grade: 'A' }), good({ prefix: 'CIS', number: '415', grade: 'B' }), good({ grade: 'D' }), good({ grade: ' b ' }))));
     expect(more.map(row => row.replace(/ Edit Not on my transcript$/, ''))).toEqual([

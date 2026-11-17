@@ -82,10 +82,13 @@ const field = (row: Fields, name: string): unknown => (Object.hasOwn(row, name) 
 const shown = (value: unknown): string => (typeof value === 'string' ? value : typeof value === 'number' && Number.isFinite(value) ? String(value) : '');
 const empty = (value: unknown): boolean => value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
 
-/** A number, or text that is a plain decimal number as a transcript prints it ("3.00"); otherwise nothing. */
+/**
+ * A number, or text that is a plain decimal number as a transcript prints it: "3", "3.00", and "3.000", which is
+ * how a real transcript printed its figures (the owner's check of M2, 2026-11-17); otherwise nothing.
+ */
 function plainNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) && value >= 0 ? value || 0 : null;
-  if (typeof value === 'string' && /^\d+(\.\d{1,2})?$/.test(value.trim())) return Number(value.trim());
+  if (typeof value === 'string' && /^\d+(\.\d{1,3})?$/.test(value.trim())) return Number(value.trim());
   return null;
 }
 const twoDecimalsAtMost = (value: number): boolean => Math.abs(value * 100 - Math.round(value * 100)) < 1e-9;
