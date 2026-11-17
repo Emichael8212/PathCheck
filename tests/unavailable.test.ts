@@ -173,7 +173,8 @@ describe('when upload is unavailable', () => {
   });
 
   it('says so after a file chosen on Start', async () => {
-    for (const cause of [CAUSES[0]!, CAUSES[8]!, CAUSES[12]!]) {
+    const named = (name: string) => { const found = CAUSES.find(cause => cause.name === name); if (!found) throw new Error(`no cause called ${name}`); return found; };
+    for (const cause of [named('the reader cannot be reached'), named('the day’s three uploads are used'), named('Cloudflare’s script is blocked')]) {
       const app = open('#/');
       const posted = cause.arrange();
       await app.takeFile(pdf());
@@ -186,6 +187,19 @@ describe('when upload is unavailable', () => {
       expect(posted.mock.calls.length, cause.name).toBe(cause.posted ? 1 : 0);
       noOtherWords(cause.name);
     }
+    // Dropped on Start's drop zone: the same.
+    open('#/');
+    // (The simulated browser tells of an address change a moment later: the one of the try before is let through first.)
+    await new Promise(resolve => { setTimeout(resolve, 20); });
+    widget();
+    const posted = reader(() => json({ error: 'unavailable' }, 503));
+    const dropped = new Event('drop', { bubbles: true, cancelable: true }) as Event & { dataTransfer?: unknown };
+    dropped.dataTransfer = { types: ['Files'], files: [pdf()], dropEffect: 'none' };
+    $('[data-drop]').dispatchEvent(dropped);
+    await vi.waitFor(() => expect(posted).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(message()).toBe(SENTENCE));
+    expect(window.location.hash).toBe('#/left');
+    expect(document.activeElement).toBe($('[data-browse]'));
   });
 
   it('leaves Check my courses working without a transcript', async () => {
@@ -331,6 +345,35 @@ describe('when upload is unavailable', () => {
     go('#/left');
     expect(message()).toBe('');
     expect(main()).not.toContain('try again tomorrow');
+
+    // The same, with the keyboard in the credits list of a course PathCheck doesn't know: the list is drawn again with
+    // the card, and the keyboard is on the new list of that course, not nowhere.
+    app = open('#/left');
+    widget();
+    reading = held(refused);
+    waiting = app.takeFile(pdf());
+    await vi.waitFor(() => expect(reading.posted).toHaveBeenCalledTimes(1));
+    go('#/check');
+    add('xyz 999');
+    const list = $<HTMLSelectElement>('[data-credits="XYZ 999"]');
+    list.focus();
+    reading.release();
+    await waiting;
+    expect(message()).toBe(SENTENCE);
+    expect(document.activeElement).toBe($('[data-credits="XYZ 999"]'));
+    expect(document.activeElement?.isConnected).toBe(true);
+    // With the keyboard on a button (not something being filled in): it goes to where another file is chosen.
+    app = open('#/left');
+    widget();
+    reading = held(refused);
+    waiting = app.takeFile(pdf());
+    await vi.waitFor(() => expect(reading.posted).toHaveBeenCalledTimes(1));
+    go('#/check');
+    add('fls 161');
+    $<HTMLElement>('[data-entries] [data-legacy="yes"]').focus();
+    reading.release();
+    await waiting;
+    expect(document.activeElement).toBe($('[data-choose]'));
 
     // Chosen on "Check my courses"; the student goes to "See what I have left"; the refusal comes there.
     app = open('#/check');

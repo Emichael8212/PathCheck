@@ -363,13 +363,16 @@ export function startApp(win: AppWindow): App {
       // Not taken (docs/sprints/F23.md). The reason stands on the page the student is on when it comes, and is read
       // out; the student is not moved: there is nothing to look at elsewhere. The keyboard goes to where another
       // file is chosen, unless it is in a field or a list the student is using: there it stays, with what was typed.
-      const active = (win.document as unknown as { activeElement?: { matches?(selector: string): boolean } | null }).activeElement;
+      const active = (win.document as unknown as { activeElement?: { matches?(selector: string): boolean; getAttribute?(name: string): string | null; isConnected?: boolean } | null }).activeElement;
       const inUse = active?.matches?.('input, select, textarea') === true;
       if (route === 'check') {
+        // (The list of courses is drawn again with the card: a credits list in use is a new element afterwards.)
+        const credits = inUse ? active?.getAttribute?.('data-credits') ?? null : null;
         checkRefusal = refusal;
         checkView?.refresh();
         say(refusalText(refusal));
         if (!inUse) part<{ focus(): void }>('[data-choose]')?.focus();
+        else if (active?.isConnected === false) (part<{ focus(): void }>(credits === null ? '[data-choose]' : `[data-credits="${credits.replace(/["\\]/g, '')}"]`) ?? part<{ focus(): void }>('[data-choose]'))?.focus();
         return;
       }
       Object.assign(left, { transcript: null, continued: false, refusal, editing: null, draft: null });
@@ -378,7 +381,8 @@ export function startApp(win: AppWindow): App {
       if (route === 'left') show(false);
       else showLeft();
       say(refusalText(refusal));
-      if (!inUse || route !== 'left') part<{ focus(): void }>('[data-browse]')?.focus();
+      // (That page is drawn again as a whole, and has nothing but the upload control while no transcript is there.)
+      part<{ focus(): void }>('[data-browse]')?.focus();
       return;
     }
     const returnTo = from === 'check' ? 'check' : from === 'left' ? left.returnTo : 'left';
