@@ -683,11 +683,17 @@ describe('nothing leaves the browser', () => {
       expect(tidy($('#app').textContent), hash).not.toMatch(/\bsign[ -]?(in|up)\b|\blog[ -]?in\b|\bpassword\b|\baccount\b|\bregister\b/i);
       expect(document.querySelector('form, input[type="password"], input[type="email"]'), hash).toBeNull();
     }
-    // Nothing in the app's code can send anything: it never names a way to.
+    // Nothing in the app's code can send anything: it never names a way to. The one place that
+    // sends is where a chosen PDF goes to PathCheck's reader on the hosted site (F21), and it sends once.
     const src = join(import.meta.dirname, '..', 'src');
-    for (const name of ['app.ts', 'remember.ts', 'left.ts', 'check.ts', 'upload.ts', 'report.ts', 'print.ts']) {
-      expect(readFileSync(join(src, name), 'utf8'), name).not.toMatch(/\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|document\.cookie|sessionStorage|indexedDB/);
+    const ways = /\bfetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|document\.cookie|sessionStorage|indexedDB/;
+    for (const name of ['app.ts', 'remember.ts', 'left.ts', 'check.ts', 'report.ts', 'print.ts']) {
+      expect(readFileSync(join(src, name), 'utf8'), name).not.toMatch(ways);
     }
+    const upload = readFileSync(join(src, 'upload.ts'), 'utf8');
+    expect(upload.match(/\bfetch\(/g)).toHaveLength(1);
+    expect(upload).toContain('await fetch(READER, {');
+    expect(upload.replace('await fetch(READER, {', '')).not.toMatch(ways);
   });
 
   it('comes back whole', async () => {

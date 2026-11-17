@@ -19,7 +19,9 @@ export const CONDITION = 'unless you’ve already passed it or filled this slot'
 /** A pace answer is never shown without this. */
 export const CAVEAT = 'Credits only — course order may add semesters.';
 /** Shown next to every upload control, so it is read before the first upload. */
-export const PRIVACY = 'Your PDF is read, then deleted. Only your result stays in this browser.';
+export const PRIVACY = 'Google reads your PDF and may keep it briefly. Your result stays in this browser.';
+/** Said and shown while a chosen PDF is being read (on the hosted site it takes some seconds). */
+export const READING = 'Reading your transcript…';
 
 /** The answer for a course in a curriculum list; `block` is the block's name from the curriculum. */
 export const countsToward = (block: string): string => `Counts toward CIS — ${block}`;

@@ -170,8 +170,10 @@ Marks are inline SVG drawn in the project (20-unit grid); no icon pack.
 - **Buttons:** primary = `--accent` fill; secondary = `--surface` with a `--line-strong`
   border. Arrow icon after the label on buttons that move forward.
 - **Focus:** 3px `--focus` outline, 2px offset, on every control.
-- **Privacy sentence:** "Your PDF is read, then deleted. Only your result stays in this
-  browser." It sits next to every upload control, so it is read before the first upload.
+- **Privacy sentence:** "Google reads your PDF and may keep it briefly. Your result stays in
+  this browser." (the owner, 2026-11-17, for M2, where the PDF is read by Google Gemini;
+  until then it read "Your PDF is read, then deleted. Only your result stays in this
+  browser."). It sits next to every upload control, so it is read before the first upload.
 
 ## Page 1: Start
 
@@ -329,7 +331,8 @@ Each difference comes from the brief or from a dated owner answer in `docs/decis
 - g. "Counts" and "Done" have different marks; all five statuses differ.
 - h. 12 count toward CIS, everywhere.
 - i. The privacy sentence is "Your PDF is read, then deleted. Only your result stays in this
-  browser."
+  browser." (Replaced by the owner on 2026-11-17: "Google reads your PDF and may keep it
+  briefly. Your result stays in this browser.")
 
 ## Where the app differs from the screenshots
 

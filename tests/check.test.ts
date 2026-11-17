@@ -499,7 +499,10 @@ describe('the transcript on the page', () => {
     expect(page).toContain(`<div data-transcript>${card}</div>`);
     expect(card).toMatch(/^<section class="exact" aria-labelledby="exact-title">/);
     expect(card).toContain(`<h2 id="exact-title">${approvedCheck.transcript}</h2>`);
-    expect(decode(card)).toContain(approvedCheck.privacy);
+    // (The mockup's privacy sentence was replaced by the owner on 2026-11-17, for M2, where Google Gemini reads the PDF.)
+    expect(approvedCheck.privacy).toBe('Your PDF is read, then deleted. Only your result stays in this browser.');
+    expect(decode(card)).toContain('Google reads your PDF and may keep it briefly. Your result stays in this browser.');
+    expect(decode(card)).not.toContain('then deleted');
     expect(card).toMatch(new RegExp(`<button type="button" class="btn primary" data-choose>${approvedCheck.choose} <svg`));
     // The reason a file was not taken goes under the card; there is none yet.
     expect(card).toMatch(/<p class="field-message" data-refusal><\/p>$/);

@@ -248,7 +248,7 @@ describe('Flow B: "See what I have left"', () => {
     // 1. The transcript is the only input: there is no field to type a course in.
     expect(all('main input, main textarea, main select')).toEqual([]);
     expect($('[data-browse]')).toBeTruthy();
-    expect(main()).toContain('Your PDF is read, then deleted. Only your result stays in this browser.');
+    expect(main()).toContain('Google reads your PDF and may keep it briefly. Your result stays in this browser.');
     // 2. The review step shows what was read; a misread row is fixed there.
     await app.takeFile(madeUp('sample-b'));
     const read = (sampleB as { rows: Row[] }).rows.filter(one => typeof one.number === 'string' && /^\d{3}$/.test(one.number));
@@ -402,10 +402,11 @@ describe('the two flows together', () => {
     expect(answerOf('MGT 321')).toBe(`Counts toward CIS — Business core ${CONDITION}`);
     expect(answerOf('BIO 230')).toBe('Doesn’t count toward CIS — not in the CIS curriculum');
 
-    // On the built site nothing can be read: the brief's sentence, on both pages, and Flow A still works.
+    // On the built site, when the reader cannot be reached: the brief's sentence, on both pages, and Flow A still works.
     app.stop();
     window.localStorage.clear();
     vi.stubEnv('DEV', false);
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('no reader here')));
     vi.resetModules();
     await open('#/left');
     await app.takeFile(madeUp('sample-a'));

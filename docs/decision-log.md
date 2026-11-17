@@ -109,6 +109,13 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F15, after the M1 check) The pace line of "Check my courses" is the owner's sentence: "<n> of these <m> credits count. To finish by <target>, you need about <x> counting credits a term.", with "That's more than your <Most>-credit limit — consider a later target." after it when x is more than the most credits per term of "See what I have left". No finish date is named. The two lists sit on a line of their own under the sentence, each with its name shown beside it; the caveat stays under them. | The owner's answer to the M1 check, 2026-11-16 (in full under "Owner answers"). | `paceLineOf` in `src/pace.ts`; `lineSentence`, `paceLineHtml` in `src/check.ts`; `.line-lists` in `src/style.css`. |
 | (2026-11-16, F15, after the M1 check) x is the credits still to take, this term's counting courses among them, divided by the Fall and Spring terms from the term the courses are for through the target, both counted, rounded up. The credits to take are those of "See what I have left" (with a sequence course's extra credits), and 3 more when a typed course fills the last pick a sequence could have gone through. n is the typed credits that count: the number the page shows above "Count toward CIS". A typed sequence course that is "Needed for the … sequence" is not in n (it fills the sequence requirement only and is never said to count; code review of the change), but its credits are in what is to take. m is all the typed credits. x is the same for every term from this one through the target, so it does not change with how many credits are typed (only when a typed course makes a sequence course necessary); the other reading (what the terms after this one need once this term's courses are taken) is a question to the owner, not built. The sentence is the same when none of them counts ("0 of these 3 credits count. …") and for a 1: the owner's words are not adapted. | The agent's reading of "counting credits left ÷ Fall/Spring semesters left to the target": x stands beside n (what a term needs; what this term has), and is never lower than what the list really leaves to do (evaluator, contract round 1). | `paceLineOf` in `src/pace.ts` (`toTake`, `semesters`). |
 | (2026-11-16, F15, after the M1 check) When the target of "See what I have left" is earlier than the term the courses are for, the line takes the term itself as its target and offers no earlier one; the target of "See what I have left" is not changed until the student chooses one here. The list of targets always holds one that needs no more than the most credits a term. | The owner's message does not cover it: no term is left to a target before the term, and "To finish by <a term already gone>" would be false. | `target`, `targets` in `paceLineOf` (`src/pace.ts`). |
+| (2026-11-17, F21) The one server piece is a Netlify Function at `POST /api/read-transcript`. The request is the PDF's bytes and nothing else. It takes a PDF of at most 4 MB (the browser's own limit is lowered from 10 MB to the same), sends it once to Gemini with no retry, waits 25 seconds, takes at most 400 rows, and passes on only the nine named fields of a row, each cut to 80 characters. Every failure is one answer, 503 "unavailable". It does not judge rows: `readRows` in the browser is the one judge. | Brief §7. 4 MB: Netlify stops a binary request body at about 4.5 MB. 25 seconds: Netlify stops a function at 60, and the student should get the plain sentence, not a platform's error page. One judge: a second copy of the rules on the server adds no safety (contract review). | `netlify/functions/read-transcript.mts`; `askReader` in `src/upload.ts`. |
+| (2026-11-17, F21) The model is `gemini-3.5-flash-lite`, named in one constant, with temperature 0 and at most 16,384 tokens of answer. It replaces `gemini-2.5-flash-lite`, the first choice, which Gemini refused with 404 on the owner's preview. | Google's documentation (read 2026-11-17): "Access to the 2.5 models is limited to users who have actively used them in the past", and for new projects it names 3.5 Flash-Lite. It is the cheapest stable model open to a new project that reads a PDF into a fixed answer shape: $0.30 per million tokens in, $2.50 out; a PDF page is 258 tokens. By those figures a transcript of a few pages costs under one cent, and the most one upload can cost is about 12 cents (1,000 pages in, 16,384 tokens out). Two things in them are not confirmed for this model (code review, round 3): the 258 tokens a page is the documentation's general figure for PDFs, and a model that thinks before it answers is billed for that at the output price; the cap of 16,384 tokens bounds the output either way. What an upload really costs is read from the owner's spend in Google AI Studio after the first uploads, and is measured by the function itself in F22 (the $5 cap). `gemini-3.1-flash-lite` is a little cheaper but is shut down on 2027-05-07. The owner agreed to the change of model and price on 2026-11-17 (see "Owner answers"). The reader check on the made-up transcripts decides whether it reads well enough. | `MODEL`, `MOST_ANSWER_TOKENS` in the function. |
+| (2026-11-17, F21) The key is the environment variable `GEMINI_API_KEY`, set by the owner in Netlify with "Contains secret values". Until F22 (the limits) is merged it is set for the Deploy Previews context only: the site's main address has no key and answers "unavailable" without calling Google. The agent never reads or sets it. | Brief §7 and §12; CLAUDE.md (never read or commit secrets). Deploy Previews only: before the limits exist, anyone who finds an address with the key could spend the owner's balance (contract review). The owner's project is Private, so a preview can be opened by others only while the owner has the previews opened for a run of the reader check; during that time, and until F22, the owner's $5 prepaid balance and spend cap at Google are the only stop. | The owner adds the Production context after F22. `process.env.GEMINI_API_KEY` in the function. |
+| (2026-11-17, F21) The function log gets one fixed line per failure: "read-transcript: unavailable (<kind>)", where the kind is one of eight fixed words, with Gemini's status number when it refused. A success logs nothing. Nothing of the PDF, of a row, of a file name or of Gemini's words is ever logged, and nothing is stored. | Brief §7 and §9 "Safe". The line is enough to tell a missing key from a refusal or a timeout. | `unavailable` in the function. |
+| (2026-11-17, F21) The Netlify project is `pathcheck`, built by Netlify from the GitHub repository (`netlify.toml`), at https://pathcheck.netlify.app. It is **Private**: only the owner, logged in to Netlify, can open it and its Deploy Previews. Publishing is locked by the owner: a merge does not publish; the owner publishes a deploy themselves; Deploy Previews of pull requests are built automatically. The agent runs no deploy command. | The owner's setup and answer of 2026-11-17 ("Owner answers"). The owner's project is Private, which is the safest state before the limits exist (F22): nobody else can reach the function. | The project's settings in Netlify ("Project configuration > General > Visitor access"; "Deploys > Unlock to start auto publishing"). |
+| (2026-11-17, F21) While a PDF is being read the page says "Reading your transcript…" where a refusal would stand, and it is read out; a file chosen on Start opens the page of the flow at once. The wording is the agent's, listed for the owner. | On the hosted site reading takes seconds; without it the page shows nothing meanwhile. The owner's design has no such state. | `READING` in `src/wording.ts`; `takeFile` in `src/app.ts`. |
+| (2026-11-17, F21) The reader check with the real Gemini is `scripts/reader-check.mjs <address>`, run by hand against a Netlify deploy, never by CI. It sends only the made-up PDFs, uses no key, and accepts only an `https://….netlify.app` address. | CI has no key and must not spend the owner's money; the made-up PDFs must not go anywhere else. | The script. |
 | (2026-11-16, F16) The curriculum file names the course of the final semester (`finalSemesterCourse`: MGT-462). The loader checks that it is a required course; a program whose file has no such line has no final-semester rule. No course code is written in the code. | The brief, §4 Flow B step 5: "MGT 462 Business Policies in the final semester". Approved by the owner on 2026-11-16 (see "Owner answers"). | The line in `docs/curriculum/provisional-current.json`; `finalSemester` in `src/curriculum.ts`. |
 | (2026-11-16, F16) The draft plan holds exactly what the checklist says is still to take: each still-needed required course, one entry for each open place of a pick, one for each open elective place, and the sequence course when both sequence picks are held (the owner, 2026-11-16). When the checklist says a sequence course is still needed but no open pick takes it (a legacy student's legacy course holds its pick and would move to an open elective place), one elective place is planned as that course ("HIS 132, for the history sequence"), so the plan never leaves out what the checklist names. Its credits are the credits still to take that pace uses. A course that is passed or in progress is never in it. | Brief §4 Flow B step 5; F16 steps 1 and 2; the owner's answer on the sequence. | `planEntries` in `src/plan.ts`. |
 | (2026-11-16, F16) Order: by the hundred of the course number, lowest first, and within a level the curriculum's order. An open pick has the level of its lowest course; an open elective the highest level of the elective rule; the extra sequence course the level of its lower course. The final-semester course is the last entry of the last semester. This puts the 100-level open picks in the first semester, where the screenshot has 200-level courses. | The brief: "ordered by course level 100 → 400". Layout of a draft labelled "Order not checked", not an academic rule. Approved by the owner on 2026-11-16. | The sort in `planEntries` (`src/plan.ts`). |
@@ -777,6 +784,139 @@ What it decides:
   part 3 were not mentioned one by one; they stay listed there as the agent's choices, and
   the question about the review step stays under "Open questions to the owner".
 
+### 2026-11-16 — No pull request before the owner's setup
+
+The owner's message, in full, sent while F21's contract was being reviewed:
+
+"do not create pull request until I setup the system from the 3 steps you provided."
+
+The three steps are the Netlify project, the paid Gemini key in Google AI Studio, and the
+key stored in Netlify as `GEMINI_API_KEY` (given in chat on 2026-11-16).
+
+*Agent's notes, not owner decisions:*
+- F21 is built and tested on its branch meanwhile, with local commits only: no push and no
+  pull request until the owner says the setup is done.
+- After the first instructions the owner was told to choose the Deploy Previews context
+  only for the key, not Production, until F22 is merged (contract review of F21).
+- A question was put to the owner the same day and has no answer yet: whether the privacy
+  sentence ("Your PDF is read, then deleted. Only your result stays in this browser.")
+  should say that the PDF goes to Google Gemini, and that Google may keep it for a limited
+  time to check for abuse. F21 is not marked passing before the answer.
+
+### 2026-11-17 — The setup is done; publishing is locked; the address of a page
+
+The owner's message, in full:
+
+"I opened the project and it said. https://pathcheck.netlify.app/#/left lets make sure we have it as https://pathcheck.netlify.app  . Find the cause so we can fix it.
+1. GEMINI_API_KEY is listed and hidden.
+2. Google AI Studio: billing set up with the $5 prepay, and a $5 monthly spend cap.
+3. I locked auto publishing. Merges must not publish to pathcheck.netlify.app; I'll publish myself. Previews stay automatic.
+4. what are the options so I can make a choice?"
+
+What it decides:
+- **The setup of F21 is done:** the Netlify project `pathcheck` (https://pathcheck.netlify.app),
+  the paid Gemini key with a $5 prepaid balance and a $5 monthly spend cap, and the key
+  stored in Netlify as `GEMINI_API_KEY`, hidden.
+- **Publishing is locked.** "Merges must not publish to pathcheck.netlify.app; I'll publish
+  myself. Previews stay automatic."
+
+*Agent's notes, not owner decisions:*
+- The key was entered on the project's creation form with "Contains secret values" and the
+  Deploy Previews context only (the owner's screenshots of 2026-11-17). The agent has not
+  seen and cannot see the key.
+- The project is Private: the agent's check of the address was refused (401). The owner was told not to make it public for now.
+- With the setup done, the hold on the pull request ("do not create pull request until I
+  setup the system") is over: F21's pull request is opened. It is not merged before the
+  checks on the hosted preview (the owner's answer about the privacy sentence came later
+  the same day).
+- **The address.** The cause was looked for and nothing is changed: every page of PathCheck
+  has its own address (`#/` Start, `#/check`, `#/left`), so the address ends in `#/left`
+  whenever "See what I have left" is open: after its link, or after a file is chosen or
+  dropped on Start. Opening https://pathcheck.netlify.app itself shows Start, and nothing
+  in the code moves from there by itself (shown in a browser on localhost). Whether the
+  address should stay bare on every page is put to the owner as a choice.
+- **The hosted checks.** The agent's tools cannot log in to Netlify, and the repository's
+  guard stops the agent from sending a file to an outside address. How the reader check
+  and the look at the hosted page are done is put to the owner as a choice.
+- "4. what are the options": the three wordings of the privacy sentence are given again
+  in chat.
+
+### 2026-11-17 — The privacy sentence for M2; the address stays; previews opened briefly for the test
+
+The owner's message, in full:
+
+"This iis what got shown: Upload isn’t available right now — try again tomorrow.
+1. Keep the address as it is.
+2. Privacy sentence: "Google reads your PDF and may keep it briefly. Your result stays in this browser." Record it in docs/decision-log.md.
+3. Open previews briefly. Give me the exact clicks to open and to close them, and the command to run. Remind me to close them when the run finishes.
+4. The M2 milestone on GitHub is called "Transcript upload""
+
+What it decides:
+- **The privacy sentence** is now: "Google reads your PDF and may keep it briefly. Your result
+  stays in this browser." It replaces "Your PDF is read, then deleted. Only your result
+  stays in this browser." (answer i on PR #4) next to every upload control.
+- **The address stays as it is:** each page keeps its own address (`#/`, `#/check`,
+  `#/left`).
+- **The test against the real Gemini** is run by the owner with the Deploy Previews opened
+  for the length of the run and closed again afterwards. The agent gives the clicks and
+  the command, and reminds the owner to close them.
+- **The GitHub milestone of M2** is called "Transcript upload".
+
+*Agent's notes, not owner decisions:*
+- On the private preview the owner's first try of `sample-a.pdf` gave "Upload isn’t
+  available right now — try again tomorrow". The likely cause, not yet confirmed: the
+  page's request to the function was sent without the browser's cookies, and a private
+  Netlify deploy answers only a logged-in visitor, so Netlify refused it before the
+  function ran. The request now goes with the site's own cookies (to this site only).
+  PathCheck sets no cookie of its own, and the function reads nothing of a request but its
+  type and its length. Listed for the owner in the pull request.
+- The sentence is used as the owner wrote it. The mockups of M0 keep the earlier sentence:
+  they are the record of what was approved then.
+
+### 2026-11-17 — The model is gemini-3.5-flash-lite; the Google project is still on the free tier
+
+On the owner's preview the function answered "unavailable"; its log line, read by the
+owner, was "read-transcript: unavailable (refused 404)": Gemini did not find the first
+model, `gemini-2.5-flash-lite`. The agent put the change of model and of price to the
+owner (a normal transcript under one cent, at most about 12 cents an upload, instead of
+about 0.1 cent and 3 cents). The owner's message, in full:
+
+"Let's use gemini-3.5-flash-lite but provide the step needed to set my monthly billing to $5 a month. I just found out I'm still on free tier. Do not make any change on code for the free tier information just provide me instruction"
+
+What it decides:
+- **The model is `gemini-3.5-flash-lite`.**
+- **Nothing in the code changes because of the free tier.** The owner sets up billing
+  themselves, with the steps given in chat.
+
+*Agent's notes, not owner decisions:*
+- The entry "The setup is done" above records the owner's words that billing was set up
+  with a $5 prepay and a $5 monthly spend cap. By this message the project is still on
+  the free tier: billing is not yet in place. Until it is, the brief's "paid Google
+  Gemini" (§7) does not hold: on the free tier Google's terms let it use what is sent to
+  improve its products, and people may read it. Only the made-up transcripts are sent
+  meanwhile. The owner was told not to upload a real transcript before the paid tier is
+  on.
+- F21's hosted checks can be run with the made-up transcripts on either tier; F24 (the
+  owner's own transcript) cannot be done before the paid tier.
+
+### 2026-11-17 — Billing is set; the reader check with the real Gemini passed
+
+The owner's message, with two screenshots of the review step on the preview:
+
+"I've also successfully set the billing tier to $5 monthly."
+
+Then the owner ran the reader check in the session
+(`node scripts/reader-check.mjs https://deploy-preview-32--pathcheck.netlify.app`): six
+runs, each "PASS", model gemini-3.5-flash-lite, and "reader-check: every run read the
+made-up transcripts as prepared."
+
+*Agent's notes, not owner decisions:*
+- The agent cannot see the Google account: that the project is on the paid tier with a $5
+  limit is the owner's word.
+- Netlify offers no setting that opens the previews and keeps the main site private. The
+  agent told the owner so before the run; the owner ran the check with the project
+  opened, and was reminded to set it back to private.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -794,6 +934,8 @@ stand-in until the owner answers; it is not an owner decision.
   owner's real transcript at M2: how a summer term is printed; what the grade column
   shows on a transfer row; the layout of the transfer section; and whether a grade
   printed as "Passed" or "P" counts (an academic rule: the owner decides).
+- **2026-11-16 (F21).** The privacy sentence once the PDF goes to Google Gemini. Answered
+  on 2026-11-17 (see "Owner answers").
 
 Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;

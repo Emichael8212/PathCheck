@@ -35,7 +35,7 @@ describe('before a transcript', () => {
   });
 
   it('shows the privacy sentence with the upload control', () => {
-    const sentence = 'Your PDF is read, then deleted. Only your result stays in this browser.';
+    const sentence = 'Google reads your PDF and may keep it briefly. Your result stays in this browser.';
     expect(uploadPanel()).toMatch(new RegExp(`data-browse>[\\s\\S]*<p class="privacy">[\\s\\S]*${sentence.replace(/\./g, '\\.')}</p>`));
     expect(decode(leftPage(curriculum))).toContain(sentence);
     // The reason a file was not taken is said under the control.

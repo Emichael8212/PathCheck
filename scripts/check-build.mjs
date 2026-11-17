@@ -16,6 +16,15 @@ export function forbiddenText(folder, curriculumText) {
   return { fingerprints, descriptions: [...new Set(descriptions)] };
 }
 
+/**
+ * What also must not be in the built site: anything of the server piece (docs/sprints/F21.md).
+ * The key lives in Netlify, and only the function knows its variable's name, Gemini's
+ * address and the header the key travels in.
+ */
+export const SERVER_ONLY = ['GEMINI_API_KEY', 'generativelanguage.googleapis.com', 'x-goog-api-key'];
+/** The pieces of the server found in a built file's text. */
+export const serverPiecesIn = text => SERVER_ONLY.filter(piece => text.toLowerCase().includes(piece.toLowerCase()));
+
 /** The forbidden pieces of text found in a built file's text. */
 export const leaksIn = (text, forbidden) => [...forbidden.fingerprints, ...forbidden.descriptions].filter(piece => text.includes(piece));
 
@@ -32,5 +41,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (forbidden.fingerprints.length < 2 || forbidden.descriptions.length < 5) { console.error('check-build: too little to look for; the check would prove nothing.'); process.exit(1); }
   const found = filesUnder(dist).flatMap(path => leaksIn(readFileSync(path, 'latin1'), forbidden).map(piece => `${path}: "${piece}"`));
   if (found.length > 0) { console.error(`check-build: the built site holds made-up transcript data:\n${found.join('\n')}`); process.exit(1); }
-  console.log(`check-build: the built site holds none of the made-up transcripts (${forbidden.fingerprints.length} fingerprints, ${forbidden.descriptions.length} descriptions looked for).`);
+  const server = filesUnder(dist).flatMap(path => serverPiecesIn(readFileSync(path, 'latin1')).map(piece => `${path}: "${piece}"`));
+  if (server.length > 0) { console.error(`check-build: the built site holds a piece of the server:\n${server.join('\n')}`); process.exit(1); }
+  console.log(`check-build: the built site holds none of the made-up transcripts (${forbidden.fingerprints.length} fingerprints, ${forbidden.descriptions.length} descriptions looked for) and nothing of the server piece (${SERVER_ONLY.length} pieces looked for).`);
 }

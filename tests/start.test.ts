@@ -56,7 +56,12 @@ describe('the Start page', () => {
     const approved = structuredClone(approvedStart) as { left: { mockNote?: string } };
     expect(approved.left.mockNote).toBe('Mockup: opens synthetic student results.');
     delete approved.left.mockNote;
-    const wanted = strings(approved);
+    // (And apart from the privacy sentence, which the owner replaced on 2026-11-17 for M2: Google Gemini reads the PDF.)
+    const earlier = 'Your PDF is read, then deleted. Only your result stays in this browser.';
+    expect(strings(approved)).toContain(earlier);
+    const wanted = strings(approved).filter(one => one !== earlier);
+    expect(text).toContain('Google reads your PDF and may keep it briefly. Your result stays in this browser.');
+    expect(text).not.toContain('then deleted');
     expect(wanted.length).toBeGreaterThan(40);
     for (const one of wanted) expect(text.includes(one) || html.includes(one.replace(/&/g, '&amp;')), one).toBe(true);
     expect(text).not.toMatch(/mockup|synthetic/i);
@@ -67,8 +72,8 @@ describe('the Start page', () => {
       'Drag & drop your transcript PDF here', 'Browse files', 'See it work', 'A quick look',
     ]) expect(text, one).toContain(one);
     // The privacy sentence sits with the upload control.
-    expect(PRIVACY).toBe('Your PDF is read, then deleted. Only your result stays in this browser.');
-    expect(html).toMatch(/<div class="drop" data-drop>[\s\S]*Browse files[\s\S]*Your PDF is read, then deleted\. Only your result stays in this browser\.[\s\S]*?<\/div>/);
+    expect(PRIVACY).toBe('Google reads your PDF and may keep it briefly. Your result stays in this browser.');
+    expect(html).toMatch(/<div class="drop" data-drop>[\s\S]*Browse files[\s\S]*Google reads your PDF and may keep it briefly\. Your result stays in this browser\.[\s\S]*?<\/div>/);
     // The top bar.
     expect(NOT_OFFICIAL).toBe(approvedFacts.notOfficial);
     expect(decode(top('start'))).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. ');
@@ -124,7 +129,7 @@ describe('the three addresses', () => {
     expect(pages.left).toMatch(/<h1 tabindex="-1">See what I have left<\/h1>/);
     expect(pages.left).toContain('<a href="#/left" aria-current="page">What I have left</a>');
     // Before a transcript is brought, the page of the second flow holds its name and the way to bring one.
-    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Your PDF is read, then deleted. Only your result stays in this browser. Not an official degree audit. Curriculum last reviewed: Nov 2026 Report a mistake Not affiliated with Alabama State University ');
+    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Google reads your PDF and may keep it briefly. Your result stays in this browser. Not an official degree audit. Curriculum last reviewed: Nov 2026 Report a mistake Not affiliated with Alabama State University ');
     for (const page of [pages.check, pages.left]) expect(decode(page)).not.toMatch(/coming soon|not built|later/i);
     expect(routeOf('#/check')).toBe('check');
     expect(routeOf('#/left')).toBe('left');
@@ -496,13 +501,19 @@ describe('the demo', () => {
         expect(fake.location.hash).toBe(route);
       }
     }
-    // A file is read in one place only, and nothing in the app sends anything anywhere.
+    // A file is read in one place only. That place alone sends, once: the PDF to PathCheck's reader
+    // on the hosted site (F21). Nothing else in the app sends anything anywhere.
     const reading = /FileReader|\.items\b|getData|arrayBuffer|createObjectURL|\.text\(\)|\.stream\(\)/;
     const sending = /fetch\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|navigator\.connection|new Image\(/;
     for (const file of readdirSync(join(repo, 'src'), { recursive: true }).map(String).filter(name => /\.(tsx?|jsx?|html)$/.test(name))) {
       const source = readFileSync(join(repo, 'src', file), 'utf8');
-      expect(source, file).not.toMatch(sending);
-      if (file !== 'upload.ts') expect(source, file).not.toMatch(reading);
+      if (file === 'upload.ts') {
+        expect(source.match(/fetch\(/g), file).toHaveLength(1);
+        expect(source.replace('await fetch(READER, {', ''), file).not.toMatch(sending);
+      } else {
+        expect(source, file).not.toMatch(sending);
+        expect(source, file).not.toMatch(reading);
+      }
     }
   });
 });
