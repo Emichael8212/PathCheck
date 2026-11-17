@@ -1120,6 +1120,21 @@ list of that upload: "The credits look accurate." · "read-transcript is status 
   counts stays a rule for the owner, for when a transcript shows one.
 - Nothing of the result on the screenshot is recorded.
 
+### 2026-11-17 — F24, step 7: the upload works on the owner's phone
+
+The owner opened the staging address on their phone. At first: "I typed
+https://pathcheck.netlify.app but it says it is private." (Netlify's page for a visitor
+who is not logged in); after logging in to Netlify in the phone's browser, a screenshot
+of the phone: `pathcheck.netlify.app`, "Check what was read", "This is what PathCheck
+read from sample-a.pdf.", the first rows under "Fall 2025".
+
+*Agent's notes, not owner decisions:*
+- This is the first time the file picker ("Browse files") is used on a real phone with a
+  real PDF, open since M1 (F11's review): it opens, the PDF is chosen and read.
+- The screenshot is of the review, before "Continue".
+- Netlify's own bar for the logged-in owner ("Make public") lies over the page on the
+  phone; a visitor of a public site does not get it.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
