@@ -248,6 +248,8 @@ svg { display: block; flex-shrink: 0; }
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  /* A short word ("Edit", "Fix it") is still wide enough to touch: it stays where it was, and the room is on its right. */
+  min-width: 44px;
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -539,6 +541,8 @@ svg { display: block; flex-shrink: 0; }
 .answer.is-waiting { color: var(--ink-2); font-weight: 400; }
 .legacy-line { margin-top: 16px; color: var(--ink-2); font-size: 14px; line-height: 20px; }
 .legacy-line strong { color: var(--ink); }
+/* Room between the answer and "Change", so that the focus ring of "Change" does not touch the answer. */
+.legacy-line .text-link { margin-left: 8px; }
 
 /* ---- "See what I have left": the upload and the review step ---- */
 .upload { display: flex; flex-direction: column; max-width: 560px; }
