@@ -369,9 +369,12 @@
         "A visible \"Clear my data\" button removes everything PathCheck stored in the browser, including the legacy answer",
         "No accounts, no sign-in, and no student data sent to or stored on any server (the upload function keeps nothing)"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F19.md — QA PASS in a real browser (round 2, after round 1 failed on moves kept for entries not in the plan); reviewer: no blocker after round 2 (round 1 found that a row to fix could count after a return; fixed)",
+      "tests": [
+        "tests/remember.test.ts",
+        "tests/print.test.ts"
+      ]
     },
     {
       "id": "F20",

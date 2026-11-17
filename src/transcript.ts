@@ -20,7 +20,18 @@ export interface TranscriptRow {
    * column of the row is not read.
    */
   readonly transfer: boolean;
+  /**
+   * Known to have passed the grade check although its letter is not known here: a row of a
+   * result that PathCheck itself kept in the browser (it keeps no passing letter grade).
+   * Never set for a freshly read transcript. (Of several such rows of one course none is
+   * better than another: the first decides. Nothing may depend on which passing row of a
+   * course decided.)
+   */
+  readonly passed?: boolean;
 }
+
+/** What is kept in the place of a passing letter grade, and shown where the letter was. */
+export const KEPT_AS_PASSED = 'Passed';
 
 export type Standing =
   /** A grade at or above the lowest that counts, or transfer credit. */
@@ -68,6 +79,8 @@ export function rowStanding(row: TranscriptRow, grades: Grades): Standing {
   // it is not read. Only a flag that is exactly true says so: this one flag decides, so a
   // value such as the text "false" must not pass as it.
   if (row.transfer === true) return 'passed';
+  // A row of a kept result whose passing letter was not kept: it passed the check when it was read.
+  if (row.passed === true) return 'passed';
   const shown = mark(row.grade);
   // No grade yet: the course is still running.
   if (shown === '') return 'in-progress';

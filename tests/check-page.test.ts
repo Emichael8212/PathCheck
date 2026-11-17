@@ -434,10 +434,10 @@ describe('the list', () => {
     add('eng 131');
     $('[data-remove="MGT 321"]').click();
     expect(rows()).toEqual(['BIO 230 3 cr', 'ENG 131 English Composition I 3 cr']);
-    // A new visit starts with an empty list.
+    // A new visit has the list again: it is kept in the browser (F19; tests/remember.test.ts).
     document.body.innerHTML = '<div id="app"></div>';
     startApp(onTestDay(window as unknown as AppWindow));
-    expect(rows()).toEqual([]);
+    expect(rows()).toEqual(['BIO 230 3 cr', 'ENG 131 English Composition I 3 cr']);
   });
 });
 
@@ -557,25 +557,23 @@ describe('the answers', () => {
 
   it('remembers the legacy answer across a reload', () => {
     add('fls 161');
-    expect(window.localStorage.length).toBe(0);
+    // No answer is kept before one is given.
+    expect(window.localStorage.getItem('pathcheck.legacy')).toBeNull();
     $('[data-legacy="yes"]').click();
-    // One key, and nothing about the courses.
-    expect(window.localStorage.length).toBe(1);
-    expect(window.localStorage.key(0)).toBe('pathcheck.legacy');
-    expect(JSON.stringify(window.localStorage.getItem('pathcheck.legacy'))).not.toMatch(/FLS|161/);
+    // Its own key, with nothing about the courses in it. (The list is kept beside it since F19.)
+    expect(window.localStorage.getItem('pathcheck.legacy')).toBe('yes');
+    expect(Object.keys(window.localStorage).sort()).toEqual(['pathcheck.legacy', 'pathcheck.visit']);
     reload();
-    expect(rows()).toEqual([]);
-    add('fls 161');
+    expect(rows()).toHaveLength(1);
     expect(answers()).toEqual([`Counts toward CIS: elective (legacy) ${CONDITION}`]);
     $('[data-legacy-change]').click();
-    expect(window.localStorage.length).toBe(0);
+    expect(window.localStorage.getItem('pathcheck.legacy')).toBeNull();
     reload();
-    add('fls 161');
     expect(answers()).toEqual([QUESTION]);
     $('[data-legacy="no"]').click();
     reload();
     add('mgt 220');
-    expect(answers()).toEqual(['Doesn’t count toward CIS. Legacy students only.']);
+    expect(answers()).toEqual(['Doesn’t count toward CIS. Legacy students only.', 'Doesn’t count toward CIS. Legacy students only.']);
   });
 
   it('works when the answer cannot be stored', () => {

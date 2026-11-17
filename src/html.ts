@@ -35,6 +35,7 @@ export const icons = {
   x: (size = 18): string => svg(size, line('M5 5l10 10M15 5L5 15')),
   move: (size = 18): string => svg(size, line('M3 10h11M10.2 5.2L15 10l-4.8 4.8M17.5 4v12')),
   print: (size = 20): string => svg(size, line('M5 7V2h10v5M5 15H2V8h16v7h-3M5 12h10v6H5z', 1.8)),
+  trash: (size = 20): string => svg(size, line('M3 5h14M8 5V3h4v2M5 5l1 12h8l1-12', 1.8)),
   upload: (size = 28): string => svg(size, line('M8 21H7a5 5 0 0 1-.4-10A7.5 7.5 0 0 1 21 9a6 6 0 0 1 0 12h-1M14 25V13M10 17l4-4 4 4', 1.7), '', 28),
   play: (size = 14): string => svg(size, `<path d="M3 1l10 6-10 6z" fill="currentColor"/>`, 'i-play', 14),
   pause: (size = 14): string => svg(size, `<rect x="2" y="1" width="3.5" height="12" fill="currentColor"/><rect x="8.5" y="1" width="3.5" height="12" fill="currentColor"/>`, 'i-pause', 14),

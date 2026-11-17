@@ -15,6 +15,7 @@ import { type Problem } from './reader';
 import { lateSentence, moveLater, movedSentence, planHtml, planOf, type Moves, type Plan } from './plan';
 import { printActionsHtml, printHeadHtml } from './print';
 import { byTerm, gradeChoices, leaveOut, putBack, reviewRows, reviewedStandings, stillToFix, takenOn, type Correction, type ReviewRow, type Transcript } from './review';
+import { clearRowHtml } from './remember';
 import { NOTHING_SHOWN, type Shown } from './report';
 import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { type Refusal } from './upload';
@@ -150,6 +151,9 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
             <input id="${id(name)}" type="text" data-field="${name}" value="${esc(start[name])}" autocomplete="off" spellcheck="false"${more}>
           </div>`;
   const grades = gradeChoices(curriculum.grades);
+  // A grade that is not on the scale is in the list too while the row has it: the one that was read, and
+  // the one the row has now ("Passed" of a kept result), so that it can be chosen again after another was tried.
+  const others = [...new Set([row.editable?.grade ?? '', start.grade])].filter(grade => grade !== '' && !grades.includes(grade));
   // The whole form is one cell of the row, across its width.
   return `<div role="cell" aria-colspan="${TEXT.columns.length}" class="row-edit-cell">
         <div class="row-edit" role="group" aria-label="${esc(`${TEXT.edit} ${nameOf(row)}`)}" data-editing="${row.line}">
@@ -161,8 +165,8 @@ const editForm = (row: ReviewRow, start: Correction, curriculum: Curriculum): st
             <label for="${id('grade')}">${esc(TEXT.fields.grade)}</label>
             <select id="${id('grade')}" data-field="grade">
               <option value=""${start.grade === '' ? ' selected' : ''}>${esc(TEXT.fields.noGrade)}</option>${grades.map(grade => `
-              <option value="${esc(grade)}"${grade === start.grade ? ' selected' : ''}>${esc(grade)}</option>`).join('')}${start.grade !== '' && !grades.includes(start.grade) ? `
-              <option value="${esc(start.grade)}" selected>${esc(start.grade)}</option>` : ''}
+              <option value="${esc(grade)}"${grade === start.grade ? ' selected' : ''}>${esc(grade)}</option>`).join('')}${others.map(grade => `
+              <option value="${esc(grade)}"${grade === start.grade ? ' selected' : ''}>${esc(grade)}</option>`).join('')}
             </select>
           </div>
           <label class="tick" for="${id('transfer')}"><input id="${id('transfer')}" type="checkbox" data-field="transfer"${start.transfer ? ' checked' : ''}> ${esc(TEXT.fields.transfer)}</label>
@@ -345,7 +349,12 @@ export function leftShown(curriculum: Curriculum, state: LeftState, legacy: Lega
 export const leftReport = (curriculum: Curriculum, state: LeftState, legacy: LegacyAnswer): string =>
   reportLink(curriculum, `PathCheck: ${FLOW_NAME.left}`, leftShown(curriculum, state, legacy));
 
-export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(), legacy: LegacyAnswer = null): string {
+/**
+ * The page. `kept` says that something of the student's is on a page or kept in the
+ * browser (a transcript, a list, a legacy answer): then "Clear my data" is offered here
+ * too while there is no result yet (the result has it in its own row of actions).
+ */
+export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(), legacy: LegacyAnswer = null, kept = false): string {
   const { transcript } = state;
   const result = transcript !== null && state.continued;
   const heading = !transcript ? TEXT.uploadHeading : result ? TEXT.resultHeading : TEXT.reviewHeading;
@@ -367,7 +376,8 @@ export function leftPage(curriculum: Curriculum, state: LeftState = emptyLeft(),
     </div>${result ? `
     <span class="pill">${icons.doc(15)}${esc(TEXT.pill)}</span>` : ''}
   </div>
-  ${body}
+  ${body}${kept && !(result && hasResult(transcript, curriculum, legacy)) ? `
+  ${clearRowHtml(null)}` : ''}
 </main>
 ${foot(curriculum, leftReport(curriculum, state, legacy))}`;
 }

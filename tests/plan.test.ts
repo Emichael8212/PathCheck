@@ -87,8 +87,6 @@ describe('the draft plan', () => {
     const page = leftPage(curriculum, { ...emptyLeft(), transcript: openTranscript('sample-a.pdf', sampleA, curriculum), continued: true });
     expect(page.indexOf('class="plan"')).toBeGreaterThan(page.indexOf('class="reqs"'));
     expect(page).toContain(`<div data-plan>${html}</div>`);
-    // What ends the design's page comes with later features.
-    expect(decode(page)).not.toMatch(/Clear my data/);
   });
 
   it('orders the courses by level', () => {

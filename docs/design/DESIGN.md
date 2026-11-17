@@ -428,8 +428,6 @@ which started as a copy of `mockups/style.css`. These differences are intended:
     "<entry> moved to <term>."; a button's name for a screen reader starts with its visible
     words and counts entries that read the same ("Move later: MGT 321", "Move later: CIS
     elective, 2 of 3"; the mockup had "Move MGT 321 later");
-  - "Clear my data", which ends the design's page beside the print button, is not drawn
-    until F19.
 - **The banner of an old review** (F18; the brief's "A banner if the curriculum hasn't been
   reviewed in 12 months"). The design has no place for it: it is a strip across the top
   of every page, before the top bar (`--surface-2` with a `--line-strong` line under it,
@@ -440,6 +438,20 @@ which started as a copy of `mockups/style.css`. These differences are intended:
 - **"Report a mistake"** (F18) looks as in the design. Its email is filled in with what the
   page showed ("What looks wrong?", "What PathCheck showed:", then the result's own
   words; the labels are the agent's). The address is a placeholder until the owner's.
+- **"Clear my data"** (F19) is the design's secondary button with its trash icon, beside
+  the print button at the end of the result. What the design has no place for:
+  - the same button at the end of "Check my courses", and on "See what I have left" before
+    there is a result, whenever something of the student's is there or kept (a course, a
+    transcript, a legacy answer); never on Start;
+  - one sentence with the button: "This result stays in this browser until you clear it."
+    ("This list stays…" on "Check my courses"), 13px in `--ink-2`, not shown where the
+    browser keeps nothing;
+  - after clearing, a note at the top of the page until the student moves on: "Your data
+    was cleared from this browser.";
+  - after a return, "Check what was read" shows a passed course without its letter (no
+    passing letter is kept): the grade column is empty and the row says "Passed"; opened
+    for editing, its grade reads "Passed". The page says "your transcript" where it named
+    the file (the file's name is not kept).
 - **The printed summary** (F17). "Print / save PDF for your advisor" is the design's
   button, in the design's row of actions after the draft plan, and the paper follows the
   design's print rules. What the design has no place for:

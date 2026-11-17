@@ -9,6 +9,7 @@
 import { showRequirements } from './checklist';
 import { type Curriculum } from './curriculum';
 import { esc, icons } from './html';
+import { clearButtonHtml, keptNoteHtml } from './remember';
 import { reviewedOn } from './shell';
 import { APP_NAME, LAST_REVIEWED, NOT_AFFILIATED, NOT_OFFICIAL } from './wording';
 
@@ -35,9 +36,11 @@ export function printHeadHtml(curriculum: Curriculum): string {
   </div>`;
 }
 
-/** The row of actions that ends the result. (F19 adds "Clear my data" beside the button.) */
-export const printActionsHtml = (): string => `<div class="actions no-print">
+/** The row of actions that ends the result, as in the design: print, and "Clear my data" beside it. */
+export const printActionsHtml = (): string => `<div class="actions no-print" data-clear-row>
     <button type="button" class="btn primary" data-print>${icons.print()}${esc(TEXT.button)}</button>
+    ${clearButtonHtml()}
+    ${keptNoteHtml('result')}
   </div>`;
 
 /**

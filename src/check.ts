@@ -13,6 +13,7 @@ import { addCourse, removeCourse, setCredits, suggest, type Entry } from './entr
 import { code, esc, icons, marks, withCodes } from './html';
 import { LEGACY_NO, LEGACY_QUESTION, LEGACY_YES, browserStorage, clearLegacyAnswer, writeLegacyAnswer, type LegacyAnswer } from './legacy';
 import { NO_CREDITS_LEFT, PACE_UNREADABLE, defaultSettings, latestTermOf, paceLineOf, readTerm, termName, type PaceLine, type PaceSettings, type Term } from './pace';
+import { clearRowHtml } from './remember';
 import { type Shown } from './report';
 import { FLOW_NAME, foot, reportLink, top } from './shell';
 import { countsExample } from './start';
@@ -336,6 +337,14 @@ export function entriesHtml(list: CourseList, curriculum: Curriculum, transcript
   <p class="note">${icons.doc(20)}${withCodes(reminder)}</p>` : ''}`;
 }
 
+/**
+ * "Clear my data" at the end of the page, whenever something of the student's is here or
+ * kept: a course in the list, a transcript, a legacy answer. With a list, the sentence
+ * that it stays in this browser until it is cleared.
+ */
+export const clearSlot = (list: CourseList, transcript: OnCheck): string =>
+  (list.entries.length > 0 || list.legacy !== null || transcript.state !== 'none' ? clearRowHtml(list.entries.length > 0 ? 'list' : null) : '');
+
 /** An answer in words, as its row has it. */
 const answerWords = (answer: Answer): string => (answer.kind === 'ask' ? LEGACY_QUESTION
   : answer.kind === 'counts' && answer.condition ? `${answer.text} (${answer.condition})` : answer.text);
@@ -390,6 +399,7 @@ export const checkPage = (curriculum: Curriculum, list: CourseList = emptyList()
 
   <div data-entries>${entriesHtml(list, curriculum, transcript)}</div>
   <div data-transcript>${transcriptCard(transcript)}</div>
+  <div data-clear-slot>${clearSlot(list, transcript)}</div>
   <p class="sr-only" role="status" aria-live="polite" data-said></p>
 </main>
 ${foot(curriculum, checkReport(curriculum, list, transcript), true)}`;
@@ -424,7 +434,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const said = root.querySelector<HTMLElement>('[data-said]');
   const status = root.querySelector<HTMLElement>('[data-status]');
   const card = root.querySelector<HTMLElement>('[data-transcript]');
-  if (!input || !add || !menu || !message || !summary || !filters || !region || !said || !status || !card) throw new Error('The "Check my courses" page is missing a part it needs.');
+  const clearing = root.querySelector<HTMLElement>('[data-clear-slot]');
+  if (!input || !add || !menu || !message || !summary || !filters || !region || !said || !status || !card || !clearing) throw new Error('The "Check my courses" page is missing a part it needs.');
 
   // What is suggested for the text in the field, which of them is highlighted, and whether
   // the list is showing. Leaving the field hides the list but keeps the highlight, so that
@@ -453,6 +464,8 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
   const highlight = (index: number): void => { active = index; mark(); };
   // A fresh piece of text each time, so that the same sentence is read out again.
   const say = (where: HTMLElement, text: string): void => where.replaceChildren(text);
+  // What the page was drawn with at its end: "Clear my data", or nothing.
+  let clearShown = clearSlot(list, transcript());
   // Every answer is worked out again from the whole list.
   const drawList = (): void => {
     // The filters go with the list: an empty list has none, and the next one starts with all its rows.
@@ -460,6 +473,12 @@ export function setupCheck(root: ParentNode, list: CourseList, curriculum: Curri
     summary.innerHTML = summaryHtml(list, curriculum, transcript());
     filters.innerHTML = filtersHtml(list);
     region.innerHTML = entriesHtml(list, curriculum, transcript());
+    // "Clear my data" comes and goes with what there is to clear. The button itself is not drawn again while it is there.
+    const slot = clearSlot(list, transcript());
+    if (slot !== clearShown) {
+      clearing.innerHTML = slot;
+      clearShown = slot;
+    }
   };
   const refresh = (): void => {
     status.textContent = statusText(transcript());

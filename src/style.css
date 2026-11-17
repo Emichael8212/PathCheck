@@ -876,7 +876,12 @@ details[open] .req-cue { transform: rotate(-90deg); }
   font-weight: 700;
 }
 .move:hover { background: var(--accent-soft); }
-.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 34px; }
+/* With "Clear my data": that what is here stays in this browser until it is cleared. Not said where the browser keeps nothing. */
+.kept-note { flex-basis: 100%; margin: 0; color: var(--ink-2); font-size: 13px; line-height: 19px; }
+[data-keeps="no"] [data-kept-note] { display: none; }
+/* Said on the page once the data was cleared. */
+.cleared { margin-bottom: 20px; color: var(--ink); font-size: 14px; }
 
 /* ================= Wider screens (the design's three steps) ================= */
 @media (min-width: 650px) {

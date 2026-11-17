@@ -5,6 +5,7 @@ import { programs as allPrograms, type Program } from './curriculum';
 import { setupDemo, type Demo, type DemoRoot, type Timers } from './demo';
 import { ANOTHER_FIRST, countLine, emptyLeft, leftPage, leftReport, refusalText, setupLeft, type LeftState } from './left';
 import { PRINT_TITLE, closeAfterPaper, openForPaper } from './print';
+import { CLEARED, canKeep, clearStored, keptText, loadKept, storeKept, type KeptResult } from './remember';
 import { browserStorage, clearLegacyAnswer, readLegacyAnswer, writeLegacyAnswer } from './legacy';
 import { ReaderError } from './reader';
 import { correctRow, openTranscript, reviewedStandings, stillToFix, takenOn } from './review';
@@ -20,7 +21,9 @@ import { readFile, type ChosenFile, type Refusal } from './upload';
 export const renderPage = (route: Route, programs: readonly Program[] = allPrograms, list: CourseList = emptyList(), left: LeftState = emptyLeft(), onCheck: OnCheck = NO_TRANSCRIPT, today: Day | null = null): string => {
   const [program] = programs;
   if (!program) throw new Error('PathCheck has no program to show.');
-  const page = route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left, list.legacy);
+  // Something of the student's is on a page or kept: "Clear my data" is then offered on "See what I have left" before a result too.
+  const kept = list.entries.length > 0 || list.legacy !== null || left.transcript !== null;
+  const page = route === 'start' ? startPage(programs) : route === 'check' ? checkPage(program.curriculum, list, onCheck) : leftPage(program.curriculum, left, list.legacy, kept);
   return `${oldReviewBanner(program.curriculum, today)}${page}`;
 };
 
@@ -36,8 +39,8 @@ interface MediaWatch {
 export interface AppWindow extends Timers {
   readonly document: { title: string; getElementById(id: string): AppRoot | null };
   readonly location: { hash: string };
-  addEventListener(type: 'hashchange' | 'dragover' | 'drop' | 'beforeprint' | 'afterprint', listener: Listener): void;
-  removeEventListener?(type: 'hashchange' | 'dragover' | 'drop' | 'beforeprint' | 'afterprint', listener: Listener): void;
+  addEventListener(type: 'hashchange' | 'dragover' | 'drop' | 'beforeprint' | 'afterprint' | 'click' | 'change' | 'keydown', listener: Listener): void;
+  removeEventListener?(type: 'hashchange' | 'dragover' | 'drop' | 'beforeprint' | 'afterprint' | 'click' | 'change' | 'keydown', listener: Listener): void;
   matchMedia(query: string): MediaWatch;
   /** The browser's print window. Some in-app browsers have none. */
   print?(): void;
@@ -56,6 +59,7 @@ export interface AppEvent {
 }
 interface AppRoot {
   innerHTML: string;
+  setAttribute?(name: string, value: string): void;
   querySelector(selector: string): unknown;
   addEventListener?(type: 'click' | 'pointerdown' | 'focusin', listener: (event: { readonly target: unknown }) => void): void;
 }
@@ -85,6 +89,30 @@ export function startApp(win: AppWindow): App {
   // legacy answer is the one thing remembered from an earlier visit.
   const courses: CourseList = emptyList(readLegacyAnswer(browserStorage()));
   const left: LeftState = emptyLeft();
+
+  // Remembering (F19). What the browser kept comes back, checked again: the list, and the
+  // last result with its pace settings and moves. From then on the visit is kept each time
+  // it changes: the list always, a result once the student has continued from the review
+  // (a review in progress is not a result, and the last result stays kept meanwhile).
+  const storage = browserStorage();
+  const back = loadKept(storage, curriculum);
+  let keptResult: KeptResult | null = back?.result ?? null;
+  if (back) {
+    Object.assign(courses, { entries: back.entries, term: back.term });
+    if (back.result) Object.assign(left, { transcript: back.result.transcript, continued: true, pace: back.result.pace, moves: back.result.moves });
+  }
+  // Where the browser keeps nothing, the pages do not say that anything stays.
+  if (!canKeep(storage)) root.setAttribute?.('data-keeps', 'no');
+  let stored: string | null | undefined;
+  const keep = (): void => {
+    if (left.transcript === null) keptResult = null;
+    else if (left.continued) keptResult = { transcript: left.transcript, pace: left.pace, moves: left.moves };
+    const text = keptText(curriculum, courses, keptResult);
+    if (text === stored) return;
+    stored = text;
+    // The browser stopped keeping (its storage is full): the pages no longer say that anything stays.
+    if (!storeKept(storage, text)) root.setAttribute?.('data-keeps', 'no');
+  };
   const part = <T>(selector: string): T | null => root.querySelector(selector) as T | null;
 
   // "Check my courses" uses the same transcript once it is reviewed. Why a file chosen on
@@ -255,6 +283,7 @@ export function startApp(win: AppWindow): App {
     // A new transcript: the term chosen for the pace line of the last one does not go with it.
     if (transcript) courses.term = null;
     Object.assign(left, { transcript, continued: false, refusal, editing: null, draft: null, returnTo });
+    keep();
     showLeft();
     if (refusal) {
       // The reason is on the page and is read out; the keyboard is where another file is chosen.
@@ -289,6 +318,7 @@ export function startApp(win: AppWindow): App {
     // "Browse files" on Start; the page of the flow has its own.
     const target = event.target as { closest?(selector: string): unknown } | null;
     if (route === 'start' && target?.closest?.('[data-browse]')) browse();
+    if (target?.closest?.('[data-clear]')) clearData();
     fillReport(event);
   });
   // "Report a mistake": the email is filled in with what the page shows at this moment,
@@ -301,6 +331,23 @@ export function startApp(win: AppWindow): App {
     if (!report) return;
     report.setAttribute('href', route === 'check' ? checkReport(curriculum, courses, onCheck())
       : route === 'left' ? leftReport(curriculum, left, courses.legacy) : reportLink(curriculum));
+  }
+  // "Clear my data": everything PathCheck stored in the browser goes, the legacy answer
+  // included, and with it what is on the pages. The page is then as on a first visit.
+  function clearData(): void {
+    // A file that is still being read is not taken any more.
+    latest++;
+    clearStored(storage);
+    Object.assign(courses, emptyList());
+    Object.assign(left, emptyLeft());
+    checkRefusal = null;
+    keptResult = null;
+    stored = null;
+    show(false);
+    // Said on the page until the student moves on, and to a screen reader.
+    (root as unknown as Partial<ParentNode>).querySelector?.('main')?.insertAdjacentHTML('afterbegin', `<p class="note cleared" data-cleared>${CLEARED}</p>`);
+    say(CLEARED);
+    part<{ focus(): void }>('h1')?.focus();
   }
   root.addEventListener?.('pointerdown', fillReport);
   root.addEventListener?.('focusin', fillReport);
@@ -330,6 +377,13 @@ export function startApp(win: AppWindow): App {
   win.addEventListener('hashchange', onHashChange);
   win.addEventListener('dragover', onDragOver);
   win.addEventListener('drop', onDrop);
+  // After anything the student does, when every handler of the page has run, the visit is kept as it now stands.
+  const onChange: Listener = () => keep();
+  win.addEventListener('click', onChange);
+  win.addEventListener('change', onChange);
+  win.addEventListener('keydown', onChange);
+  // What came back is kept again as it was checked: anything that could not be read is gone from the browser too.
+  keep();
   win.addEventListener('beforeprint', forPaper);
   win.addEventListener('afterprint', fromPaper);
   printMedia.addEventListener?.('change', onPrintMedia);
@@ -345,6 +399,9 @@ export function startApp(win: AppWindow): App {
       win.removeEventListener?.('hashchange', onHashChange);
       win.removeEventListener?.('dragover', onDragOver);
       win.removeEventListener?.('drop', onDrop);
+      win.removeEventListener?.('click', onChange);
+      win.removeEventListener?.('change', onChange);
+      win.removeEventListener?.('keydown', onChange);
       win.removeEventListener?.('beforeprint', forPaper);
       win.removeEventListener?.('afterprint', fromPaper);
       printMedia.removeEventListener?.('change', onPrintMedia);
