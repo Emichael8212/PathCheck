@@ -157,6 +157,8 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-18, F26) The contact address is `pathcheck.report@gmail.com`, and it is what the foot of every page shows: the address is the link's own words, with no "Report a mistake" label. The email it opens is filled in as before. The mockups show the same. It replaces the rows of F06 and F18 above about the placeholder. | The owner's answers of 2026-11-18 ("Owner answers"). | `REPORT_ADDRESS` in `src/wording.ts`; `foot` in `src/shell.ts`; `mockups/data.js`. |
 | (2026-11-18, F26) The agent's choices inside that answer, not the owner's: the subject of the email from the Start page stays "PathCheck: report a mistake" (it is in the email, not on a page); a screen reader hears the address as the link's name and nothing more; the link is still not printed on paper; a built site that holds `pathcheck.example` is refused by the build check. | The answer speaks of the label on the page. The first three are listed for the owner in `docs/milestones/M3.md`. | `reportLink` in `src/shell.ts`; `scripts/check-build.mjs`. |
 | (2026-11-18, F26) "No personal data is stored anywhere" now reads "PathCheck stores no personal data" in `docs/BRIEF.md` §9, in step 4 of F26 in `features.json`, in the two finished sprint files that quoted it (`docs/sprints/F19.md`, `docs/sprints/F22.md`), and in the two rows of this table that quoted it (F19, F22). The old sentence is now written only where the owner's answer of 2026-11-18 itself is quoted. No page of the app had the sentence. | The owner's answer of 2026-11-18: "wherever it appears". The step of a feature is changed on those words of the owner. | Those files. |
+| (2026-11-18, F26) The link at the foot has a name for a screen reader, "Report a mistake, pathcheck.report@gmail.com"; what is shown stays the address alone. On paper the foot shows the address as plain text. This replaces two of the agent's choices in the row above (the name was the address alone; the link was not printed). | The owner's second answers of 2026-11-18 ("Owner answers"). | `REPORT_NAME` in `src/wording.ts`; `foot` in `src/shell.ts`. |
+| (2026-11-18, F26) The agent's choices inside those answers, not the owner's: the name is an `aria-label` on the link (it holds the words shown, so that someone who speaks the address to their device still reaches the link); on paper the address is a line of text at the link's place in the foot, on every page that is printed, and the link itself is still not printed, like every control; the mockups are not changed (they are still screens: nothing is read out or printed differently there). | The simplest way to each answer. | `foot` in `src/shell.ts`. |
 
 ## Owner answers
 
@@ -1282,6 +1284,28 @@ What it decides:
 - Step 1 of F18 and of F26 in `features.json`, and brief §4 and §12, still name the link
   "Report a mistake". They are left as they are: the owner asked for the promise to be
   changed where it is written, not these.
+### 2026-11-18 — The three choices approved; a hidden name for the link; the address on paper
+
+The owner's words:
+
+"1. Your three choices are approved.
+2. Screen readers: give the address a hidden label so it's announced as "Report a mistake, pathcheck.report@gmail.com". The visible text stays the address only.
+3. Print: show pathcheck.report@gmail.com as plain text on the printed summary.
+Record both in docs/decision-log.md as owner answers."
+
+What it decides:
+- **The three choices put to the owner are approved:** the subject of the email from the
+  Start page stays "PathCheck: report a mistake"; the mockups show the address too; the
+  older records that quoted the promise are reworded.
+- **A screen reader announces the link as "Report a mistake, pathcheck.report@gmail.com".**
+  What is shown stays the address alone.
+- **The printed summary shows `pathcheck.report@gmail.com` as plain text.**
+
+*Agent's notes, not owner decisions:*
+- The address on paper is in the foot, which ends every printed page of PathCheck, the
+  summary of "See what I have left" among them.
+- These answers came after pull request #41 was merged. They are a second pull request,
+  and the owner's step 2 (build and publish) must be done, or done again, after it.
 
 ## Open questions to the owner
 
