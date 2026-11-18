@@ -483,9 +483,17 @@
         "docs/CURRICULUM-HANDOVER.md explains, for a non-developer, how to review and update the curriculum data each year and how to set the last-reviewed date",
         "Following it to change one course and the review date works, and the tests still pass"
       ],
-      "passes": false,
-      "evidence": "",
-      "tests": []
+      "passes": true,
+      "evidence": "docs/sprints/F25.md — QA PASS (2026-11-17, round 3): the guide followed in a scratch copy to a green check for a new review date, a course added to a choice and a title; four kinds of red check led to the right action; twelve breaks of the guide caught by tests/handover.test.ts; tests take the date and the table from the curriculum file and the brief (tests/reviewed.ts, tests/brief.ts); reviewer: no blocker after two rounds. The owner follows the guide's GitHub clicks at the M3 check",
+      "tests": [
+        "tests/handover.test.ts",
+        "tests/curriculum.test.ts",
+        "tests/trust.test.ts",
+        "tests/start.test.ts",
+        "tests/checklist.test.ts",
+        "tests/plan.test.ts",
+        "tests/placement.test.ts"
+      ]
     },
     {
       "id": "F26",
