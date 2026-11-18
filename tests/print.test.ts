@@ -425,6 +425,7 @@ describe("the stylesheet's print rules", () => {
       for (const gone of copy.querySelectorAll(hiddenOnPaper)) gone.remove();
       return tidy(copy.textContent);
     };
+    // ("Report a mistake" is today only the link's name for a screen reader: it is here in case it ever becomes words on the page.)
     const CONTROL_WORDS = /Move later|Show courses|Hide courses|Not done|\bChange\b|Fix it|Check what was read|Use another transcript|Print \/ save PDF|Report a mistake|Browse files/;
     const printedControls = (): string[] => [
       ...controls().filter(one => !one.closest(hiddenOnPaper)).map(one => tidy(one.textContent) || one.tagName),
@@ -501,7 +502,7 @@ describe("the stylesheet's print rules", () => {
     expect(rules).toContain('.print-only { display: block; }');
     expect(hiddenOnPaper.split(', ')).toContain('.foot a');
     // Nothing gives the line a link's look: no rule of the stylesheet names it inside the foot.
-    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\.foot[^{}]*\.print-only|\.foot > span|\.foot span/);
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/(\.foot|footer)[^{}]*(span|\.print-only)/);
   });
 
   it('keeps paper white on a dark device', () => {

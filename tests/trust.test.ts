@@ -208,7 +208,7 @@ describe('"Report a mistake"', () => {
     expect(sources.filter(([, text]) => text.includes(ADDRESS)).map(([name]) => name).sort()).toEqual(['mockups/data.js', 'src/wording.ts']);
     for (const [name, text] of sources) {
       expect(text.split(ADDRESS).length - 1, name).toBeLessThanOrEqual(1);
-      // The address that stood in for it is nowhere, and and it is not on a page under another name.
+      // The address that stood in for it is nowhere, is nowhere.
       expect(text, name).not.toMatch(/pathcheck\.example/i);
       // The words of the old label are in one place only: the name a screen reader is given.
       expect(text.split('Report a mistake').length - 1, name).toBe(name === 'src/wording.ts' ? 1 : 0);

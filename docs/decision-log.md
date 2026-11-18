@@ -1279,11 +1279,14 @@ What it decides:
   It is in the email, not on a page.
 - With no label, the page does not say what the address is for, and a screen reader hears
   only the address. Built as the owner said; listed for the owner in
-  `docs/milestones/M3.md`.
+  `docs/milestones/M3.md`. (Answered the same day, below: a screen reader is given a
+  name.)
 - The link is still not printed on paper (F17). Listed for the owner in the same place.
+  (Answered the same day, below: the address is printed as plain text.)
 - Step 1 of F18 and of F26 in `features.json`, and brief §4 and §12, still name the link
   "Report a mistake". They are left as they are: the owner asked for the promise to be
   changed where it is written, not these.
+
 ### 2026-11-18 — The three choices approved; a hidden name for the link; the address on paper
 
 The owner's words:
