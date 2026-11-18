@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import sampleB from '../synthetic/transcripts/sample-b.json';
 import { onTestDay } from './day';
+import { FIRST_OLD_DAY, REVIEWED_LINE, at } from './reviewed';
 import { type App, type AppWindow } from '../src/app';
 import { showRow } from '../src/check';
 import { type Curriculum } from '../src/curriculum';
@@ -53,7 +54,7 @@ const main = (): string => tidy($('main').textContent);
 const CONDITION = 'unless you’ve already passed it or filled this slot';
 const CAVEAT = 'Credits only — course order may add semesters.';
 const NOT_OFFICIAL = 'Not an official degree audit.';
-const REVIEWED = 'Curriculum last reviewed: Nov 2026';
+const REVIEWED = REVIEWED_LINE;
 const UNAVAILABLE = 'Upload isn’t available right now — try again tomorrow';
 type Row = Record<string, unknown>;
 const row = (prefix: string, number: string, grade = 'B', over: Row = {}): Row => ({ term: 'Fall 2025', transfer: false, prefix, number, description: `About ${prefix} ${number}`, attempted: '3.00', earned: '3.00', grade, points: '9.00', ...over });
@@ -499,7 +500,7 @@ describe('through both flows', () => {
 
     // With the day moved past the review's anniversary, the banner starts every page.
     app.stop();
-    win.today = () => new Date(2027, 10, 16, 9);
+    win.today = () => at(FIRST_OLD_DAY, 9);
     document.body.innerHTML = '<div id="app"></div>';
     window.history.replaceState(null, '', '#/');
     const { startApp } = await import('../src/app');

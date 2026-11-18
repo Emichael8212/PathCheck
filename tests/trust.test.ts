@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import sampleA from '../synthetic/transcripts/sample-a.json';
 import { renderPage, startApp, type App, type AppWindow } from '../src/app';
 import { curriculum } from '../src/curriculum';
+import { DAY_AFTER_REVIEW, FIRST_OLD_DAY, LAST_FRESH_DAY, REVIEWED_LINE, REVIEW_DAY, REVIEW_MONTH, dayBefore } from './reviewed';
 import { REPORT_LIMIT, reportHref } from '../src/report';
 import { openTranscript } from '../src/review';
 import { dayOf, oldReviewBanner, reportLink, reviewIsOld } from '../src/shell';
@@ -43,9 +44,11 @@ const choose = (selector: string, value: string): void => {
 };
 
 const NOT_OFFICIAL = 'Not an official degree audit.';
-const REVIEWED = 'Curriculum last reviewed: Nov 2026';
+const REVIEWED = REVIEWED_LINE;
 const PROGRAM = 'B.S. Computer Information Systems, Alabama State University';
-const BANNER = 'The curriculum PathCheck uses was last reviewed in Nov 2026, more than 12 months ago. Requirements may have changed since: check your portal before you rely on this.';
+const BANNER = `The curriculum PathCheck uses was last reviewed in ${REVIEW_MONTH}, more than 12 months ago. Requirements may have changed since: check your portal before you rely on this.`;
+/** The first day the review of the real curriculum is old, as the arguments of `start`. */
+const OLD = [FIRST_OLD_DAY.year, FIRST_OLD_DAY.month, FIRST_OLD_DAY.day] as const;
 
 /** The email a link opens: its address, subject and the lines of its body. */
 const emailOf = (href: string) => {
@@ -71,7 +74,7 @@ const win = window as unknown as AppWindow & { today?: () => Date; print?: () =>
 // The mail app is never opened by a test.
 const keepHere = (event: Event): void => { if ((event.target as Element | null)?.closest?.('a[href^="mailto:"]')) event.preventDefault(); };
 /** Starts PathCheck on a given day of the student's device. */
-const start = (year = 2026, month = 11, day = 16, hash = '#/'): void => {
+const start = (year = DAY_AFTER_REVIEW.year, month = DAY_AFTER_REVIEW.month, day = DAY_AFTER_REVIEW.day, hash = '#/'): void => {
   window.localStorage.clear();
   document.body.innerHTML = '<div id="app"></div>';
   window.history.replaceState(null, '', hash);
@@ -368,7 +371,7 @@ describe('"Report a mistake"', () => {
 describe('the banner of an old review', () => {
   it('shows the banner once the review is more than 12 months old', async () => {
     app.stop();
-    start(2027, 11, 16);
+    start(...OLD);
     const css = readFileSync(join(root, 'src', 'style.css'), 'utf8');
     const hiddenOnPaper = /^\s*([^{}/]+)\{ display: none !important; \}/m.exec(css.slice(css.lastIndexOf('@media print {')).replace(/\/\*[\s\S]*?\*\//g, ''))?.[1]?.trim() ?? '';
     expect(hiddenOnPaper).toContain('.no-print');
@@ -397,13 +400,13 @@ describe('the banner of an old review', () => {
     expect(tidy($('footer.foot').textContent)).toContain(REVIEWED);
     // Later still.
     app.stop();
-    start(2031, 1, 1);
+    start(FIRST_OLD_DAY.year + 4, 1, 1);
     banner('years later');
   });
 
   it('reads the banner first and only once', async () => {
     app.stop();
-    start(2027, 11, 16);
+    start(...OLD);
     const banner = $('.old-review');
     // A note with a name, before the top bar; ordinary text, not a live region; nothing in it to press.
     expect([banner.tagName, banner.getAttribute('role'), banner.getAttribute('aria-label')]).toEqual(['P', 'note', 'Curriculum may be out of date']);
@@ -429,7 +432,8 @@ describe('the banner of an old review', () => {
 
   it('shows no banner otherwise', async () => {
     // The day after the review, a year less a day, the anniversary itself, and a day before the review.
-    for (const [year, month, day] of [[2026, 11, 16], [2027, 11, 14], [2027, 11, 15], [2026, 1, 1], [2020, 3, 15]] as const) {
+    const days = [DAY_AFTER_REVIEW, dayBefore(LAST_FRESH_DAY), LAST_FRESH_DAY, dayBefore(REVIEW_DAY), { year: 2020, month: 3, day: 15 }];
+    for (const { year, month, day } of days) {
       app.stop();
       start(year, month, day);
       for (const hash of ['#/', '#/check', '#/left']) {
@@ -445,7 +449,7 @@ describe('the banner of an old review', () => {
     // Without a day to compare with there is none either (a page drawn as text, as the tests of other features do).
     expect(oldReviewBanner(curriculum, null)).toBe('');
     expect(renderPage('start')).not.toContain('old-review');
-    expect(renderPage('left', undefined, undefined, undefined, undefined, { year: 2027, month: 11, day: 16 })).toMatch(/^\s*<p class="old-review" role="note" aria-label="Curriculum may be out of date">/);
+    expect(renderPage('left', undefined, undefined, undefined, undefined, FIRST_OLD_DAY)).toMatch(/^\s*<p class="old-review" role="note" aria-label="Curriculum may be out of date">/);
   });
 
   it('counts twelve months by the calendar', () => {
@@ -502,8 +506,9 @@ describe('the banner of an old review', () => {
       keep();
       return { pages, emails, banners };
     };
-    const early = await visit(2020);
-    const late = await visit(2035);
+    // (Years before the review, and years after it has become old: whatever the review's date is.)
+    const early = await visit(REVIEW_DAY.year - 6);
+    const late = await visit(FIRST_OLD_DAY.year + 8);
     vi.useRealTimers();
     expect(early.banners).toEqual([false, false, false, false, false]);
     expect(late.banners).toEqual([true, true, true, true, true]);
@@ -517,7 +522,7 @@ describe('the banner of an old review', () => {
 describe('advisors', () => {
   it('never sends the student to an advisor', async () => {
     app.stop();
-    start(2027, 11, 16);
+    start(...OLD);
     const texts: string[] = [];
     const keep = (): void => {
       texts.push(tidy($('#app').textContent), report().lines.join(' '), tidy(document.querySelector('#pathcheck-status')?.textContent), tidy(document.querySelector('[data-said]')?.textContent));

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import madeUpProgram from './fixtures/made-up-program.json';
 import sampleA from '../synthetic/transcripts/sample-a.json';
 import { onTestDay } from './day';
+import { REVIEWED_LINE } from './reviewed';
 import { startApp, type App, type AppWindow } from '../src/app';
 import { curriculum, loadCurriculum } from '../src/curriculum';
 import { emptyLeft, hasResult, leftPage } from '../src/left';
@@ -324,11 +325,12 @@ describe('the lines on paper only', () => {
 
   it('says what the paper is, at its top', () => {
     // The first thing in the page's body, before its heading; shown on paper only.
-    expect(page).toMatch(/<main class="left wrap">\s*<div class="print-only print-head" data-print-head>\s*<p><strong>PathCheck summary — B\.S\. Computer Information Systems, Alabama State University<\/strong><\/p>\s*<p>Not an official degree audit\. Not affiliated with Alabama State University\. Curriculum last reviewed: Nov 2026<\/p>\s*<\/div>\s*<div class="page-head">/);
+    expect(page).toMatch(/<main class="left wrap">\s*<div class="print-only print-head" data-print-head>\s*<p><strong>PathCheck summary — B\.S\. Computer Information Systems, Alabama State University<\/strong><\/p>\s*<p>Not an official degree audit\. Not affiliated with Alabama State University\. Curriculum last reviewed: [A-Z][a-z]{2} \d{4}<\/p>\s*<\/div>\s*<div class="page-head">/);
+    expect(page).toContain(`Not affiliated with Alabama State University. ${REVIEWED_LINE}</p>`);
     expect(page.match(/data-print-head/g)).toHaveLength(1);
     // The same sentences as the footer, which ends the paper.
     const end = decode(foot(curriculum));
-    for (const sentence of ['Not an official degree audit.', 'Not affiliated with Alabama State University', 'Curriculum last reviewed: Nov 2026']) {
+    for (const sentence of ['Not an official degree audit.', 'Not affiliated with Alabama State University', REVIEWED_LINE]) {
       expect(end, sentence).toContain(sentence);
       expect(decode(printHeadHtml(curriculum)), sentence).toContain(sentence);
     }
