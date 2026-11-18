@@ -82,9 +82,9 @@ describe('the curriculum handover guide', () => {
   });
 
   it('gives a true example of the date', () => {
-    // "a review dated 2026-11-15 shows the sentence from 2027-11-16": labelled with its own date, so it never goes stale.
-    const example = /a review dated (\d{4}-\d{2}-\d{2}) shows the sentence from (\d{4})-(\d{2})-(\d{2})/.exec(prose);
-    if (!example) throw new Error('the guide gives no example of when the sentence about an old review appears');
+    // "a review dated 2026-11-15 shows the warning from 2027-11-16": labelled with its own date, so it never goes stale.
+    const example = /a review dated (\d{4}-\d{2}-\d{2}) shows the warning from (\d{4})-(\d{2})-(\d{2})/.exec(prose);
+    if (!example) throw new Error('the guide gives no example of when the warning about an old review appears');
     const first = { year: Number(example[2]), month: Number(example[3]), day: Number(example[4]) };
     const before = new Date(first.year, first.month - 1, first.day - 1, 12);
     expect(reviewIsOld(example[1]!, first)).toBe(true);
@@ -184,17 +184,26 @@ describe('the curriculum handover guide', () => {
     expect([...quoted].sort()).toEqual(Object.keys(mistakes).sort());
     // And the rule for a red check looks for the three kinds of line in the order they can appear.
     const rule = section('### Is this mine to fix?');
-    const order = ['`docs/curriculum/provisional-current.json` with two numbers', '`trailing comma at line`', '`Curriculum data:`', '`docs/BRIEF.md §5`', '`FAIL`', 'None of these'].map(words => rule.replace(/\s+/g, ' ').indexOf(words));
+    const order = ['`docs/curriculum/provisional-current.json` with two numbers', '`trailing comma at line`', '`CurriculumError: Curriculum data:`', '`docs/BRIEF.md §5`', '`FAIL`', 'None of these'].map(words => rule.replace(/\s+/g, ' ').indexOf(words));
     expect(order.every(at => at >= 0), String(order)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // A refusal whose words the table does not have is not the reader's to fix: such a change is handed over.
     // (For example a sequence course taken out of its choice: "is not a course in a core block".)
     expect(rule.replace(/\s+/g, ' ')).toContain('If they are in that table, do what the table says. If they are not, hand the change over.');
-    expect(broken(data => { const sequence = data.sequence as unknown as { alternatives: { courses: string[] }[] }; const code = sequence.alternatives[0]!.courses[1]!; for (const block of blocksOf(data)) for (const choice of block.choices) choice.courses = choice.courses.filter(course => course.courseId !== code); })).not.toBe('');
+    const sequenceCourseGone = broken(data => {
+      const sequence = data.sequence as unknown as { alternatives: { courses: string[] }[] };
+      const code = sequence.alternatives[0]!.courses[1]!;
+      for (const block of blocksOf(data)) for (const choice of block.choices) choice.courses = choice.courses.filter(course => course.courseId !== code);
+    });
+    expect(sequenceCourseGone).toContain('is not a course in a core block');
+    expect(quoted.some(words => sequenceCourseGone.includes(words)), 'the table has no words for this refusal').toBe(false);
     // And a course that the file names more than once is handed over before any edit: the guide says how to tell.
     expect(prose).toContain('the course appears more than once in the curriculum file');
     // (What a refusal starts with, and what a badly written row of the brief starts with.)
-    expect(broken(data => { data.lastReviewed = 'soon'; })).toMatch(/^Curriculum data: /);
+    // (The rule looks for the refusal's own first words, "CurriculumError: Curriculum data:": the text of a test's
+    // assertion can hold "Curriculum data:" too, and is not a refusal.)
+    const named = (): string => { try { const data = copy(); data.lastReviewed = 'soon'; loadCurriculum(data); } catch (error) { return error instanceof Error ? `${error.name}: ${error.message}` : ''; } return ''; };
+    expect(named()).toMatch(/^CurriculumError: Curriculum data: /);
     expect(refusal(() => briefTable(brief.replace(/\| 1 of ([A-Z]{2,4} \d{3} \/)/, '| $1')))).toMatch(/^docs\/BRIEF\.md §5, row /);
   });
 

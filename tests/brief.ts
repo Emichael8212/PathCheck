@@ -30,7 +30,7 @@ export function briefTable(text: string = readFileSync(join(import.meta.dirname,
   const lines = text.split('\n');
   const start = lines.indexOf(HEAD);
   if (start < 0) throw new Error(`docs/BRIEF.md §5: the table's first line "${HEAD}" was not found`);
-  if (!/^\|(\s*:?-+:?\s*\|){4}$/.test(lines[start + 1] ?? '')) throw new Error('docs/BRIEF.md §5: the line under the table\'s first line must be "|---|---|---|---|"');
+  if (!/^\|(\s*:?-+:?\s*\|){4}\s*$/.test(lines[start + 1] ?? '')) throw new Error('docs/BRIEF.md §5: the line under the table\'s first line must be "|---|---|---|---|"');
   const rows: string[][] = [];
   for (let i = start + 2; i < lines.length && lines[i]!.startsWith('|'); i++) {
     const cells = lines[i]!.split('|').slice(1, -1).map(cell => cell.trim());

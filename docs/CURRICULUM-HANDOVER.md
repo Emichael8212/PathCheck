@@ -24,7 +24,7 @@ Do this once a year, and whenever the department changes the B.S. CIS curriculum
 Why the date matters: every page says "Curriculum last reviewed:" with the month and year.
 Twelve months after that date, every page also warns that the review is more than 12
 months old. The warning stays until the date is set again. For example, a review dated
-2026-11-15 shows the sentence from 2027-11-16.
+2026-11-15 shows the warning from 2027-11-16.
 
 ## Before you start
 
@@ -130,12 +130,13 @@ to [The check](#the-check).
 2. Go to the end of the section "Owner answers". That is just above the heading "Open
    questions to the owner".
 3. Add an entry there. Start it with a heading line like the others, then say what
-   changed and where the department's guide says so:
+   changed and where the department's guide says so. This is only an example, with a
+   course that does not exist:
 
    ```
-   ### 2027-11-10 — The curriculum changed: POS 208 joins the Social sciences choice
+   ### 2027-11-10 — The curriculum changed: XYZ 101 joins the Social sciences choice
 
-   The department's B.S. CIS curriculum guide dated 2027 lists POS 208 among the Social
+   The department's B.S. CIS curriculum guide dated 2027 lists XYZ 101 among the Social
    sciences choices. PathCheck's table did not have it.
    ```
 4. Commit it to a new branch, as in Step 2A. Every later edit goes to that same branch.
@@ -149,8 +150,9 @@ to [The check](#the-check).
 - a rule changes: grades, repeats, electives, legacy electives, the two-course sequence,
   transfer credit;
 - a block is added, removed or renamed;
-- the course appears more than once in the curriculum file. Search the file for its code,
-  written with a hyphen, such as `ENG-210`. A course found twice is part of a rule.
+- the course appears more than once in the curriculum file. Open the file's page and
+  search it with Ctrl+F (Cmd+F on a Mac) for the course's code, written with a hyphen,
+  such as `ENG-210`. A course found twice is part of a rule.
 
 **You can try these yourself:**
 
@@ -222,9 +224,11 @@ Search the log for these, in this order. Stop at the first one you find.
    position in it. Almost always a comma or a quotation mark is missing, or one too many,
    on that line or the one before. Fix it on your branch.
 2. **A line containing `trailing comma at line`.** The curriculum file has a comma just
-   before a closing `]` or `}`. The two numbers after it are the line and the position.
-   Delete that comma on your branch.
-3. **A line containing `Curriculum data:`** PathCheck read the file and refused it. Look
+   before a closing `]` or `}`. The two numbers after it point at that closing bracket.
+   The comma is just before it, usually at the end of the line above. Delete that comma
+   on your branch.
+3. **A line containing `CurriculumError: Curriculum data:`.** PathCheck read the file and
+   refused it. Look
    up the words after it in [Mistakes the check catches](#mistakes-the-check-catches). If
    they are in that table, do what the table says. If they are not, hand the change over.
 4. **A line containing `docs/BRIEF.md §5`.** A row of the brief's table is not written
@@ -258,10 +262,10 @@ After a fix, the check runs again by itself.
 | What went wrong | The check says | What to do |
 |---|---|---|
 | A comma or quotation mark is missing in the curriculum file | `error TS1005: ',' expected.` (for example) | Fix the line it names |
-| A comma is left before a closing `]` or `}` | `trailing comma at line` | Delete that comma |
+| A comma is left before a closing `]` or `}` | `trailing comma at line` | Delete the comma before the bracket it points at |
 | The review date is not written as year-month-day | `must be null or a date written YYYY-MM-DD` | Write it like `2027-11-10` |
 | A course code is not written like `POS-207` | `must be 2 to 4 capital letters, a hyphen and 3 digits` | Use capital letters, a hyphen, three digits |
-| The same course is in the file twice | `the same course is listed twice` | Delete one of the two entries |
+| The same course is in the file twice | `the same course is listed twice` | Delete the entry you added. If the department's guide really lists the course in both places, hand it over |
 | The courses of one choice have different credits | `courses in one pick group must have the same credits` | Hand it over: credits changed |
 | A block's credits do not match its courses | `but its courses add up to` | Hand it over: credits changed |
 | A word in the file is misspelled or new | `unknown field` | Spell it as in the entries around it |
