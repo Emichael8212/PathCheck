@@ -425,7 +425,7 @@ describe("the stylesheet's print rules", () => {
       for (const gone of copy.querySelectorAll(hiddenOnPaper)) gone.remove();
       return tidy(copy.textContent);
     };
-    const CONTROL_WORDS = /Move later|Show courses|Hide courses|Not done|\bChange\b|Fix it|Check what was read|Use another transcript|Print \/ save PDF|pathcheck\.report@|Browse files/;
+    const CONTROL_WORDS = /Move later|Show courses|Hide courses|Not done|\bChange\b|Fix it|Check what was read|Use another transcript|Print \/ save PDF|Report a mistake|Browse files/;
     const printedControls = (): string[] => [
       ...controls().filter(one => !one.closest(hiddenOnPaper)).map(one => tidy(one.textContent) || one.tagName),
       // A requirement's heading row is text on paper; whatever in it is there to be pressed is not printed.
@@ -468,6 +468,40 @@ describe("the stylesheet's print rules", () => {
       expect(document.title).toBe(TITLE);
       window.dispatchEvent(new Event('afterprint'));
     }
+  });
+
+  it('prints the contact address as plain text', async () => {
+    // The owner, 2026-11-18: "Print: show pathcheck.report@gmail.com as plain text on the printed summary."
+    const ADDRESS = 'pathcheck.report@gmail.com';
+    /** What is on paper: the page without what print media hides. On a screen: without the paper-only lines. */
+    const without = (hidden: string): HTMLElement => {
+      const copy = $('#app').cloneNode(true) as HTMLElement;
+      for (const gone of copy.querySelectorAll(hidden)) gone.remove();
+      return copy;
+    };
+    const check = (where: string): void => {
+      const paper = without(hiddenOnPaper);
+      const screen = without('.print-only');
+      // On paper the address is there once, at the end of the foot's first group, and it is text: not a link, nothing to press.
+      expect(tidy(paper.textContent).split(ADDRESS), where).toHaveLength(2);
+      const line = paper.querySelector<HTMLElement>('footer.foot > div > :last-child')!;
+      expect([line.tagName, line.className, line.textContent, line.getAttributeNames(), line.children.length], where).toEqual(['SPAN', 'print-only', ADDRESS, ['class'], 0]);
+      expect(paper.querySelectorAll('footer.foot a'), where).toHaveLength(0);
+      // On a screen it is there once too: the link. The paper's line is neither shown nor read out.
+      expect(tidy(screen.textContent).split(ADDRESS), where).toHaveLength(2);
+      expect(screen.querySelector('footer.foot a')?.textContent, where).toBe(ADDRESS);
+    };
+    // The printed summary, and the other pages when someone prints them.
+    await result();
+    expect(document.querySelector('[data-print-head]')).not.toBeNull();
+    check('the summary');
+    for (const hash of ['#/check', '#/']) { go(hash); check(hash); }
+    // The rules that make it so: paper-only lines are hidden on a screen and shown on paper; the link is hidden on paper.
+    expect(css).toContain('.print-only { display: none; }');
+    expect(rules).toContain('.print-only { display: block; }');
+    expect(hiddenOnPaper.split(', ')).toContain('.foot a');
+    // Nothing gives the line a link's look: no rule of the stylesheet names it inside the foot.
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\.foot[^{}]*\.print-only|\.foot > span|\.foot span/);
   });
 
   it('keeps paper white on a dark device', () => {
