@@ -2,7 +2,7 @@
 import { type Curriculum } from './curriculum';
 import { esc } from './html';
 import { NOTHING_SHOWN, reportHref, type Shown } from './report';
-import { APP_NAME, LAST_REVIEWED, NOT_AFFILIATED, NOT_OFFICIAL, OLD_REVIEW_NAME, REPORT_ADDRESS, oldReview } from './wording';
+import { APP_NAME, LAST_REVIEWED, NOT_AFFILIATED, NOT_OFFICIAL, OLD_REVIEW_NAME, REPORT_ADDRESS, REPORT_NAME, oldReview } from './wording';
 
 export type Route = 'start' | 'check' | 'left';
 
@@ -77,6 +77,10 @@ export function reportLink(curriculum: Curriculum, subject = `${APP_NAME}: repor
   return reportHref(subject, shown, [`${curriculum.program}, ${curriculum.institution}`, ...(reviewed ? [`${LAST_REVIEWED} ${reviewed}`] : [])]);
 }
 
+/**
+ * The foot of every page. The contact address is the link's own words; a screen reader is told what
+ * it is for. On paper a link does nothing, so the address is printed as a line of text in its place.
+ */
 export const foot = (curriculum: Curriculum, report = reportLink(curriculum), wide = false): string => {
   const reviewed = reviewedOn(curriculum.lastReviewed);
   return `
@@ -84,7 +88,8 @@ export const foot = (curriculum: Curriculum, report = reportLink(curriculum), wi
   <div>
     <strong>${esc(NOT_OFFICIAL)}</strong>${reviewed ? `
     <span>${esc(`${LAST_REVIEWED} ${reviewed}`)}</span>` : ''}
-    <a class="text-link" href="${esc(report)}">${esc(REPORT_ADDRESS)}</a>
+    <a class="text-link" href="${esc(report)}" aria-label="${esc(REPORT_NAME)}">${esc(REPORT_ADDRESS)}</a>
+    <span class="print-only">${esc(REPORT_ADDRESS)}</span>
   </div>
   <p>${esc(NOT_AFFILIATED)}</p>
 </footer>`;

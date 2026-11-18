@@ -163,7 +163,11 @@ describe('"Report a mistake"', () => {
       // The owner, 2026-11-18: "Show only "pathcheck.report@gmail.com", with no "Report a mistake" label. The
       // address is the link (pre-filled with the course or result, as now) and stays visible as text so it can be copied."
       expect([link.tagName, link.textContent, document.querySelectorAll('.foot a').length], hash).toEqual(['A', ADDRESS, 1]);
-      expect(link.getAttributeNames().sort(), hash).toEqual(['class', 'href']);
+      // The owner, 2026-11-18: "Screen readers: give the address a hidden label so it's announced as "Report a mistake,
+      // pathcheck.report@gmail.com". The visible text stays the address only."
+      expect(link.getAttributeNames().sort(), hash).toEqual(['aria-label', 'class', 'href']);
+      expect(link.getAttribute('aria-label'), hash).toBe('Report a mistake, pathcheck.report@gmail.com');
+      expect(link.children, hash).toHaveLength(0);
       expect($('#app').textContent, hash).not.toMatch(/report a mistake/i);
       // The link points at the very address it shows: up to its "?" it is `mailto:` and the words on the page.
       // (What a browser's "Copy email address" gives is the browser's; the owner tries it on a phone at the M3 check.)
@@ -204,9 +208,10 @@ describe('"Report a mistake"', () => {
     expect(sources.filter(([, text]) => text.includes(ADDRESS)).map(([name]) => name).sort()).toEqual(['mockups/data.js', 'src/wording.ts']);
     for (const [name, text] of sources) {
       expect(text.split(ADDRESS).length - 1, name).toBeLessThanOrEqual(1);
-      // The address that stood in for it is nowhere, and neither are the words of the old label.
+      // The address that stood in for it is nowhere, is nowhere.
       expect(text, name).not.toMatch(/pathcheck\.example/i);
-      expect(text, name).not.toContain('Report a mistake');
+      // The words of the old label are in one place only: the name a screen reader is given.
+      expect(text.split('Report a mistake').length - 1, name).toBe(name === 'src/wording.ts' ? 1 : 0);
       // Nothing stops a student from selecting the address to copy it.
       expect(text, name).not.toMatch(/user-select/i);
     }

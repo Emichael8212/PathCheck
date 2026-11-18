@@ -461,7 +461,10 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   in with what the page showed ("What looks wrong?", "What PathCheck showed:", then the
   result's own words; the labels are the agent's). The subject of the email from the
   Start page is still "PathCheck: report a mistake". Between about 630px and 870px wide
-  the address is on a line of its own under the other two.
+  the address is on a line of its own under the other two. A screen reader is told "Report a mistake,
+  pathcheck.report@gmail.com" (a name on the link that is not shown), and on paper the
+  address is a line of plain text at the link's place (the owner, 2026-11-18, second
+  answers).
 - **"Legacy CIS student: Yes Change"** has 8px more between the answer and "Change" (F20), so
   that the focus ring of "Change" does not touch the answer.
 - **"Clear my data"** (F19) is the design's secondary button with its trash icon, beside
