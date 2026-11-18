@@ -1309,6 +1309,20 @@ What it decides:
   summary of "See what I have left" among them.
 - These answers came after pull request #41 was merged. They are a second pull request,
   and the owner's step 2 (build and publish) must be done, or done again, after it.
+### 2026-11-18 — F26, step 2: the owner built `main` with the address and published it
+
+The owner's answer is a screenshot of Netlify's page of the deploy. It shows: "Published &
+locked deploy for pathcheck", "Publishing is locked to this deploy.", "Today at 1:20 AM",
+"Production: main@4289729", and the buttons "Open production deploy" and "Unlock to start
+auto publishing".
+
+What it decides:
+- **The published deploy is `main@4289729`**, the merge of pull request #42. It holds the
+  owner's address as the link, its name for a screen reader and the address on paper.
+- **Publishing is still locked**, and the site is still Private.
+
+*Agent's note, not an owner decision:* the agent cannot open the site while it is Private;
+what it serves is read by the agent only after the owner's launch.
 
 ## Open questions to the owner
 
