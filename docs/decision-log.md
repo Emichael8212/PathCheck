@@ -154,6 +154,9 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-16, F20) On "Check my courses", the row of a course just added is brought into view when it is not wholly on the screen (on a phone the three numbers appear above the field with the first course and push the list down). A row already in view does not move. | F20 step 2: a first-time student has the answer for one course within 10 seconds; at 375 the first answer was below the fold (found by the walk-through). | `showRow` in `src/check.ts`. |
 | (2026-11-16, F20) Two commands for the owner's M1 check: `npm run dev:lan` (the development server reachable from a phone on the same network, for the check only) and `npm run preview` (the built site, where every file is answered "Upload isn't available right now — try again tomorrow"). | M1 is checked "on phone and desktop", and a phone cannot open localhost (evaluator, contract round 1). The development server's file rules are unchanged. | The two lines in `package.json`. |
 | (2026-11-16, F20) Room between the legacy answer and "Change", so that the focus ring of "Change" no longer touches "Yes". | A flaw noted in F15 for the M1 polish. | `.legacy-line .text-link` in `src/style.css`. |
+| (2026-11-18, F26) The contact address is `pathcheck.report@gmail.com`, and it is what the foot of every page shows: the address is the link's own words, with no "Report a mistake" label. The email it opens is filled in as before. The mockups show the same. It replaces the rows of F06 and F18 above about the placeholder. | The owner's answers of 2026-11-18 ("Owner answers"). | `REPORT_ADDRESS` in `src/wording.ts`; `foot` in `src/shell.ts`; `mockups/data.js`. |
+| (2026-11-18, F26) The agent's choices inside that answer, not the owner's: the subject of the email from the Start page stays "PathCheck: report a mistake" (it is in the email, not on a page); a screen reader hears the address as the link's name and nothing more; the link is still not printed on paper; a built site that holds `pathcheck.example` is refused by the build check. | The answer speaks of the label on the page. The first three are listed for the owner in `docs/milestones/M3.md`. | `reportLink` in `src/shell.ts`; `scripts/check-build.mjs`. |
+| (2026-11-18, F26) "No personal data is stored anywhere" now reads "PathCheck stores no personal data" in `docs/BRIEF.md` §9, in step 4 of F26 in `features.json`, and in the two finished sprint files that quoted it (`docs/sprints/F19.md`, `docs/sprints/F22.md`). No page of the app had the sentence. | The owner's answer of 2026-11-18: "wherever it appears". The step of a feature is changed on those words of the owner. | Those four files. |
 
 ## Owner answers
 
@@ -1244,6 +1247,40 @@ What it decides:
   The date of the approval is 2026-11-17, the day of the message (as was done for M1).
   **The contact email is not given yet**: the owner is asked for it; until then "Report a
   mistake" keeps the placeholder address, and F26 cannot pass. F25 does not need it.
+### 2026-11-18 — The contact address; what others keep is accepted; the address is the link
+
+The owner's words:
+
+"The email is pathcheck.report@gmail.com.
+1. I accept the four as they are (Google reads the PDF, Cloudflare bot check, Netlify request logs, report emails in my mailbox). Change the promise from "no personal data is stored anywhere" to "PathCheck stores no personal data" wherever it appears. Record this in docs/decision-log.md as an owner answer.
+2. Show only "pathcheck.report@gmail.com", with no "Report a mistake" label. The address is the link (pre-filled with the course or result, as now) and stays visible as text so it can be copied. Use this address everywhere. Record it in docs/decision-log.md as an owner answer."
+
+What it decides:
+- **The contact address is `pathcheck.report@gmail.com`.** It is public: on the site and
+  in this repository.
+- **What others keep is accepted as it is:** Google reads the PDF; Cloudflare runs the bot
+  check; Netlify keeps its request logs; a report by email arrives in the owner's
+  mailbox. (They are listed in `docs/milestones/M3.md` part 3.)
+- **The promise is now "PathCheck stores no personal data"**, wherever the old sentence
+  was written. This differs from the brief as it was approved; the brief is changed with
+  it, on the owner's word.
+- **The foot of every page shows the address and no "Report a mistake" label.** The
+  address is the link, filled in with the course or result as before, and can be read
+  and copied. This changes the owner's own design of that line
+  (`docs/design/DESIGN.md`), and where it differs from brief §4 ("Report a mistake": an
+  email link), this answer wins.
+- **The address is used everywhere:** in the app and in the mockups.
+
+*Agent's notes, not owner decisions:*
+- The subject of the email from the Start page is still "PathCheck: report a mistake".
+  It is in the email, not on a page.
+- With no label, the page does not say what the address is for, and a screen reader hears
+  only the address. Built as the owner said; listed for the owner in
+  `docs/milestones/M3.md`.
+- The link is still not printed on paper (F17). Listed for the owner in the same place.
+- Step 1 of F18 and of F26 in `features.json`, and brief §4 and §12, still name the link
+  "Report a mistake". They are left as they are: the owner asked for the promise to be
+  changed where it is written, not these.
 
 ## Open questions to the owner
 

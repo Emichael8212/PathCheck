@@ -503,7 +503,7 @@
         "\"Report a mistake\" uses the contact email the owner provided, and \"Curriculum last reviewed\" shows the date the owner provided",
         "The site is live at a public *.netlify.app address on free plans",
         "Both flows work on the public address on phone and desktop, with no console errors",
-        "The limits are enforced on the public site and no personal data is stored anywhere",
+        "The limits are enforced on the public site and PathCheck stores no personal data",
         "Stop: the owner makes the final check, then launches"
       ],
       "passes": false,

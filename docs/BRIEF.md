@@ -209,7 +209,7 @@ ENG 209 + ENG 210. It adds no credits. *(Owner to confirm this reading at M0.)*
 - The PDF is never stored, and no transcript contents appear in logs.
 - The key is server-side.
 - Limits are enforced.
-- No personal data is stored anywhere.
+- PathCheck stores no personal data.
 
 **Live**
 - A public `*.netlify.app` address on free plans.
