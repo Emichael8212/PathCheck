@@ -226,7 +226,7 @@ describe('when upload is unavailable', () => {
     expect(document.querySelector('[data-pace-line], [data-line-term], [data-line-target]')).toBeNull();
     // The sentence is still under the card while the student goes on (it went nowhere, and nothing else took its place).
     expect(message()).toBe(SENTENCE);
-    // "Report a mistake" is filled with the list as the page has it: no transcript.
+    // The report by email is filled with the list as the page has it: no transcript.
     const report = $<HTMLAnchorElement>('.foot a');
     report.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     const body = decodeURIComponent(report.getAttribute('href') ?? '');

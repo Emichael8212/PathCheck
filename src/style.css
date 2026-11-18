@@ -237,8 +237,9 @@ svg { display: block; flex-shrink: 0; }
 }
 .foot-wide { max-width: none; }
 /* The three items on the left give way first: they wrap onto a second line while the
-   affiliation line stays at the top right, level with the first of them. 311px is the room
-   "Curriculum last reviewed" and "Report a mistake" need side by side. */
+   affiliation line stays at the top right, level with the first of them. 311px is the least
+   room they are given before the affiliation line drops below them (about 630px wide). The
+   contact address, which is the link, goes onto a line of its own before that. */
 .foot > div { flex: 1 1 311px; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
 .foot strong { color: var(--ink); font-weight: 600; }
 /* "Not affiliated…" sits at the right, level with the other three. It drops below them

@@ -430,7 +430,7 @@ export function startApp(win: AppWindow): App {
     if (target?.closest?.('[data-clear]')) clearData();
     fillReport(event);
   });
-  // "Report a mistake": the email is filled in with what the page shows at this moment,
+  // The report by email (the address at the foot): the email is filled in with what the page shows at this moment,
   // whatever was changed since the page was drawn. Then the browser follows the link. It
   // is filled in as soon as the link is pressed or reached (a middle click, the link's
   // own menu, the keyboard), not only when it is followed.

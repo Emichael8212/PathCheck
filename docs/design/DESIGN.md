@@ -161,7 +161,8 @@ Marks are inline SVG drawn in the project (20-unit grid); no icon pack.
   left", as pills (current page: `--accent` on `--accent-soft`); "Not an official degree
   audit." at the right. Below 650px the nav links are on a second row under the wordmark.
 - **Footer:** top border; one line. At the left: "Not an official degree audit." (bold) ·
-  "Curriculum last reviewed: Nov 2026" · "Report a mistake" (underlined email link). At the
+  "Curriculum last reviewed: Nov 2026" · "pathcheck.report@gmail.com" (underlined email link;
+  the owner, 2026-11-18: the address itself, with no "Report a mistake" label). At the
   right, at the same height: "Not affiliated with Alabama State University". 12px. As the
   line narrows, the three items on the left wrap first and the affiliation line keeps its
   place at the right, level with the first of them. Under about 630px wide (a phone) it
@@ -311,11 +312,14 @@ Each difference comes from the brief or from a dated owner answer in `docs/decis
 - At 375px nothing is hidden or overlapping; keyboard focus is always visible. Because of
   this the two nav links are shown on a phone, on a second row of the top bar.
 - Every result shows "Curriculum last reviewed: <date>", "Not an official degree audit",
-  "Report a mistake" and "Not affiliated with Alabama State University".
+  the contact address (the link for reporting a mistake) and "Not affiliated with Alabama
+  State University".
 - In the demo, "Counts toward CIS — Business core" is followed by "unless you've already
   passed it or filled this slot", and "On pace for Spring 2029" by "Credits only — course
   order may add semesters."
-- "Report a mistake" is an email link (the address is a placeholder until the owner gives it).
+- The contact address is an email link. Until 2026-11-18 its words were "Report a mistake"
+  and its address a placeholder; the owner then gave `pathcheck.report@gmail.com` and
+  asked for the address to be the link's own words, so that it can be read and copied.
 
 **The owner's answers to the nine conflicts** (2026-11-15):
 
@@ -451,9 +455,13 @@ which started as a copy of `mockups/style.css`. These differences are intended:
   is more than 12 months old: "The curriculum PathCheck uses was last reviewed in Nov
   2026, more than 12 months ago. Requirements may have changed since: check your portal
   before you rely on this." (the agent's words).
-- **"Report a mistake"** (F18) looks as in the design. Its email is filled in with what the
-  page showed ("What looks wrong?", "What PathCheck showed:", then the result's own
-  words; the labels are the agent's). The address is a placeholder until the owner's.
+- **The link for reporting a mistake** (F18; F26). Its words are the contact address,
+  `pathcheck.report@gmail.com`, and no label (the owner, 2026-11-18; the design had
+  "Report a mistake"). Its place, size and colour are the design's. Its email is filled
+  in with what the page showed ("What looks wrong?", "What PathCheck showed:", then the
+  result's own words; the labels are the agent's). The subject of the email from the
+  Start page is still "PathCheck: report a mistake". Between about 630px and 870px wide
+  the address is on a line of its own under the other two.
 - **"Legacy CIS student: Yes Change"** has 8px more between the answer and "Change" (F20), so
   that the focus ring of "Change" does not touch the answer.
 - **"Clear my data"** (F19) is the design's secondary button with its trash icon, beside

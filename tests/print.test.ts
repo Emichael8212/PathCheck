@@ -425,7 +425,7 @@ describe("the stylesheet's print rules", () => {
       for (const gone of copy.querySelectorAll(hiddenOnPaper)) gone.remove();
       return tidy(copy.textContent);
     };
-    const CONTROL_WORDS = /Move later|Show courses|Hide courses|Not done|\bChange\b|Fix it|Check what was read|Use another transcript|Print \/ save PDF|Report a mistake|Browse files/;
+    const CONTROL_WORDS = /Move later|Show courses|Hide courses|Not done|\bChange\b|Fix it|Check what was read|Use another transcript|Print \/ save PDF|pathcheck\.report@|Browse files/;
     const printedControls = (): string[] => [
       ...controls().filter(one => !one.closest(hiddenOnPaper)).map(one => tidy(one.textContent) || one.tagName),
       // A requirement's heading row is text on paper; whatever in it is there to be pressed is not printed.

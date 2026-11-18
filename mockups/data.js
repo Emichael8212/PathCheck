@@ -11,9 +11,8 @@ export const facts = {
   name: 'PathCheck',
   notOfficial: 'Not an official degree audit.',
   reviewed: 'Curriculum last reviewed: Nov 2026',
-  report: 'Report a mistake',
-  // Placeholder: the owner gives the contact address before M3 (brief §12).
-  reportAddress: 'report@pathcheck.example',
+  // The contact address, which is the link's own words (the owner, 2026-11-18).
+  reportAddress: 'pathcheck.report@gmail.com',
   notAffiliated: 'Not affiliated with Alabama State University',
   nav: [
     { page: 'check', href: 'check.html', label: 'Check my courses' },

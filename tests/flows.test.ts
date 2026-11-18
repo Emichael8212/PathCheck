@@ -477,7 +477,7 @@ describe('through both flows', () => {
       expect(tidy($('.top-note').textContent), where).toBe(NOT_OFFICIAL);
       expect(tidy($('footer.foot').textContent), where).toContain(NOT_OFFICIAL);
       expect(tidy($('footer.foot').textContent), where).toContain(REVIEWED);
-      // "Report a mistake" opens a filled-in email on every page.
+      // The address at the foot opens a filled-in email on every page.
       const link = $('.foot a');
       link.dispatchEvent(new Event('pointerdown', { bubbles: true }));
       const href = link.getAttribute('href') ?? '';

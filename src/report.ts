@@ -1,5 +1,6 @@
-// "Report a mistake" (docs/BRIEF.md §4 "On every result"; docs/sprints/F18.md): an email
-// link to PathCheck's contact address, already filled in with what the page showed. The
+// A report of a mistake by email (docs/BRIEF.md §4 "On every result"; docs/sprints/F18.md): an email
+// link to PathCheck's contact address, already filled in with what the page showed. Its
+// words on the page are the address itself (the owner, 2026-11-18; docs/sprints/F26.md). The
 // message opens in the student's own mail app and is theirs to read, change and send:
 // PathCheck sends nothing. It holds the result's own words and nothing of the transcript
 // itself: no file name, no row, no grade.

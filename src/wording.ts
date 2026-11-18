@@ -5,9 +5,9 @@
 export const APP_NAME = 'PathCheck';
 export const NOT_OFFICIAL = 'Not an official degree audit.';
 export const NOT_AFFILIATED = 'Not affiliated with Alabama State University';
-export const REPORT_A_MISTAKE = 'Report a mistake';
-// Placeholder: the owner gives the contact address before launch (brief §12).
-export const REPORT_ADDRESS = 'report@pathcheck.example';
+// The contact address (the owner, 2026-11-18). It is written here and nowhere else in src/.
+// The foot of every page shows it as the words of the link that opens a report by email.
+export const REPORT_ADDRESS = 'pathcheck.report@gmail.com';
 export const LAST_REVIEWED = 'Curriculum last reviewed:';
 /** The banner once the last review is more than twelve months old (brief §4 "On every result"). */
 export const OLD_REVIEW_NAME = 'Curriculum may be out of date';
