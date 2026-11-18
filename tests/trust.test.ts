@@ -165,7 +165,8 @@ describe('"Report a mistake"', () => {
       expect([link.tagName, link.textContent, document.querySelectorAll('.foot a').length], hash).toEqual(['A', ADDRESS, 1]);
       expect(link.getAttributeNames().sort(), hash).toEqual(['class', 'href']);
       expect($('#app').textContent, hash).not.toMatch(/report a mistake/i);
-      // What a browser's "Copy email address" gives is the address alone: the link's own, up to its "?".
+      // The link points at the very address it shows: up to its "?" it is `mailto:` and the words on the page.
+      // (What a browser's "Copy email address" gives is the browser's; the owner tries it on a phone at the M3 check.)
       expect((link.getAttribute('href') ?? '').split('?')[0], hash).toBe(`mailto:${link.textContent}`);
       // The link is whole as it is drawn, and again when it is used.
       for (const email of [emailOf(link.getAttribute('href') ?? ''), report()]) {

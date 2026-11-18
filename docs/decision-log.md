@@ -1247,6 +1247,7 @@ What it decides:
   The date of the approval is 2026-11-17, the day of the message (as was done for M1).
   **The contact email is not given yet**: the owner is asked for it; until then "Report a
   mistake" keeps the placeholder address, and F26 cannot pass. F25 does not need it.
+
 ### 2026-11-18 — The contact address; what others keep is accepted; the address is the link
 
 The owner's words:
