@@ -130,7 +130,7 @@ describe('the three addresses', () => {
     expect(pages.left).toMatch(/<h1 tabindex="-1">See what I have left<\/h1>/);
     expect(pages.left).toContain('<a href="#/left" aria-current="page">What I have left</a>');
     // Before a transcript is brought, the page of the second flow holds its name and the way to bring one.
-    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Google reads your PDF and may keep it briefly. Your result stays in this browser. Not an official degree audit. ' + REVIEWED_LINE + ' Report a mistake Not affiliated with Alabama State University ');
+    expect(decode(pages.left)).toBe(' PathCheck. Check my courses What I have left Not an official degree audit. See what I have left Drag & drop your transcript PDF here or Browse files Google reads your PDF and may keep it briefly. Your result stays in this browser. Not an official degree audit. ' + REVIEWED_LINE + ' pathcheck.report@gmail.com Not affiliated with Alabama State University ');
     for (const page of [pages.check, pages.left]) expect(decode(page)).not.toMatch(/coming soon|not built|later/i);
     expect(routeOf('#/check')).toBe('check');
     expect(routeOf('#/left')).toBe('left');
@@ -527,7 +527,7 @@ describe('the footer', () => {
     expect(REVIEWED_LINE).toMatch(/^Curriculum last reviewed: [A-Z][a-z]{2} \d{4}$/);
     for (const [name, page] of Object.entries(pages)) {
       expect(page, name).not.toMatch(/Invalid|NaN|\bnull\b|undefined/i);
-      expect(decode(page.slice(page.indexOf('<footer'))), name).toBe(` Not an official degree audit. ${REVIEWED_LINE} Report a mistake Not affiliated with Alabama State University `);
+      expect(decode(page.slice(page.indexOf('<footer'))), name).toBe(` Not an official degree audit. ${REVIEWED_LINE} pathcheck.report@gmail.com Not affiliated with Alabama State University `);
     }
   });
 
@@ -536,13 +536,13 @@ describe('the footer', () => {
     const undated = foot({ ...curriculum, lastReviewed: null });
     expect(undated).not.toMatch(/last reviewed|Invalid|NaN|\bnull\b|undefined/i);
     expect(undated).not.toContain(REVIEW_MONTH);
-    expect(decode(undated)).toBe(' Not an official degree audit. Report a mistake Not affiliated with Alabama State University ');
-    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:[^"@]+@[^"?]+\?subject=PathCheck%3A%20report%20a%20mistake&amp;body=[^"]+">Report a mistake<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
+    expect(decode(undated)).toBe(' Not an official degree audit. pathcheck.report@gmail.com Not affiliated with Alabama State University ');
+    expect(undated).toMatch(/<strong>Not an official degree audit\.<\/strong>\s*<a class="text-link" href="mailto:pathcheck\.report@gmail\.com\?subject=PathCheck%3A%20report%20a%20mistake&amp;body=[^"]+">pathcheck\.report@gmail\.com<\/a>\s*<\/div>\s*<p>Not affiliated with Alabama State University<\/p>/);
   });
 
   it('shows the month and year of a review date in any time zone', () => {
     const dated = foot({ ...curriculum, lastReviewed: '2026-01-15' });
-    expect(decode(dated)).toBe(' Not an official degree audit. Curriculum last reviewed: Jan 2026 Report a mistake Not affiliated with Alabama State University ');
+    expect(decode(dated)).toBe(' Not an official degree audit. Curriculum last reviewed: Jan 2026 pathcheck.report@gmail.com Not affiliated with Alabama State University ');
     expect(decode(foot(loadCurriculum(madeUp)))).toContain('Curriculum last reviewed: Jan 2026');
     const zone = process.env.TZ;
     try {

@@ -26,6 +26,14 @@ export const SERVER_ONLY = ['GEMINI_API_KEY', 'generativelanguage.googleapis.com
 /** The pieces of the server found in a built file's text. */
 export const serverPiecesIn = text => SERVER_ONLY.filter(piece => text.toLowerCase().includes(piece.toLowerCase()));
 
+/**
+ * And the address that stood in for the owner's until 2026-11-18 (docs/sprints/F26.md): a
+ * public site must never send a student's report to an address that reaches no one.
+ */
+export const PLACEHOLDER_ADDRESS = 'pathcheck.example';
+/** Whether a built file's text holds the placeholder address. */
+export const holdsPlaceholder = text => text.toLowerCase().includes(PLACEHOLDER_ADDRESS);
+
 /** The forbidden pieces of text found in a built file's text. */
 export const leaksIn = (text, forbidden) => [...forbidden.fingerprints, ...forbidden.descriptions].filter(piece => text.includes(piece));
 
@@ -44,5 +52,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (found.length > 0) { console.error(`check-build: the built site holds made-up transcript data:\n${found.join('\n')}`); process.exit(1); }
   const server = filesUnder(dist).flatMap(path => serverPiecesIn(readFileSync(path, 'latin1')).map(piece => `${path}: "${piece}"`));
   if (server.length > 0) { console.error(`check-build: the built site holds a piece of the server:\n${server.join('\n')}`); process.exit(1); }
-  console.log(`check-build: the built site holds none of the made-up transcripts (${forbidden.fingerprints.length} fingerprints, ${forbidden.descriptions.length} descriptions looked for) and nothing of the server piece (${SERVER_ONLY.length} pieces looked for).`);
+  const placeholder = filesUnder(dist).filter(path => holdsPlaceholder(readFileSync(path, 'latin1')));
+  if (placeholder.length > 0) { console.error(`check-build: the built site holds the placeholder contact address (${PLACEHOLDER_ADDRESS}):\n${placeholder.join('\n')}`); process.exit(1); }
+  console.log(`check-build: the built site holds none of the made-up transcripts (${forbidden.fingerprints.length} fingerprints, ${forbidden.descriptions.length} descriptions looked for), nothing of the server piece (${SERVER_ONLY.length} pieces looked for), and no placeholder contact address.`);
 }

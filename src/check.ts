@@ -350,7 +350,7 @@ const answerWords = (answer: Answer): string => (answer.kind === 'ask' ? LEGACY_
   : answer.kind === 'counts' && answer.condition ? `${answer.text} (${answer.condition})` : answer.text);
 
 /**
- * What the page shows, for "Report a mistake": whether a transcript is in use (and that
+ * What the page shows, for a report by email: whether a transcript is in use (and that
  * the answers are not exact while rows of it still need fixing), the legacy answer when
  * one was given, each course with its answer, and the pace line with what its two lists
  * are set to and its caveat. Nothing of the transcript itself.
@@ -368,7 +368,7 @@ export function checkShown(curriculum: Curriculum, list: CourseList, transcript:
   };
 }
 
-/** The email that "Report a mistake" opens from this page, as the page now stands. */
+/** The email that the address at the foot opens from this page, as the page now stands. */
 export const checkReport = (curriculum: Curriculum, list: CourseList, transcript: OnCheck): string =>
   reportLink(curriculum, `PathCheck: ${FLOW_NAME.check}`, checkShown(curriculum, list, transcript));
 

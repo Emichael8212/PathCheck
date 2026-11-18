@@ -319,7 +319,7 @@ export function resultHtml(transcript: Transcript, curriculum: Curriculum, legac
 }
 
 /**
- * What the result shows, for "Report a mistake": that rows still need fixing (when they
+ * What the result shows, for a report by email: that rows still need fixing (when they
  * do), the credits, the pace answer with its caveat and the settings it was made with, each requirement's status, the sequence sentence, the line
  * under a plan that ends late, and the legacy answer when one was given. Nothing before
  * there is a result, and nothing of the transcript itself.
@@ -351,7 +351,7 @@ export function leftShown(curriculum: Curriculum, state: LeftState, legacy: Lega
   };
 }
 
-/** The email that "Report a mistake" opens from this page, as the page now stands. */
+/** The email that the address at the foot opens from this page, as the page now stands. */
 export const leftReport = (curriculum: Curriculum, state: LeftState, legacy: LegacyAnswer): string =>
   reportLink(curriculum, `PathCheck: ${FLOW_NAME.left}`, leftShown(curriculum, state, legacy));
 

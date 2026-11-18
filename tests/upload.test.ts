@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
-import { SERVER_ONLY, forbiddenText, leaksIn, serverPiecesIn } from '../scripts/check-build.mjs';
+import { PLACEHOLDER_ADDRESS, SERVER_ONLY, forbiddenText, holdsPlaceholder, leaksIn, serverPiecesIn } from '../scripts/check-build.mjs';
 // @ts-expect-error The script is plain JavaScript, with no type declarations.
 import { fingerprintOf as scriptFingerprint, manifestFor, transcripts } from '../scripts/make-synthetic-transcripts.mjs';
 import { GEMINI, LARGEST_BODY } from '../netlify/functions/read-transcript.mjs';
@@ -297,6 +297,18 @@ describe('on the built site', () => {
     for (const name of readdirSync(src)) expect(serverPiecesIn(readFileSync(join(src, name), 'utf8')), name).toEqual([]);
     const check = readFileSync(join(folder, '..', '..', 'scripts', 'check-build.mjs'), 'utf8');
     expect(check).toContain("serverPiecesIn(readFileSync(path, 'latin1'))");
+  });
+
+  it('fails the check of the built site when the placeholder contact address is in it', () => {
+    // F26: until 2026-11-18 reports went to an address that reaches no one. A public site must never hold it.
+    expect(PLACEHOLDER_ADDRESS).toBe('pathcheck.example');
+    expect(holdsPlaceholder('href="mailto:report@pathcheck.example?subject=PathCheck"')).toBe(true);
+    expect(holdsPlaceholder('const a="report@PathCheck.Example"')).toBe(true);
+    expect(holdsPlaceholder('href="mailto:pathcheck.report@gmail.com?subject=PathCheck"')).toBe(false);
+    expect(holdsPlaceholder('fetch("https://pathcheck.netlify.app/api/read-transcript")')).toBe(false);
+    // `npm run check` looks through every built file for it and stops when it is there.
+    const check = readFileSync(join(folder, '..', '..', 'scripts', 'check-build.mjs'), 'utf8');
+    expect(check).toMatch(/const placeholder = filesUnder\(dist\)\.filter\(path => holdsPlaceholder\(readFileSync\(path, 'latin1'\)\)\);\s*if \(placeholder\.length > 0\) \{ console\.error\([^;]+; process\.exit\(1\); \}/);
   });
 
   it('fails the check of the built site when made-up data is in it', () => {

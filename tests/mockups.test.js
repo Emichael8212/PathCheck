@@ -112,9 +112,11 @@ describe('the three mockup pages', () => {
       const { html, text } = page(which);
       for (const expected of [
         'PathCheck', 'Not affiliated with Alabama State University', 'Not an official degree audit.',
-        'Curriculum last reviewed: Nov 2026', 'Report a mistake',
+        'Curriculum last reviewed: Nov 2026', 'pathcheck.report@gmail.com',
       ]) expect(text, `${which}: ${expected}`).toContain(expected);
-      expect(html).toMatch(/<a class="text-link" href="mailto:[^"@]+@pathcheck\.example\?subject=PathCheck%3A%20[^"]+">Report a mistake<\/a>/);
+      // The owner, 2026-11-18: the address is the link's own words, with no "Report a mistake" label.
+      expect(html).toMatch(/<a class="text-link" href="mailto:pathcheck\.report@gmail\.com\?subject=PathCheck%3A%20[^"]+">pathcheck\.report@gmail\.com<\/a>/);
+      expect(text, which).not.toMatch(/report a mistake/i);
     }
   });
 

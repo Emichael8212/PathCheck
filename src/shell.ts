@@ -2,7 +2,7 @@
 import { type Curriculum } from './curriculum';
 import { esc } from './html';
 import { NOTHING_SHOWN, reportHref, type Shown } from './report';
-import { APP_NAME, LAST_REVIEWED, NOT_AFFILIATED, NOT_OFFICIAL, OLD_REVIEW_NAME, REPORT_A_MISTAKE, oldReview } from './wording';
+import { APP_NAME, LAST_REVIEWED, NOT_AFFILIATED, NOT_OFFICIAL, OLD_REVIEW_NAME, REPORT_ADDRESS, oldReview } from './wording';
 
 export type Route = 'start' | 'check' | 'left';
 
@@ -71,7 +71,7 @@ export function oldReviewBanner(curriculum: Curriculum, today: Day | null): stri
   return reviewed && reviewIsOld(curriculum.lastReviewed, today) ? `<p class="old-review" role="note" aria-label="${esc(OLD_REVIEW_NAME)}">${esc(oldReview(reviewed))}</p>` : '';
 }
 
-/** The email that "Report a mistake" opens: the page's subject, what the page showed, and the lines every message closes with. */
+/** The email that the address at the foot opens: the page's subject, what the page showed, and the lines every message closes with. */
 export function reportLink(curriculum: Curriculum, subject = `${APP_NAME}: report a mistake`, shown: Shown = NOTHING_SHOWN): string {
   const reviewed = reviewedOn(curriculum.lastReviewed);
   return reportHref(subject, shown, [`${curriculum.program}, ${curriculum.institution}`, ...(reviewed ? [`${LAST_REVIEWED} ${reviewed}`] : [])]);
@@ -84,7 +84,7 @@ export const foot = (curriculum: Curriculum, report = reportLink(curriculum), wi
   <div>
     <strong>${esc(NOT_OFFICIAL)}</strong>${reviewed ? `
     <span>${esc(`${LAST_REVIEWED} ${reviewed}`)}</span>` : ''}
-    <a class="text-link" href="${esc(report)}">${esc(REPORT_A_MISTAKE)}</a>
+    <a class="text-link" href="${esc(report)}">${esc(REPORT_ADDRESS)}</a>
   </div>
   <p>${esc(NOT_AFFILIATED)}</p>
 </footer>`;

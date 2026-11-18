@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // F18: what goes with every result (docs/sprints/F18.md; docs/BRIEF.md §4 "On every result"):
-// the two lines, "Report a mistake" filled in with what the page showed, the banner once the
+// the two lines, "Report a mistake" (since F26 the contact address itself, which is the link)
+// filled in with what the page showed, the banner once the
 // curriculum's review is more than twelve months old, and never "ask your advisor".
 // The day is set by each test: nothing here depends on the day the tests run.
 import { readFileSync, readdirSync } from 'node:fs';
@@ -44,6 +45,8 @@ const choose = (selector: string, value: string): void => {
 };
 
 const NOT_OFFICIAL = 'Not an official degree audit.';
+// The owner, 2026-11-18: "The email is pathcheck.report@gmail.com." Stated here, as the owner gave it.
+const ADDRESS = 'pathcheck.report@gmail.com';
 const REVIEWED = REVIEWED_LINE;
 const PROGRAM = 'B.S. Computer Information Systems, Alabama State University';
 const BANNER = `The curriculum PathCheck uses was last reviewed in ${REVIEW_MONTH}, more than 12 months ago. Requirements may have changed since: check your portal before you rely on this.`;
@@ -56,7 +59,7 @@ const emailOf = (href: string) => {
   if (!parts) throw new Error(`not an email link: ${href}`);
   return { to: parts[1]!, subject: decodeURIComponent(parts[2]!), lines: decodeURIComponent(parts[3]!).split('\r\n') };
 };
-/** Uses "Report a mistake" as a student does (the mail app is not opened here), and gives the email it would open. */
+/** Uses the address at the foot as a student does (the mail app is not opened here), and gives the email it would open. */
 const report = () => {
   const link = $<HTMLAnchorElement>('.foot a');
   link.click();
@@ -157,10 +160,16 @@ describe('"Report a mistake"', () => {
     for (const [hash, subject] of pages) {
       go(hash);
       const link = $<HTMLAnchorElement>('.foot a');
-      expect([link.tagName, tidy(link.textContent), document.querySelectorAll('.foot a').length], hash).toEqual(['A', 'Report a mistake', 1]);
+      // The owner, 2026-11-18: "Show only "pathcheck.report@gmail.com", with no "Report a mistake" label. The
+      // address is the link (pre-filled with the course or result, as now) and stays visible as text so it can be copied."
+      expect([link.tagName, link.textContent, document.querySelectorAll('.foot a').length], hash).toEqual(['A', ADDRESS, 1]);
+      expect(link.getAttributeNames().sort(), hash).toEqual(['class', 'href']);
+      expect($('#app').textContent, hash).not.toMatch(/report a mistake/i);
+      // What a browser's "Copy email address" gives is the address alone: the link's own, up to its "?".
+      expect((link.getAttribute('href') ?? '').split('?')[0], hash).toBe(`mailto:${link.textContent}`);
       // The link is whole as it is drawn, and again when it is used.
       for (const email of [emailOf(link.getAttribute('href') ?? ''), report()]) {
-        expect(email.to, hash).toBe('report@pathcheck.example');
+        expect(email.to, hash).toBe(ADDRESS);
         expect(email.subject, hash).toBe(subject);
         // A line for the student first; the program and the review date last.
         expect(email.lines.slice(0, 3), hash).toEqual(['What looks wrong?', '', '']);
@@ -183,6 +192,26 @@ describe('"Report a mistake"', () => {
     expect(report().lines).toEqual(['What looks wrong?', '', '', PROGRAM, REVIEWED]);
     // Without a review date none is made up.
     expect(emailOf(reportLink({ ...curriculum, lastReviewed: null })).lines).toEqual(['What looks wrong?', '', '', PROGRAM]);
+  });
+
+  it('is written in one place, and can be selected', () => {
+    const textOf = (dir: string): [string, string][] => readdirSync(join(root, dir), { withFileTypes: true })
+      .filter(one => one.isFile() && /\.(ts|js|css|html|json)$/.test(one.name)).map(one => [`${dir}/${one.name}`, readFileSync(join(root, dir, one.name), 'utf8')]);
+    const sources = [...textOf('src'), ...textOf('mockups'), ['index.html', readFileSync(join(root, 'index.html'), 'utf8')] as [string, string]];
+    expect(sources.length).toBeGreaterThan(20);
+    // The app has the address once; the mockups once ("Use this address everywhere").
+    expect(sources.filter(([, text]) => text.includes(ADDRESS)).map(([name]) => name).sort()).toEqual(['mockups/data.js', 'src/wording.ts']);
+    for (const [name, text] of sources) {
+      expect(text.split(ADDRESS).length - 1, name).toBeLessThanOrEqual(1);
+      // The address that stood in for it is nowhere, and neither are the words of the old label.
+      expect(text, name).not.toMatch(/pathcheck\.example/i);
+      expect(text, name).not.toContain('Report a mistake');
+      // Nothing stops a student from selecting the address to copy it.
+      expect(text, name).not.toMatch(/user-select/i);
+    }
+    expect(ADDRESS).toMatch(/^[a-z0-9.]+@[a-z0-9-]+(\.[a-z]{2,})+$/);
+    // The foot of the mockups is the same line.
+    expect(readFileSync(join(root, 'mockups', 'view.js'), 'utf8')).toContain('href="mailto:${facts.reportAddress}?subject=${encodeURIComponent(subject)}">${esc(facts.reportAddress)}</a>');
   });
 
   it('fills the email with the courses and their answers', async () => {

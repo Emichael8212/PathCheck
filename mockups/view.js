@@ -54,7 +54,7 @@ const foot = (subject, wide = false) => `
   <div>
     <strong>${esc(facts.notOfficial)}</strong>
     <span>${esc(facts.reviewed)}</span>
-    <a class="text-link" href="mailto:${facts.reportAddress}?subject=${encodeURIComponent(subject)}">${esc(facts.report)}</a>
+    <a class="text-link" href="mailto:${facts.reportAddress}?subject=${encodeURIComponent(subject)}">${esc(facts.reportAddress)}</a>
   </div>
   <p>${esc(facts.notAffiliated)}</p>
 </footer>`;
