@@ -4,7 +4,7 @@
   "institution": "Alabama State University",
   "program": "B.S. Computer Information Systems",
   "degreeCredits": 121,
-  "lastReviewed": "2026-11-15",
+  "lastReviewed": "2026-11-18",
   "finalSemesterCourse": "MGT-462",
   "sources": [
     {
@@ -18,6 +18,10 @@
     {
       "id": "catalog-2025-2027",
       "description": "ASU 2025-2027 undergraduate catalog (alasu.smartcatalogiq.com): titles and credits of FIN 201, FLS 161, MGT 203 and MGT 220, provided by the owner on 2026-11-15."
+    },
+    {
+      "id": "review-test",
+      "description": "Rehearsal of the handover guide on 2026-11-18. Not merged."
     }
   ],
   "grades": {
