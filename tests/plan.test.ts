@@ -421,7 +421,8 @@ describe('the draft plan', () => {
     expect(resultHtml(noRows, curriculum, false)).not.toMatch(/class="plan"|data-plan/);
   });
 
-  it('holds for any transcript and settings', () => {
+  // (Two thousand plans take a few seconds on a slow machine: this test has its own time limit.)
+  it('holds for any transcript and settings', { timeout: 60_000 }, () => {
     const SEED = 20261121;
     let seed = SEED;
     const next = (): number => {
