@@ -1323,6 +1323,25 @@ What it decides:
 
 *Agent's note, not an owner decision:* the agent cannot open the site while it is Private;
 what it serves is read by the agent only after the owner's launch.
+### 2026-11-18 — F26, step 3: a report by email reached the mailbox
+
+The owner's answer is a screenshot of the PathCheck mailbox, open on the email. It shows:
+the subject "PathCheck: Check my courses", in the Inbox, sent at 1:25 AM and read two
+minutes later; and the message: "What looks wrong?", "What PathCheck showed:", "No
+transcript added", "Legacy CIS student: No", "MGT 321 — Counts toward CIS — Business core
+(unless you've already passed it or filled this slot)", "FLS 161 — Doesn't count toward
+CIS. Legacy students only.", "B.S. Computer Information Systems, Alabama State
+University", "Curriculum last reviewed: Nov 2026".
+
+What it decides:
+- **The link at the foot of the published site opens an email to the owner's address,
+  filled in with what the page showed, and it arrives.** Check 9 of F26.
+
+*Agent's notes, not owner decisions:*
+- The screenshot shows a notice that the mailbox forwards its mail to another address of
+  the owner's. That address is not recorded here. A student's report is then kept in both
+  mailboxes; `docs/milestones/M3.md` part 3 says so.
+- The sender's address on the screenshot is the owner's own and is not recorded.
 
 ## Open questions to the owner
 
