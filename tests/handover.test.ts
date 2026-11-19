@@ -74,6 +74,17 @@ describe('the curriculum handover guide', () => {
     // The check's own name, as the workflow gives it.
     expect(read('.github/workflows/ci.yml')).toMatch(/^\s+name: check$/m);
     expect(prose).toContain('named `check`');
+    // What the guide says of GitHub's own behaviour, as far as this repository decides it (the owner's rehearsal,
+    // 2026-11-18): the check runs on every change to a pull request, by itself; a run still going is cancelled by
+    // the next change; and the description of a new pull request holds a form that the guide says to delete.
+    const workflow = read('.github/workflows/ci.yml');
+    expect(workflow).toMatch(/^on:\n\s+pull_request:/m);
+    expect(prose).toContain('starts the check again by itself');
+    expect(workflow.includes('cancel-in-progress: true')).toBe(/failed or was\s+cancelled/.test(prose));
+    expect(existsSync(join(root, '.github', 'pull_request_template.md'))).toBe(true);
+    expect(prose).toContain('holds a form for developers');
+    // The sentence of GitHub's page that names the new branch, as the owner's screenshot had it.
+    expect(prose).toContain('"was written to a new branch named"');
     // Every link inside the guide leads to one of its headings.
     const anchors = [...guide.matchAll(/^#{1,6} (.+)$/gm)].map(found => found[1]!.toLowerCase().replace(/[^a-z0-9 -]/g, '').replace(/ /g, '-'));
     const links = [...guide.matchAll(/\]\(#([^)]+)\)/g)].map(found => found[1]!);
