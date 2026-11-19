@@ -1536,6 +1536,24 @@ What it decides:
 - **Both flows work on the public address on the owner's phone without a login**, as they
   do on the computer. Check 5 of F26, the owner's part.
 
+### 2026-11-18 — M3 approved
+
+The owner's words: "M3 Approved. But what decision do you need from me to close what is
+still open from M2."
+
+What it decides:
+- **M3 is approved** (the "Milestone checks" table, M3 row). It is the last milestone: all
+  26 features pass, and PathCheck is public at `https://pathcheck.netlify.app`. The
+  owner closes the GitHub milestone themselves.
+
+*Agent's notes, not owner decisions:*
+- The approval came after the agent's correction about Netlify's badge (its "Close"
+  button did not remove it in the agent's browser). The owner did not change "Leave it
+  as it is."; it stays.
+- The owner's question is answered in chat with the decisions that would close each item
+  still open from M2 (`docs/milestones/M2.md` part 4). Nothing of them is decided by
+  this answer.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -1574,4 +1592,4 @@ owner reviewed the curriculum on 2026-11-15 (see "Owner answers").
 | M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
 | M1 | 2026-11-16 | **Approved:** "M1 approved". First answer the same day: "Everything works as intended except for one thing.": the pace line of "Check my courses" was replaced (pull request #30), and the owner then approved M1 and the choices of `docs/milestones/M1.md` part 5, and said "Start M2." (see "Owner answers"). The owner closes the GitHub milestone themselves. What was checked: `docs/milestones/M1.md`. |
 | M2 | 2026-11-17 | **Approved:** "M2 Approved." The owner did the check on `https://pathcheck.netlify.app` the same day (`docs/milestones/M2.md` part 3): their own transcript was read correctly after the fix of pull request #37 ("Every course is one row under the right term, with its code, credits and grade as printed, and no row that isn't on the PDF."), with "The credits look accurate." and "Each requirement showed as I expected". What stays open is in `docs/milestones/M2.md` part 4. |
-| M3 | | |
+| M3 | 2026-11-18 | **Approved:** "M3 Approved." The owner did the check the same day (`docs/milestones/M3.md` part 4): published `main@4289729`, sent a test report that reached the mailbox, followed the handover guide once, made the final check on a computer and a phone, kept the previews private, made `https://pathcheck.netlify.app` public and checked both flows there without a login. Left open by the approval: Netlify's badge ("Leave it as it is."; the owner was then told that its "Close" button did not remove it in the agent's browser), the parts of the handover guide no person has tried, and what is open from M2 (`docs/milestones/M3.md` part 5). The owner closes the GitHub milestone themselves. |
