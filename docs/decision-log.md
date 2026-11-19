@@ -1346,7 +1346,8 @@ What it decides:
 ### 2026-11-18 — F26, step 4: the owner followed the handover guide once
 
 The owner followed "Step 2A" of `docs/CURRICULUM-HANDOVER.md` on GitHub with the date
-2026-11-18 (pull request #43, branch `Emichael8212-patch-1`, two commits). The owner's
+2026-11-18 (pull request #43, on a branch that GitHub named, ending in `-patch-1`; two
+commits). The owner's
 words on the way: "Just completed 1 and 2 what about the description?" (with a
 screenshot of GitHub's page "Open a pull request", whose description box holds the
 repository's form for developers) and "The test failed but what is: " Once you finish
@@ -1360,8 +1361,8 @@ What it shows (read by the agent from GitHub, not owner decisions):
 - The pull request is closed and not merged; its branch is deleted; `lastReviewed` on
   `main` is still 2026-11-15.
 - **Three things the guide did not say**, which stopped the owner: what to do with the
-  description box of "Open a pull request"; that GitHub names the new branch (like
-  `Emichael8212-patch-1`), which is the branch to choose for the second place; and that
+  description box of "Open a pull request"; that GitHub names the new branch (a name
+  ending in `-patch-1`), which is the branch to choose for the second place; and that
   the check is red until the second place is changed, then runs again by itself. The
   guide is corrected for them (check 10 of F26).
 
