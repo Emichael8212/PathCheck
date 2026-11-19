@@ -1393,6 +1393,11 @@ What it shows (read by the agent, not owner decisions):
 - No line in the Console from PathCheck's own files.
 - Not yet reported: the print preview with the address at its foot; the phone.
 
+Later the same day, asked whether the print preview of the result shows the address at
+its foot as ordinary text, the owner answered: "pathcheck.report@gmail.com shows as
+ordinary text, not underlined." Check 1d of F26, on the published site. The phone is
+still to hear.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
