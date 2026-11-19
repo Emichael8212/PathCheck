@@ -1363,8 +1363,17 @@ What it shows (read by the agent from GitHub, not owner decisions):
   `Emichael8212-patch-1`), which is the branch to choose for the second place; and that
   the check is red until the second place is changed, then runs again by itself. The
   guide is corrected for them (check 10 of F26).
-- Still to hear from the owner: whether the buttons and choices on the way were named as
-  the guide writes them.
+
+Asked whether, apart from these three, every button and choice was named as the guide
+writes it (the pencil button "Edit file", "Commit changes...", the choice of a new
+branch, "Propose changes", "Create pull request"), the owner answered: "every button and
+choice named as the guide writes it".
+
+What it decides:
+- **The guide's GitHub labels are confirmed by the owner**, for Step 2A up to the green
+  check. Not walked: the merge box (the owner closed the pull request instead, as
+  asked), and the guide's Step 3 on Netlify, whose labels are those of the owner's own
+  screenshots.
 
 ## Open questions to the owner
 
