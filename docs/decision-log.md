@@ -1406,6 +1406,26 @@ recorded: nothing of the owner's transcript is.
 What it decides:
 - **The owner's final check on the private site is made** (step 5), on a computer and on
   a phone, and the owner found the answers correct.
+### 2026-11-18 — F26, step 6 (first part): Netlify has a separate setting for the previews
+
+The owner's answer is a screenshot of Netlify, "Project configuration" > "General" >
+"Visitor access", with nothing changed. Under "Project visibility" it shows: "Set the
+visibility for this project. A private project is visible only to your team until it goes
+live.", "Production visibility: Private", "Deploy Preview visibility: Private", and the
+button "Edit visibility". Below it, "Powered by Netlify badge": "A small badge on your
+public project's pages, inviting visitors to build their own project on Netlify.", "This
+feature is available on paid plans", "Upgrade your team's plan to hide the badge on this
+project.", "The badge is shown on this project."
+
+What it shows (read by the agent, not owner decisions):
+- **The visibility of the real site and of the previews are two settings.** The first of
+  the four ways to close the previews (`docs/milestones/M3.md` part 2) looks possible on
+  the Free plan: the real site Public, the previews Private. Whether the form lets it be
+  saved is seen when the owner opens "Edit visibility".
+- **A "Powered by Netlify" badge is shown on a public project's pages on the Free plan**,
+  and hiding it needs a paid plan. It is not in the owner's design and cannot be seen
+  before the launch. Told to the owner before the launch; looked at on the public site
+  at 1440 and 375 wide after it.
 
 ## Open questions to the owner
 
