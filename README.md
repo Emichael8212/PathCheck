@@ -12,8 +12,9 @@ not affiliated with Alabama State University.
 
 **Check my courses.** Type the courses you plan to take next semester. For each one,
 PathCheck says whether it counts toward the CIS degree and which part of the degree it
-fills, or that it doesn't count. It adds up your credits and tells you if you are below
-12, which is below full-time.
+fills, or that it doesn't count. Without your transcript, each "Counts" comes with "unless
+you’ve already passed it or filled this slot"; add your transcript for an exact answer.
+It adds up your credits and tells you if you are below 12, which is below full-time.
 
 **See what I have left.** Upload your unofficial transcript as a PDF. PathCheck shows you
 what it read, so you can correct any row before it is used. Then it shows:
@@ -39,12 +40,14 @@ it may not.
 
 PathCheck stores no personal data.
 
-- Your course list and your last result stay in your own browser. "Clear my data" removes
-  them.
+- Your course list, your last result and your answer to "Legacy CIS student" stay in your
+  own browser. "Clear my data" removes them.
 - Your transcript PDF is not stored by PathCheck. It is sent to Google to be read, and
   Google may keep it briefly.
 - When you choose a file, Cloudflare runs a check in your browser that you are not a bot.
   It does not get the PDF.
+- To count uploads, the site keeps how many uploads a random number for your browser made
+  each day, and what the month has cost. Numbers only: no name, no file, no course.
 - Netlify, which hosts the site, keeps ordinary logs of requests.
 - If you report a mistake by email, your email reaches the person who runs PathCheck.
 
@@ -54,7 +57,7 @@ The full list is in [docs/milestones/M3.md](docs/milestones/M3.md), part 3.
 
 Reading a transcript costs a little money each time, so uploads are limited: three a day
 for each browser, and a fixed amount a month for the whole site. Past either limit the
-site says "Upload isn't available right now — try again tomorrow". "Check my courses"
+site says "Upload isn’t available right now — try again tomorrow". "Check my courses"
 needs no upload and always works.
 
 ## Found a mistake?
@@ -70,7 +73,8 @@ it and sets that date. Twelve months after the date, every page warns that the r
 old.
 
 [docs/CURRICULUM-HANDOVER.md](docs/CURRICULUM-HANDOVER.md) says how, step by step. It
-needs a GitHub login and a browser, and nothing installed.
+needs a GitHub login that can change this repository, access to the `pathcheck` project
+on Netlify to publish, and a browser. Nothing has to be installed.
 
 ## Running it on your own computer
 
@@ -83,9 +87,10 @@ npm run dev
 
 Then open http://127.0.0.1:5173.
 
-On your own computer no key is needed. The two made-up transcripts in
-`synthetic/transcripts` are read without Google. Every transcript in this repository is
-made up: no real student's data is here, and none may be added.
+On your own computer no key is needed. Only the two made-up transcripts in
+`synthetic/transcripts` can be read there: the browser recognises them, and nothing is
+sent to Google. Any other PDF is refused. Every transcript in this repository is made up:
+no real student's data is here, and none may be added.
 
 Before proposing a change, run every check:
 
@@ -94,15 +99,16 @@ npm run check
 ```
 
 It runs the code checks, all the tests and a build, and then makes sure the built site
-holds no made-up transcript data, no key and no placeholder address.
+holds no made-up transcript data, nothing of the function (its key names and addresses)
+and no placeholder address.
 
 ## How it is hosted
 
 Netlify builds the site from this repository (`netlify.toml`). One small function,
-`netlify/functions/read-transcript.mts`, takes an uploaded PDF, applies the limits, and
-asks Google's Gemini to read it.
+`netlify/functions/read-transcript.mts`, takes an uploaded PDF, has Cloudflare confirm the
+bot check, applies the limits, and asks Google's Gemini to read it.
 
-Three settings live in Netlify and are never written in this repository:
+Three settings live in Netlify, and their values are never written in this repository:
 `GEMINI_API_KEY`, `TURNSTILE_SECRET_KEY` and `VITE_TURNSTILE_SITE_KEY`.
 
 Merging a change does not publish it. The owner publishes each new version by hand in
@@ -113,14 +119,14 @@ Netlify.
 | Folder or file | What is in it |
 |---|---|
 | `src/` | The site: the three pages and the rules that decide what counts |
-| `netlify/functions/` | The function that reads a transcript |
+| `netlify/` | The function that reads a transcript, and the counters behind the limits |
 | `docs/curriculum/provisional-current.json` | The curriculum PathCheck uses |
 | `docs/BRIEF.md` | What PathCheck is meant to be, approved by the owner |
 | `docs/decision-log.md` | Every decision and every answer of the owner, with its date |
 | `docs/milestones/` | What was checked at each milestone, and what is still open |
-| `tests/` | The tests. Every curriculum rule has one |
+| `tests/` | The tests. Every curriculum rule has to have one |
 | `synthetic/` | The made-up transcripts the tests use |
-| `mockups/` | The owner's design as static pages |
+| `mockups/` | The owner's approved design as static pages. The site's two fonts are in `mockups/fonts/`, so the folder must stay |
 
 ## Licence
 

@@ -2,7 +2,8 @@
 
 This guide is for the person responsible for PathCheck. You do not need to be a developer
 and you do not need to install anything. You need a GitHub login that can change this
-repository, and a web browser.
+repository, a web browser, and for the last step (publishing) access to the `pathcheck`
+project on Netlify.
 
 It covers one job: once a year, check PathCheck's curriculum against the department's,
 and set the date the pages show.
