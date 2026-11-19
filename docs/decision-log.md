@@ -1581,6 +1581,21 @@ What it decides:
   whether a grade "P" or "Passed" counts (an academic rule, the owner's when a transcript
   shows one); and seeing the $5 stop and Cloudflare's tick box with the real services.
 
+### 2026-11-18 — The GitHub milestone of M3 is closed
+
+The owner's words: "I have now closed Milestone 3." Asked whether the closing should be
+written down with its date, the owner answered: "yes proceed. that the milestone is
+closed."
+
+What it decides:
+- **The GitHub milestone "M3: Public launch" is closed by the owner**, on 2026-11-18. With
+  it every milestone, M0 to M3, is approved and closed. Nothing is left in the plan; the
+  next date is the yearly curriculum review, before 2027-11-16
+  (`docs/CURRICULUM-HANDOVER.md`).
+
+*Agent's note, not an owner decision:* the agent cannot read a milestone's state on
+GitHub (that call is blocked for it); the closing is recorded on the owner's word.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -1620,4 +1635,4 @@ owner reviewed the curriculum on 2026-11-15 (see "Owner answers").
 | M0 | 2026-11-15 | Approved: "I approve Pr 4". The design in `docs/design/` and the mockups in `mockups/` are what the app is built on. (Sequence rule confirmed the same day, see above.) |
 | M1 | 2026-11-16 | **Approved:** "M1 approved". First answer the same day: "Everything works as intended except for one thing.": the pace line of "Check my courses" was replaced (pull request #30), and the owner then approved M1 and the choices of `docs/milestones/M1.md` part 5, and said "Start M2." (see "Owner answers"). The owner closes the GitHub milestone themselves. What was checked: `docs/milestones/M1.md`. |
 | M2 | 2026-11-17 | **Approved:** "M2 Approved." The owner did the check on `https://pathcheck.netlify.app` the same day (`docs/milestones/M2.md` part 3): their own transcript was read correctly after the fix of pull request #37 ("Every course is one row under the right term, with its code, credits and grade as printed, and no row that isn't on the PDF."), with "The credits look accurate." and "Each requirement showed as I expected". What stays open is in `docs/milestones/M2.md` part 4. |
-| M3 | 2026-11-18 | **Approved:** "M3 Approved." The owner did the check the same day (`docs/milestones/M3.md` part 4): published `main@4289729`, sent a test report that reached the mailbox, followed the handover guide once, made the final check on a computer and a phone, kept the previews private, made `https://pathcheck.netlify.app` public and checked both flows there without a login. Left open by the approval: Netlify's badge ("Leave it as it is."; the owner was then told that its "Close" button did not remove it in the agent's browser), the parts of the handover guide no person has tried, and what is open from M2 (`docs/milestones/M3.md` part 5). The owner closes the GitHub milestone themselves. |
+| M3 | 2026-11-18 | **Approved:** "M3 Approved." The owner did the check the same day (`docs/milestones/M3.md` part 4): published `main@4289729`, sent a test report that reached the mailbox, followed the handover guide once, made the final check on a computer and a phone, kept the previews private, made `https://pathcheck.netlify.app` public and checked both flows there without a login. Left open by the approval: Netlify's badge ("Leave it as it is."; the owner was then told that its "Close" button did not remove it in the agent's browser), the parts of the handover guide no person has tried, and what is open from M2 (`docs/milestones/M3.md` part 5). The owner closed the GitHub milestone themselves, on 2026-11-18 ("I have now closed Milestone 3."). |
