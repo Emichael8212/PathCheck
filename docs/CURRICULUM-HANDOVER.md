@@ -99,14 +99,28 @@ finished comparing.
 5. Click **Commit changes...**. A box opens. Choose the option that creates a **new
    branch** and starts a pull request. Do not commit directly to `main`. Click **Propose
    changes**.
-6. On the next page, click **Create pull request**.
+6. The next page is named "Open a pull request". Three things on it:
+   - **The branch's name.** The first lines say that your change "was written to a new
+     branch named" and then a name, such as `yourname-patch-1`. Write that name down. You
+     need it in a moment.
+   - **The title** is already filled in. Leave it.
+   - **The description** is a big box that holds a form for developers. Delete everything
+     in the box and write one sentence, for example "Yearly review on 2027-11-10: no
+     change."
+
+   Then click **Create pull request**.
+
+**The check now starts, and it will go red. That is expected.** The date is changed in one
+of its two places, and PathCheck's tests notice. GitHub may also send you an email saying
+that a run failed. Carry on with the second place.
 
 ### The second place: the test that states the date
 
 One test states the review date on purpose, so the date cannot change by accident.
 
 1. Go back to the repository's first page. Above the list of files is the branch menu,
-   which shows `main`. Open it and choose the branch you just created.
+   which shows `main`. Open it and choose the branch you just created: the name you
+   wrote down.
 2. Open `tests/curriculum.test.ts` and click the pencil button.
 3. Find these two lines, one under the other. Change the date in both, to the same date
    you put in the curriculum file:
@@ -119,8 +133,11 @@ One test states the review date on purpose, so the date cannot change by acciden
 4. Click **Commit changes...**. Choose to commit to the branch you are on: not a new one,
    and not `main`. Click **Commit changes**.
 
-Now open your pull request from the **Pull requests** tab and wait for the check. Go on
-to [The check](#the-check).
+Saving this starts the check again by itself. You do not press anything.
+
+Now open your pull request from the **Pull requests** tab and wait for the check. Look at
+the newest result only: the red one from before no longer matters. Go on to
+[The check](#the-check).
 
 ## Step 2B: Something changed
 
@@ -206,7 +223,7 @@ Commit every edit to the same branch.
 ## The check
 
 Near the bottom of the pull request's page, a box shows the check. It is named `check` and
-takes a few minutes.
+takes a few minutes. It runs again by itself each time you save a change to your branch.
 
 - **Green tick:** every test passed. Click **Merge pull request** (or **Squash and
   merge**), then the confirm button. Go to Step 3.
