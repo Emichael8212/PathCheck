@@ -1464,6 +1464,30 @@ not owner decisions):
   both widths. On paper it is printed too, in the corner of the foot, and cuts into that
   line. It sets no cookie and stores nothing. It is on the Free plan's public pages
   only; hiding it is a paid feature. Put to the owner, with ways to deal with it.
+### 2026-11-18 — F26, step 8 (the computer): the public site works, and the fourth upload is refused
+
+Asked seven points about the public site, the owner answered for the computer: "step 1 to
+5 from earlier is all yes." The five points, as they were put: Start opened without a
+Netlify login; "Check my courses" gave MGT 321 its answer; `sample-a.pdf` gave 81 credits
+left and "On pace for Spring 2029"; the fourth upload of the day was refused with "Upload
+isn't available right now — try again tomorrow"; the address at the foot opened an email
+to `pathcheck.report@gmail.com`.
+
+With it, two screenshots of Netlify:
+- The traffic page ("Observability", Production, the last hour): `read-transcript`, 5
+  requests, 1 error.
+- The function's log: two calls with Netlify's own line of duration and memory; then
+  "ERROR read-transcript: refused (day-limit)" at 09:06:48 PM, and Netlify's line for that
+  call. Nothing else.
+
+What it shows (read by the agent, not owner decisions):
+- **The limits hold on the public site:** the upload over the day's three is refused, and
+  the log says why in the function's own fixed words (`refused(…, 'day-limit')` in
+  `netlify/functions/read-transcript.mts`).
+- **Nothing of a transcript is in the log:** a refusal writes one fixed line; an upload
+  that was read writes none (the two other lines are Netlify's).
+- Still to hear: the phone (Start and a course without a login; a long press on the
+  address offers to copy it).
 
 ## Open questions to the owner
 
