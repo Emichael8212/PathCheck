@@ -43,7 +43,7 @@
         "Stop: the owner approves the mockups side by side with the published design; F01 passes and its PR is merged only then; the answer is recorded in docs/decision-log.md"
       ],
       "passes": true,
-      "evidence": "docs/sprints/F01.md",
+      "evidence": "docs/sprints/F01.md — QA PASS (round 4, and again after the owner's last changes); reviewer: no blocker; the owner approved pull request #4 on 2026-11-15 (\"I approve Pr 4\").",
       "tests": [
         "tests/mockups.test.js"
       ]
