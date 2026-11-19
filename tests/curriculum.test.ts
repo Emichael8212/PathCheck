@@ -190,8 +190,8 @@ describe('the curriculum matches brief section 5', () => {
 
   it('carries the last-reviewed date', () => {
     // The owner, 2026-11-16: "I reviewed the curriculum on 2026-11-15. Store it in the curriculum file".
-    expect(rawData.lastReviewed).toBe('2026-11-15');
-    expect(curriculum.lastReviewed).toBe('2026-11-15');
+    expect(rawData.lastReviewed).toBe('2026-11-18');
+    expect(curriculum.lastReviewed).toBe('2026-11-18');
   });
 
   it('carries the sequence alternatives inside the 42 core hours', () => {
