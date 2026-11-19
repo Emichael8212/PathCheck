@@ -1310,6 +1310,7 @@ What it decides:
   summary of "See what I have left" among them.
 - These answers came after pull request #41 was merged. They are a second pull request,
   and the owner's step 2 (build and publish) must be done, or done again, after it.
+
 ### 2026-11-18 — F26, step 2: the owner built `main` with the address and published it
 
 The owner's answer is a screenshot of Netlify's page of the deploy. It shows: "Published &
@@ -1324,11 +1325,11 @@ What it decides:
 
 *Agent's note, not an owner decision:* the agent cannot open the site while it is Private;
 what it serves is read by the agent only after the owner's launch.
+
 ### 2026-11-18 — F26, step 3: a report by email reached the mailbox
 
 The owner's answer is a screenshot of the PathCheck mailbox, open on the email. It shows:
-the subject "PathCheck: Check my courses", in the Inbox, sent at 1:25 AM and read two
-minutes later; and the message: "What looks wrong?", "What PathCheck showed:", "No
+the subject "PathCheck: Check my courses", in the Inbox, sent at 1:25 AM; and the message: "What looks wrong?", "What PathCheck showed:", "No
 transcript added", "Legacy CIS student: No", "MGT 321 — Counts toward CIS — Business core
 (unless you've already passed it or filled this slot)", "FLS 161 — Doesn't count toward
 CIS. Legacy students only.", "B.S. Computer Information Systems, Alabama State
@@ -1343,6 +1344,7 @@ What it decides:
   the owner's. That address is not recorded here. A student's report is then kept in both
   mailboxes; `docs/milestones/M3.md` part 3 says so.
 - The sender's address on the screenshot is the owner's own and is not recorded.
+
 ### 2026-11-18 — F26, step 4: the owner followed the handover guide once
 
 The owner followed "Step 2A" of `docs/CURRICULUM-HANDOVER.md` on GitHub with the date
@@ -1376,6 +1378,7 @@ What it decides:
   check. Not walked: the merge box (the owner closed the pull request instead, as
   asked), and the guide's Step 3 on Netlify, whose labels are those of the owner's own
   screenshots.
+
 ### 2026-11-18 — F26, step 5 (first part): "Check my courses" on the published site, and an empty Console
 
 The owner's answer is a screenshot of `https://pathcheck.netlify.app` (still Private) on a
@@ -1408,6 +1411,7 @@ recorded: nothing of the owner's transcript is.
 What it decides:
 - **The owner's final check on the private site is made** (step 5), on a computer and on
   a phone, and the owner found the answers correct.
+
 ### 2026-11-18 — F26, step 6 (first part): Netlify has a separate setting for the previews
 
 The owner's answer is a screenshot of Netlify, "Project configuration" > "General" >
@@ -1428,6 +1432,7 @@ What it shows (read by the agent, not owner decisions):
   and hiding it needs a paid plan. It is not in the owner's design and cannot be seen
   before the launch. Told to the owner before the launch; looked at on the public site
   at 1440 and 375 wide after it.
+
 ### 2026-11-18 — F26, steps 6 and 7: the previews stay private, and the owner made the site public
 
 The owner opened "Edit visibility" and wrote, with a screenshot of the form: "It won't let
@@ -1454,18 +1459,24 @@ not owner decisions):
   name for a screen reader once; the review date; no placeholder address; none of the six
   pieces of the server that `scripts/check-build.mjs` looks for.
 - Two previews (`deploy-preview-44--pathcheck.netlify.app`, `deploy-preview-42--…`)
-  answer 401, "Login Redirect". So the previews cannot be used to spend the month's
-  limit.
+  answer 401, "Login Redirect", and so does the function's address on a preview
+  (`/api/read-transcript`, read with a plain GET the same day). So the previews cannot
+  be used to spend the month's limit.
 - In a browser, at 1440 and 375 wide, on the three pages: the foot and the link are as
   built; "Check my courses" answers MGT 321; no line in the Console; no cookie; the only
   thing stored is `pathcheck.visit`; every request went to `pathcheck.netlify.app`.
 - **Netlify adds its "Powered by Netlify" badge to every page** (a script from the site's
   own address, `/.netlify/scripts/hud`, which draws a frame fixed to the bottom right
-  corner, 202 by 64, above everything). It has a "Close" button and a link to Netlify. At
+  corner, 202 by 64, above everything). It has a button named "Close" and a link to Netlify. At
   the end of every page it lies over "Not affiliated with Alabama State University", at
   both widths. On paper it is printed too, in the corner of the foot, and cuts into that
-  line. It sets no cookie and stores nothing. It is on the Free plan's public pages
+  line. It sets no cookie and stores nothing: not when the page opens, not after "Close" is
+  pressed, not after the page is opened again (read again the same day). Pressed in the
+  agent's browser, "Close" left the badge where it was; whether a visitor can get rid of
+  it is not known. The owner had been told "A visitor can close it" before deciding;
+  that was not checked then, and the owner is told so. It is on the Free plan's public pages
   only; hiding it is a paid feature. Put to the owner, with ways to deal with it.
+
 ### 2026-11-18 — F26, step 8 (the computer): the public site works, and the fourth upload is refused
 
 Asked seven points about the public site, the owner answered for the computer: "step 1 to
@@ -1490,6 +1501,7 @@ What it shows (read by the agent, not owner decisions):
   that was read writes none (the two other lines are Netlify's).
 - Still to hear: the phone (Start and a course without a login; a long press on the
   address offers to copy it).
+
 ### 2026-11-18 — F26, step 8 (the phone); Netlify's badge is left as it is
 
 Two things were put to the owner. "1. The phone, not logged in to Netlify: Does Start
@@ -1510,6 +1522,7 @@ What it decides:
   University" at the end of a page until a visitor closes it, and it is printed in the
   corner of the paper. This is the owner's decision, against the agent's recommendation
   to leave room for it.
+
 ### 2026-11-18 — F26, step 8: the second flow on the phone, on the public site
 
 QA found that the phone's part of step 8 had not asked for the second flow. The owner was

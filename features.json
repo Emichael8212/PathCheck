@@ -507,7 +507,7 @@
         "Stop: the owner makes the final check, then launches"
       ],
       "passes": true,
-      "evidence": "docs/sprints/F26.md — QA PASS (2026-11-18, final round 2), scores 5/5/4/5: the owner published main@4289729, made https://pathcheck.netlify.app public on the Free plan and checked both flows on a computer and a phone without a login; the fourth upload of a day refused; a report by email reached pathcheck.report@gmail.com; previews private (401); the evaluator's own read-only walk at 375 and 1440; record in docs/milestones/M3.md. Open for the owner: Netlify's badge covers the end of the foot's last line (\"Leave it as it is.\").",
+      "evidence": "docs/sprints/F26.md — QA PASS (2026-11-18, final round 2), scores 5/5/4/5: the owner published main@4289729, made https://pathcheck.netlify.app public on the Free plan and checked both flows on a computer and a phone without a login; the fourth upload of a day refused; a report by email reached pathcheck.report@gmail.com; previews private (401); the evaluator's own read-only walk at 375 and 1440; record in docs/milestones/M3.md. Accepted by the owner (\"Leave it as it is.\"): Netlify's badge covers the end of the foot's last line.",
       "tests": [
         "tests/trust.test.ts",
         "tests/start.test.ts",

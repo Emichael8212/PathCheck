@@ -3,12 +3,6 @@
 Points raised while building one feature that a later feature's contract must take up.
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
-## For F26 and M3
-- **The merge box of a pull request was not walked by the owner** at the M3 check (the
-  rehearsal's pull request was closed, not merged). The guide's words for it ("Merge
-  pull request" or "Squash and merge", then the confirm button) are GitHub's
-  documentation's. The first real yearly review is its first use. (F25, F26)
-
 ## For F21 (the reader function, M2)
 - **What is kept once real transcripts are read** (F19): the browser keeps the last result
   as the reviewed rows without any passing letter grade (`keptRows` in
