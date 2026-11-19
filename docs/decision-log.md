@@ -1374,6 +1374,24 @@ What it decides:
   check. Not walked: the merge box (the owner closed the pull request instead, as
   asked), and the guide's Step 3 on Netlify, whose labels are those of the owner's own
   screenshots.
+### 2026-11-18 — F26, step 5 (first part): "Check my courses" on the published site, and an empty Console
+
+The owner's answer is a screenshot of `https://pathcheck.netlify.app` (still Private) on a
+computer, with the browser's Console open beside it. It shows "Check my courses" with
+"Transcript added"; "9 Total credits", "3 Count toward CIS", "6 Don't count"; "3 of these 9
+credits count. To finish by Spring 2029, you need about 17 counting credits a term.";
+"Term for these courses: Spring 2027", "Target semester: Spring 2029"; "Credits only —
+course order may add semesters."; MGT 321 "Counts toward CIS — Business core"; BIO 230
+"Doesn't count toward CIS — not in the CIS curriculum"; FLS 161 "Doesn't count toward CIS.
+Legacy students only." The Console is filtered with `-url:challenges.cloudflare.com` and
+shows no line.
+
+What it shows (read by the agent, not owner decisions):
+- The made-up transcript was read on the published site (the page says "Transcript
+  added", and MGT 321 has no "unless …"), and the answers and the pace line are those of
+  the M2 check.
+- No line in the Console from PathCheck's own files.
+- Not yet reported: the print preview with the address at its foot; the phone.
 
 ## Open questions to the owner
 
