@@ -1426,6 +1426,44 @@ What it shows (read by the agent, not owner decisions):
   and hiding it needs a paid plan. It is not in the owner's design and cannot be seen
   before the launch. Told to the owner before the launch; looked at on the public site
   at 1440 and 375 wide after it.
+### 2026-11-18 — F26, steps 6 and 7: the previews stay private, and the owner made the site public
+
+The owner opened "Edit visibility" and wrote, with a screenshot of the form: "It won't let
+me set it to private. Either both are private or public". The form on the screenshot:
+"Visibility:" with "Your team's default visibility" ("Currently, this means production and
+Deploy Previews are private") and "Customize this project's visibility" with "Public"
+("Anyone can visit your project.") and "Private" ("Only members of your team can access
+your project — they sign in with their Netlify team login."); and "Applies to:" with
+"Production and previews" and "Previews only" ("Anyone can visit the production version;
+your visibility setting applies to Deploy Previews"). The agent pointed to "Private"
+with "Previews only". The owner's next screenshot shows the saved setting: "Production
+visibility: Public", "Deploy Preview visibility: Private".
+
+What it decides:
+- **The owner made the site public** (the launch, step 7). It was the owner's own act.
+- **The previews stay private** (step 6, the first of the four ways): the owner set out to
+  keep them private, and the saved setting says so. On Netlify's Free plan this is
+  "Customize this project's visibility" > "Private" > "Applies to: Previews only".
+
+What the agent then read on the public site (plain reads; no file chosen, nothing sent;
+not owner decisions):
+- `https://pathcheck.netlify.app/` answers 200 without a login (before the launch: 401).
+- The page names one script and one stylesheet. In them: the owner's address once; the
+  name for a screen reader once; the review date; no placeholder address; none of the six
+  pieces of the server that `scripts/check-build.mjs` looks for.
+- Two previews (`deploy-preview-44--pathcheck.netlify.app`, `deploy-preview-42--…`)
+  answer 401, "Login Redirect". So the previews cannot be used to spend the month's
+  limit.
+- In a browser, at 1440 and 375 wide, on the three pages: the foot and the link are as
+  built; "Check my courses" answers MGT 321; no line in the Console; no cookie; the only
+  thing stored is `pathcheck.visit`; every request went to `pathcheck.netlify.app`.
+- **Netlify adds its "Powered by Netlify" badge to every page** (a script from the site's
+  own address, `/.netlify/scripts/hud`, which draws a frame fixed to the bottom right
+  corner, 202 by 64, above everything). It has a "Close" button and a link to Netlify. At
+  the end of every page it lies over "Not affiliated with Alabama State University", at
+  both widths. On paper it is printed too, in the corner of the foot, and cuts into that
+  line. It sets no cookie and stores nothing. It is on the Free plan's public pages
+  only; hiding it is a paid feature. Put to the owner, with ways to deal with it.
 
 ## Open questions to the owner
 
