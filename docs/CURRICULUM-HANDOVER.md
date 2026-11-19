@@ -17,8 +17,10 @@ Do this once a year, and whenever the department changes the B.S. CIS curriculum
    ([Step 2A](#step-2a-nothing-changed-set-the-review-date))
 3. **Something changed?** Write it down first. Then either make the change yourself or
    hand it over. ([Step 2B](#step-2b-something-changed))
-4. **Wait for the green check** on your pull request, then merge it. Never merge while it
-   is red. If it is red, read [Is this mine to fix?](#is-this-mine-to-fix)
+4. **Wait for the green check** on your pull request, then merge it. The check runs again
+   after every change you commit, so it can be red while you are halfway. Only the result
+   after your last change counts. Never merge while it is red. If it is still red after
+   your last change, read [Is this mine to fix?](#is-this-mine-to-fix)
 5. **Publish and look.** ([Step 3](#step-3-publish-and-look))
 
 Why the date matters: every page says "Curriculum last reviewed:" with the month and year.
@@ -100,9 +102,9 @@ finished comparing.
    branch** and starts a pull request. Do not commit directly to `main`. Click **Propose
    changes**.
 6. The next page is named "Open a pull request". Three things on it:
-   - **The branch's name.** The first lines say that your change "was written to a new
-     branch named" and then a name, such as `yourname-patch-1`. Write that name down. You
-     need it in a moment.
+   - **The branch's name.** The first lines of the page say that your change
+     "was written to a new branch named" and then a name: your GitHub username followed
+     by `-patch-1`. Write that name down. You need it in a moment.
    - **The title** is already filled in. Leave it.
    - **The description** is a big box that holds a form for developers. Delete everything
      in the box and write one sentence, for example "Yearly review on 2027-11-10: no
@@ -110,15 +112,18 @@ finished comparing.
 
    Then click **Create pull request**.
 
-**The check now starts, and it will go red. That is expected.** The date is changed in one
-of its two places, and PathCheck's tests notice. GitHub may also send you an email saying
-that a run failed. Carry on with the second place.
+**The check now starts. This first time it will not pass, and that is expected:** so far
+the date is changed in only one of its two places. The check turns red, or it stops
+part-way when you commit the second place. GitHub may email you that a run failed or was
+cancelled. Do not look into it. Carry on with the second place. Only the result after
+the second place counts.
 
 ### The second place: the test that states the date
 
 One test states the review date on purpose, so the date cannot change by accident.
 
-1. Go back to the repository's first page. Above the list of files is the branch menu,
+1. Click **Code** at the top of the page. That is the repository's first page. Above the
+   list of files is the branch menu,
    which shows `main`. Open it and choose the branch you just created: the name you
    wrote down.
 2. Open `tests/curriculum.test.ts` and click the pencil button.
@@ -133,10 +138,12 @@ One test states the review date on purpose, so the date cannot change by acciden
 4. Click **Commit changes...**. Choose to commit to the branch you are on: not a new one,
    and not `main`. Click **Commit changes**.
 
-Saving this starts the check again by itself. You do not press anything.
+Clicking **Commit changes** starts the check again by itself. You do not press anything
+else.
 
-Now open your pull request from the **Pull requests** tab and wait for the check. Look at
-the newest result only: the red one from before no longer matters. Go on to
+Now open your pull request from the **Pull requests** tab and wait for the check near the
+bottom of the page. It shows the result for your newest change only, and that is the one
+that counts. If it is red now, something really is wrong. Go on to
 [The check](#the-check).
 
 ## Step 2B: Something changed
@@ -156,7 +163,11 @@ the newest result only: the red one from before no longer matters. Go on to
    The department's B.S. CIS curriculum guide dated 2027 lists XYZ 101 among the Social
    sciences choices. PathCheck's table did not have it.
    ```
-4. Commit it to a new branch, as in Step 2A. Every later edit goes to that same branch.
+4. Commit it to a new branch and open the pull request, as in Step 2A, steps 5 and 6.
+   Write the branch's name down. In the description write one sentence, for example
+   "Curriculum change: XYZ 101 joins the Social sciences choice." The check may be green
+   on this entry alone. Do not merge yet: the change itself is not made. Every later edit
+   goes to that same branch.
 
 ### Then decide whether the change is yours to make
 
@@ -217,13 +228,17 @@ block. There the code has a space, `POS 207`, and the courses of a choice are se
 ` / `. Keep the courses in the same order as in the file: a new course goes last in its
 choice in both. Titles are not in the table, so a title change needs no edit there.
 
-Then add an entry to `sources` and set the review date in its two places, as in Step 2A.
-Commit every edit to the same branch.
+Then add an entry to `sources` and set the review date in its two places, as in Step 2A,
+but commit every edit to the branch you already have. Before each edit, choose that
+branch in the branch menu (Step 2A, the second place, step 1). When you commit, choose to
+commit to the branch you are on, not a new one. The check runs after each edit and is
+often red until the last one. After your last edit, go on to [The check](#the-check).
 
 ## The check
 
 Near the bottom of the pull request's page, a box shows the check. It is named `check` and
-takes a few minutes. It runs again by itself each time you save a change to your branch.
+takes a few minutes. It runs again by itself each time you click **Commit changes** on
+your branch.
 
 - **Green tick:** every test passed. Click **Merge pull request** (or **Squash and
   merge**), then the confirm button. Go to Step 3.
@@ -254,8 +269,6 @@ Search the log for these, in this order. Stop at the first one you find.
    those tests is in [The tests that are yours](#the-tests-that-are-yours), fix what the
    list says. If any other test is named, hand the change over.
 6. **None of these:** hand the change over.
-
-After a fix, the check runs again by itself.
 
 ### The tests that are yours
 
