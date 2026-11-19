@@ -159,6 +159,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-18, F26) "No personal data is stored anywhere" now reads "PathCheck stores no personal data" in `docs/BRIEF.md` §9, in step 4 of F26 in `features.json`, in the two finished sprint files that quoted it (`docs/sprints/F19.md`, `docs/sprints/F22.md`), and in the two rows of this table that quoted it (F19, F22). The old sentence is now written only where the owner's answer of 2026-11-18 itself is quoted. No page of the app had the sentence. | The owner's answer of 2026-11-18: "wherever it appears". The step of a feature is changed on those words of the owner. | Those files. |
 | (2026-11-18, F26) The link at the foot has a name for a screen reader, "Report a mistake, pathcheck.report@gmail.com"; what is shown stays the address alone. On paper the foot shows the address as plain text. This replaces two of the agent's choices in the row above (the name was the address alone; the link was not printed). | The owner's second answers of 2026-11-18 ("Owner answers"). | `REPORT_NAME` in `src/wording.ts`; `foot` in `src/shell.ts`. |
 | (2026-11-18, F26) The agent's choices inside those answers, not the owner's: the name is an `aria-label` on the link (it holds the words shown, so that someone who speaks the address to their device still reaches the link); on paper the address is a line of text at the link's place in the foot, on every page that is printed, and the link itself is still not printed, like every control; the mockups are not changed (they are still screens: nothing is read out or printed differently there). | The simplest way to each answer. | `foot` in `src/shell.ts`. |
+| (2026-11-18, F26) Netlify's "Powered by Netlify" badge stays as Netlify puts it on the public site: in the bottom right corner of every page, over the end of the foot's last line, and in the corner of the printed paper. Nothing in PathCheck is changed for it, and nothing hides it. | The owner's answer of 2026-11-18: "Leave it as it is." The Free plan shows the badge; the brief asks for free plans. | Netlify's setting "Powered by Netlify badge" (a paid plan hides it). |
 
 ## Owner answers
 
@@ -1488,6 +1489,26 @@ What it shows (read by the agent, not owner decisions):
   that was read writes none (the two other lines are Netlify's).
 - Still to hear: the phone (Start and a course without a login; a long press on the
   address offers to copy it).
+### 2026-11-18 — F26, step 8 (the phone); Netlify's badge is left as it is
+
+Two things were put to the owner. "1. The phone, not logged in to Netlify: Does Start
+open, and does one course get its answer on "Check my courses"? When you press and hold
+pathcheck.report@gmail.com at the foot, does the phone offer to copy it?" and "2. The
+badge. It covers "Not affiliated with Alabama State University" at the end of every page
+and cuts into it on paper. Which do you want? Leave room for it (my recommendation) /
+Pay for a plan that hides it / Leave it as it is."
+
+The owner's words: "1. yes. 2. Leave it as it is."
+
+What it decides:
+- **The public site works on the owner's phone without a login**, and a long press on the
+  address offers to copy it. With the computer's part, the owner's check of the public
+  site (step 8) is complete.
+- **Netlify's badge is left as it is.** No room is made for it, no plan is paid for, and
+  PathCheck does not hide it. It covers the end of "Not affiliated with Alabama State
+  University" at the end of a page until a visitor closes it, and it is printed in the
+  corner of the paper. This is the owner's decision, against the agent's recommendation
+  to leave room for it.
 
 ## Open questions to the owner
 
