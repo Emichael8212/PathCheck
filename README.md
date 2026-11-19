@@ -99,7 +99,7 @@ npm run check
 ```
 
 It runs the code checks, all the tests and a build, and then makes sure the built site
-holds no made-up transcript data, nothing of the function (its key names and addresses)
+holds no made up transcript data, nothing of the function (its key names and addresses)
 and no placeholder address.
 
 ## How it is hosted
