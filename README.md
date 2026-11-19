@@ -111,7 +111,7 @@ bot check, applies the limits, and asks Google's Gemini to read it.
 Three settings live in Netlify, and their values are never written in this repository:
 `GEMINI_API_KEY`, `TURNSTILE_SECRET_KEY` and `VITE_TURNSTILE_SITE_KEY`.
 
-Merging a change does not publish it. The owner publishes each new version by hand in
+Merging a change does not publish it. New version by hand in
 Netlify.
 
 ## Where things are
@@ -121,13 +121,9 @@ Netlify.
 | `src/` | The site: the three pages and the rules that decide what counts |
 | `netlify/` | The function that reads a transcript, and the counters behind the limits |
 | `docs/curriculum/provisional-current.json` | The curriculum PathCheck uses |
-| `docs/BRIEF.md` | What PathCheck is meant to be, approved by the owner |
+| `docs/BRIEF.md` | What PathCheck is meant to be |
 | `docs/decision-log.md` | Every decision and every answer of the owner, with its date |
 | `docs/milestones/` | What was checked at each milestone, and what is still open |
 | `tests/` | The tests. Every curriculum rule has to have one |
 | `synthetic/` | The made-up transcripts the tests use |
-| `mockups/` | The owner's approved design as static pages. The site's two fonts are in `mockups/fonts/`, so the folder must stay |
-
-## Licence
-
-MIT. See [LICENSE](LICENSE).
+| `mockups/` | The approved design as static pages. The site's two fonts are in `mockups/fonts/`, so the folder must stay |
