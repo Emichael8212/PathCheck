@@ -3,14 +3,6 @@
 Points raised while building one feature that a later feature's contract must take up.
 Read this before writing a sprint contract; delete a line when its feature has dealt with it.
 
-## For F26 and M3
-- **The owner follows the guide's clicks on GitHub once** (docs/CURRICULUM-HANDOVER.md):
-  the agent cannot rehearse them in a browser. It is a step of the M3 check in the
-  milestone file; the two labels GitHub's documentation does not print (the choice of a
-  new branch in the "Commit changes" box; the lines of the merge box) are confirmed
-  there, with Netlify's "Auto Publishing Locked" and "Publish deploy" as the owner's
-  screenshots of 2026-11-17 showed them. (F25)
-
 ## For F21 (the reader function, M2)
 - **What is kept once real transcripts are read** (F19): the browser keeps the last result
   as the reviewed rows without any passing letter grade (`keptRows` in

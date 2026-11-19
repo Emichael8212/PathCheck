@@ -159,6 +159,7 @@ here by the agent; they are asked and the owner's answer is recorded.
 | (2026-11-18, F26) "No personal data is stored anywhere" now reads "PathCheck stores no personal data" in `docs/BRIEF.md` §9, in step 4 of F26 in `features.json`, in the two finished sprint files that quoted it (`docs/sprints/F19.md`, `docs/sprints/F22.md`), and in the two rows of this table that quoted it (F19, F22). The old sentence is now written only where the owner's answer of 2026-11-18 itself is quoted. No page of the app had the sentence. | The owner's answer of 2026-11-18: "wherever it appears". The step of a feature is changed on those words of the owner. | Those files. |
 | (2026-11-18, F26) The link at the foot has a name for a screen reader, "Report a mistake, pathcheck.report@gmail.com"; what is shown stays the address alone. On paper the foot shows the address as plain text. This replaces two of the agent's choices in the row above (the name was the address alone; the link was not printed). | The owner's second answers of 2026-11-18 ("Owner answers"). | `REPORT_NAME` in `src/wording.ts`; `foot` in `src/shell.ts`. |
 | (2026-11-18, F26) The agent's choices inside those answers, not the owner's: the name is an `aria-label` on the link (it holds the words shown, so that someone who speaks the address to their device still reaches the link); on paper the address is a line of text at the link's place in the foot, on every page that is printed, and the link itself is still not printed, like every control; the mockups are not changed (they are still screens: nothing is read out or printed differently there). | The simplest way to each answer. | `foot` in `src/shell.ts`. |
+| (2026-11-18, F26) Netlify's "Powered by Netlify" badge stays as Netlify puts it on the public site: in the bottom right corner of every page, over the end of the foot's last line, and in the corner of the printed paper. Nothing in PathCheck is changed for it, and nothing hides it. | The owner's answer of 2026-11-18: "Leave it as it is." The Free plan shows the badge; the brief asks for free plans. | Netlify's setting "Powered by Netlify badge" (a paid plan hides it). |
 
 ## Owner answers
 
@@ -1309,6 +1310,231 @@ What it decides:
   summary of "See what I have left" among them.
 - These answers came after pull request #41 was merged. They are a second pull request,
   and the owner's step 2 (build and publish) must be done, or done again, after it.
+
+### 2026-11-18 — F26, step 2: the owner built `main` with the address and published it
+
+The owner's answer is a screenshot of Netlify's page of the deploy. It shows: "Published &
+locked deploy for pathcheck", "Publishing is locked to this deploy.", "Today at 1:20 AM",
+"Production: main@4289729", and the buttons "Open production deploy" and "Unlock to start
+auto publishing".
+
+What it decides:
+- **The published deploy is `main@4289729`**, the merge of pull request #42. It holds the
+  owner's address as the link, its name for a screen reader and the address on paper.
+- **Publishing is still locked**, and the site is still Private.
+
+*Agent's note, not an owner decision:* the agent cannot open the site while it is Private;
+what it serves is read by the agent only after the owner's launch.
+
+### 2026-11-18 — F26, step 3: a report by email reached the mailbox
+
+The owner's answer is a screenshot of the PathCheck mailbox, open on the email. It shows:
+the subject "PathCheck: Check my courses", in the Inbox, sent at 1:25 AM; and the message: "What looks wrong?", "What PathCheck showed:", "No
+transcript added", "Legacy CIS student: No", "MGT 321 — Counts toward CIS — Business core
+(unless you've already passed it or filled this slot)", "FLS 161 — Doesn't count toward
+CIS. Legacy students only.", "B.S. Computer Information Systems, Alabama State
+University", "Curriculum last reviewed: Nov 2026".
+
+What it decides:
+- **The link at the foot of the published site opens an email to the owner's address,
+  filled in with what the page showed, and it arrives.** Check 9 of F26.
+
+*Agent's notes, not owner decisions:*
+- The screenshot shows a notice that the mailbox forwards its mail to another address of
+  the owner's. That address is not recorded here. A student's report is then kept in both
+  mailboxes; `docs/milestones/M3.md` part 3 says so.
+- The sender's address on the screenshot is the owner's own and is not recorded.
+
+### 2026-11-18 — F26, step 4: the owner followed the handover guide once
+
+The owner followed "Step 2A" of `docs/CURRICULUM-HANDOVER.md` on GitHub with the date
+2026-11-18 (pull request #43, on a branch that GitHub named, ending in `-patch-1`; two
+commits). The owner's
+words on the way: "Just completed 1 and 2 what about the description?" (with a
+screenshot of GitHub's page "Open a pull request", whose description box holds the
+repository's form for developers) and "The test failed but what is: " Once you finish
+the second place it runs again by itself."?". At the end, two screenshots: the pull
+request "Closed" with the buttons "Delete branch" and "Reopen pull request", then
+"Closed" with "Restore branch".
+
+What it shows (read by the agent from GitHub, not owner decisions):
+- The check failed on the first commit with one test, "carries the last-reviewed date"
+  (expected '2026-11-15'), and passed on the second commit.
+- The pull request is closed and not merged; its branch is deleted; `lastReviewed` on
+  `main` is still 2026-11-15.
+- **Three things the guide did not say**, which stopped the owner: what to do with the
+  description box of "Open a pull request"; that GitHub names the new branch (a name
+  ending in `-patch-1`), which is the branch to choose for the second place; and that
+  the check is red until the second place is changed, then runs again by itself. The
+  guide is corrected for them (check 10 of F26).
+
+Asked whether, apart from these three, every button and choice was named as the guide
+writes it (the pencil button "Edit file", "Commit changes...", the choice of a new
+branch, "Propose changes", "Create pull request"), the owner answered: "every button and
+choice named as the guide writes it".
+
+What it decides:
+- **The guide's GitHub labels are confirmed by the owner**, for Step 2A up to the green
+  check. Not walked: the merge box (the owner closed the pull request instead, as
+  asked), and the guide's Step 3 on Netlify, whose labels are those of the owner's own
+  screenshots.
+
+### 2026-11-18 — F26, step 5 (first part): "Check my courses" on the published site, and an empty Console
+
+The owner's answer is a screenshot of `https://pathcheck.netlify.app` (still Private) on a
+computer, with the browser's Console open beside it. It shows "Check my courses" with
+"Transcript added"; "9 Total credits", "3 Count toward CIS", "6 Don't count"; "3 of these 9
+credits count. To finish by Spring 2029, you need about 17 counting credits a term.";
+"Term for these courses: Spring 2027", "Target semester: Spring 2029"; "Credits only —
+course order may add semesters."; MGT 321 "Counts toward CIS — Business core"; BIO 230
+"Doesn't count toward CIS — not in the CIS curriculum"; FLS 161 "Doesn't count toward CIS.
+Legacy students only." The Console is filtered with `-url:challenges.cloudflare.com` and
+shows no line.
+
+What it shows (read by the agent, not owner decisions):
+- The made-up transcript was read on the published site (the page says "Transcript
+  added", and MGT 321 has no "unless …"), and the answers and the pace line are those of
+  the M2 check.
+- No line in the Console from PathCheck's own files.
+- Not yet reported: the print preview with the address at its foot; the phone.
+
+Later the same day, asked whether the print preview of the result shows the address at
+its foot as ordinary text, the owner answered: "pathcheck.report@gmail.com shows as
+ordinary text, not underlined." Check 1d of F26, on the published site.
+
+On the phone the owner used their own transcript and reported what "Check my courses"
+said of two courses: for one they have passed, "You already passed this"; for one they
+have not, "Counts toward CIS — Business core"; "which are all correct". So on the phone
+an upload was read and the first flow answers with it. Which courses they were is not
+recorded: nothing of the owner's transcript is.
+
+What it decides:
+- **The owner's final check on the private site is made** (step 5), on a computer and on
+  a phone, and the owner found the answers correct.
+
+### 2026-11-18 — F26, step 6 (first part): Netlify has a separate setting for the previews
+
+The owner's answer is a screenshot of Netlify, "Project configuration" > "General" >
+"Visitor access", with nothing changed. Under "Project visibility" it shows: "Set the
+visibility for this project. A private project is visible only to your team until it goes
+live.", "Production visibility: Private", "Deploy Preview visibility: Private", and the
+button "Edit visibility". Below it, "Powered by Netlify badge": "A small badge on your
+public project's pages, inviting visitors to build their own project on Netlify.", "This
+feature is available on paid plans", "Upgrade your team's plan to hide the badge on this
+project.", "The badge is shown on this project."
+
+What it shows (read by the agent, not owner decisions):
+- **The visibility of the real site and of the previews are two settings.** The first of
+  the four ways to close the previews (`docs/milestones/M3.md` part 2) looks possible on
+  the Free plan: the real site Public, the previews Private. Whether the form lets it be
+  saved is seen when the owner opens "Edit visibility".
+- **A "Powered by Netlify" badge is shown on a public project's pages on the Free plan**,
+  and hiding it needs a paid plan. It is not in the owner's design and cannot be seen
+  before the launch. Told to the owner before the launch; looked at on the public site
+  at 1440 and 375 wide after it.
+
+### 2026-11-18 — F26, steps 6 and 7: the previews stay private, and the owner made the site public
+
+The owner opened "Edit visibility" and wrote, with a screenshot of the form: "It won't let
+me set it to private. Either both are private or public". The form on the screenshot:
+"Visibility:" with "Your team's default visibility" ("Currently, this means production and
+Deploy Previews are private") and "Customize this project's visibility" with "Public"
+("Anyone can visit your project.") and "Private" ("Only members of your team can access
+your project — they sign in with their Netlify team login."); and "Applies to:" with
+"Production and previews" and "Previews only" ("Anyone can visit the production version;
+your visibility setting applies to Deploy Previews"). The agent pointed to "Private"
+with "Previews only". The owner's next screenshot shows the saved setting: "Production
+visibility: Public", "Deploy Preview visibility: Private".
+
+What it decides:
+- **The owner made the site public** (the launch, step 7). It was the owner's own act.
+- **The previews stay private** (step 6, the first of the four ways): the owner set out to
+  keep them private, and the saved setting says so. On Netlify's Free plan this is
+  "Customize this project's visibility" > "Private" > "Applies to: Previews only".
+
+What the agent then read on the public site (plain reads; no file chosen, nothing sent;
+not owner decisions):
+- `https://pathcheck.netlify.app/` answers 200 without a login (before the launch: 401).
+- The page names one script and one stylesheet. In them: the owner's address once; the
+  name for a screen reader once; the review date; no placeholder address; none of the six
+  pieces of the server that `scripts/check-build.mjs` looks for.
+- Two previews (`deploy-preview-44--pathcheck.netlify.app`, `deploy-preview-42--…`)
+  answer 401, "Login Redirect", and so does the function's address on a preview
+  (`/api/read-transcript`, read with a plain GET the same day). So the previews cannot
+  be used to spend the month's limit.
+- In a browser, at 1440 and 375 wide, on the three pages: the foot and the link are as
+  built; "Check my courses" answers MGT 321; no line in the Console; no cookie; the only
+  thing stored is `pathcheck.visit`; every request went to `pathcheck.netlify.app`.
+- **Netlify adds its "Powered by Netlify" badge to every page** (a script from the site's
+  own address, `/.netlify/scripts/hud`, which draws a frame fixed to the bottom right
+  corner, 202 by 64, above everything). It has a button named "Close" and a link to Netlify. At
+  the end of every page it lies over "Not affiliated with Alabama State University", at
+  both widths. On paper it is printed too, in the corner of the foot, and cuts into that
+  line. It sets no cookie and stores nothing: not when the page opens, not after "Close" is
+  pressed, not after the page is opened again (read again the same day). Pressed in the
+  agent's browser, "Close" left the badge where it was; whether a visitor can get rid of
+  it is not known. The owner had been told "A visitor can close it" before deciding;
+  that was not checked then, and the owner is told so. It is on the Free plan's public pages
+  only; hiding it is a paid feature. Put to the owner, with ways to deal with it.
+
+### 2026-11-18 — F26, step 8 (the computer): the public site works, and the fourth upload is refused
+
+Asked seven points about the public site, the owner answered for the computer: "step 1 to
+5 from earlier is all yes." The five points, as they were put: Start opened without a
+Netlify login; "Check my courses" gave MGT 321 its answer; `sample-a.pdf` gave 81 credits
+left and "On pace for Spring 2029"; the fourth upload of the day was refused with "Upload
+isn't available right now — try again tomorrow"; the address at the foot opened an email
+to `pathcheck.report@gmail.com`.
+
+With it, two screenshots of Netlify:
+- The traffic page ("Observability", Production, the last hour): `read-transcript`, 5
+  requests, 1 error.
+- The function's log: two calls with Netlify's own line of duration and memory; then
+  "ERROR read-transcript: refused (day-limit)" at 09:06:48 PM, and Netlify's line for that
+  call. Nothing else.
+
+What it shows (read by the agent, not owner decisions):
+- **The limits hold on the public site:** the upload over the day's three is refused, and
+  the log says why in the function's own fixed words (`refused(…, 'day-limit')` in
+  `netlify/functions/read-transcript.mts`).
+- **Nothing of a transcript is in the log:** a refusal writes one fixed line; an upload
+  that was read writes none (the two other lines are Netlify's).
+- Still to hear: the phone (Start and a course without a login; a long press on the
+  address offers to copy it).
+
+### 2026-11-18 — F26, step 8 (the phone); Netlify's badge is left as it is
+
+Two things were put to the owner. "1. The phone, not logged in to Netlify: Does Start
+open, and does one course get its answer on "Check my courses"? When you press and hold
+pathcheck.report@gmail.com at the foot, does the phone offer to copy it?" and "2. The
+badge. It covers "Not affiliated with Alabama State University" at the end of every page
+and cuts into it on paper. Which do you want? Leave room for it (my recommendation) /
+Pay for a plan that hides it / Leave it as it is."
+
+The owner's words: "1. yes. 2. Leave it as it is."
+
+What it decides:
+- **The public site works on the owner's phone without a login**, and a long press on the
+  address offers to copy it. With the computer's part, the owner's check of the public
+  site (step 8) is complete.
+- **Netlify's badge is left as it is.** No room is made for it, no plan is paid for, and
+  PathCheck does not hide it. It covers the end of "Not affiliated with Alabama State
+  University" at the end of a page until a visitor closes it, and it is printed in the
+  corner of the paper. This is the owner's decision, against the agent's recommendation
+  to leave room for it.
+
+### 2026-11-18 — F26, step 8: the second flow on the phone, on the public site
+
+QA found that the phone's part of step 8 had not asked for the second flow. The owner was
+asked: on the phone, not logged in to Netlify, "See what I have left", "Browse files",
+sample-a.pdf, "Continue": "Does the result show 81 credits left and "On pace for Spring
+2029"?"
+
+The owner's words: "the result show 81 credits left and "On pace for Spring 2029"".
+
+What it decides:
+- **Both flows work on the public address on the owner's phone without a login**, as they
+  do on the computer. Check 5 of F26, the owner's part.
 
 ## Open questions to the owner
 
