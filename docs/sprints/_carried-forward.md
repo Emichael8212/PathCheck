@@ -26,10 +26,14 @@ for whoever changes PathCheck next.
 - A row that still needs fixing is kept in the browser as it was read, title included. If
   a transcript ever makes the reader return a header line (a name, an ID) as a row with a
   faulty code, that text stays in the browser's storage until the row is fixed, left out
-  or cleared. Not seen on the owner's transcript: on 2026-11-17 every row was a course.
-  (F19 code review)
+  or cleared. Not seen on the owner's transcript: on 2026-11-17 no row asked to be fixed
+  (M2, step 6). (F19 code review)
 - A correction whose prefix reads like a totals line and whose number is empty is thrown
   away like a totals line, and the row cannot be brought back. Rare. (F11 review)
+- "Browse files" opens the picker through a file control that is not in the page
+  (`browse` in `src/app.ts`). It worked on the owner's phone on 2026-11-17 (M2, step 7);
+  which phone was not recorded. If a phone's picker ever does not open, put the control
+  in the page, hidden. (F11 review)
 - The major dropdown shows its first program in the visible label and has no change
   handler: enough for one major. A second major needs both. (F06 review)
 
@@ -41,9 +45,11 @@ for whoever changes PathCheck next.
   Anything with a timer must stop when the student leaves its page, as the demo does.
   (F06)
 - Redrawing a whole page loses what the student is typing. Redraw only the part that
-  changed, or keep the field out of the redrawn part. The transcript page (F11) is drawn
-  again as a whole: it reads what is typed in the open edit into `LeftState.draft` first,
+  changed, or keep the field out of the redrawn part. The review step ("Check what was
+  read") is drawn again as a whole: it reads what is typed in the open edit into `LeftState.draft` first,
   and says what happened in `#pathcheck-status`, a line beside the page.
 - The app stops the browser from opening a dropped file, on every page (`startApp`); it
   looks only at the kind of thing dragged, and leaves dragged text alone. A file is taken
-  only on a drop zone (`[data-drop]`); elsewhere the drag shows "not here". (F06, F11)
+  only on a drop zone (`[data-drop]`); elsewhere the drag shows "not here", except while a
+  transcript is under review, when a drop anywhere says to use "Use another transcript"
+  first. (F06, F11)
