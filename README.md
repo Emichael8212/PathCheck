@@ -111,8 +111,7 @@ bot check, applies the limits, and asks Google's Gemini to read it.
 Three settings live in Netlify, and their values are never written in this repository:
 `GEMINI_API_KEY`, `TURNSTILE_SECRET_KEY` and `VITE_TURNSTILE_SITE_KEY`.
 
-Merging a change does not publish it. New version by hand in
-Netlify.
+"Each new version is published by hand in Netlify.
 
 ## Where things are
 
