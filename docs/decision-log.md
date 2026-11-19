@@ -1554,6 +1554,33 @@ What it decides:
   still open from M2 (`docs/milestones/M2.md` part 4). Nothing of them is decided by
   this answer.
 
+### 2026-11-18 — Four answers to what M2 left open; four items wait for a real case
+
+Asked which decisions would close what is still open from M2, the owner was given four
+questions that can be decided now and four that cannot yet. The owner's words:
+
+"1. "Keep the one sentence"
+2. "Leave it"
+3. "Both approved"
+4. "Approved as built"
+Items 5 to 8 stay listed in docs/milestones/M2.md until a real case arrives."
+
+What it decides:
+- **1. The one sentence stays.** "Upload isn't available right now — try again tomorrow"
+  is said for every reason a transcript cannot be read that is not the student's, also
+  where tomorrow may not be the answer (a short outage at Google; the bot check not
+  passing; a student's own blocker stopping Cloudflare's script).
+- **2. The privacy sentence stays as it is:** "Google reads your PDF and may keep it
+  briefly. Your result stays in this browser." It does not name Cloudflare.
+- **3. Two sentences of the agent's are approved:** "Reading your transcript…" (F21) and
+  "One more step: tick the box at the bottom of the window." (F22).
+- **4. The review step's screen, "Check what was read", is approved as built** (F11). It
+  had no design of the owner's; the question had been open since 2026-11-16.
+- **Items 5 to 8 stay listed** in `docs/milestones/M2.md` part 4 until a real case
+  arrives: how a summer, winter or mini-term is printed; how transfer credit is printed;
+  whether a grade "P" or "Passed" counts (an academic rule, the owner's when a transcript
+  shows one); and seeing the $5 stop and Cloudflare's tick box with the real services.
+
 ## Open questions to the owner
 
 These are questions, not answers. The rule each one mentions is the agent's cautious
@@ -1564,8 +1591,7 @@ stand-in until the owner answers; it is not an owner decision.
   with rows to correct). It was built from the design's own pieces, and its layout and
   words are the agent's. The owner was told in chat on 2026-11-16 before it was built, and
   it is listed in F11's pull request. Does the owner want to change it, or design it?
-  Status: no reply yet. M1 was approved on 2026-11-16 without an answer to this; it stays
-  open.
+  Answered on 2026-11-18: "Approved as built" (see "Owner answers").
 - **2026-11-16 (for M2).** The other questions without an answer are listed in
   `docs/milestones/M1.md` part 3, "Questions without an answer". Four of them need the
   owner's real transcript at M2: how a summer term is printed; what the grade column
@@ -1573,11 +1599,13 @@ stand-in until the owner answers; it is not an owner decision.
   printed as "Passed" or "P" counts (an academic rule: the owner decides).
   Status, 2026-11-17: the owner's transcript has no summer term, no transfer credit and
   no such grade, so all four stay open; they are listed in `docs/milestones/M2.md`
-  part 4.
+  part 4. The owner, 2026-11-18: they stay listed there "until a real case arrives".
 - **2026-11-16 (F21).** The privacy sentence once the PDF goes to Google Gemini. Answered
   on 2026-11-17 (see "Owner answers").
 
-Nothing else is open. (Answered on 2026-11-16, see "Owner answers": the grade column of transfer
+Nothing else is open. (Answered on 2026-11-18, see "Owner answers": the one sentence for
+an upload that cannot be read; the privacy sentence and Cloudflare; two sentences of the
+agent's. Answered on 2026-11-16, see "Owner answers": the grade column of transfer
 rows; whether CIS 304 and CIS 415 count; the credits of a course PathCheck doesn't know;
 F08 step 5; the new F09 step; the last-reviewed line; the semester in the heading of
 "Check my courses"; and the three F08 questions.)
