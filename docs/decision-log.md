@@ -1510,6 +1510,18 @@ What it decides:
   University" at the end of a page until a visitor closes it, and it is printed in the
   corner of the paper. This is the owner's decision, against the agent's recommendation
   to leave room for it.
+### 2026-11-18 — F26, step 8: the second flow on the phone, on the public site
+
+QA found that the phone's part of step 8 had not asked for the second flow. The owner was
+asked: on the phone, not logged in to Netlify, "See what I have left", "Browse files",
+sample-a.pdf, "Continue": "Does the result show 81 credits left and "On pace for Spring
+2029"?"
+
+The owner's words: "the result show 81 credits left and "On pace for Spring 2029"".
+
+What it decides:
+- **Both flows work on the public address on the owner's phone without a login**, as they
+  do on the computer. Check 5 of F26, the owner's part.
 
 ## Open questions to the owner
 
