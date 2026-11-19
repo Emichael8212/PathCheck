@@ -99,7 +99,7 @@ npm run check
 ```
 
 It runs the code checks, all the tests and a build, and then makes sure the built site
-holds no made-up transcript data, nothing of the function (its key names and addresses)
+holds no made up transcript data, nothing of the function (its key names and addresses)
 and no placeholder address.
 
 ## How it is hosted
@@ -111,7 +111,7 @@ bot check, applies the limits, and asks Google's Gemini to read it.
 Three settings live in Netlify, and their values are never written in this repository:
 `GEMINI_API_KEY`, `TURNSTILE_SECRET_KEY` and `VITE_TURNSTILE_SITE_KEY`.
 
-"Each new version is published by hand in Netlify.
+Each new version is published by hand in Netlify.
 
 ## Where things are
 
