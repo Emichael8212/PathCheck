@@ -1395,8 +1395,17 @@ What it shows (read by the agent, not owner decisions):
 
 Later the same day, asked whether the print preview of the result shows the address at
 its foot as ordinary text, the owner answered: "pathcheck.report@gmail.com shows as
-ordinary text, not underlined." Check 1d of F26, on the published site. The phone is
-still to hear.
+ordinary text, not underlined." Check 1d of F26, on the published site.
+
+On the phone the owner used their own transcript and reported what "Check my courses"
+said of two courses: for one they have passed, "You already passed this"; for one they
+have not, "Counts toward CIS — Business core"; "which are all correct". So on the phone
+an upload was read and the first flow answers with it. Which courses they were is not
+recorded: nothing of the owner's transcript is.
+
+What it decides:
+- **The owner's final check on the private site is made** (step 5), on a computer and on
+  a phone, and the owner found the answers correct.
 
 ## Open questions to the owner
 
